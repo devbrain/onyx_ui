@@ -54,9 +54,25 @@ namespace onyxui {
      * @endcode
      */
     template<RectLike TRect, SizeLike TSize>
-    class absolute_layout : layout_strategy <TRect, TSize> {
+    class absolute_layout : public layout_strategy <TRect, TSize> {
+    public:
         using elt_t = ui_element <TRect, TSize>;
 
+        /**
+         * @brief Set the position (and optionally size) for a child element
+         * @param child Pointer to the child element
+         * @param x X coordinate in pixels
+         * @param y Y coordinate in pixels
+         * @param width Width override (-1 to use measured width)
+         * @param height Height override (-1 to use measured height)
+         */
+        void set_position(elt_t* child, int x, int y,
+                          int width = -1, int height = -1) {
+            if (!child) return;
+            m_position_mapping[child] = {x, y, width, height};
+        }
+
+    private:
         /**
          * @struct position_info
          * @brief Position and optional size override for a child element
@@ -69,18 +85,7 @@ namespace onyxui {
         };
 
         /// Maps children to their explicit positions
-        std::unordered_map <elt_t*, position_info> position_mapping;
-
-        /**
-         * @brief Set the position (and optionally size) for a child element
-         * @param child Pointer to the child element
-         * @param x X coordinate in pixels
-         * @param y Y coordinate in pixels
-         * @param width Width override (-1 to use measured width)
-         * @param height Height override (-1 to use measured height)
-         */
-        void set_position(elt_t* child, int x, int y,
-                          int width = -1, int height = -1);
+        std::unordered_map <elt_t*, position_info> m_position_mapping;
 
         /**
          * @brief Calculate bounding box that contains all children
@@ -105,10 +110,6 @@ namespace onyxui {
     // Implementation
     // ===================================================================================================
 
-    template<RectLike TRect, SizeLike TSize>
-    void absolute_layout<TRect, TSize>::set_position(elt_t* child, int x, int y, int width, int height) {
-        position_mapping[child] = {x, y, width, height};
-    }
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     TSize absolute_layout<TRect, TSize>::measure_children(elt_t* parent, int available_width, int available_height) {
@@ -116,47 +117,58 @@ namespace onyxui {
         int max_height = 0;
 
         // Measure all children
-        for (auto& child : parent->children) {
-            if (!child->visible) continue;
+        for (auto& child : parent->children()) {
+            if (!child->is_visible()) continue;
 
-            auto measured = child->measure(available_width, available_height);
+            TSize measured = child->measure(available_width, available_height);
+            int meas_w = size_utils::get_width(measured);
+            int meas_h = size_utils::get_height(measured);
 
-            auto it = position_mapping.find(child.get());
-            if (it != position_mapping.end()) {
+            auto it = m_position_mapping.find(child.get());
+            if (it != m_position_mapping.end()) {
                 const position_info& pos = it->second;
 
-                int child_width = (pos.width > 0) ? pos.width : measured.width;
-                int child_height = (pos.height > 0) ? pos.height : measured.height;
+                int child_width = (pos.width > 0) ? pos.width : meas_w;
+                int child_height = (pos.height > 0) ? pos.height : meas_h;
 
                 max_width = std::max(max_width, pos.x + child_width);
                 max_height = std::max(max_height, pos.y + child_height);
             } else {
-                max_width = std::max(max_width, measured.width);
-                max_height = std::max(max_height, measured.height);
+                max_width = std::max(max_width, meas_w);
+                max_height = std::max(max_height, meas_h);
             }
         }
 
-        return {max_width, max_height};
+        TSize result = {};
+        size_utils::set_size(result, max_width, max_height);
+        return result;
     }
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     void absolute_layout<TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
-        for (auto& child : parent->children) {
-            if (!child->visible) continue;
+        int content_x = rect_utils::get_x(content_area);
+        int content_y = rect_utils::get_y(content_area);
 
-            auto it = position_mapping.find(child.get());
-            position_info pos = (it != position_mapping.end())
+        for (auto& child : parent->children()) {
+            if (!child->is_visible()) continue;
+
+            auto it = m_position_mapping.find(child.get());
+            position_info pos = (it != m_position_mapping.end())
                                     ? it->second
                                     : position_info{0, 0, -1, -1};
 
-            auto measured = child->last_measured_size;
+            const TSize& measured = child->last_measured_size();
+            int meas_w = size_utils::get_width(measured);
+            int meas_h = size_utils::get_height(measured);
 
-            int child_x = content_area.x + pos.x;
-            int child_y = content_area.y + pos.y;
-            int child_width = (pos.width > 0) ? pos.width : measured.width;
-            int child_height = (pos.height > 0) ? pos.height : measured.height;
+            int child_x = content_x + pos.x;
+            int child_y = content_y + pos.y;
+            int child_width = (pos.width > 0) ? pos.width : meas_w;
+            int child_height = (pos.height > 0) ? pos.height : meas_h;
 
-            child->arrange({child_x, child_y, child_width, child_height});
+            TRect child_bounds;
+            rect_utils::set_bounds(child_bounds, child_x, child_y, child_width, child_height);
+            child->arrange(child_bounds);
         }
     }
 }
