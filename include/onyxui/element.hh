@@ -99,6 +99,9 @@ namespace onyxui {
             using ui_element_ptr = std::unique_ptr <ui_element>;  ///< Smart pointer for owned children
             using layout_strategy_ptr = std::unique_ptr <layout_strategy <TRect, TSize>>;  ///< Smart pointer for layout
 
+            // Grant access to layout strategies for protected members
+            friend class layout_strategy<TRect, TSize>;
+
         public:
             /**
              * @brief Construct a UI element

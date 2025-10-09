@@ -340,7 +340,7 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             // Skip if already assigned
-            if (m_cell_mapping.find(child.get()) != m_cell_mapping.end()) {
+            if (m_cell_mapping.contains(child.get())) {
                 continue;
             }
 
