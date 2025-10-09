@@ -140,9 +140,24 @@ namespace onyxui {
             return result;
         }
 
+        // First, count visible children to calculate correct spacing
+        int visible_count = 0;
+        for (const auto& child : children) {
+            if (child->is_visible()) {
+                visible_count++;
+            }
+        }
+
+        // If no visible children, return zero size
+        if (visible_count == 0) {
+            TSize result = {};
+            size_utils::set_size(result, 0, 0);
+            return result;
+        }
+
         int total_width = 0;
         int total_height = 0;
-        int total_spacing = m_spacing * (children.size() - 1);
+        int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
 
         if (m_layout_direction == direction::vertical) {
             // Vertical layout: stack children vertically

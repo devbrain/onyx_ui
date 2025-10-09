@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <set>
 #include <onyxui/layout_strategy.hh>
 
 namespace onyxui {
@@ -188,6 +189,33 @@ namespace onyxui {
          * @param actual_rows Number of rows
          */
         void use_fixed_grid_sizes(int actual_rows);
+
+        /**
+         * @brief Distribute spanning cell sizes across columns/rows
+         * @param parent Parent element
+         *
+         * This implements a two-pass algorithm similar to HTML table layout:
+         * 1. First pass: Size non-spanning cells
+         * 2. Second pass: Distribute spanning cell requirements
+         */
+        void distribute_spanning_sizes(elt_t* parent);
+
+        /**
+         * @brief Calculate which cells are occupied (including by spanning cells)
+         * @return Set of (row, col) pairs that are occupied
+         */
+        std::set<std::pair<int, int>> calculate_occupied_cells() const;
+
+        /**
+         * @brief Find the next free cell starting from given position
+         * @param occupied Set of occupied cells
+         * @param start_row Starting row for search
+         * @param start_col Starting column for search
+         * @return Pair of (row, col) for next free cell
+         */
+        std::pair<int, int> find_next_free_cell(
+            const std::set<std::pair<int, int>>& occupied,
+            int start_row, int start_col) const;
     };
 
     // ==================================================================================================
@@ -333,6 +361,9 @@ namespace onyxui {
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     void grid_layout <TRect, TSize>::auto_assign_cells(elt_t* parent) {
+        // Calculate which cells are already occupied by explicitly positioned cells
+        auto occupied = calculate_occupied_cells();
+
         int current_row = 0;
         int current_col = 0;
 
@@ -344,10 +375,19 @@ namespace onyxui {
                 continue;
             }
 
-            // Auto-assign to next available cell
-            m_cell_mapping[child.get()] = {current_row, current_col, 1, 1};
+            // Find next free cell (accounting for occupied cells)
+            auto [free_row, free_col] = find_next_free_cell(occupied, current_row, current_col);
 
-            current_col++;
+            // Assign child to the free cell
+            m_cell_mapping[child.get()] = {free_row, free_col, 1, 1};
+
+            // Mark this cell as occupied
+            occupied.insert({free_row, free_col});
+
+            // Update current position for next search
+            current_col = free_col + 1;
+            current_row = free_row;
+
             if (current_col >= m_num_columns) {
                 current_col = 0;
                 current_row++;
@@ -381,7 +421,7 @@ namespace onyxui {
         m_column_widths.resize(m_num_columns, 0);
         m_row_heights.resize(actual_rows, 0);
 
-        // Measure all children
+        // First pass: Measure non-spanning cells
         for (auto& child : parent->children()) {
             if (!child->is_visible()) continue;
 
@@ -390,22 +430,29 @@ namespace onyxui {
 
             const grid_cell_info& cell = it->second;
 
-            // Measure child with unconstrained size
-            TSize measured = child->measure(available_width, available_height);
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            // Only process single-span cells in first pass
+            if (cell.column_span == 1 || cell.row_span == 1) {
+                // Measure child with unconstrained size
+                TSize measured = child->measure(available_width, available_height);
+                int meas_w = size_utils::get_width(measured);
+                int meas_h = size_utils::get_height(measured);
 
-            // Update column/row sizes (simple distribution for spans)
-            if (cell.column_span == 1) {
-                m_column_widths[cell.column] =
-                    std::max(m_column_widths[cell.column], meas_w);
-            }
+                // Update column sizes for single-column spans
+                if (cell.column_span == 1) {
+                    m_column_widths[cell.column] =
+                        std::max(m_column_widths[cell.column], meas_w);
+                }
 
-            if (cell.row_span == 1) {
-                m_row_heights[cell.row] =
-                    std::max(m_row_heights[cell.row], meas_h);
+                // Update row sizes for single-row spans
+                if (cell.row_span == 1) {
+                    m_row_heights[cell.row] =
+                        std::max(m_row_heights[cell.row], meas_h);
+                }
             }
         }
+
+        // Second pass: Handle spanning cells
+        distribute_spanning_sizes(parent);
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -418,5 +465,154 @@ namespace onyxui {
         if (m_row_heights.empty()) {
             m_row_heights.resize(actual_rows, 100); // Default height
         }
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+    template<RectLike TRect, SizeLike TSize>
+    void grid_layout <TRect, TSize>::distribute_spanning_sizes(elt_t* parent) {
+        // Process spanning cells (cells that span multiple columns or rows)
+        // We need to ensure the spanned columns/rows together are at least as wide/tall
+        // as the spanning cell requires
+
+        // First handle column spanning
+        for (auto& child : parent->children()) {
+            if (!child->is_visible()) continue;
+
+            auto it = m_cell_mapping.find(child.get());
+            if (it == m_cell_mapping.end()) continue;
+
+            const grid_cell_info& cell = it->second;
+
+            // Handle cells that span multiple columns
+            if (cell.column_span > 1) {
+                // Get the child's measured size
+                TSize measured = child->last_measured_size();
+                int required_width = size_utils::get_width(measured);
+
+                // Calculate current total width of spanned columns
+                int current_total = 0;
+                for (int i = 0; i < cell.column_span && (cell.column + i) < m_num_columns; ++i) {
+                    current_total += m_column_widths[cell.column + i];
+                    if (i > 0) {
+                        current_total += m_column_spacing;  // Include spacing between columns
+                    }
+                }
+
+                // If the spanning cell needs more space, distribute it evenly
+                if (required_width > current_total) {
+                    int extra_needed = required_width - current_total;
+                    int columns_to_expand = std::min(cell.column_span,
+                                                    m_num_columns - cell.column);
+
+                    if (columns_to_expand > 0) {
+                        int extra_per_column = extra_needed / columns_to_expand;
+                        int remainder = extra_needed % columns_to_expand;
+
+                        for (int i = 0; i < columns_to_expand; ++i) {
+                            m_column_widths[cell.column + i] += extra_per_column;
+                            // Distribute remainder to first columns
+                            if (i < remainder) {
+                                m_column_widths[cell.column + i] += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Then handle row spanning (same logic)
+        for (auto& child : parent->children()) {
+            if (!child->is_visible()) continue;
+
+            auto it = m_cell_mapping.find(child.get());
+            if (it == m_cell_mapping.end()) continue;
+
+            const grid_cell_info& cell = it->second;
+
+            // Handle cells that span multiple rows
+            if (cell.row_span > 1) {
+                // Get the child's measured size
+                TSize measured = child->last_measured_size();
+                int required_height = size_utils::get_height(measured);
+
+                // Calculate current total height of spanned rows
+                int current_total = 0;
+                int actual_rows = m_row_heights.size();
+                for (int i = 0; i < cell.row_span && (cell.row + i) < actual_rows; ++i) {
+                    current_total += m_row_heights[cell.row + i];
+                    if (i > 0) {
+                        current_total += m_row_spacing;  // Include spacing between rows
+                    }
+                }
+
+                // If the spanning cell needs more space, distribute it evenly
+                if (required_height > current_total) {
+                    int extra_needed = required_height - current_total;
+                    int rows_to_expand = std::min(cell.row_span,
+                                                  actual_rows - cell.row);
+
+                    if (rows_to_expand > 0) {
+                        int extra_per_row = extra_needed / rows_to_expand;
+                        int remainder = extra_needed % rows_to_expand;
+
+                        for (int i = 0; i < rows_to_expand; ++i) {
+                            m_row_heights[cell.row + i] += extra_per_row;
+                            // Distribute remainder to first rows
+                            if (i < remainder) {
+                                m_row_heights[cell.row + i] += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+    template<RectLike TRect, SizeLike TSize>
+    std::set<std::pair<int, int>> grid_layout <TRect, TSize>::calculate_occupied_cells() const {
+        std::set<std::pair<int, int>> occupied;
+
+        // Mark all cells that are occupied by existing cell mappings
+        for (const auto& [child, info] : m_cell_mapping) {
+            // For each mapped cell, mark all cells it spans as occupied
+            for (int r = info.row; r < info.row + info.row_span; ++r) {
+                for (int c = info.column; c < info.column + info.column_span; ++c) {
+                    // Only mark cells that are within grid bounds
+                    if (c < m_num_columns && (m_num_rows < 0 || r < m_num_rows)) {
+                        occupied.insert({r, c});
+                    }
+                }
+            }
+        }
+
+        return occupied;
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+    template<RectLike TRect, SizeLike TSize>
+    std::pair<int, int> grid_layout <TRect, TSize>::find_next_free_cell(
+        const std::set<std::pair<int, int>>& occupied,
+        int start_row, int start_col) const {
+
+        int row = start_row;
+        int col = start_col;
+
+        // Keep searching until we find a free cell
+        while (occupied.count({row, col}) > 0) {
+            col++;
+            if (col >= m_num_columns) {
+                col = 0;
+                row++;
+            }
+
+            // Safety check: prevent infinite loop in degenerate cases
+            // If we've gone past a reasonable limit, just return the position
+            if (row > 1000) {
+                break;
+            }
+        }
+
+        return {row, col};
     }
 }
