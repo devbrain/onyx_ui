@@ -219,7 +219,220 @@ namespace onyxui {
              */
             ui_element* hit_test(int x, int y);
 
+            // -----------------------------------------------------------------------
+            // Public Setters (with side effects)
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Set visibility state
+             * @param visible True to show element, false to hide
+             */
+            void set_visible(bool visible) {
+                if (m_visible != visible) {
+                    m_visible = visible;
+                    invalidate_arrange();
+                }
+            }
+
+            /**
+             * @brief Set enabled state
+             * @param enabled True to enable element, false to disable
+             */
+            void set_enabled(bool enabled) noexcept {
+                m_enabled = enabled;
+            }
+
+            /**
+             * @brief Set layout strategy
+             * @param strategy Unique pointer to layout strategy
+             */
+            void set_layout_strategy(layout_strategy_ptr strategy) {
+                m_layout_strategy = std::move(strategy);
+                invalidate_measure();
+            }
+
+            // -----------------------------------------------------------------------
+            // Public Property Accessors (return references for modification)
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Get width constraint for modification
+             * @return Reference to width constraint
+             * @note Modifying invalidates measure cache
+             */
+            size_constraint& width_constraint() {
+                invalidate_measure();
+                return m_width_constraint;
+            }
+
+            /**
+             * @brief Get height constraint for modification
+             * @return Reference to height constraint
+             * @note Modifying invalidates measure cache
+             */
+            size_constraint& height_constraint() {
+                invalidate_measure();
+                return m_height_constraint;
+            }
+
+            /**
+             * @brief Get horizontal alignment for modification
+             * @return Reference to horizontal alignment
+             * @note Modifying invalidates arrange cache
+             */
+            horizontal_alignment& horizontal_align() {
+                invalidate_arrange();
+                return m_h_align;
+            }
+
+            /**
+             * @brief Get vertical alignment for modification
+             * @return Reference to vertical alignment
+             * @note Modifying invalidates arrange cache
+             */
+            vertical_alignment& vertical_align() {
+                invalidate_arrange();
+                return m_v_align;
+            }
+
+            /**
+             * @brief Get margin for modification
+             * @return Reference to margin
+             * @note Modifying invalidates measure cache
+             */
+            thickness& get_margin() {
+                invalidate_measure();
+                return m_margin;
+            }
+
+            /**
+             * @brief Get padding for modification
+             * @return Reference to padding
+             * @note Modifying invalidates measure cache
+             */
+            thickness& get_padding() {
+                invalidate_measure();
+                return m_padding;
+            }
+
+            /**
+             * @brief Get z-index for modification
+             * @return Reference to z-index
+             * @note Modifying invalidates arrange cache
+             */
+            int& z_order() {
+                invalidate_arrange();
+                return m_z_index;
+            }
+
+            // -----------------------------------------------------------------------
+            // Public Const Accessors
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Get element bounds
+             * @return Const reference to bounds
+             */
+            const TRect& bounds() const noexcept { return m_bounds; }
+
+            /**
+             * @brief Check if element is visible
+             * @return True if visible, false otherwise
+             */
+            bool is_visible() const noexcept { return m_visible; }
+
+            /**
+             * @brief Check if element is enabled
+             * @return True if enabled, false otherwise
+             */
+            bool is_enabled() const noexcept { return m_enabled; }
+
+            /**
+             * @brief Get width constraint (const)
+             * @return Const reference to width constraint
+             */
+            const size_constraint& width_constraint() const noexcept { return m_width_constraint; }
+
+            /**
+             * @brief Get height constraint (const)
+             * @return Const reference to height constraint
+             */
+            const size_constraint& height_constraint() const noexcept { return m_height_constraint; }
+
+            /**
+             * @brief Get horizontal alignment (const)
+             * @return Horizontal alignment value
+             */
+            horizontal_alignment horizontal_align() const noexcept { return m_h_align; }
+
+            /**
+             * @brief Get vertical alignment (const)
+             * @return Vertical alignment value
+             */
+            vertical_alignment vertical_align() const noexcept { return m_v_align; }
+
+            /**
+             * @brief Get margin (const)
+             * @return Const reference to margin
+             */
+            const thickness& get_margin() const noexcept { return m_margin; }
+
+            /**
+             * @brief Get padding (const)
+             * @return Const reference to padding
+             */
+            const thickness& get_padding() const noexcept { return m_padding; }
+
+            /**
+             * @brief Get z-index (const)
+             * @return Z-index value
+             */
+            int z_order() const noexcept { return m_z_index; }
+
         protected:
+            // -----------------------------------------------------------------------
+            // Protected Interface for Layout Strategies
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Get children container (for layout strategies)
+             * @return Const reference to children vector
+             */
+            const std::vector<ui_element_ptr>& children() const noexcept { return m_children; }
+
+            /**
+             * @brief Get last measured size (for layout strategies)
+             * @return Const reference to last measured size
+             */
+            const TSize& last_measured_size() const noexcept { return m_last_measured_size; }
+
+            /**
+             * @brief Get horizontal alignment (for layout strategies)
+             * @return Horizontal alignment value
+             */
+            horizontal_alignment h_align() const noexcept { return m_h_align; }
+
+            /**
+             * @brief Get vertical alignment (for layout strategies)
+             * @return Vertical alignment value
+             */
+            vertical_alignment v_align() const noexcept { return m_v_align; }
+
+            /**
+             * @brief Get width constraint (for layout strategies)
+             * @return Const reference to width constraint
+             */
+            const size_constraint& w_constraint() const noexcept { return m_width_constraint; }
+
+            /**
+             * @brief Get height constraint (for layout strategies)
+             * @return Const reference to height constraint
+             */
+            const size_constraint& h_constraint() const noexcept { return m_height_constraint; }
+
+            // -----------------------------------------------------------------------
+            // Protected Virtual Methods for Customization
+            // -----------------------------------------------------------------------
             /**
              * @brief Override to provide custom measurement logic
              *
@@ -308,16 +521,16 @@ namespace onyxui {
             size_constraint m_height_constraint;
 
             /// Horizontal alignment within allocated space
-            horizontal_alignment h_align = horizontal_alignment::stretch;
+            horizontal_alignment m_h_align = horizontal_alignment::stretch;
 
             /// Vertical alignment within allocated space
-            vertical_alignment v_align = vertical_alignment::stretch;
+            vertical_alignment m_v_align = vertical_alignment::stretch;
 
             /// External spacing (pushes away from neighbors)
-            thickness margin = {0, 0, 0, 0};
+            thickness m_margin = {0, 0, 0, 0};
 
             /// Internal spacing (pushes children inward)
-            thickness padding = {0, 0, 0, 0};
+            thickness m_padding = {0, 0, 0, 0};
     };
 
     // ===============================================================================
@@ -398,7 +611,6 @@ namespace onyxui {
     template<RectLike TRect, SizeLike TSize>
     TSize ui_element <TRect, TSize>::measure(int available_width, int available_height) {
         // Check cache
-        // Check cache
         if (measure_state == layout_state::valid &&
             m_last_available_width == available_width &&
             m_last_available_height == available_height) {
@@ -406,15 +618,15 @@ namespace onyxui {
         }
 
         // Account for margin
-        int content_width = available_width - margin.horizontal();
-        int content_height = available_height - margin.vertical();
+        int content_width = std::max(0, available_width - m_margin.horizontal());
+        int content_height = std::max(0, available_height - m_margin.vertical());
 
         // Measure content
         TSize measured = do_measure(content_width, content_height);
 
         // Add margin back
-        int meas_w = size_utils::get_width(measured) + margin.horizontal();
-        int meas_h = size_utils::get_height(measured) + margin.vertical();
+        int meas_w = size_utils::get_width(measured) + m_margin.horizontal();
+        int meas_h = size_utils::get_height(measured) + m_margin.vertical();
 
         // Apply constraints
         meas_w = m_width_constraint.clamp(meas_w);
@@ -442,10 +654,10 @@ namespace onyxui {
 
         // Calculate content area (exclude margin and padding)
         TRect content_area;
-        int x = rect_utils::get_x(final_bounds) + margin.left + padding.left;
-        int y = rect_utils::get_y(final_bounds) + margin.top + padding.top;
-        int w = rect_utils::get_width(final_bounds) - margin.horizontal() - padding.horizontal();
-        int h = rect_utils::get_height(final_bounds) - margin.vertical() - padding.vertical();
+        int x = rect_utils::get_x(final_bounds) + m_margin.left + m_padding.left;
+        int y = rect_utils::get_y(final_bounds) + m_margin.top + m_padding.top;
+        int w = std::max(0, rect_utils::get_width(final_bounds) - m_margin.horizontal() - m_padding.horizontal());
+        int h = std::max(0, rect_utils::get_height(final_bounds) - m_margin.vertical() - m_padding.vertical());
         rect_utils::set_bounds(content_area, x, y, w, h);
 
         do_arrange(content_area);
@@ -460,7 +672,7 @@ namespace onyxui {
     void ui_element<TRect, TSize>::sort_children_by_z_index() {
         std::stable_sort(m_children.begin(), m_children.end(),
                          [](const ui_element_ptr& a, const ui_element_ptr& b) {
-                             return a->z_index < b->z_index;
+                             return a->m_z_index < b->m_z_index;
                          });
     }
 
@@ -478,7 +690,7 @@ namespace onyxui {
     template<RectLike TRect, SizeLike TSize>
     ui_element<TRect, TSize>* ui_element<TRect, TSize>::hit_test(int x, int y) {
         // Not visible or not within bounds
-        if (!m_visible || !m_bounds.contains(x, y)) {
+        if (!m_visible || !rect_utils::contains(m_bounds, x, y)) {
             return nullptr;
         }
 
