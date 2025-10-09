@@ -84,11 +84,15 @@ set(ONYX_UI_PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(onyx_ui INTERFACE
         include/onyxui/concepts.hh
         include/onyxui/element.hh
+        include/onyxui/safe_math.hh
         include/onyxui/layout_strategy.hh
         include/onyxui/layout/linear_layout.hh
         include/onyxui/layout/grid_layout.hh
         include/onyxui/layout/anchor_layout.hh
-        include/onyxui/layout/absolute_layout.hh)
+        include/onyxui/layout/absolute_layout.hh
+        include/onyxui/event_target.hh
+        include/onyxui/events.hh
+)
 
 target_include_directories(onyx_ui INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

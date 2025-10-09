@@ -4,9 +4,39 @@
  * @author igor
  * @date 09/10/2025
  *
+ * @details
  * Grid layout arranges children in a two-dimensional grid with rows and columns,
  * similar to CSS Grid or HTML tables. Supports cell spanning, auto-sizing,
  * fixed sizing, and spacing between cells.
+ *
+ * ## Features
+ * - Fixed or auto-calculated column/row counts
+ * - Cell spanning across multiple rows/columns
+ * - Auto-sizing based on content or fixed dimensions
+ * - Configurable spacing between cells
+ * - Per-element alignment within cells
+ * - Automatic cell assignment with conflict resolution
+ * - Overflow-safe arithmetic for large grids
+ *
+ * ## Performance Characteristics
+ * - Time Complexity: O(n) for measure, O(n) for arrange where n = number of children
+ * - Space Complexity: O(r*c + n) where r = rows, c = columns, n = children
+ * - Recommended limits: Up to 100x100 grid for optimal performance
+ * - Spanning distribution: Two-pass algorithm similar to HTML table layout
+ *
+ * ## Integration with UI Framework
+ *
+ * Grid layout integrates seamlessly with the Onyx UI framework:
+ * - Respects size constraints (min/max/preferred) of child elements
+ * - Honors alignment settings (horizontal and vertical) within cells
+ * - Participates in two-phase layout (measure then arrange)
+ * - Supports visibility toggling (hidden children don't occupy cells)
+ * - Compatible with nested layouts (grids can contain other layouts)
+ *
+ * @see layout_strategy Base class for layout strategies
+ * @see linear_layout For simpler one-dimensional layouts
+ * @see anchor_layout For relative positioning layouts
+ * @see ui_element Base class for UI elements
  */
 
 #pragma once
@@ -15,23 +45,33 @@
 #include <unordered_map>
 #include <set>
 #include <onyxui/layout_strategy.hh>
+#include <onyxui/safe_math.hh>
 
 namespace onyxui {
     /**
      * @struct grid_cell_info
      * @brief Grid position and span information for a child element
+     *
+     * @details
+     * Stores the position and span information for a child element in the grid.
+     * Row and column indices are 0-based. Span values indicate how many cells
+     * the element occupies in each direction (minimum 1).
+     *
+     * @note Cell positions are validated during assignment to ensure they don't
+     * exceed grid bounds when using fixed dimensions.
      */
     struct grid_cell_info {
-        int row = 0;          ///< Row index (0-based)
-        int column = 0;       ///< Column index (0-based)
-        int row_span = 1;     ///< Number of rows to span
-        int column_span = 1;  ///< Number of columns to span
+        int row = 0; ///< Row index (0-based), top row is 0
+        int column = 0; ///< Column index (0-based), leftmost column is 0
+        int row_span = 1; ///< Number of rows to span (minimum 1, maximum 100)
+        int column_span = 1; ///< Number of columns to span (minimum 1, maximum 100)
     };
 
     /**
      * @class grid_layout
      * @brief Layout strategy that arranges children in a 2D grid
      *
+     * @details
      * Grid layout provides a flexible table-like arrangement with support for:
      *
      * - **Fixed column count**: Specify number of columns (rows auto-calculated)
@@ -41,191 +81,402 @@ namespace onyxui {
      * - **Spacing**: Gaps between cells (horizontal and vertical)
      * - **Alignment**: Per-element alignment within cells
      *
-     * ## Auto-Assignment
+     * ## Auto-Assignment Algorithm
      *
      * Children without explicit cell assignments are placed left-to-right,
-     * top-to-bottom automatically, wrapping at `num_columns`.
+     * top-to-bottom automatically, wrapping at `num_columns`. The algorithm:
+     * 1. Scans from current position (initially 0,0)
+     * 2. Skips cells occupied by spanning elements
+     * 3. Places child in first available cell
+     * 4. Updates scan position for next child
      *
      * ## Sizing Modes
      *
      * - **Auto-size** (default): Each column takes width of widest content,
-     *   each row takes height of tallest content
-     * - **Fixed-size**: Use predefined `column_widths` and `row_heights`
+     *   each row takes height of tallest content. Spanning cells distribute
+     *   their size requirements across spanned columns/rows.
+     * - **Fixed-size**: Use predefined `fixed_column_widths` and `fixed_row_heights`
+     *   arrays passed to constructor. If arrays are shorter than needed,
+     *   remaining columns/rows default to 100 pixels.
+     *
+     * ## Edge Cases and Error Handling
+     *
+     * - **Conflicting assignments**: set_cell() validates and returns false on conflict
+     * - **Out-of-bounds spanning**: Spans are clipped to grid boundaries
+     * - **Zero/negative dimensions**: Constructor clamps minimum to 1 column
+     * - **Excessive spanning**: Limited to 100 cells in each direction
+     * - **Integer overflow**: Uses safe_math for dimension calculations
+     * - **Empty grid**: Returns zero size when no children present
+     *
+     * ## Best Practices
+     *
+     * - Keep grids under 100x100 for optimal performance
+     * - Use fixed sizing for predictable layouts
+     * - Minimize spanning cells for simpler calculations
+     * - Set explicit positions for important elements, let others auto-assign
+     * - Use consistent spacing for visual harmony
+     *
+     * ## Thread Safety
+     *
+     * - **Immutable configuration**: All grid parameters are const after construction
+     * - **Mutable state**: Column widths, row heights, and cell mappings are mutable
+     *   for lazy calculation during const measure operations
+     * - **Not thread-safe**: Multiple threads should not call measure/arrange concurrently
+     *   on the same grid instance
+     * - **Parent hierarchy**: Follows same thread safety model as ui_element tree
      *
      * @tparam TRect Rectangle type satisfying RectLike concept
      * @tparam TSize Size type satisfying SizeLike concept
      *
      * @example
      * @code
-     * // Create 3-column grid
-     * auto layout = std::make_unique<grid_layout<SDL_Rect, SDL_Size>>();
-     * layout->num_columns = 3;
-     * layout->column_spacing = 5;
-     * layout->row_spacing = 5;
-     * panel->set_layout_strategy(std::move(layout));
+     * // Create a 3-column auto-sizing grid with spacing
+     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(
+     *     3,    // 3 columns
+     *     -1,   // Auto-calculate rows
+     *     10,   // 10px horizontal spacing
+     *     10,   // 10px vertical spacing
+     *     true  // Auto-size cells
+     * );
+     * parent->set_layout_strategy(std::move(grid));
      *
-     * // Add 9 children (auto-assigned to 3x3 grid)
+     * // Children will be auto-assigned to cells
      * for (int i = 0; i < 9; i++) {
-     *     auto cell = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(panel.get());
-     *     panel->add_child(std::move(cell));
+     *     parent->add_child(create_button(std::to_string(i)));
      * }
+     * @endcode
      *
-     * // Or explicitly position with spanning
-     * layout->set_cell(header.get(), 0, 0, 1, 3);  // Span 3 columns
+     * @example
+     * @code
+     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(4); // 4 columns
+     * parent->set_layout_strategy(grid);
+     *
+     * // Create header that spans all 4 columns
+     * auto header = create_header();
+     * parent->add_child(header);
+     * grid->set_cell(header.get(), 0, 0, 1, 4);  // row 0, col 0, span 1x4
+     *
+     * // Create sidebar that spans 3 rows
+     * auto sidebar = create_sidebar();
+     * parent->add_child(sidebar);
+     * grid->set_cell(sidebar.get(), 1, 0, 3, 1);  // row 1, col 0, span 3x1
+     *
+     * // Remaining children auto-assigned around occupied cells
+     * @endcode
+     *
+     * @example
+     * @code
+     * // Create grid with fixed column widths
+     * std::vector<int> col_widths = {100, 200, 100};  // 3 columns: narrow, wide, narrow
+     * std::vector<int> row_heights = {50, 100, 100, 50};  // 4 rows of different heights
+     *
+     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(
+     *     3,           // 3 columns
+     *     4,           // 4 rows
+     *     5, 5,        // spacing
+     *     false,       // Use fixed sizing
+     *     col_widths,  // Fixed column widths
+     *     row_heights  // Fixed row heights
+     * );
      * @endcode
      */
     template<RectLike TRect, SizeLike TSize>
-    class grid_layout : public layout_strategy <TRect, TSize> {  // PUBLIC inheritance
-    public:
-        using elt_t = ui_element <TRect, TSize>;
+    class grid_layout : public layout_strategy <TRect, TSize> {
+        // PUBLIC inheritance
+        public:
+            using elt_t = ui_element <TRect, TSize>;
 
-        /**
-         * @brief Construct grid layout with immutable configuration
-         * @param num_columns Number of columns in grid
-         * @param num_rows Number of rows (-1 for auto-calculate)
-         * @param column_spacing Horizontal gap between cells
-         * @param row_spacing Vertical gap between cells
-         * @param auto_size If true, size cells from content
-         * @param column_widths Fixed column widths (empty for auto)
-         * @param row_heights Fixed row heights (empty for auto)
-         */
-        explicit grid_layout(
-            int num_columns = 1,
-            int num_rows = -1,
-            int column_spacing = 0,
-            int row_spacing = 0,
-            bool auto_size = true,
-            std::vector<int> column_widths = {},
-            std::vector<int> row_heights = {}
-        )
-            : m_num_columns(num_columns < 1 ? 1 : num_columns)
-            , m_num_rows(num_rows)
-            , m_column_spacing(column_spacing)
-            , m_row_spacing(row_spacing)
-            , m_auto_size_cells(auto_size)
-            , m_column_widths(std::move(column_widths))
-            , m_row_heights(std::move(row_heights))
-        {}
+            /**
+             * @brief Construct grid layout with immutable configuration
+             *
+             * @param num_columns Number of columns in grid (minimum 1, clamped if less)
+             * @param num_rows Number of rows (-1 for auto-calculate based on children)
+             * @param column_spacing Horizontal gap between cells in pixels
+             * @param row_spacing Vertical gap between cells in pixels
+             * @param auto_size If true, size cells from content; if false, use fixed sizes
+             * @param fixed_column_widths Array of fixed column widths in pixels (ignored if auto_size=true).
+             *                            If shorter than num_columns, remaining columns default to 100px
+             * @param fixed_row_heights Array of fixed row heights in pixels (ignored if auto_size=true).
+             *                          If shorter than actual rows, remaining rows default to 100px
+             *
+             * @note All parameters are immutable after construction to ensure thread safety
+             *       and predictable layout behavior.
+             *
+             * @warning If num_columns < 1, it will be clamped to 1. Negative spacing values
+             *          are allowed but may produce overlapping cells.
+             */
+            explicit grid_layout(
+                int num_columns = 1,
+                int num_rows = -1,
+                int column_spacing = 0,
+                int row_spacing = 0,
+                bool auto_size = true,
+                std::vector <int> fixed_column_widths = {},
+                std::vector <int> fixed_row_heights = {}
+            );
 
-        /**
-         * @brief Explicitly assign a child to a grid cell
-         * @param child Pointer to the child element
-         * @param row Row index (0-based)
-         * @param col Column index (0-based)
-         * @param row_span Number of rows to span (default 1)
-         * @param col_span Number of columns to span (default 1)
-         */
-        void set_cell(elt_t* child, int row, int col,
-                      int row_span = 1, int col_span = 1) {
-            if (!child || row < 0 || col < 0 || row_span < 1 || col_span < 1) {
-                return;  // Validation
+            /**
+             * @brief Explicitly assign a child to a grid cell
+             *
+             * Validates all parameters to ensure cell assignment is within bounds.
+             * For fixed row count, validates that row + row_span doesn't exceed it.
+             * Always validates that column + col_span doesn't exceed num_columns.
+             *
+             * @param child Pointer to the child element
+             * @param row Row index (0-based)
+             * @param col Column index (0-based)
+             * @param row_span Number of rows to span (default 1)
+             * @param col_span Number of columns to span (default 1)
+             * @return true if cell was successfully assigned, false if validation failed
+             */
+            bool set_cell(elt_t* child, int row, int col,
+                          int row_span = 1, int col_span = 1);
+
+            /**
+             * @brief Get number of columns
+             * @return Number of columns
+             */
+            int num_columns() const noexcept { return m_num_columns; }
+
+            /**
+             * @brief Get number of rows
+             * @return Number of rows (-1 if auto-calculated)
+             */
+            int num_rows() const noexcept { return m_num_rows; }
+
+        protected:
+            /**
+             * @brief Measure all children and calculate total grid size
+             *
+             * @param parent Parent element whose children to measure
+             * @param available_width Maximum width available for the grid
+             * @param available_height Maximum height available for the grid
+             * @return Total size required by the grid including spacing
+             *
+             * @details
+             * Override of layout_strategy::measure_children. Performs:
+             * 1. Auto-assigns unpositioned children to cells
+             * 2. Calculates actual row count if auto-calculating
+             * 3. Measures all children (auto-size mode) or applies fixed sizes
+             * 4. Calculates total grid dimensions with spacing
+             *
+             * @note This is a const method but modifies mutable layout state
+             */
+            TSize measure_children(const elt_t* parent,
+                                   int available_width,
+                                   int available_height) const override;
+
+            /**
+             * @brief Arrange all children within the content area
+             *
+             * @param parent Parent element whose children to arrange
+             * @param content_area Rectangle defining the area for child arrangement
+             *
+             * @details
+             * Override of layout_strategy::arrange_children. Performs:
+             * 1. Calculates cell positions from column/row sizes
+             * 2. For each child, calculates its cell bounds (including spans)
+             * 3. Applies alignment within cell
+             * 4. Calls child->arrange() with final bounds
+             */
+            void arrange_children(elt_t* parent,
+                                  const TRect& content_area) override;
+
+            /**
+             * @brief Handle child removal notification
+             *
+             * @param child Child that was removed
+             *
+             * @details
+             * Override of layout_strategy::on_child_removed.
+             * Removes the child's cell assignment from mapping.
+             */
+            void on_child_removed(elt_t* child) override {
+                m_cell_mapping.erase(child);
             }
-            m_cell_mapping[child] = {row, col, row_span, col_span};
-        }
 
-        /**
-         * @brief Get number of columns
-         * @return Number of columns
-         */
-        int num_columns() const noexcept { return m_num_columns; }
+            /**
+             * @brief Handle all children cleared notification
+             *
+             * @details
+             * Override of layout_strategy::on_children_cleared.
+             * Clears all cell assignments.
+             */
+            void on_children_cleared() override {
+                m_cell_mapping.clear();
+            }
 
-        /**
-         * @brief Get number of rows
-         * @return Number of rows (-1 if auto-calculated)
-         */
-        int num_rows() const noexcept { return m_num_rows; }
+        private:
+            // Immutable configuration
+            const int m_num_columns; ///< Number of columns (minimum 1)
+            const int m_num_rows; ///< Number of rows (-1 for auto)
+            const int m_column_spacing; ///< Horizontal spacing between cells
+            const int m_row_spacing; ///< Vertical spacing between cells
+            const bool m_auto_size_cells; ///< True to size from content
+            const std::vector <int> m_fixed_column_widths; ///< Fixed column widths (if not auto-sizing)
+            const std::vector <int> m_fixed_row_heights; ///< Fixed row heights (if not auto-sizing)
 
-    private:
-        // Immutable configuration
-        const int m_num_columns;
-        const int m_num_rows;
-        const int m_column_spacing;
-        const int m_row_spacing;
-        const bool m_auto_size_cells;
+            // Calculated sizing state (modified during measure)
+            mutable std::vector <int> m_column_widths; ///< Calculated column widths for current layout
+            mutable std::vector <int> m_row_heights; ///< Calculated row heights for current layout
 
-        // Mutable sizing state (calculated during measure)
-        mutable std::vector<int> m_column_widths;
-        mutable std::vector<int> m_row_heights;
+            // Cell mapping (positional data, not config)
+            mutable std::unordered_map <elt_t*, grid_cell_info> m_cell_mapping; ///< Child to cell position mapping
 
-        // Mutable cell mapping (positional data, not config)
-        std::unordered_map<elt_t*, grid_cell_info> m_cell_mapping;
+            // Private helpers
+            /**
+             * @brief Auto-assign children to cells left-to-right, top-to-bottom
+             *
+             * @param parent Parent element containing children to assign
+             *
+             * @details
+             * Implements a scan-line algorithm that:
+             * 1. Tracks occupied cells from explicitly positioned children
+             * 2. For each unassigned child, finds next free cell
+             * 3. Assigns child to that cell with 1x1 span
+             * 4. Updates occupied cell tracker
+             *
+             * @note Called during measure phase, modifies mutable m_cell_mapping
+             */
+            void auto_assign_cells(const elt_t* parent) const;
 
-        // Private override methods
-        TSize measure_children(elt_t* parent,
-                               int available_width,
-                               int available_height) override;
+            /**
+             * @brief Calculate number of rows needed based on child positions
+             *
+             * @param parent Parent element
+             * @return Number of rows required (minimum 1)
+             *
+             * @details
+             * If m_num_rows is fixed (>0), returns it directly.
+             * Otherwise calculates based on maximum row+span of all children.
+             */
+            int calculate_row_count(const elt_t* parent) const;
 
-        void arrange_children(elt_t* parent,
-                              const TRect& content_area) override;
+            /**
+             * @brief Measure grid with auto-sizing enabled
+             *
+             * @param parent Parent element
+             * @param available_width Maximum width available for layout
+             * @param available_height Maximum height available for layout
+             * @param actual_rows Number of rows in grid
+             *
+             * @details
+             * Implements two-pass measurement:
+             * 1. First pass: Measures non-spanning cells, sets column/row sizes
+             * 2. Second pass: Handles spanning cells via distribute_spanning_sizes()
+             *
+             * @note Updates mutable m_column_widths and m_row_heights arrays
+             */
+            void measure_auto_sized_grid(const elt_t* parent,
+                                         int available_width,
+                                         int available_height,
+                                         int actual_rows) const;
 
-        // Private helpers
-        /**
-         * @brief Auto-assign children to cells left-to-right, top-to-bottom
-         * @param parent Parent element
-         */
-        void auto_assign_cells(elt_t* parent);
+            /**
+             * @brief Apply fixed or default grid sizes
+             *
+             * @param actual_rows Number of rows needed
+             *
+             * @details
+             * Uses m_fixed_column_widths/m_fixed_row_heights if provided,
+             * otherwise defaults to 100px per column/row.
+             */
+            void use_fixed_grid_sizes(int actual_rows) const;
 
-        /**
-         * @brief Calculate number of rows needed
-         * @param parent Parent element
-         * @return Number of rows
-         */
-        int calculate_row_count(elt_t* parent);
+            /**
+             * @brief Distribute spanning cell sizes across columns/rows
+             * @param parent Parent element
+             *
+             * This implements a two-pass algorithm similar to HTML table layout:
+             * 1. First pass: Size non-spanning cells
+             * 2. Second pass: Distribute spanning cell requirements
+             */
+            void distribute_spanning_sizes(const elt_t* parent) const;
 
-        /**
-         * @brief Measure grid with auto-sizing enabled
-         * @param parent Parent element
-         * @param available_width Available width
-         * @param available_height Available height
-         * @param actual_rows Number of rows
-         */
-        void measure_auto_sized_grid(elt_t* parent,
-                                     int available_width,
-                                     int available_height,
-                                     int actual_rows);
+            /**
+             * @brief Calculate which cells are occupied (including by spanning cells)
+             * @return Set of (row, col) pairs that are occupied
+             */
+            std::set <std::pair <int, int>> calculate_occupied_cells() const;
 
-        /**
-         * @brief Use fixed/default grid sizes
-         * @param actual_rows Number of rows
-         */
-        void use_fixed_grid_sizes(int actual_rows);
-
-        /**
-         * @brief Distribute spanning cell sizes across columns/rows
-         * @param parent Parent element
-         *
-         * This implements a two-pass algorithm similar to HTML table layout:
-         * 1. First pass: Size non-spanning cells
-         * 2. Second pass: Distribute spanning cell requirements
-         */
-        void distribute_spanning_sizes(elt_t* parent);
-
-        /**
-         * @brief Calculate which cells are occupied (including by spanning cells)
-         * @return Set of (row, col) pairs that are occupied
-         */
-        std::set<std::pair<int, int>> calculate_occupied_cells() const;
-
-        /**
-         * @brief Find the next free cell starting from given position
-         * @param occupied Set of occupied cells
-         * @param start_row Starting row for search
-         * @param start_col Starting column for search
-         * @return Pair of (row, col) for next free cell
-         */
-        std::pair<int, int> find_next_free_cell(
-            const std::set<std::pair<int, int>>& occupied,
-            int start_row, int start_col) const;
+            /**
+             * @brief Find the next free cell starting from given position
+             * @param occupied Set of occupied cells
+             * @param start_row Starting row for search
+             * @param start_col Starting column for search
+             * @return Pair of (row, col) for next free cell
+             */
+            std::pair <int, int> find_next_free_cell(
+                const std::set <std::pair <int, int>>& occupied,
+                int start_row, int start_col) const;
     };
 
     // ==================================================================================================
     // Implementation
     // ==================================================================================================
 
+    template<RectLike TRect, SizeLike TSize>
+    grid_layout <TRect, TSize>::grid_layout(int num_columns, int num_rows, int column_spacing, int row_spacing,
+                                            bool auto_size, std::vector <int> fixed_column_widths,
+                                            std::vector <int> fixed_row_heights)
+        : m_num_columns(num_columns < 1 ? 1 : num_columns)
+          , m_num_rows(num_rows)
+          , m_column_spacing(column_spacing)
+          , m_row_spacing(row_spacing)
+          , m_auto_size_cells(auto_size)
+          , m_fixed_column_widths(std::move(fixed_column_widths))
+          , m_fixed_row_heights(std::move(fixed_row_heights)) {
+    }
+
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    TSize grid_layout <TRect, TSize>::measure_children(elt_t* parent, int available_width, int available_height) {
-        if (parent->children().empty()) {
+    bool grid_layout <TRect, TSize>::set_cell(elt_t* child, int row, int col, int row_span, int col_span) {
+        // Null pointer check
+        if (!child) {
+            return false;
+        }
+
+        // Basic parameter validation
+        if (row < 0 || col < 0 || row_span < 1 || col_span < 1) {
+            return false;
+        }
+
+        // Column bounds check
+        if (col >= m_num_columns) {
+            return false; // Column index out of bounds
+        }
+
+        if (col + col_span > m_num_columns) {
+            return false; // Column span exceeds grid width
+        }
+
+        // Row bounds check (only if fixed row count)
+        if (m_num_rows > 0) {
+            if (row >= m_num_rows) {
+                return false; // Row index out of bounds
+            }
+
+            if (row + row_span > m_num_rows) {
+                return false; // Row span exceeds grid height
+            }
+        }
+
+        // Maximum span sanity check (prevent extreme values)
+        constexpr int MAX_SPAN = 100; // Reasonable maximum
+        if (row_span > MAX_SPAN || col_span > MAX_SPAN) {
+            return false;
+        }
+
+        // All validation passed, assign the cell
+        m_cell_mapping[child] = {row, col, row_span, col_span};
+        return true;
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+    template<RectLike TRect, SizeLike TSize>
+    TSize grid_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+                                                       int available_height) const {
+        if (this->get_children(parent).empty()) {
             TSize result = {};
             size_utils::set_size(result, 0, 0);
             return result;
@@ -246,14 +497,26 @@ namespace onyxui {
             use_fixed_grid_sizes(actual_rows);
         }
 
-        // Calculate total grid size
+        // Calculate total grid size with overflow protection
         int total_width = 0;
-        for (int w : m_column_widths) total_width += w;
-        total_width += m_column_spacing * (m_num_columns - 1);
+        for (int w : m_column_widths) {
+            safe_math::accumulate_safe(total_width, w);
+        }
+        int column_spacing_total = 0;
+        if (m_num_columns > 1) {
+            safe_math::safe_multiply(m_column_spacing, m_num_columns - 1, column_spacing_total);
+        }
+        safe_math::accumulate_safe(total_width, column_spacing_total);
 
         int total_height = 0;
-        for (int h : m_row_heights) total_height += h;
-        total_height += m_row_spacing * (actual_rows - 1);
+        for (int h : m_row_heights) {
+            safe_math::accumulate_safe(total_height, h);
+        }
+        int row_spacing_total = 0;
+        if (actual_rows > 1) {
+            safe_math::safe_multiply(m_row_spacing, actual_rows - 1, row_spacing_total);
+        }
+        safe_math::accumulate_safe(total_height, row_spacing_total);
 
         TSize result = {};
         size_utils::set_size(result, total_width, total_height);
@@ -265,29 +528,29 @@ namespace onyxui {
     void grid_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
         if (parent->children().empty()) return;
 
-        int actual_rows = m_row_heights.size();
+        int actual_rows = static_cast<int>(m_row_heights.size());
 
         // Calculate cell positions
-        std::vector <int> column_positions(m_num_columns);
-        std::vector <int> row_positions(actual_rows);
+        std::vector <int> column_positions(static_cast<size_t>(m_num_columns));
+        std::vector <int> row_positions(static_cast<size_t>(actual_rows));
 
         int content_x = rect_utils::get_x(content_area);
         int content_y = rect_utils::get_y(content_area);
 
         column_positions[0] = content_x;
         for (int i = 1; i < m_num_columns; ++i) {
-            column_positions[i] = column_positions[i - 1] +
-                                  m_column_widths[i - 1] + m_column_spacing;
+            column_positions[static_cast<size_t>(i)] = column_positions[static_cast<size_t>(i - 1)] +
+                                  m_column_widths[static_cast<size_t>(i - 1)] + m_column_spacing;
         }
 
         row_positions[0] = content_y;
         for (int i = 1; i < actual_rows; ++i) {
-            row_positions[i] = row_positions[i - 1] +
-                               m_row_heights[i - 1] + m_row_spacing;
+            row_positions[static_cast<size_t>(i)] = row_positions[static_cast<size_t>(i - 1)] +
+                               m_row_heights[static_cast<size_t>(i - 1)] + m_row_spacing;
         }
 
         // Arrange each child
-        for (auto& child : parent->children()) {
+        for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_cell_mapping.find(child.get());
@@ -296,13 +559,13 @@ namespace onyxui {
             const grid_cell_info& cell = it->second;
 
             // Calculate cell bounds
-            int cell_x = column_positions[cell.column];
-            int cell_y = row_positions[cell.row];
+            int cell_x = column_positions[static_cast<size_t>(cell.column)];
+            int cell_y = row_positions[static_cast<size_t>(cell.row)];
 
             int cell_width = 0;
             for (int i = 0; i < cell.column_span; ++i) {
                 if (cell.column + i < m_num_columns) {
-                    cell_width += m_column_widths[cell.column + i];
+                    cell_width += m_column_widths[static_cast<size_t>(cell.column + i)];
                     if (i < cell.column_span - 1) {
                         cell_width += m_column_spacing;
                     }
@@ -312,7 +575,7 @@ namespace onyxui {
             int cell_height = 0;
             for (int i = 0; i < cell.row_span; ++i) {
                 if (cell.row + i < actual_rows) {
-                    cell_height += m_row_heights[cell.row + i];
+                    cell_height += m_row_heights[static_cast<size_t>(cell.row + i)];
                     if (i < cell.row_span - 1) {
                         cell_height += m_row_spacing;
                     }
@@ -320,7 +583,7 @@ namespace onyxui {
             }
 
             // Apply alignment within cell
-            TSize measured = child->last_measured_size();
+            TSize measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -329,24 +592,24 @@ namespace onyxui {
             int child_x = cell_x;
             int child_y = cell_y;
 
-            if (child->h_align() == horizontal_alignment::stretch) {
+            if (this->get_h_align(child.get()) == horizontal_alignment::stretch) {
                 child_width = cell_width;
             } else {
                 child_width = std::min(meas_w, cell_width);
-                if (child->h_align() == horizontal_alignment::center) {
+                if (this->get_h_align(child.get()) == horizontal_alignment::center) {
                     child_x = cell_x + (cell_width - child_width) / 2;
-                } else if (child->h_align() == horizontal_alignment::right) {
+                } else if (this->get_h_align(child.get()) == horizontal_alignment::right) {
                     child_x = cell_x + cell_width - child_width;
                 }
             }
 
-            if (child->v_align() == vertical_alignment::stretch) {
+            if (this->get_v_align(child.get()) == vertical_alignment::stretch) {
                 child_height = cell_height;
             } else {
                 child_height = std::min(meas_h, cell_height);
-                if (child->v_align() == vertical_alignment::center) {
+                if (this->get_v_align(child.get()) == vertical_alignment::center) {
                     child_y = cell_y + (cell_height - child_height) / 2;
-                } else if (child->v_align() == vertical_alignment::bottom) {
+                } else if (this->get_v_align(child.get()) == vertical_alignment::bottom) {
                     child_y = cell_y + cell_height - child_height;
                 }
             }
@@ -360,18 +623,18 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::auto_assign_cells(elt_t* parent) {
+    void grid_layout <TRect, TSize>::auto_assign_cells(const elt_t* parent) const {
         // Calculate which cells are already occupied by explicitly positioned cells
         auto occupied = calculate_occupied_cells();
 
         int current_row = 0;
         int current_col = 0;
 
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             // Skip if already assigned
-            if (m_cell_mapping.contains(child.get())) {
+            if (m_cell_mapping.find(child.get()) != m_cell_mapping.end()) {
                 continue;
             }
 
@@ -397,11 +660,11 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    int grid_layout <TRect, TSize>::calculate_row_count(elt_t* parent) {
+    int grid_layout <TRect, TSize>::calculate_row_count(const elt_t* parent) const {
         if (m_num_rows > 0) return m_num_rows;
 
         int max_row = 0;
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_cell_mapping.find(child.get());
@@ -416,13 +679,14 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::measure_auto_sized_grid(elt_t* parent, int available_width, int available_height,
-                                                             int actual_rows) {
-        m_column_widths.resize(m_num_columns, 0);
-        m_row_heights.resize(actual_rows, 0);
+    void grid_layout <TRect, TSize>::measure_auto_sized_grid(const elt_t* parent, int available_width,
+                                                             int available_height,
+                                                             int actual_rows) const {
+        m_column_widths.resize(static_cast<size_t>(m_num_columns), 0);
+        m_row_heights.resize(static_cast<size_t>(actual_rows), 0);
 
         // First pass: Measure non-spanning cells
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_cell_mapping.find(child.get());
@@ -439,14 +703,14 @@ namespace onyxui {
 
                 // Update column sizes for single-column spans
                 if (cell.column_span == 1) {
-                    m_column_widths[cell.column] =
-                        std::max(m_column_widths[cell.column], meas_w);
+                    m_column_widths[static_cast<size_t>(cell.column)] =
+                        std::max(m_column_widths[static_cast<size_t>(cell.column)], meas_w);
                 }
 
                 // Update row sizes for single-row spans
                 if (cell.row_span == 1) {
-                    m_row_heights[cell.row] =
-                        std::max(m_row_heights[cell.row], meas_h);
+                    m_row_heights[static_cast<size_t>(cell.row)] =
+                        std::max(m_row_heights[static_cast<size_t>(cell.row)], meas_h);
                 }
             }
         }
@@ -457,25 +721,31 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::use_fixed_grid_sizes(int actual_rows) {
-        if (m_column_widths.empty()) {
-            m_column_widths.resize(m_num_columns, 100); // Default width
+    void grid_layout <TRect, TSize>::use_fixed_grid_sizes(int actual_rows) const {
+        // Use fixed widths if provided, otherwise default
+        if (!m_fixed_column_widths.empty()) {
+            m_column_widths = m_fixed_column_widths;
+        } else {
+            m_column_widths.resize(static_cast<size_t>(m_num_columns), 100); // Default width
         }
 
-        if (m_row_heights.empty()) {
-            m_row_heights.resize(actual_rows, 100); // Default height
+        // Use fixed heights if provided, otherwise default
+        if (!m_fixed_row_heights.empty()) {
+            m_row_heights = m_fixed_row_heights;
+        } else {
+            m_row_heights.resize(static_cast<size_t>(actual_rows), 100); // Default height
         }
     }
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::distribute_spanning_sizes(elt_t* parent) {
+    void grid_layout <TRect, TSize>::distribute_spanning_sizes(const elt_t* parent) const {
         // Process spanning cells (cells that span multiple columns or rows)
         // We need to ensure the spanned columns/rows together are at least as wide/tall
         // as the spanning cell requires
 
         // First handle column spanning
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_cell_mapping.find(child.get());
@@ -486,15 +756,15 @@ namespace onyxui {
             // Handle cells that span multiple columns
             if (cell.column_span > 1) {
                 // Get the child's measured size
-                TSize measured = child->last_measured_size();
+                TSize measured = this->get_last_measured_size(child.get());
                 int required_width = size_utils::get_width(measured);
 
                 // Calculate current total width of spanned columns
                 int current_total = 0;
                 for (int i = 0; i < cell.column_span && (cell.column + i) < m_num_columns; ++i) {
-                    current_total += m_column_widths[cell.column + i];
+                    current_total += m_column_widths[static_cast<size_t>(cell.column + i)];
                     if (i > 0) {
-                        current_total += m_column_spacing;  // Include spacing between columns
+                        current_total += m_column_spacing; // Include spacing between columns
                     }
                 }
 
@@ -502,17 +772,17 @@ namespace onyxui {
                 if (required_width > current_total) {
                     int extra_needed = required_width - current_total;
                     int columns_to_expand = std::min(cell.column_span,
-                                                    m_num_columns - cell.column);
+                                                     m_num_columns - cell.column);
 
                     if (columns_to_expand > 0) {
                         int extra_per_column = extra_needed / columns_to_expand;
                         int remainder = extra_needed % columns_to_expand;
 
                         for (int i = 0; i < columns_to_expand; ++i) {
-                            m_column_widths[cell.column + i] += extra_per_column;
+                            m_column_widths[static_cast<size_t>(cell.column + i)] += extra_per_column;
                             // Distribute remainder to first columns
                             if (i < remainder) {
-                                m_column_widths[cell.column + i] += 1;
+                                m_column_widths[static_cast<size_t>(cell.column + i)] += 1;
                             }
                         }
                     }
@@ -521,7 +791,7 @@ namespace onyxui {
         }
 
         // Then handle row spanning (same logic)
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_cell_mapping.find(child.get());
@@ -532,16 +802,16 @@ namespace onyxui {
             // Handle cells that span multiple rows
             if (cell.row_span > 1) {
                 // Get the child's measured size
-                TSize measured = child->last_measured_size();
+                TSize measured = this->get_last_measured_size(child.get());
                 int required_height = size_utils::get_height(measured);
 
                 // Calculate current total height of spanned rows
                 int current_total = 0;
-                int actual_rows = m_row_heights.size();
+                int actual_rows = static_cast<int>(m_row_heights.size());
                 for (int i = 0; i < cell.row_span && (cell.row + i) < actual_rows; ++i) {
-                    current_total += m_row_heights[cell.row + i];
+                    current_total += m_row_heights[static_cast<size_t>(cell.row + i)];
                     if (i > 0) {
-                        current_total += m_row_spacing;  // Include spacing between rows
+                        current_total += m_row_spacing; // Include spacing between rows
                     }
                 }
 
@@ -556,10 +826,10 @@ namespace onyxui {
                         int remainder = extra_needed % rows_to_expand;
 
                         for (int i = 0; i < rows_to_expand; ++i) {
-                            m_row_heights[cell.row + i] += extra_per_row;
+                            m_row_heights[static_cast<size_t>(cell.row + i)] += extra_per_row;
                             // Distribute remainder to first rows
                             if (i < remainder) {
-                                m_row_heights[cell.row + i] += 1;
+                                m_row_heights[static_cast<size_t>(cell.row + i)] += 1;
                             }
                         }
                     }
@@ -570,8 +840,8 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    std::set<std::pair<int, int>> grid_layout <TRect, TSize>::calculate_occupied_cells() const {
-        std::set<std::pair<int, int>> occupied;
+    std::set <std::pair <int, int>> grid_layout <TRect, TSize>::calculate_occupied_cells() const {
+        std::set <std::pair <int, int>> occupied;
 
         // Mark all cells that are occupied by existing cell mappings
         for (const auto& [child, info] : m_cell_mapping) {
@@ -591,10 +861,9 @@ namespace onyxui {
 
     // -------------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    std::pair<int, int> grid_layout <TRect, TSize>::find_next_free_cell(
-        const std::set<std::pair<int, int>>& occupied,
+    std::pair <int, int> grid_layout <TRect, TSize>::find_next_free_cell(
+        const std::set <std::pair <int, int>>& occupied,
         int start_row, int start_col) const {
-
         int row = start_row;
         int col = start_col;
 

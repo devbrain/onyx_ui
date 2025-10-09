@@ -4,10 +4,43 @@
  * @author igor
  * @date 09/10/2025
  *
+ * @details
  * Absolute layout positions children at explicit (x, y) coordinates, optionally
  * with explicit sizes. This is the most direct positioning method, similar to
  * CSS position:absolute, and is useful for custom-positioned overlays, tooltips,
  * or when precise control is needed.
+ *
+ * ## Features
+ * - Pixel-perfect positioning with explicit coordinates
+ * - Optional size overrides for each child
+ * - Free-form overlapping support
+ * - Coordinates relative to parent's content area
+ * - Automatic bounding box calculation
+ * - Default positioning at origin (0, 0)
+ * - Visibility-aware layout (hidden children ignored)
+ *
+ * ## Performance Characteristics
+ * - Time Complexity: O(n) for measure and arrange where n = number of children
+ * - Space Complexity: O(n) for position mapping storage
+ * - No iterative calculations or constraint solving
+ * - Optimal for static layouts with known positions
+ *
+ * ## Common Use Cases
+ * - Drag-and-drop interfaces with user-positioned elements
+ * - Custom tooltips positioned near cursor or target
+ * - Overlays and floating panels at specific locations
+ * - Node-based editors with connected elements
+ * - Game UI with precise element placement
+ * - Prototyping and mockup implementations
+ *
+ * ## Comparison with Other Layouts
+ * - vs anchor_layout: Absolute uses exact pixels, anchor uses relative positions
+ * - vs grid_layout: Absolute allows overlapping, grid enforces cell structure
+ * - vs linear_layout: Absolute has no automatic flow, linear stacks children
+ *
+ * @see layout_strategy Base class for layout strategies
+ * @see anchor_layout For relative positioning to parent edges
+ * @see grid_layout For structured tabular layouts
  */
 
 #pragma once
@@ -20,90 +53,242 @@ namespace onyxui {
      * @class absolute_layout
      * @brief Layout strategy that positions children at explicit coordinates
      *
+     * @details
      * Absolute layout gives complete control over child positioning. Each child
      * can be assigned a specific (x, y) position and optionally a fixed size.
-     * Children without explicit positions default to (0, 0).
+     * Children without explicit positions default to (0, 0). This layout is ideal
+     * when you need precise, pixel-perfect control over element placement.
      *
      * ## Key Features
      *
      * - **Explicit positioning**: Set exact (x, y) coordinates for each child
-     * - **Optional sizing**: Optionally override child's measured size
+     * - **Optional sizing**: Override child's measured size with fixed dimensions
      * - **No automatic flow**: Children can overlap freely
      * - **Relative to content area**: Coordinates are relative to parent's content area
+     * - **Bounding box calculation**: Parent size encompasses all children
      *
-     * ## Use Cases
+     * ## Positioning Algorithm
      *
-     * - Custom positioned overlays or popups
-     * - Tooltips positioned near their targets
-     * - Manual layout for complex custom controls
-     * - Drag-and-drop interfaces
+     * 1. Each child is measured with available space
+     * 2. Position is retrieved from mapping (default: 0, 0)
+     * 3. Size is either override value or measured size
+     * 4. Child is positioned at content_area origin + specified offset
+     * 5. Parent's size is calculated as bounding box of all children
+     *
+     * ## Edge Cases
+     *
+     * - **Negative coordinates**: Allowed, positions children outside parent
+     * - **Size override with -1**: Uses child's measured size
+     * - **Unmapped children**: Default to position (0, 0) with measured size
+     * - **Overlapping children**: Render order follows child addition order
+     * - **Empty parent**: Returns (0, 0) size
+     * - **Hidden children**: Ignored in both measurement and arrangement
+     *
+     * ## Thread Safety
+     *
+     * - **Mutable mapping**: Position mapping is mutable for lazy configuration
+     * - **Not thread-safe**: Don't modify positions during layout operations
+     * - **Stateless calculation**: Position calculation has no side effects
+     *
+     * ## Best Practices
+     *
+     * - Use for static layouts with known positions
+     * - Consider z-ordering for overlapping elements
+     * - Test with different content sizes when using auto-sizing
+     * - Use negative coordinates carefully (may clip)
+     * - Prefer anchor_layout for responsive positioning
+     * - Cache positions when implementing drag-and-drop
      *
      * @tparam TRect Rectangle type satisfying RectLike concept
      * @tparam TSize Size type satisfying SizeLike concept
      *
-     * @example
+     * @example Tooltip Positioning
      * @code
-     * auto layout = std::make_unique<absolute_layout<SDL_Rect, SDL_Size>>();
-     * panel->set_layout_strategy(std::move(layout));
+     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * overlay->set_layout_strategy(std::move(layout));
      *
-     * // Position a child at (10, 20) with auto size
-     * layout->set_position(child.get(), 10, 20);
+     * // Position tooltip near mouse cursor
+     * auto tooltip = create_tooltip("Click to continue");
+     * int mouse_x, mouse_y;
+     * get_mouse_position(&mouse_x, &mouse_y);
      *
-     * // Position with explicit size
-     * layout->set_position(other_child.get(), 50, 50, 100, 30);
+     * // Position tooltip offset from cursor
+     * layout->set_position(tooltip.get(), mouse_x + 10, mouse_y - 30);
+     * overlay->add_child(std::move(tooltip));
+     * @endcode
+     *
+     * @example Drag and Drop Interface
+     * @code
+     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * canvas->set_layout_strategy(std::move(layout));
+     *
+     * // Position draggable items
+     * for (auto& item : draggable_items) {
+     *     layout->set_position(item.get(), item->drag_x, item->drag_y);
+     * }
+     *
+     * // Update position during drag
+     * void on_drag(DraggableItem* item, int new_x, int new_y) {
+     *     layout->set_position(item, new_x, new_y);
+     *     canvas->invalidate_layout();  // Trigger re-layout
+     * }
+     * @endcode
+     *
+     * @example Custom Dialog Layout
+     * @code
+     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * dialog->set_layout_strategy(std::move(layout));
+     *
+     * // Title at top
+     * layout->set_position(title.get(), 20, 10, 260, 30);
+     *
+     * // Message in middle
+     * layout->set_position(message.get(), 20, 50, 260, 80);
+     *
+     * // Buttons at bottom
+     * layout->set_position(ok_btn.get(), 50, 150, 80, 30);
+     * layout->set_position(cancel_btn.get(), 170, 150, 80, 30);
+     *
+     * // Fixed dialog size
+     * dialog->set_size(300, 200);
+     * @endcode
+     *
+     * @example Node Editor
+     * @code
+     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * node_canvas->set_layout_strategy(std::move(layout));
+     *
+     * // Position nodes based on graph structure
+     * for (auto& node : graph.nodes()) {
+     *     // Fixed size for consistent appearance
+     *     layout->set_position(node->widget.get(),
+     *                         node->x, node->y,
+     *                         NODE_WIDTH, NODE_HEIGHT);
+     * }
+     *
+     * // Connections drawn separately (not part of layout)
      * @endcode
      */
     template<RectLike TRect, SizeLike TSize>
     class absolute_layout : public layout_strategy <TRect, TSize> {
-    public:
-        using elt_t = ui_element <TRect, TSize>;
+        public:
+            using elt_t = ui_element <TRect, TSize>;
 
-        /**
-         * @brief Set the position (and optionally size) for a child element
-         * @param child Pointer to the child element
-         * @param x X coordinate in pixels
-         * @param y Y coordinate in pixels
-         * @param width Width override (-1 to use measured width)
-         * @param height Height override (-1 to use measured height)
-         */
-        void set_position(elt_t* child, int x, int y,
-                          int width = -1, int height = -1) {
-            if (!child) return;
-            m_position_mapping[child] = {x, y, width, height};
-        }
+            /**
+             * @brief Set the position (and optionally size) for a child element
+             *
+             * @param child Pointer to the child element to position
+             * @param x X coordinate in pixels relative to parent's content area
+             * @param y Y coordinate in pixels relative to parent's content area
+             * @param width Width override in pixels (-1 to use measured width, 0 to hide)
+             * @param height Height override in pixels (-1 to use measured height, 0 to hide)
+             *
+             * @details
+             * Configures the exact position and optional size for a child element.
+             * Coordinates are relative to the parent's content area origin.
+             * Size overrides bypass the child's natural size preferences.
+             *
+             * @note
+             * - Null children are silently ignored
+             * - Negative coordinates are allowed (positions outside parent)
+             * - Width/height of 0 effectively hides the element
+             * - Previous position settings are replaced
+             * - Changes take effect on next layout pass
+             *
+             * @warning Size overrides ignore the child's min/max constraints.
+             *          Use with caution to avoid breaking child layouts.
+             */
+            void set_position(elt_t* child, int x, int y,
+                              int width = -1, int height = -1) {
+                if (!child) return;
+                m_position_mapping[child] = {x, y, width, height};
+            }
 
-    private:
-        /**
-         * @struct position_info
-         * @brief Position and optional size override for a child element
-         */
-        struct position_info {
-            int x = 0;        ///< X coordinate relative to content area
-            int y = 0;        ///< Y coordinate relative to content area
-            int width = -1;   ///< Width override (-1 means use measured width)
-            int height = -1;  ///< Height override (-1 means use measured height)
-        };
+        protected:
+            /**
+             * @brief Calculate bounding box that contains all positioned children
+             *
+             * @param parent Parent element whose children to measure
+             * @param available_width Maximum width available for layout
+             * @param available_height Maximum height available for layout
+             * @return Size that encompasses all positioned children
+             *
+             * @details
+             * Override of layout_strategy::measure_children. Calculates the
+             * minimum rectangle that contains all children by:
+             * 1. Measuring each visible child
+             * 2. Calculating each child's bottom-right corner (x+width, y+height)
+             * 3. Finding the maximum extents
+             * 4. Returning the bounding box dimensions
+             *
+             * @note Children at negative coordinates don't affect the bounding box.
+             *       The parent's size is always at least (0, 0).
+             */
+            TSize measure_children(const elt_t* parent,
+                                   int available_width,
+                                   int available_height) const override;
 
-        /// Maps children to their explicit positions
-        std::unordered_map <elt_t*, position_info> m_position_mapping;
+            /**
+             * @brief Position children at their configured coordinates
+             *
+             * @param parent Parent element whose children to arrange
+             * @param content_area Rectangle defining the area for positioning
+             *
+             * @details
+             * Override of layout_strategy::arrange_children. For each visible child:
+             * 1. Retrieves position configuration (defaults to 0,0 if not set)
+             * 2. Calculates absolute position by adding content area offset
+             * 3. Applies size override or uses measured size
+             * 4. Positions child at calculated bounds
+             *
+             * @note Children may be positioned outside content_area bounds.
+             *       Clipping behavior depends on the parent's rendering settings.
+             */
+            void arrange_children(elt_t* parent, const TRect& content_area) override;
 
-        /**
-         * @brief Calculate bounding box that contains all children
-         * @param parent Parent element
-         * @param available_width Available width
-         * @param available_height Available height
-         * @return Size that encompasses all positioned children
-         */
-        TSize measure_children(elt_t* parent,
-                               int available_width,
-                               int available_height) override;
+            /**
+             * @brief Clean up position mapping when child is removed
+             *
+             * @param child The child being removed from parent
+             *
+             * @details
+             * Override of layout_strategy::on_child_removed. Removes the child's
+             * position configuration to prevent memory leaks.
+             */
+            void on_child_removed(elt_t* child) override {
+                m_position_mapping.erase(child);
+            }
 
-        /**
-         * @brief Position children at their explicit coordinates
-         * @param parent Parent element
-         * @param content_area Area for positioning children
-         */
-        void arrange_children(elt_t* parent, const TRect& content_area) override;
+            /**
+             * @brief Clear all position mappings when all children are removed
+             *
+             * @details
+             * Override of layout_strategy::on_children_cleared. Clears the entire
+             * position mapping when the parent's children collection is cleared.
+             */
+            void on_children_cleared() override {
+                m_position_mapping.clear();
+            }
+
+        private:
+            /**
+             * @struct position_info
+             * @brief Internal storage for a child's position and size configuration
+             *
+             * @details
+             * Stores the complete positioning information for a child element,
+             * including absolute coordinates and optional size overrides.
+             * Values of -1 for width/height indicate auto-sizing.
+             */
+            struct position_info {
+                int x = 0; ///< X coordinate relative to parent's content area origin
+                int y = 0; ///< Y coordinate relative to parent's content area origin
+                int width = -1; ///< Width override in pixels (-1 for measured width)
+                int height = -1; ///< Height override in pixels (-1 for measured height)
+            };
+
+            /// Maps each child to its position configuration (mutable for lazy updates)
+            mutable std::unordered_map <const elt_t*, position_info> m_position_mapping;
     };
 
     // ===================================================================================================
@@ -112,12 +297,13 @@ namespace onyxui {
 
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    TSize absolute_layout<TRect, TSize>::measure_children(elt_t* parent, int available_width, int available_height) {
+    TSize absolute_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+                                                           int available_height) const {
         int max_width = 0;
         int max_height = 0;
 
         // Measure all children
-        for (auto& child : parent->children()) {
+        for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
             TSize measured = child->measure(available_width, available_height);
@@ -143,13 +329,14 @@ namespace onyxui {
         size_utils::set_size(result, max_width, max_height);
         return result;
     }
+
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void absolute_layout<TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
+    void absolute_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
         int content_x = rect_utils::get_x(content_area);
         int content_y = rect_utils::get_y(content_area);
 
-        for (auto& child : parent->children()) {
+        for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
 
             auto it = m_position_mapping.find(child.get());
@@ -157,7 +344,7 @@ namespace onyxui {
                                     ? it->second
                                     : position_info{0, 0, -1, -1};
 
-            const TSize& measured = child->last_measured_size();
+            const TSize& measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 

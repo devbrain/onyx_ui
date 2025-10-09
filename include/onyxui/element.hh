@@ -4,9 +4,57 @@
  * @author igor
  * @date 08/10/2025
  *
+ * @details
  * This file contains the main ui_element class, which represents a node in the
  * UI tree. Elements form a hierarchy with unique_ptr ownership, and use a
  * two-pass layout algorithm (measure then arrange) for efficient positioning.
+ *
+ * ## Architecture Overview
+ *
+ * The ui_element class is the foundation of the layout system. Every visual
+ * component inherits from ui_element, forming a tree structure where:
+ * - Parents own children via std::unique_ptr (automatic memory management)
+ * - Layout strategies control how children are positioned
+ * - Two-phase algorithm ensures efficient layout calculation
+ * - Smart caching minimizes redundant computations
+ *
+ * ## Core Features
+ *
+ * - **Hierarchical Structure**: Tree-based parent-child relationships
+ * - **Two-Phase Layout**: Measure (bottom-up) then Arrange (top-down)
+ * - **Smart Invalidation**: Minimal recalculation through targeted cache invalidation
+ * - **Size Constraints**: Flexible sizing with min/max bounds and policies
+ * - **Alignment Control**: Precise positioning within allocated space
+ * - **Z-Order Management**: Layering support for overlapping elements
+ * - **Hit Testing**: Efficient coordinate-based element lookup
+ * - **Margin and Padding**: Box model with internal and external spacing
+ *
+ * ## Memory Management
+ *
+ * - **Ownership Model**: Parents own children via unique_ptr
+ * - **No Cycles**: Raw pointers for parent references prevent cycles
+ * - **RAII**: Automatic cleanup through destructors
+ * - **Move Semantics**: Efficient transfer of ownership
+ * - **No Copying**: Copy operations deleted to maintain unique ownership
+ *
+ * ## Performance Characteristics
+ *
+ * - **Time Complexity**:
+ *   - Measure/Arrange: O(n) where n = total elements in subtree
+ *   - Hit Test: O(depth * avg_children) worst case
+ *   - Add/Remove Child: O(1) amortized
+ * - **Space Complexity**: O(1) per element (excluding children)
+ * - **Cache Efficiency**: Results cached until invalidation
+ * - **Lazy Evaluation**: Only recalculate when necessary
+ *
+ * ## Thread Safety
+ *
+ * ui_element is NOT thread-safe. All operations should occur on the UI thread.
+ * For multi-threaded scenarios, use external synchronization or message passing.
+ *
+ * @see layout_strategy For positioning algorithms
+ * @see size_constraint For sizing configuration
+ * @see thickness For margin and padding
  */
 
 #pragma once
@@ -23,84 +71,249 @@ namespace onyxui {
      * @struct thickness
      * @brief Represents spacing on all four sides (margin or padding)
      *
+     * @details
      * Used for both margin (external spacing) and padding (internal spacing).
-     * All values are in pixels.
+     * All values are in pixels. Follows the CSS box model conventions where:
+     * - **Margin**: External spacing that pushes the element away from neighbors
+     * - **Padding**: Internal spacing between the element's edge and its content
      *
-     * @example
-     * @code
-     * thickness padding = {10, 5, 10, 5};  // left, top, right, bottom
-     * int total_horizontal = padding.horizontal();  // 20
-     * @endcode
+     * ## Usage Patterns
+     *
+     * ### Uniform Spacing
+     * ```cpp
+     * thickness uniform = {10, 10, 10, 10};  // Same on all sides
+     * ```
+     *
+     * ### Asymmetric Spacing
+     * ```cpp
+     * thickness card_padding = {20, 15, 20, 15};  // More horizontal than vertical
+     * thickness indent = {40, 0, 0, 0};           // Left indent only
+     * ```
+     *
+     * ### Common UI Patterns
+     * ```cpp
+     * // Button padding
+     * button->set_padding({12, 8, 12, 8});
+     *
+     * // Card margin
+     * card->set_margin({0, 0, 0, 16});  // Bottom margin only
+     *
+     * // Dialog spacing
+     * dialog->set_padding({24, 24, 24, 24});  // Generous uniform padding
+     * ```
+     *
+     * ## Impact on Layout
+     *
+     * - **Margin**: Affects element's measured size and position
+     * - **Padding**: Reduces available space for children but not measured size
+     * - **Total Space**: element_bounds = content + padding + margin
+     *
+     * @note Negative values are technically allowed but may cause rendering issues.
+     *       Most layout strategies assume non-negative spacing.
+     *
+     * @see ui_element::set_margin() To apply as margin
+     * @see ui_element::set_padding() To apply as padding
      */
     struct thickness {
-        int left;    ///< Left spacing in pixels
-        int top;     ///< Top spacing in pixels
-        int right;   ///< Right spacing in pixels
-        int bottom;  ///< Bottom spacing in pixels
+        int left; ///< Left spacing in pixels
+        int top; ///< Top spacing in pixels
+        int right; ///< Right spacing in pixels
+        int bottom; ///< Bottom spacing in pixels
 
         /**
          * @brief Calculate total horizontal spacing (left + right)
+         *
          * @return Sum of left and right spacing
+         *
+         * @details
+         * Useful for calculating total width impact or available content width.
+         * For example, content_width = total_width - padding.horizontal().
          */
-        [[nodiscard]] int horizontal() const { return left + right; }
+        [[nodiscard]] int horizontal() const noexcept { return left + right; }
 
         /**
          * @brief Calculate total vertical spacing (top + bottom)
+         *
          * @return Sum of top and bottom spacing
+         *
+         * @details
+         * Useful for calculating total height impact or available content height.
+         * For example, content_height = total_height - padding.vertical().
          */
-        [[nodiscard]] int vertical() const { return top + bottom; }
+        [[nodiscard]] int vertical() const noexcept { return top + bottom; }
+
+        /**
+         * @brief Compare two thickness values for equality
+         *
+         * @param other The other thickness to compare against
+         * @return true if all four sides have equal values
+         *
+         * @details
+         * Performs exact integer comparison. Used for change detection
+         * to avoid unnecessary layout invalidation.
+         */
+        bool operator==(const thickness& other) const noexcept {
+            return left == other.left && top == other.top &&
+                   right == other.right && bottom == other.bottom;
+        }
+
+        /**
+         * @brief Compare two thickness values for inequality
+         *
+         * @param other The other thickness to compare against
+         * @return true if any side has different values
+         */
+        bool operator!=(const thickness& other) const noexcept {
+            return !(*this == other);
+        }
     };
 
     /**
      * @class ui_element
      * @brief Base class for all UI elements in the layout tree
      *
+     * @details
      * ui_element represents a node in the UI hierarchy. Elements form a tree structure
      * where parents own their children via std::unique_ptr. The layout system uses a
-     * two-pass algorithm:
+     * two-pass algorithm for optimal performance and clean separation of concerns.
      *
-     * 1. **Measure Pass** (bottom-up): Each element calculates its desired size
-     *    based on available space and children's requirements
-     * 2. **Arrange Pass** (top-down): Each element receives its final bounds and
-     *    positions its children
+     * ## Two-Pass Layout Algorithm
      *
-     * Layout is optimized through smart invalidation:
-     * - `invalidate_measure()` propagates upward (parents need remeasurement)
-     * - `invalidate_arrange()` propagates downward (children need repositioning)
-     * - Results are cached to avoid redundant calculations
+     * ### Phase 1: Measure (Bottom-Up)
+     * - Starts with leaf elements and propagates upward
+     * - Each element calculates its desired size based on:
+     *   - Content size (text, images, etc.)
+     *   - Children's measured sizes (if container)
+     *   - Size constraints (min/max bounds)
+     *   - Available space from parent
+     * - Results are cached until invalidation
      *
-     * Memory management:
-     * - Children are owned by unique_ptr (parent owns children)
-     * - Parent pointers are raw non-owning pointers
-     * - Layout strategy is owned by unique_ptr
+     * ### Phase 2: Arrange (Top-Down)
+     * - Starts with root element and propagates downward
+     * - Each element receives final bounds from parent
+     * - Element arranges children within content area
+     * - Applies alignment and positioning rules
+     *
+     * ## Invalidation Strategy
+     *
+     * Smart invalidation minimizes recalculation:
+     * - **Measure Invalidation**: Propagates upward (parents may resize)
+     * - **Arrange Invalidation**: Propagates downward (children reposition)
+     * - **Selective Updates**: Only affected branches recalculate
+     * - **Cache Validation**: Results reused when inputs unchanged
+     *
+     * ## Memory Model
+     *
+     * ```
+     * Root (unique_ptr)
+     *  ├── Child1 (unique_ptr) ← parent (raw ptr to Root)
+     *  │   └── Grandchild (unique_ptr) ← parent (raw ptr to Child1)
+     *  └── Child2 (unique_ptr) ← parent (raw ptr to Root)
+     * ```
+     *
+     * - **Ownership**: Parents own children via unique_ptr
+     * - **References**: Children reference parents via raw pointers
+     * - **No Cycles**: Ownership flows down, references flow up
+     * - **RAII**: Automatic cleanup when parent destroyed
+     *
+     * ## Common Patterns
+     *
+     * ### Creating a Layout
+     * ```cpp
+     * auto root = std::make_unique<ui_element<Rect, Size>>(nullptr);
+     * root->set_layout_strategy(std::make_unique<linear_layout<Rect, Size>>());
+     * root->set_padding({10, 10, 10, 10});
+     *
+     * for (int i = 0; i < 3; ++i) {
+     *     auto child = std::make_unique<ui_element<Rect, Size>>(nullptr);
+     *     child->set_height_constraint({size_policy::fixed, 50, 50, 50});
+     *     root->add_child(std::move(child));
+     * }
+     * ```
+     *
+     * ### Custom Element
+     * ```cpp
+     * class Button : public ui_element<Rect, Size> {
+     * protected:
+     *     TSize get_content_size() const override {
+     *         // Return text dimensions
+     *         return measure_text(m_text);
+     *     }
+     *
+     *     void do_arrange(const TRect& bounds) override {
+     *         // Position text/icon
+     *         arrange_text(bounds);
+     *     }
+     * };
+     * ```
+     *
+     * ### Dynamic Updates
+     * ```cpp
+     * // Change property and invalidate
+     * element->set_width_constraint({size_policy::expand});
+     *
+     * // Manual invalidation for custom properties
+     * void set_text(const std::string& text) {
+     *     m_text = text;
+     *     invalidate_measure();  // Text size changed
+     * }
+     * ```
+     *
+     * ## Performance Guidelines
+     *
+     * - **Batch Updates**: Modify multiple properties before layout
+     * - **Avoid During Layout**: Don't modify tree during measure/arrange
+     * - **Cache Content Size**: Override get_content_size() efficiently
+     * - **Minimize Invalidation**: Only invalidate when truly needed
+     * - **Use Constraints**: Prefer constraints over manual sizing
+     *
+     * ## Thread Safety
+     *
+     * ui_element is NOT thread-safe. All operations must occur on the same thread,
+     * typically the UI thread. For multi-threaded scenarios:
+     * - Use message passing to UI thread
+     * - Apply external synchronization
+     * - Consider immutable data patterns
      *
      * @tparam TRect Rectangle type satisfying RectLike concept
      * @tparam TSize Size type satisfying SizeLike concept
      *
-     * @example
+     * @example Complete Window Layout
      * @code
-     * // Create a vertical panel with buttons
-     * auto panel = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
-     * panel->set_layout_strategy(std::make_unique<linear_layout<SDL_Rect, SDL_Size>>());
-     * panel->padding = {10, 10, 10, 10};
+     * // Create main window layout
+     * auto window = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
+     * window->set_layout_strategy(std::make_unique<anchor_layout<SDL_Rect, SDL_Size>>());
      *
-     * auto button = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
-     * button->height_constraint.policy = size_policy::fixed;
-     * button->height_constraint.preferred_size = 30;
-     * panel->add_child(std::move(button));
+     * // Title bar at top
+     * auto title_bar = create_title_bar();
+     * window->add_child(std::move(title_bar));
      *
-     * panel->measure(800, 600);
-     * panel->arrange({0, 0, 800, 600});
+     * // Content area in center
+     * auto content = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
+     * content->set_margin({0, 40, 0, 40});  // Leave space for title and status
+     * window->add_child(std::move(content));
+     *
+     * // Status bar at bottom
+     * auto status = create_status_bar();
+     * window->add_child(std::move(status));
+     *
+     * // Perform layout
+     * window->measure(1920, 1080);
+     * window->arrange({0, 0, 1920, 1080});
      * @endcode
+     *
+     * @see layout_strategy For positioning algorithms
+     * @see size_constraint For sizing configuration
+     * @see thickness For margin and padding
      */
     template<RectLike TRect, SizeLike TSize>
     class ui_element {
         public:
-            using ui_element_ptr = std::unique_ptr <ui_element>;  ///< Smart pointer for owned children
-            using layout_strategy_ptr = std::unique_ptr <layout_strategy <TRect, TSize>>;  ///< Smart pointer for layout
+            using ui_element_ptr = std::unique_ptr <ui_element>; ///< Smart pointer for owned children
+            using layout_strategy_ptr = std::unique_ptr <layout_strategy <TRect, TSize>>; ///< Smart pointer for layout
 
             // Grant access to layout strategies for protected members
-            friend class layout_strategy<TRect, TSize>;
+            friend class layout_strategy <TRect, TSize>;
 
         public:
             /**
@@ -112,7 +325,31 @@ namespace onyxui {
             /**
              * @brief Virtual destructor for proper cleanup
              */
-            virtual ~ui_element() = default;
+            virtual ~ui_element() noexcept = default;
+
+            // Rule of Five: explicitly handle copy and move semantics
+            /**
+             * @brief Move constructor
+             * @param other Element to move from
+             */
+            ui_element(ui_element&& other) noexcept = default;
+
+            /**
+             * @brief Move assignment operator
+             * @param other Element to move from
+             * @return Reference to this
+             */
+            ui_element& operator=(ui_element&& other) noexcept = default;
+
+            /**
+             * @brief Deleted copy constructor (elements use unique_ptr ownership)
+             */
+            ui_element(const ui_element&) = delete;
+
+            /**
+             * @brief Deleted copy assignment (elements use unique_ptr ownership)
+             */
+            ui_element& operator=(const ui_element&) = delete;
 
             /**
              * @brief Add a child element (takes ownership)
@@ -134,6 +371,15 @@ namespace onyxui {
              * @return Unique pointer to the removed child, or nullptr if not found
              */
             ui_element_ptr remove_child(ui_element* child);
+
+            /**
+             * @brief Remove all child elements
+             *
+             * Clears the parent pointers of all children. Notifies the layout
+             * strategy to clear any internal mappings. Invalidates the measure
+             * cache of this element and all ancestors.
+             */
+            void clear_children();
 
             /**
              * @brief Invalidate the measure cache
@@ -255,77 +501,86 @@ namespace onyxui {
             }
 
             // -----------------------------------------------------------------------
-            // Public Property Accessors (return references for modification)
+            // Public Property Setters (with invalidation)
             // -----------------------------------------------------------------------
 
             /**
-             * @brief Get width constraint for modification
-             * @return Reference to width constraint
-             * @note Modifying invalidates measure cache
+             * @brief Set width constraint
+             * @param constraint New width constraint
              */
-            size_constraint& width_constraint() {
-                invalidate_measure();
-                return m_width_constraint;
+            void set_width_constraint(const size_constraint& constraint) {
+                if (m_width_constraint != constraint) {
+                    m_width_constraint = constraint;
+                    invalidate_measure();
+                }
             }
 
             /**
-             * @brief Get height constraint for modification
-             * @return Reference to height constraint
-             * @note Modifying invalidates measure cache
+             * @brief Set height constraint
+             * @param constraint New height constraint
              */
-            size_constraint& height_constraint() {
-                invalidate_measure();
-                return m_height_constraint;
+            void set_height_constraint(const size_constraint& constraint) {
+                if (m_height_constraint != constraint) {
+                    m_height_constraint = constraint;
+                    invalidate_measure();
+                }
             }
 
             /**
-             * @brief Get horizontal alignment for modification
-             * @return Reference to horizontal alignment
-             * @note Modifying invalidates arrange cache
+             * @brief Set horizontal alignment
+             * @param align New horizontal alignment
              */
-            horizontal_alignment& horizontal_align() {
-                invalidate_arrange();
-                return m_h_align;
+            void set_horizontal_align(horizontal_alignment align) {
+                if (m_h_align != align) {
+                    m_h_align = align;
+                    invalidate_arrange();
+                }
             }
 
             /**
-             * @brief Get vertical alignment for modification
-             * @return Reference to vertical alignment
-             * @note Modifying invalidates arrange cache
+             * @brief Set vertical alignment
+             * @param align New vertical alignment
              */
-            vertical_alignment& vertical_align() {
-                invalidate_arrange();
-                return m_v_align;
+            void set_vertical_align(vertical_alignment align) {
+                if (m_v_align != align) {
+                    m_v_align = align;
+                    invalidate_arrange();
+                }
             }
 
             /**
-             * @brief Get margin for modification
-             * @return Reference to margin
-             * @note Modifying invalidates measure cache
+             * @brief Set margin
+             * @param margin New margin values
              */
-            thickness& get_margin() {
-                invalidate_measure();
-                return m_margin;
+            void set_margin(const thickness& margin) {
+                if (m_margin != margin) {
+                    m_margin = margin;
+                    invalidate_measure();
+                }
             }
 
             /**
-             * @brief Get padding for modification
-             * @return Reference to padding
-             * @note Modifying invalidates measure cache
+             * @brief Set padding
+             * @param padding New padding values
              */
-            thickness& get_padding() {
-                invalidate_measure();
-                return m_padding;
+            void set_padding(const thickness& padding) {
+                if (m_padding != padding) {
+                    m_padding = padding;
+                    invalidate_measure();
+                }
             }
 
             /**
-             * @brief Get z-index for modification
-             * @return Reference to z-index
-             * @note Modifying invalidates arrange cache
+             * @brief Set z-order
+             * @param z_index New z-order value
              */
-            int& z_order() {
-                invalidate_arrange();
-                return m_z_index;
+            void set_z_order(int z_index) {
+                if (m_z_index != z_index) {
+                    m_z_index = z_index;
+                    if (m_parent) {
+                        m_parent->invalidate_arrange();
+                    }
+                }
             }
 
             // -----------------------------------------------------------------------
@@ -378,13 +633,13 @@ namespace onyxui {
              * @brief Get margin (const)
              * @return Const reference to margin
              */
-            const thickness& get_margin() const noexcept { return m_margin; }
+            const thickness& margin() const noexcept { return m_margin; }
 
             /**
              * @brief Get padding (const)
              * @return Const reference to padding
              */
-            const thickness& get_padding() const noexcept { return m_padding; }
+            const thickness& padding() const noexcept { return m_padding; }
 
             /**
              * @brief Get z-index (const)
@@ -392,16 +647,23 @@ namespace onyxui {
              */
             int z_order() const noexcept { return m_z_index; }
 
-        protected:
             // -----------------------------------------------------------------------
-            // Protected Interface for Layout Strategies
+            // Public Interface for Layout Strategies (accessed via friend)
+            // These are conceptually protected but made public due to template
+            // instantiation issues with friend declarations across compilation units
             // -----------------------------------------------------------------------
 
             /**
              * @brief Get children container (for layout strategies)
              * @return Const reference to children vector
              */
-            const std::vector<ui_element_ptr>& children() const noexcept { return m_children; }
+            const std::vector <ui_element_ptr>& children() const noexcept { return m_children; }
+
+            /**
+             * @brief Get mutable children container (for arrange phase)
+             * @return Reference to children vector
+             */
+            std::vector <ui_element_ptr>& mutable_children() noexcept { return m_children; }
 
             /**
              * @brief Get last measured size (for layout strategies)
@@ -486,12 +748,11 @@ namespace onyxui {
 
             /**
              * @enum layout_state
-             * @brief Tracks layout cache validity to prevent redundant invalidation
+             * @brief Tracks layout cache validity
              */
             enum class layout_state {
-                valid,      ///< Layout is up to date, cache is valid
-                dirty,      ///< This element needs layout recalculation
-                propagated  ///< Invalidation already propagated (prevents cycles)
+                valid, ///< Layout is up to date, cache is valid
+                dirty ///< This element needs layout recalculation
             };
 
             /// Current measure cache state
@@ -501,9 +762,9 @@ namespace onyxui {
             layout_state arrange_state = layout_state::dirty;
 
             /// Cached measure results (for performance)
-            mutable TSize m_last_measured_size = {};
-            mutable int m_last_available_width = -1;
-            mutable int m_last_available_height = -1;
+            TSize m_last_measured_size = {};
+            int m_last_available_width = -1;
+            int m_last_available_height = -1;
 
             /// Visibility flag (hidden elements skip layout and rendering)
             bool m_visible = true;
@@ -515,7 +776,7 @@ namespace onyxui {
             TRect m_bounds = {};
 
             /// Z-order index (lower values behind, higher values in front)
-            int z_index = 0;
+            int m_z_index = 0;
 
             /// Width sizing constraints and policy
             size_constraint m_width_constraint;
@@ -551,10 +812,30 @@ namespace onyxui {
 
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::add_child(ui_element_ptr child) {
-        child->m_parent = this;
+        // Strong exception guarantee: if push_back throws, nothing is modified
         m_children.push_back(std::move(child));
+        // These operations are noexcept, safe to do after push_back succeeds
+        m_children.back()->m_parent = this;
         invalidate_measure();
     }
+
+    // ------------------------------------------------------------------------------
+    template<RectLike TRect, SizeLike TSize>
+    void ui_element <TRect, TSize>::clear_children() {
+        // Notify layout strategy about clearing all children
+        if (m_layout_strategy) {
+            m_layout_strategy->on_children_cleared();
+        }
+
+        // Clear parent pointers
+        for (auto& child : m_children) {
+            child->m_parent = nullptr;
+        }
+
+        m_children.clear();
+        invalidate_measure();
+    }
+
     // ------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     ui_element <TRect, TSize>::ui_element_ptr ui_element <TRect, TSize>::remove_child(ui_element* child) {
@@ -564,6 +845,11 @@ namespace onyxui {
                                });
 
         if (it != m_children.end()) {
+            // Notify layout strategy about child removal
+            if (m_layout_strategy) {
+                m_layout_strategy->on_child_removed(child);
+            }
+
             ui_element_ptr removed = std::move(*it);
             m_children.erase(it);
             removed->m_parent = nullptr;
@@ -579,7 +865,7 @@ namespace onyxui {
 
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::invalidate_measure() {
-        // If already dirty or propagated, nothing to do
+        // If already dirty, nothing to do (prevents infinite recursion)
         if (measure_state != layout_state::valid) {
             return;
         }
@@ -592,9 +878,11 @@ namespace onyxui {
             m_parent->invalidate_measure();
         }
     }
+
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::invalidate_arrange() {
+        // If already dirty, nothing to do (prevents infinite recursion)
         if (arrange_state != layout_state::valid) {
             return;
         }
@@ -645,12 +933,21 @@ namespace onyxui {
         measure_state = layout_state::valid;
         return m_last_measured_size;
     }
+
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::arrange(const TRect& final_bounds) {
+        // Check if bounds actually changed
+        bool bounds_changed = (rect_utils::get_x(m_bounds) != rect_utils::get_x(final_bounds) ||
+                               rect_utils::get_y(m_bounds) != rect_utils::get_y(final_bounds) ||
+                               rect_utils::get_width(m_bounds) != rect_utils::get_width(final_bounds) ||
+                               rect_utils::get_height(m_bounds) != rect_utils::get_height(final_bounds));
+
         m_bounds = final_bounds;
 
-        if (arrange_state == layout_state::valid &&
+        // Skip re-arrangement only if states are valid AND bounds haven't changed
+        if (!bounds_changed &&
+            arrange_state == layout_state::valid &&
             measure_state == layout_state::valid) {
             return;
         }
@@ -672,7 +969,7 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<RectLike TRect, SizeLike TSize>
-    void ui_element<TRect, TSize>::sort_children_by_z_index() {
+    void ui_element <TRect, TSize>::sort_children_by_z_index() {
         std::stable_sort(m_children.begin(), m_children.end(),
                          [](const ui_element_ptr& a, const ui_element_ptr& b) {
                              return a->m_z_index < b->m_z_index;
@@ -681,7 +978,7 @@ namespace onyxui {
 
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
-    void ui_element<TRect, TSize>::update_child_order() {
+    void ui_element <TRect, TSize>::update_child_order() {
         sort_children_by_z_index();
         invalidate_arrange();
     }
@@ -691,7 +988,7 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<RectLike TRect, SizeLike TSize>
-    ui_element<TRect, TSize>* ui_element<TRect, TSize>::hit_test(int x, int y) {
+    ui_element <TRect, TSize>* ui_element <TRect, TSize>::hit_test(int x, int y) {
         // Not visible or not within bounds
         if (!m_visible || !rect_utils::contains(m_bounds, x, y)) {
             return nullptr;
@@ -699,8 +996,9 @@ namespace onyxui {
 
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            ui_element* hit = (*it)->hit_test(x, y);
-            if (hit) return hit;
+            if (ui_element* hit = (*it)->hit_test(x, y)) {
+                return hit;
+            }
         }
 
         // No child hit, return this element
@@ -715,12 +1013,14 @@ namespace onyxui {
     TSize ui_element <TRect, TSize>::do_measure(int available_width, int available_height) {
         // Default implementation: measure using layout strategy
         if (m_layout_strategy) {
-            return m_layout_strategy->measure_children(this, available_width, available_height);
+            return m_layout_strategy->measure_children(
+                static_cast <const ui_element*>(this), available_width, available_height);
         }
 
         // Fallback: use content size
         return get_content_size();
     }
+
     // -----------------------------------------------------------------------------------------------------
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::do_arrange(const TRect& final_bounds) {

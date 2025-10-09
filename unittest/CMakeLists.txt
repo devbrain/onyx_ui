@@ -47,6 +47,14 @@ endif()
 
 add_executable(ui_unittest
         main.cc
+        core/test_element.cc
+        layout/test_linear.cc
+        layout/test_grid.cc
+        layout/test_anchor.cc
+        layout/test_absolute.cc
+        layout/test_composition.cc
+        utils/test_helpers.hh
 )
-
+target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
+target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ui_unittest onyx_ui doctest::doctest)
