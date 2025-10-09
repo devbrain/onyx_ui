@@ -1,6 +1,13 @@
-//
-// Created by igor on 08/10/2025.
-//
+/**
+ * @file element.hh
+ * @brief Core UI element class with two-pass layout algorithm
+ * @author igor
+ * @date 08/10/2025
+ *
+ * This file contains the main ui_element class, which represents a node in the
+ * UI tree. Elements form a hierarchy with unique_ptr ownership, and use a
+ * two-pass layout algorithm (measure then arrange) for efficient positioning.
+ */
 
 #pragma once
 
@@ -12,53 +19,239 @@
 #include <onyxui/layout_strategy.hh>
 
 namespace onyxui {
-    // Thickness struct (margin/padding) - this one is custom
+    /**
+     * @struct thickness
+     * @brief Represents spacing on all four sides (margin or padding)
+     *
+     * Used for both margin (external spacing) and padding (internal spacing).
+     * All values are in pixels.
+     *
+     * @example
+     * @code
+     * thickness padding = {10, 5, 10, 5};  // left, top, right, bottom
+     * int total_horizontal = padding.horizontal();  // 20
+     * @endcode
+     */
     struct thickness {
-        int left, top, right, bottom;
+        int left;    ///< Left spacing in pixels
+        int top;     ///< Top spacing in pixels
+        int right;   ///< Right spacing in pixels
+        int bottom;  ///< Bottom spacing in pixels
 
+        /**
+         * @brief Calculate total horizontal spacing (left + right)
+         * @return Sum of left and right spacing
+         */
         [[nodiscard]] int horizontal() const { return left + right; }
+
+        /**
+         * @brief Calculate total vertical spacing (top + bottom)
+         * @return Sum of top and bottom spacing
+         */
         [[nodiscard]] int vertical() const { return top + bottom; }
     };
 
-    // The UI tree uses unique_ptr for owned children
-    // Parent pointers are non-owning raw pointers
+    /**
+     * @class ui_element
+     * @brief Base class for all UI elements in the layout tree
+     *
+     * ui_element represents a node in the UI hierarchy. Elements form a tree structure
+     * where parents own their children via std::unique_ptr. The layout system uses a
+     * two-pass algorithm:
+     *
+     * 1. **Measure Pass** (bottom-up): Each element calculates its desired size
+     *    based on available space and children's requirements
+     * 2. **Arrange Pass** (top-down): Each element receives its final bounds and
+     *    positions its children
+     *
+     * Layout is optimized through smart invalidation:
+     * - `invalidate_measure()` propagates upward (parents need remeasurement)
+     * - `invalidate_arrange()` propagates downward (children need repositioning)
+     * - Results are cached to avoid redundant calculations
+     *
+     * Memory management:
+     * - Children are owned by unique_ptr (parent owns children)
+     * - Parent pointers are raw non-owning pointers
+     * - Layout strategy is owned by unique_ptr
+     *
+     * @tparam TRect Rectangle type satisfying RectLike concept
+     * @tparam TSize Size type satisfying SizeLike concept
+     *
+     * @example
+     * @code
+     * // Create a vertical panel with buttons
+     * auto panel = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
+     * panel->set_layout_strategy(std::make_unique<linear_layout<SDL_Rect, SDL_Size>>());
+     * panel->padding = {10, 10, 10, 10};
+     *
+     * auto button = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(nullptr);
+     * button->height_constraint.policy = size_policy::fixed;
+     * button->height_constraint.preferred_size = 30;
+     * panel->add_child(std::move(button));
+     *
+     * panel->measure(800, 600);
+     * panel->arrange({0, 0, 800, 600});
+     * @endcode
+     */
     template<RectLike TRect, SizeLike TSize>
     class ui_element {
         public:
-            using ui_element_ptr = std::unique_ptr <ui_element>;
-            using layout_strategy_ptr = std::unique_ptr <layout_strategy <TRect, TSize>>;
+            using ui_element_ptr = std::unique_ptr <ui_element>;  ///< Smart pointer for owned children
+            using layout_strategy_ptr = std::unique_ptr <layout_strategy <TRect, TSize>>;  ///< Smart pointer for layout
 
         public:
+            /**
+             * @brief Construct a UI element
+             * @param parent Pointer to the parent element (or nullptr for root)
+             */
             explicit ui_element(ui_element* parent);
+
+            /**
+             * @brief Virtual destructor for proper cleanup
+             */
             virtual ~ui_element() = default;
 
-            // Add child (takes ownership)
+            /**
+             * @brief Add a child element (takes ownership)
+             *
+             * The child's parent pointer is set automatically. Invalidates
+             * the measure cache of this element and all ancestors.
+             *
+             * @param child Unique pointer to the child element
+             */
             void add_child(ui_element_ptr child);
 
-            // Remove child (returns ownership)
+            /**
+             * @brief Remove a child element (returns ownership)
+             *
+             * The child's parent pointer is set to nullptr. Invalidates
+             * the measure cache of this element and all ancestors.
+             *
+             * @param child Raw pointer to the child to remove
+             * @return Unique pointer to the removed child, or nullptr if not found
+             */
             ui_element_ptr remove_child(ui_element* child);
 
+            /**
+             * @brief Invalidate the measure cache
+             *
+             * Marks this element and all ancestors as needing remeasurement.
+             * Call this when any property affecting size changes (e.g., content,
+             * constraints, padding). Automatically invalidates arrange as well.
+             *
+             * Propagates upward through the tree.
+             */
             void invalidate_measure();
+
+            /**
+             * @brief Invalidate the arrange cache
+             *
+             * Marks this element and all descendants as needing repositioning.
+             * Call this when properties affecting position change (not size).
+             *
+             * Propagates downward through the tree.
+             */
             void invalidate_arrange();
 
+            /**
+             * @brief Measure phase: calculate desired size
+             *
+             * Calculates the desired size of this element given the available space.
+             * Results are cached - if called again with the same available space
+             * and nothing has been invalidated, returns the cached result immediately.
+             *
+             * The algorithm:
+             * 1. Check cache (return if valid)
+             * 2. Account for margin
+             * 3. Call do_measure() (which typically delegates to layout strategy)
+             * 4. Add margin back and apply size constraints
+             * 5. Cache and return result
+             *
+             * @param available_width Maximum width available (pixels)
+             * @param available_height Maximum height available (pixels)
+             * @return The desired size to accommodate content
+             */
             TSize measure(int available_width, int available_height);
+
+            /**
+             * @brief Arrange phase: assign final bounds
+             *
+             * Sets the final position and size of this element, then arranges
+             * all children within the content area (excluding margin and padding).
+             *
+             * The algorithm:
+             * 1. Set bounds
+             * 2. Check cache (return if valid)
+             * 3. Calculate content area (subtract margin and padding)
+             * 4. Call do_arrange() (which typically delegates to layout strategy)
+             *
+             * @param final_bounds The final rectangle assigned to this element
+             */
             void arrange(const TRect& final_bounds);
 
+            /**
+             * @brief Sort children by their z_index values
+             *
+             * Children with lower z_index are drawn first (appear behind).
+             * Uses stable_sort to preserve relative order of equal z_index values.
+             */
             void sort_children_by_z_index();
 
-            // Call this after adding/removing children or changing z_index
+            /**
+             * @brief Update child z-ordering
+             *
+             * Convenience method that sorts children by z_index and invalidates
+             * arrange. Call this after modifying z_index values or when z-order
+             * matters (e.g., before rendering or hit testing).
+             */
             void update_child_order();
 
+            /**
+             * @brief Perform hit testing to find element at coordinates
+             *
+             * Recursively searches the tree to find the topmost (highest z-index)
+             * visible element that contains the given point. Children are tested
+             * in reverse order (highest z-index first).
+             *
+             * @param x X coordinate in parent space
+             * @param y Y coordinate in parent space
+             * @return Pointer to the hit element, or nullptr if no hit
+             */
             ui_element* hit_test(int x, int y);
 
         protected:
-            // Override to provide custom measurement
+            /**
+             * @brief Override to provide custom measurement logic
+             *
+             * Default implementation delegates to the layout strategy if present,
+             * otherwise returns get_content_size(). Override in derived classes
+             * to implement custom measurement (e.g., text measurement, image sizing).
+             *
+             * @param available_width Maximum width available (pixels)
+             * @param available_height Maximum height available (pixels)
+             * @return The desired size for this element's content
+             */
             virtual TSize do_measure(int available_width, int available_height);
 
-            // Override to provide custom arrangement
+            /**
+             * @brief Override to provide custom arrangement logic
+             *
+             * Default implementation delegates to the layout strategy if present.
+             * Override in derived classes for custom child positioning logic.
+             *
+             * @param final_bounds The content area bounds (after subtracting margin/padding)
+             */
             virtual void do_arrange(const TRect& final_bounds);
 
-            // Content size (for content-sized elements)
+            /**
+             * @brief Get the intrinsic content size
+             *
+             * Override this in derived classes to provide content size for
+             * content-based sizing (e.g., text dimensions, image size).
+             * Default returns (0, 0).
+             *
+             * @return The natural size of the content
+             */
             virtual TSize get_content_size() const {
                 TSize s = {};
                 size_utils::set_size(s, 0, 0);
@@ -66,58 +259,80 @@ namespace onyxui {
             }
 
         private:
-            // Non-owning pointer to parent
+            /// Non-owning pointer to parent element (nullptr for root)
             ui_element* m_parent = nullptr;
 
-            // Owned children
+            /// Owned children (owned via unique_ptr)
             std::vector <ui_element_ptr> m_children;
 
-            // Owned layout strategy
+            /// Owned layout strategy (determines how children are arranged)
             layout_strategy_ptr m_layout_strategy;
 
+            /**
+             * @enum layout_state
+             * @brief Tracks layout cache validity to prevent redundant invalidation
+             */
             enum class layout_state {
-                valid, // Layout is up to date
-                dirty, // This element needs layout
-                propagated // Already propagated invalidation
+                valid,      ///< Layout is up to date, cache is valid
+                dirty,      ///< This element needs layout recalculation
+                propagated  ///< Invalidation already propagated (prevents cycles)
             };
 
-            layout_state measure_state = layout_state::dirty; // Start dirty
+            /// Current measure cache state
+            layout_state measure_state = layout_state::dirty;
+
+            /// Current arrange cache state
             layout_state arrange_state = layout_state::dirty;
 
-            // Cached measure results
+            /// Cached measure results (for performance)
             mutable TSize m_last_measured_size = {};
             mutable int m_last_available_width = -1;
             mutable int m_last_available_height = -1;
 
-            // Properties
+            /// Visibility flag (hidden elements skip layout and rendering)
             bool m_visible = true;
+
+            /// Enabled flag (for interaction, doesn't affect layout)
             bool m_enabled = true;
 
-            // Geometry - uses your types!
+            /// Final positioned bounds (set during arrange phase)
             TRect m_bounds = {};
+
+            /// Z-order index (lower values behind, higher values in front)
             int z_index = 0;
 
-            // Size constraints
+            /// Width sizing constraints and policy
             size_constraint m_width_constraint;
+
+            /// Height sizing constraints and policy
             size_constraint m_height_constraint;
 
-            // Alignment within allocated space
+            /// Horizontal alignment within allocated space
             horizontal_alignment h_align = horizontal_alignment::stretch;
+
+            /// Vertical alignment within allocated space
             vertical_alignment v_align = vertical_alignment::stretch;
 
-            // Spacing
+            /// External spacing (pushes away from neighbors)
             thickness margin = {0, 0, 0, 0};
+
+            /// Internal spacing (pushes children inward)
             thickness padding = {0, 0, 0, 0};
     };
+
+    // ===============================================================================
+    // Implementation
+    // ===============================================================================
 
     template<RectLike TRect, SizeLike TSize>
     ui_element <TRect, TSize>::ui_element(ui_element* parent)
         : m_parent(parent) {
     }
 
-    // ===============================================================================
-    // Implementation
-    // ===============================================================================
+    // -------------------------------------------------------------------------------
+    // Tree Management
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::add_child(ui_element_ptr child) {
         child->m_parent = this;
@@ -141,7 +356,11 @@ namespace onyxui {
         }
         return nullptr;
     }
-    // -----------------------------------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------------
+    // Invalidation (Cache Management)
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     void ui_element <TRect, TSize>::invalidate_measure() {
         // If already dirty or propagated, nothing to do
@@ -171,7 +390,11 @@ namespace onyxui {
             child->invalidate_arrange();
         }
     }
-    // -----------------------------------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------------
+    // Two-Pass Layout Algorithm
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     TSize ui_element <TRect, TSize>::measure(int available_width, int available_height) {
         // Check cache
@@ -229,7 +452,10 @@ namespace onyxui {
         arrange_state = layout_state::valid;
     }
 
-    // -----------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------
+    // Z-Order Management
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     void ui_element<TRect, TSize>::sort_children_by_z_index() {
         std::stable_sort(m_children.begin(), m_children.end(),
@@ -245,7 +471,10 @@ namespace onyxui {
         invalidate_arrange();
     }
 
-    // -----------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------
+    // Hit Testing
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     ui_element<TRect, TSize>* ui_element<TRect, TSize>::hit_test(int x, int y) {
         // Not visible or not within bounds
@@ -263,7 +492,10 @@ namespace onyxui {
         return this;
     }
 
-    // -----------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------
+    // Virtual Overrides (Customization Points)
+    // -------------------------------------------------------------------------------
+
     template<RectLike TRect, SizeLike TSize>
     TSize ui_element <TRect, TSize>::do_measure(int available_width, int available_height) {
         // Default implementation: measure using layout strategy

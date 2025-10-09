@@ -1,6 +1,13 @@
-//
-// Created by igor on 09/10/2025.
-//
+/**
+ * @file grid_layout.hh
+ * @brief Grid-based layout strategy for tabular arrangements
+ * @author igor
+ * @date 09/10/2025
+ *
+ * Grid layout arranges children in a two-dimensional grid with rows and columns,
+ * similar to CSS Grid or HTML tables. Supports cell spanning, auto-sizing,
+ * fixed sizing, and spacing between cells.
+ */
 
 #pragma once
 
@@ -9,50 +16,151 @@
 #include <onyxui/layout_strategy.hh>
 
 namespace onyxui {
+    /**
+     * @struct grid_cell_info
+     * @brief Grid position and span information for a child element
+     */
     struct grid_cell_info {
-        int row = 0;
-        int column = 0;
-        int row_span = 1;
-        int column_span = 1;
+        int row = 0;          ///< Row index (0-based)
+        int column = 0;       ///< Column index (0-based)
+        int row_span = 1;     ///< Number of rows to span
+        int column_span = 1;  ///< Number of columns to span
     };
 
+    /**
+     * @class grid_layout
+     * @brief Layout strategy that arranges children in a 2D grid
+     *
+     * Grid layout provides a flexible table-like arrangement with support for:
+     *
+     * - **Fixed column count**: Specify number of columns (rows auto-calculated)
+     * - **Cell spanning**: Elements can span multiple rows/columns
+     * - **Auto-sizing**: Cell sizes determined by content
+     * - **Fixed sizing**: Explicit row/column dimensions
+     * - **Spacing**: Gaps between cells (horizontal and vertical)
+     * - **Alignment**: Per-element alignment within cells
+     *
+     * ## Auto-Assignment
+     *
+     * Children without explicit cell assignments are placed left-to-right,
+     * top-to-bottom automatically, wrapping at `num_columns`.
+     *
+     * ## Sizing Modes
+     *
+     * - **Auto-size** (default): Each column takes width of widest content,
+     *   each row takes height of tallest content
+     * - **Fixed-size**: Use predefined `column_widths` and `row_heights`
+     *
+     * @tparam TRect Rectangle type satisfying RectLike concept
+     * @tparam TSize Size type satisfying SizeLike concept
+     *
+     * @example
+     * @code
+     * // Create 3-column grid
+     * auto layout = std::make_unique<grid_layout<SDL_Rect, SDL_Size>>();
+     * layout->num_columns = 3;
+     * layout->column_spacing = 5;
+     * layout->row_spacing = 5;
+     * panel->set_layout_strategy(std::move(layout));
+     *
+     * // Add 9 children (auto-assigned to 3x3 grid)
+     * for (int i = 0; i < 9; i++) {
+     *     auto cell = std::make_unique<ui_element<SDL_Rect, SDL_Size>>(panel.get());
+     *     panel->add_child(std::move(cell));
+     * }
+     *
+     * // Or explicitly position with spanning
+     * layout->set_cell(header.get(), 0, 0, 1, 3);  // Span 3 columns
+     * @endcode
+     */
     template<RectLike TRect, SizeLike TSize>
     class grid_layout : layout_strategy <TRect, TSize> {
         using elt_t = ui_element <TRect, TSize>;
 
+        /// Number of columns in the grid
         int num_columns = 1;
-        int num_rows = -1; // Auto-calculate if -1
 
-        std::vector <int> column_widths; // Empty = equal distribution
-        std::vector <int> row_heights; // Empty = equal distribution
+        /// Number of rows (-1 = auto-calculate based on children)
+        int num_rows = -1;
 
+        /// Width of each column (empty = auto-size from content)
+        std::vector <int> column_widths;
+
+        /// Height of each row (empty = auto-size from content)
+        std::vector <int> row_heights;
+
+        /// Horizontal spacing between columns in pixels
         int column_spacing = 0;
+
+        /// Vertical spacing between rows in pixels
         int row_spacing = 0;
 
+        /// If true, auto-size cells from content; if false, use fixed sizes
         bool auto_size_cells = true;
 
-        // Child -> grid cell mapping
+        /// Maps children to their grid cell assignments
         std::unordered_map <elt_t*, grid_cell_info> cell_mapping;
 
+        /**
+         * @brief Explicitly assign a child to a grid cell
+         * @param child Pointer to the child element
+         * @param row Row index (0-based)
+         * @param col Column index (0-based)
+         * @param row_span Number of rows to span (default 1)
+         * @param col_span Number of columns to span (default 1)
+         */
         void set_cell(elt_t* child, int row, int col,
                       int row_span = 1, int col_span = 1);
 
+        /**
+         * @brief Calculate total grid size
+         * @param parent Parent element
+         * @param available_width Available width
+         * @param available_height Available height
+         * @return Total size of the grid
+         */
         TSize measure_children(elt_t* parent,
                                int available_width,
                                int available_height) override;
 
+        /**
+         * @brief Position children in grid cells
+         * @param parent Parent element
+         * @param content_area Area for the grid
+         */
         void arrange_children(elt_t* parent,
                               const TRect& content_area) override;
 
+    private:
+        /**
+         * @brief Auto-assign children to cells left-to-right, top-to-bottom
+         * @param parent Parent element
+         */
         void auto_assign_cells(elt_t* parent);
 
+        /**
+         * @brief Calculate number of rows needed
+         * @param parent Parent element
+         * @return Number of rows
+         */
         int calculate_row_count(elt_t* parent);
 
+        /**
+         * @brief Measure grid with auto-sizing enabled
+         * @param parent Parent element
+         * @param available_width Available width
+         * @param available_height Available height
+         * @param actual_rows Number of rows
+         */
         void measure_auto_sized_grid(elt_t* parent,
                                      int available_width,
                                      int available_height,
                                      int actual_rows);
 
+        /**
+         * @brief Use fixed/default grid sizes
+         * @param actual_rows Number of rows
+         */
         void use_fixed_grid_sizes(int actual_rows);
     };
 

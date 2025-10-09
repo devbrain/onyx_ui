@@ -1,6 +1,13 @@
-//
-// Created by igor on 09/10/2025.
-//
+/**
+ * @file linear_layout.hh
+ * @brief Linear layout strategy for stacking elements horizontally or vertically
+ * @author igor
+ * @date 09/10/2025
+ *
+ * Linear layout arranges children in a single row (horizontal) or column (vertical),
+ * similar to CSS flexbox with flex-direction. Supports spacing between items,
+ * alignment, and various size policies (fixed, expand, weighted, etc.).
+ */
 
 #pragma once
 
@@ -8,25 +15,98 @@
 #include <onyxui/layout_strategy.hh>
 
 namespace onyxui {
+    /**
+     * @class linear_layout
+     * @brief Layout strategy that stacks children in a line (horizontal or vertical)
+     *
+     * Linear layout is one of the most commonly used layout strategies. It arranges
+     * children sequentially in either horizontal or vertical direction, with support for:
+     *
+     * - **Spacing**: Gap between adjacent children
+     * - **Alignment**: How children align perpendicular to layout direction
+     * - **Size policies**: Fixed, content, expand, weighted distribution
+     * - **Min/max constraints**: Enforced on each child
+     *
+     * ## Measurement Algorithm
+     *
+     * For vertical layout:
+     * - Width = max(child widths)
+     * - Height = sum(child heights) + spacing
+     *
+     * For horizontal layout:
+     * - Width = sum(child widths) + spacing
+     * - Height = max(child heights)
+     *
+     * ## Arrangement Algorithm
+     *
+     * 1. Calculate fixed-size children space
+     * 2. Distribute remaining space among expand/weighted children
+     * 3. Position each child sequentially
+     * 4. Apply alignment perpendicular to flow direction
+     *
+     * @tparam TRect Rectangle type satisfying RectLike concept
+     * @tparam TSize Size type satisfying SizeLike concept
+     *
+     * @example
+     * @code
+     * // Create vertical list with buttons
+     * auto layout = std::make_unique<linear_layout<SDL_Rect, SDL_Size>>();
+     * layout->layout_direction = direction::vertical;
+     * layout->spacing = 10;
+     * layout->h_align = horizontal_alignment::stretch;
+     *
+     * panel->set_layout_strategy(std::move(layout));
+     * @endcode
+     */
     template<RectLike TRect, SizeLike TSize>
     class linear_layout : layout_strategy <TRect, TSize> {
         using elt_t = ui_element <TRect, TSize>;
 
+        /// Direction to stack children (vertical or horizontal)
         direction layout_direction = direction::vertical;
+
+        /// Horizontal alignment for children (when layout is vertical)
         horizontal_alignment h_align = horizontal_alignment::stretch;
+
+        /// Vertical alignment for children (when layout is horizontal)
         vertical_alignment v_align = vertical_alignment::stretch;
+
+        /// Gap between adjacent children in pixels
         int spacing = 0;
 
+        /**
+         * @brief Calculate total size needed for all children
+         * @param parent Parent element containing children to measure
+         * @param available_width Available width in pixels
+         * @param available_height Available height in pixels
+         * @return Total size needed
+         */
         TSize measure_children(elt_t* parent,
                                int available_width,
                                int available_height) override;
 
+        /**
+         * @brief Position all children in a line
+         * @param parent Parent element containing children to arrange
+         * @param content_area Area available for children
+         */
         void arrange_children(elt_t* parent,
                               const TRect& content_area) override;
 
-        void arrange_vertical(std::vector <elt_t>& children,
+    private:
+        /**
+         * @brief Arrange children vertically (top to bottom)
+         * @param children List of visible children to arrange
+         * @param content_area Area available for layout
+         */
+        void arrange_vertical(std::vector <elt_t*>& children,
                               const TRect& content_area);
 
+        /**
+         * @brief Arrange children horizontally (left to right)
+         * @param children List of visible children to arrange
+         * @param content_area Area available for layout
+         */
         void arrange_horizontal(std::vector <elt_t*>& children,
                                 const TRect& content_area);
     };
