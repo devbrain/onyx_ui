@@ -106,13 +106,12 @@ namespace onyxui {
      * - Consider using nested layouts for complex arrangements
      * - Keep child count under 1000 for best performance
      *
-     * @tparam TRect Rectangle type satisfying RectLike concept
-     * @tparam TSize Size type satisfying SizeLike concept
+     * @tparam Backend The backend traits type providing rect and size types
      *
      * @example Vertical Menu
      * @code
      * // Create vertical menu with equally-sized buttons
-     * auto layout = std::make_unique<linear_layout<MyRect, MySize>>(
+     * auto layout = std::make_unique<linear_layout<MyBackend>>(
      *     direction::vertical,
      *     5,  // 5px spacing
      *     horizontal_alignment::stretch,  // Full width buttons
@@ -131,7 +130,7 @@ namespace onyxui {
      * @example Horizontal Toolbar
      * @code
      * // Create horizontal toolbar with mixed sizing
-     * auto layout = std::make_unique<linear_layout<MyRect, MySize>>(
+     * auto layout = std::make_unique<linear_layout<MyBackend>>(
      *     direction::horizontal,
      *     2,  // 2px spacing
      *     horizontal_alignment::left,
@@ -155,7 +154,7 @@ namespace onyxui {
      * @example Weighted Distribution
      * @code
      * // Create form with weighted columns
-     * auto layout = std::make_unique<linear_layout<MyRect, MySize>>(
+     * auto layout = std::make_unique<linear_layout<MyBackend>>(
      *     direction::horizontal
      * );
      * form_row->set_layout_strategy(std::move(layout));
@@ -171,11 +170,13 @@ namespace onyxui {
      * form_row->add_child(std::move(input));
      * @endcode
      */
-    template<RectLike TRect, SizeLike TSize>
-    class linear_layout : public layout_strategy <TRect, TSize> {
+    template<UIBackend Backend>
+    class linear_layout : public layout_strategy<Backend> {
         // PUBLIC inheritance
         public:
-            using elt_t = ui_element <TRect, TSize>;
+            using elt_t = ui_element<Backend>;
+            using rect_type = typename Backend::rect_type;
+            using size_type = typename Backend::size_type;
 
             /**
              * @brief Construct linear layout with immutable configuration
@@ -237,7 +238,7 @@ namespace onyxui {
              *
              * @note Uses safe_math to prevent integer overflow in dimension calculations
              */
-            TSize measure_children(const elt_t* parent,
+            size_type measure_children(const elt_t* parent,
                                    int available_width,
                                    int available_height) const override;
 
@@ -253,7 +254,7 @@ namespace onyxui {
              * Skips arrangement if no visible children exist.
              */
             void arrange_children(elt_t* parent,
-                                  const TRect& content_area) override;
+                                  const rect_type& content_area) override;
 
         private:
             // Immutable configuration
@@ -278,7 +279,7 @@ namespace onyxui {
              * - Remainder pixel distribution to first expand children
              */
             void arrange_vertical(elt_t* parent,
-                                  const TRect& content_area);
+                                  const rect_type& content_area);
 
             /**
              * @brief Arrange children in horizontal row
@@ -296,7 +297,7 @@ namespace onyxui {
              * - Remainder pixel distribution to first expand children
              */
             void arrange_horizontal(elt_t* parent,
-                                    const TRect& content_area);
+                                    const rect_type& content_area);
 
             /**
              * @brief Distribute space among weighted children with constraints
@@ -321,12 +322,12 @@ namespace onyxui {
     // ==========================================================================================
     // Implementation
     // ==========================================================================================
-    template<RectLike TRect, SizeLike TSize>
-    TSize linear_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+    template<UIBackend Backend>
+    typename Backend::size_type linear_layout<Backend>::measure_children(const elt_t* parent, int available_width,
                                                          int available_height) const {
         const auto& children = this->get_children(parent);
         if (children.empty()) {
-            TSize result = {};
+            size_type result = {};
             size_utils::set_size(result, 0, 0);
             return result;
         }
@@ -341,7 +342,7 @@ namespace onyxui {
 
         // If no visible children, return zero size
         if (visible_count == 0) {
-            TSize result = {};
+            size_type result = {};
             size_utils::set_size(result, 0, 0);
             return result;
         }
@@ -360,7 +361,7 @@ namespace onyxui {
 
                 // Measure child with full width, remaining height
                 int remaining_height = std::max(0, available_height - total_height);
-                TSize child_size = child->measure(available_width, remaining_height);
+                size_type child_size = child->measure(available_width, remaining_height);
 
                 int child_w = size_utils::get_width(child_size);
                 int child_h = size_utils::get_height(child_size);
@@ -377,7 +378,7 @@ namespace onyxui {
 
                 // Measure child with remaining width, full height
                 int remaining_width = std::max(0, available_width - total_width);
-                TSize child_size = child->measure(remaining_width, available_height);
+                size_type child_size = child->measure(remaining_width, available_height);
 
                 int child_w = size_utils::get_width(child_size);
                 int child_h = size_utils::get_height(child_size);
@@ -389,14 +390,14 @@ namespace onyxui {
             safe_math::accumulate_safe(total_width, total_spacing);
         }
 
-        TSize result = {};
+        size_type result = {};
         size_utils::set_size(result, total_width, total_height);
         return result;
     }
 
     // ------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void linear_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void linear_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
         const auto& children = this->get_mutable_children(parent);
         if (children.empty()) return;
 
@@ -419,8 +420,8 @@ namespace onyxui {
     }
 
     // ---------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void linear_layout <TRect, TSize>::arrange_vertical(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void linear_layout<Backend>::arrange_vertical(elt_t* parent, const rect_type& content_area) {
         const auto& children = this->get_mutable_children(parent);
         int content_h = rect_utils::get_height(content_area);
 
@@ -434,7 +435,7 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             visible_count++;
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
             int meas_h = size_utils::get_height(measured);
 
             if (child->h_constraint().policy == size_policy::expand) {
@@ -484,7 +485,7 @@ namespace onyxui {
         for (const auto& child : children) {
             if (!child->is_visible()) continue;
 
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -527,7 +528,7 @@ namespace onyxui {
             }
 
             // Arrange child
-            TRect child_bounds;
+            rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, current_y,
                                    child_width, child_height);
             child->arrange(child_bounds);
@@ -537,8 +538,8 @@ namespace onyxui {
     }
 
     // ----------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void linear_layout <TRect, TSize>::arrange_horizontal(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void linear_layout<Backend>::arrange_horizontal(elt_t* parent, const rect_type& content_area) {
         const auto& children = this->get_mutable_children(parent);
         int content_w = rect_utils::get_width(content_area);
 
@@ -552,7 +553,7 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             visible_count++;
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
 
             if (child->w_constraint().policy == size_policy::expand) {
@@ -602,7 +603,7 @@ namespace onyxui {
         for (const auto& child : children) {
             if (!child->is_visible()) continue;
 
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -645,7 +646,7 @@ namespace onyxui {
             }
 
             // Arrange child
-            TRect child_bounds;
+            rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, current_x, child_y,
                                    child_width, child_height);
             child->arrange(child_bounds);
@@ -655,8 +656,8 @@ namespace onyxui {
     }
 
     // ----------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    std::vector <int> linear_layout <TRect, TSize>::distribute_weighted_space(
+    template<UIBackend Backend>
+    std::vector <int> linear_layout<Backend>::distribute_weighted_space(
         const std::vector <elt_t*>& weighted_children,
         int available_space,
         bool is_vertical) const {

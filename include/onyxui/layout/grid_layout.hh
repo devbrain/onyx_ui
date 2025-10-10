@@ -125,13 +125,12 @@ namespace onyxui {
      *   on the same grid instance
      * - **Parent hierarchy**: Follows same thread safety model as ui_element tree
      *
-     * @tparam TRect Rectangle type satisfying RectLike concept
-     * @tparam TSize Size type satisfying SizeLike concept
+     * @tparam Backend The backend traits type providing rect and size types
      *
      * @example
      * @code
      * // Create a 3-column auto-sizing grid with spacing
-     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(
+     * auto grid = std::make_unique<grid_layout<MyBackend>>(
      *     3,    // 3 columns
      *     -1,   // Auto-calculate rows
      *     10,   // 10px horizontal spacing
@@ -148,7 +147,7 @@ namespace onyxui {
      *
      * @example
      * @code
-     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(4); // 4 columns
+     * auto grid = std::make_unique<grid_layout<MyBackend>>(4); // 4 columns
      * parent->set_layout_strategy(grid);
      *
      * // Create header that spans all 4 columns
@@ -170,7 +169,7 @@ namespace onyxui {
      * std::vector<int> col_widths = {100, 200, 100};  // 3 columns: narrow, wide, narrow
      * std::vector<int> row_heights = {50, 100, 100, 50};  // 4 rows of different heights
      *
-     * auto grid = std::make_unique<grid_layout<MyRect, MySize>>(
+     * auto grid = std::make_unique<grid_layout<MyBackend>>(
      *     3,           // 3 columns
      *     4,           // 4 rows
      *     5, 5,        // spacing
@@ -180,11 +179,13 @@ namespace onyxui {
      * );
      * @endcode
      */
-    template<RectLike TRect, SizeLike TSize>
-    class grid_layout : public layout_strategy <TRect, TSize> {
+    template<UIBackend Backend>
+    class grid_layout : public layout_strategy<Backend> {
         // PUBLIC inheritance
         public:
-            using elt_t = ui_element <TRect, TSize>;
+            using elt_t = ui_element<Backend>;
+            using rect_type = typename Backend::rect_type;
+            using size_type = typename Backend::size_type;
 
             /**
              * @brief Construct grid layout with immutable configuration
@@ -262,7 +263,7 @@ namespace onyxui {
              *
              * @note This is a const method but modifies mutable layout state
              */
-            TSize measure_children(const elt_t* parent,
+            size_type measure_children(const elt_t* parent,
                                    int available_width,
                                    int available_height) const override;
 
@@ -280,7 +281,7 @@ namespace onyxui {
              * 4. Calls child->arrange() with final bounds
              */
             void arrange_children(elt_t* parent,
-                                  const TRect& content_area) override;
+                                  const rect_type& content_area) override;
 
             /**
              * @brief Handle child removal notification
@@ -415,8 +416,8 @@ namespace onyxui {
     // Implementation
     // ==================================================================================================
 
-    template<RectLike TRect, SizeLike TSize>
-    grid_layout <TRect, TSize>::grid_layout(int num_columns, int num_rows, int column_spacing, int row_spacing,
+    template<UIBackend Backend>
+    grid_layout<Backend>::grid_layout(int num_columns, int num_rows, int column_spacing, int row_spacing,
                                             bool auto_size, std::vector <int> fixed_column_widths,
                                             std::vector <int> fixed_row_heights)
         : m_num_columns(num_columns < 1 ? 1 : num_columns)
@@ -429,8 +430,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    bool grid_layout <TRect, TSize>::set_cell(elt_t* child, int row, int col, int row_span, int col_span) {
+    template<UIBackend Backend>
+    bool grid_layout<Backend>::set_cell(elt_t* child, int row, int col, int row_span, int col_span) {
         // Null pointer check
         if (!child) {
             return false;
@@ -473,11 +474,11 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    TSize grid_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+    template<UIBackend Backend>
+    typename Backend::size_type grid_layout<Backend>::measure_children(const elt_t* parent, int available_width,
                                                        int available_height) const {
         if (this->get_children(parent).empty()) {
-            TSize result = {};
+            size_type result = {};
             size_utils::set_size(result, 0, 0);
             return result;
         }
@@ -518,14 +519,14 @@ namespace onyxui {
         }
         safe_math::accumulate_safe(total_height, row_spacing_total);
 
-        TSize result = {};
+        size_type result = {};
         size_utils::set_size(result, total_width, total_height);
         return result;
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void grid_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
         if (parent->children().empty()) return;
 
         int actual_rows = static_cast<int>(m_row_heights.size());
@@ -583,7 +584,7 @@ namespace onyxui {
             }
 
             // Apply alignment within cell
-            TSize measured = this->get_last_measured_size(child.get());
+            size_type measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -614,7 +615,7 @@ namespace onyxui {
                 }
             }
 
-            TRect child_bounds;
+            rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y,
                                    child_width, child_height);
             child->arrange(child_bounds);
@@ -622,8 +623,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::auto_assign_cells(const elt_t* parent) const {
+    template<UIBackend Backend>
+    void grid_layout<Backend>::auto_assign_cells(const elt_t* parent) const {
         // Calculate which cells are already occupied by explicitly positioned cells
         auto occupied = calculate_occupied_cells();
 
@@ -659,8 +660,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    int grid_layout <TRect, TSize>::calculate_row_count(const elt_t* parent) const {
+    template<UIBackend Backend>
+    int grid_layout<Backend>::calculate_row_count(const elt_t* parent) const {
         if (m_num_rows > 0) return m_num_rows;
 
         int max_row = 0;
@@ -678,8 +679,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::measure_auto_sized_grid(const elt_t* parent, int available_width,
+    template<UIBackend Backend>
+    void grid_layout<Backend>::measure_auto_sized_grid(const elt_t* parent, int available_width,
                                                              int available_height,
                                                              int actual_rows) const {
         m_column_widths.resize(static_cast<size_t>(m_num_columns), 0);
@@ -697,7 +698,7 @@ namespace onyxui {
             // Only process single-span cells in first pass
             if (cell.column_span == 1 || cell.row_span == 1) {
                 // Measure child with unconstrained size
-                TSize measured = child->measure(available_width, available_height);
+                size_type measured = child->measure(available_width, available_height);
                 int meas_w = size_utils::get_width(measured);
                 int meas_h = size_utils::get_height(measured);
 
@@ -720,8 +721,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::use_fixed_grid_sizes(int actual_rows) const {
+    template<UIBackend Backend>
+    void grid_layout<Backend>::use_fixed_grid_sizes(int actual_rows) const {
         // Use fixed widths if provided, otherwise default
         if (!m_fixed_column_widths.empty()) {
             m_column_widths = m_fixed_column_widths;
@@ -738,8 +739,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void grid_layout <TRect, TSize>::distribute_spanning_sizes(const elt_t* parent) const {
+    template<UIBackend Backend>
+    void grid_layout<Backend>::distribute_spanning_sizes(const elt_t* parent) const {
         // Process spanning cells (cells that span multiple columns or rows)
         // We need to ensure the spanned columns/rows together are at least as wide/tall
         // as the spanning cell requires
@@ -756,7 +757,7 @@ namespace onyxui {
             // Handle cells that span multiple columns
             if (cell.column_span > 1) {
                 // Get the child's measured size
-                TSize measured = this->get_last_measured_size(child.get());
+                size_type measured = this->get_last_measured_size(child.get());
                 int required_width = size_utils::get_width(measured);
 
                 // Calculate current total width of spanned columns
@@ -802,7 +803,7 @@ namespace onyxui {
             // Handle cells that span multiple rows
             if (cell.row_span > 1) {
                 // Get the child's measured size
-                TSize measured = this->get_last_measured_size(child.get());
+                size_type measured = this->get_last_measured_size(child.get());
                 int required_height = size_utils::get_height(measured);
 
                 // Calculate current total height of spanned rows
@@ -839,8 +840,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    std::set <std::pair <int, int>> grid_layout <TRect, TSize>::calculate_occupied_cells() const {
+    template<UIBackend Backend>
+    std::set <std::pair <int, int>> grid_layout<Backend>::calculate_occupied_cells() const {
         std::set <std::pair <int, int>> occupied;
 
         // Mark all cells that are occupied by existing cell mappings
@@ -860,8 +861,8 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    std::pair <int, int> grid_layout <TRect, TSize>::find_next_free_cell(
+    template<UIBackend Backend>
+    std::pair <int, int> grid_layout<Backend>::find_next_free_cell(
         const std::set <std::pair <int, int>>& occupied,
         int start_row, int start_col) const {
         int row = start_row;

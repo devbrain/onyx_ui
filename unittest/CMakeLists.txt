@@ -53,7 +53,10 @@ add_executable(ui_unittest
         layout/test_anchor.cc
         layout/test_absolute.cc
         layout/test_composition.cc
+        events/test_events.cc
+        focus/test_focus_manager.cc
         utils/test_helpers.hh
+        utils/test_backend.hh
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

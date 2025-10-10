@@ -6,7 +6,7 @@
 #include "utils/test_helpers.hh"
 #include <onyxui/layout/anchor_layout.hh>
 
-using TestAnchorLayout = anchor_layout<TestRect, TestSize>;
+using TestAnchorLayout = anchor_layout<TestBackend>;
 
 TEST_SUITE("anchor_layout") {
     TEST_CASE("Basic anchor positions") {
@@ -36,7 +36,11 @@ TEST_SUITE("anchor_layout") {
         layout_ptr->set_anchor(children[7], anchor_point::bottom_center);
         layout_ptr->set_anchor(children[8], anchor_point::bottom_right);
 
-        parent->measure(200, 100);
+        // Measure: anchor layout reports max extent needed
+        auto measured = parent->measure(200, 100);
+        CHECK(measured.w > 0);
+        CHECK(measured.h > 0);
+
         parent->arrange({0, 0, 200, 100});
 
         // Verify positions
@@ -86,7 +90,11 @@ TEST_SUITE("anchor_layout") {
         // Anchor to top-right with offsets
         layout_ptr->set_anchor(child_ptr, anchor_point::top_right, -10, 15);
 
-        parent->measure(300, 200);
+        // Measure with offsets
+        auto measured = parent->measure(300, 200);
+        CHECK(measured.w <= 300);
+        CHECK(measured.h <= 200);
+
         parent->arrange({0, 0, 300, 200});
 
         // Should be at top-right minus offsets

@@ -6,7 +6,7 @@
 #include "utils/test_helpers.hh"
 #include <onyxui/layout/linear_layout.hh>
 
-using TestLinearLayout = linear_layout<TestRect, TestSize>;
+using TestLinearLayout = linear_layout<TestBackend>;
 
 TEST_SUITE("linear_layout") {
     TEST_CASE("Horizontal layout with fixed size children") {
@@ -27,18 +27,18 @@ TEST_SUITE("linear_layout") {
 
         // Measure and arrange
         TestSize measured = parent->measure(1000, 1000);
-        CHECK(measured.width == 320); // 3*100 + 2*10
-        CHECK(measured.height == 50);
+        CHECK(measured.w == 320); // 3*100 + 2*10
+        CHECK(measured.h == 50);
 
         parent->arrange({0, 0, 320, 50});
 
         // Verify child positions
         CHECK(parent->child_at(0)->bounds().x == 0);
-        CHECK(parent->child_at(0)->bounds().width == 100);
+        CHECK(parent->child_at(0)->bounds().w == 100);
         CHECK(parent->child_at(1)->bounds().x == 110);
-        CHECK(parent->child_at(1)->bounds().width == 100);
+        CHECK(parent->child_at(1)->bounds().w == 100);
         CHECK(parent->child_at(2)->bounds().x == 220);
-        CHECK(parent->child_at(2)->bounds().width == 100);
+        CHECK(parent->child_at(2)->bounds().w == 100);
     }
 
     TEST_CASE("Vertical layout with expand children") {
@@ -60,16 +60,16 @@ TEST_SUITE("linear_layout") {
         TestSize measured = parent->measure(200, 300);
         // For vertical layout with no fixed-width children, width should be max of child widths
         // Since children have fill_parent policy, they should measure to 0 initially
-        CHECK(measured.width == 0);    // Children with fill_parent don't contribute to measure
-        CHECK(measured.height == 5);   // Just the spacing between 2 children
+        CHECK(measured.w == 0);    // Children with fill_parent don't contribute to measure
+        CHECK(measured.h == 5);   // Just the spacing between 2 children
         parent->arrange({0, 0, 200, 300});
 
         // Verify children split space equally (300 pixels total, 5 pixels spacing)
         // Available space = 300 - 5 = 295, divided by 2 = 147.5 each
         // First child gets the extra pixel from rounding (standard behavior in CSS flexbox)
-        CHECK(parent->child_at(0)->bounds().height == 148); // Gets the extra pixel from rounding
+        CHECK(parent->child_at(0)->bounds().h == 148); // Gets the extra pixel from rounding
         CHECK(parent->child_at(0)->bounds().y == 0);
-        CHECK(parent->child_at(1)->bounds().height == 147); // Floor of 295/2
+        CHECK(parent->child_at(1)->bounds().h == 147); // Floor of 295/2
         CHECK(parent->child_at(1)->bounds().y == 153);      // 148 + 5 spacing
     }
 
@@ -92,12 +92,16 @@ TEST_SUITE("linear_layout") {
         child3->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 1.0f});
         parent->add_test_child(std::move(child3));
 
-        parent->measure(400, 100);
+        // Measure: weighted children report minimal size during measure
+        auto measured = parent->measure(400, 100);
+        CHECK(measured.w == 0);  // Weighted children contribute 0 to measure
+        CHECK(measured.h == 0);
+
         parent->arrange({0, 0, 400, 100});
 
-        CHECK(parent->child_at(0)->bounds().width == 100); // 1/4 of 400
-        CHECK(parent->child_at(1)->bounds().width == 200); // 2/4 of 400
-        CHECK(parent->child_at(2)->bounds().width == 100); // 1/4 of 400
+        CHECK(parent->child_at(0)->bounds().w == 100); // 1/4 of 400
+        CHECK(parent->child_at(1)->bounds().w == 200); // 2/4 of 400
+        CHECK(parent->child_at(2)->bounds().w == 100); // 1/4 of 400
     }
 
     TEST_CASE("Alignment in cross axis") {
@@ -125,7 +129,11 @@ TEST_SUITE("linear_layout") {
         child3->set_vertical_align(vertical_alignment::bottom);
         parent->add_test_child(std::move(child3));
 
-        parent->measure(200, 100);
+        // Measure: horizontal layout with fixed children
+        auto measured = parent->measure(200, 100);
+        CHECK(measured.w == 150);  // 3 * 50
+        CHECK(measured.h == 30);   // max height
+
         parent->arrange({0, 0, 200, 100});
 
         CHECK(parent->child_at(0)->bounds().y == 0);      // top aligned
@@ -144,19 +152,22 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::move(child));
 
         // Test minimum constraint
-        parent->measure(30, 100);
+        auto measured1 = parent->measure(30, 100);
+        CHECK(measured1.w >= 50);  // Reports at least minimum
         parent->arrange({0, 0, 30, 100});
-        CHECK(parent->child_at(0)->bounds().width == 50); // Clamped to min even with expand
+        CHECK(parent->child_at(0)->bounds().w == 50); // Clamped to min even with expand
 
         // Test maximum constraint
-        parent->measure(200, 100);
+        auto measured2 = parent->measure(200, 100);
+        CHECK(measured2.w <= 200);
         parent->arrange({0, 0, 200, 100});
-        CHECK(parent->child_at(0)->bounds().width == 150); // Expands to max (clamped at 150)
+        CHECK(parent->child_at(0)->bounds().w == 150); // Expands to max (clamped at 150)
 
         // Test within constraints
-        parent->measure(120, 100);
+        auto measured3 = parent->measure(120, 100);
+        CHECK(measured3.w <= 120);
         parent->arrange({0, 0, 120, 100});
-        CHECK(parent->child_at(0)->bounds().width == 120); // Expands to available space
+        CHECK(parent->child_at(0)->bounds().w == 120); // Expands to available space
     }
 
     TEST_CASE("Visibility handling") {
@@ -176,7 +187,7 @@ TEST_SUITE("linear_layout") {
         parent->child_at(1)->set_visible(false);
 
         TestSize measured = parent->measure(1000, 100);
-        CHECK(measured.width == 210); // 2*100 + 1*10 (only one spacing)
+        CHECK(measured.w == 210); // 2*100 + 1*10 (only one spacing)
 
         parent->arrange({0, 0, 210, 100});
 
@@ -197,10 +208,14 @@ TEST_SUITE("linear_layout") {
         child->set_width_constraint({size_policy::fixed, 200, 200}); // Use fixed for now
         parent->add_test_child(std::move(child));
 
-        parent->measure(400, 100);
+        // Measure with fixed width child
+        auto measured = parent->measure(400, 100);
+        CHECK(measured.w == 200);  // Reports child's fixed width
+        CHECK(measured.h == 0);    // No height specified
+
         parent->arrange({0, 0, 400, 100});
 
-        CHECK(parent->child_at(0)->bounds().width == 200); // Fixed at 200
+        CHECK(parent->child_at(0)->bounds().w == 200); // Fixed at 200
     }
 
     TEST_CASE("Content sizing") {
@@ -214,7 +229,7 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::make_unique<ContentElement>(100, 30));
 
         TestSize measured = parent->measure(1000, 1000);
-        CHECK(measured.width == 150);  // Max of child widths
-        CHECK(measured.height == 55);  // 20 + 30 + 5
+        CHECK(measured.w == 150);  // Max of child widths
+        CHECK(measured.h == 55);  // 20 + 30 + 5
     }
 }

@@ -42,8 +42,8 @@ TEST_SUITE("ui_element") {
         element->set_height_constraint({size_policy::fixed, 50, 50});
 
         TestSize measured = element->measure(1000, 1000);
-        CHECK(measured.width == 100);  // Fixed size is exact
-        CHECK(measured.height == 50);  // Fixed size is exact
+        CHECK(measured.w == 100);  // Fixed size is exact
+        CHECK(measured.h == 50);  // Fixed size is exact
     }
 
     TEST_CASE("Size constraints") {
@@ -55,13 +55,13 @@ TEST_SUITE("ui_element") {
         element->set_height_constraint({size_policy::content, 80, 40, 150});
 
         TestSize measured = element->measure(30, 20);
-        CHECK(measured.width == 50);   // Clamped to min
-        CHECK(measured.height == 40);  // Clamped to min
+        CHECK(measured.w == 50);   // Clamped to min
+        CHECK(measured.h == 40);  // Clamped to min
 
         // Test maximum constraint - content size is 0, so it gets clamped to min
         measured = element->measure(300, 250);
-        CHECK(measured.width == 50);  // Content is 0, clamped to min
-        CHECK(measured.height == 40); // Content is 0, clamped to min
+        CHECK(measured.w == 50);  // Content is 0, clamped to min
+        CHECK(measured.h == 40); // Content is 0, clamped to min
     }
 
     TEST_CASE("Visibility changes") {
@@ -139,8 +139,8 @@ TEST_SUITE("ui_element") {
         auto element = std::make_unique<ContentElement>(120, 80);
 
         TestSize measured = element->measure(1000, 1000);
-        CHECK(measured.width == 120);
-        CHECK(measured.height == 80);
+        CHECK(measured.w == 120);
+        CHECK(measured.h == 80);
     }
 
     TEST_CASE("Thickness operators") {

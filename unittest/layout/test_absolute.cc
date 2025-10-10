@@ -6,7 +6,7 @@
 #include "utils/test_helpers.hh"
 #include <onyxui/layout/absolute_layout.hh>
 
-using TestAbsoluteLayout = absolute_layout<TestRect, TestSize>;
+using TestAbsoluteLayout = absolute_layout<TestBackend>;
 
 TEST_SUITE("absolute_layout") {
     TEST_CASE("Basic positioning") {
@@ -32,19 +32,23 @@ TEST_SUITE("absolute_layout") {
         layout_ptr->set_position(child1_ptr, 10, 20);
         layout_ptr->set_position(child2_ptr, 100, 50);
 
-        parent->measure(200, 150);
+        // Measure: absolute layout reports largest extent needed
+        auto measured = parent->measure(200, 150);
+        CHECK(measured.w <= 200);
+        CHECK(measured.h <= 150);
+
         parent->arrange({0, 0, 200, 150});
 
         // Verify positions
         CHECK(child1_ptr->bounds().x == 10);
         CHECK(child1_ptr->bounds().y == 20);
-        CHECK(child1_ptr->bounds().width == 50);
-        CHECK(child1_ptr->bounds().height == 30);
+        CHECK(child1_ptr->bounds().w == 50);
+        CHECK(child1_ptr->bounds().h == 30);
 
         CHECK(child2_ptr->bounds().x == 100);
         CHECK(child2_ptr->bounds().y == 50);
-        CHECK(child2_ptr->bounds().width == 60);
-        CHECK(child2_ptr->bounds().height == 40);
+        CHECK(child2_ptr->bounds().w == 60);
+        CHECK(child2_ptr->bounds().h == 40);
     }
 
     TEST_CASE("Position with size override") {
@@ -62,13 +66,17 @@ TEST_SUITE("absolute_layout") {
         // Set position with size override
         layout_ptr->set_position(child_ptr, 25, 35, 150, 75);
 
-        parent->measure(300, 200);
+        // Measure phase
+        auto measured = parent->measure(300, 200);
+        CHECK(measured.w <= 300);
+        CHECK(measured.h <= 200);
+
         parent->arrange({0, 0, 300, 200});
 
         // Should use overridden size, not measured size
         CHECK(child_ptr->bounds().x == 25);
         CHECK(child_ptr->bounds().y == 35);
-        CHECK(child_ptr->bounds().width == 150);
-        CHECK(child_ptr->bounds().height == 75);
+        CHECK(child_ptr->bounds().w == 150);
+        CHECK(child_ptr->bounds().h == 75);
     }
 }

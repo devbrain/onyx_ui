@@ -123,12 +123,11 @@ namespace onyxui {
      * - Use center anchor for modal dialogs and popups
      * - Test with different parent sizes to ensure responsive behavior
      *
-     * @tparam TRect Rectangle type satisfying RectLike concept
-     * @tparam TSize Size type satisfying SizeLike concept
+     * @tparam Backend The backend traits type providing rect and size types
      *
      * @example Title Bar Layout
      * @code
-     * auto layout = std::make_unique<anchor_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<anchor_layout<MyBackend>>();
      * title_bar->set_layout_strategy(std::move(layout));
      *
      * // Menu button at left edge
@@ -144,7 +143,7 @@ namespace onyxui {
      * @example Floating Action Button
      * @code
      * // FAB in bottom-right corner with margins
-     * auto layout = std::make_unique<anchor_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<anchor_layout<MyBackend>>();
      * screen->set_layout_strategy(std::move(layout));
      *
      * auto fab = create_fab_button();
@@ -154,7 +153,7 @@ namespace onyxui {
      *
      * @example Game HUD
      * @code
-     * auto layout = std::make_unique<anchor_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<anchor_layout<MyBackend>>();
      * hud->set_layout_strategy(std::move(layout));
      *
      * // Health bar at top-left
@@ -170,10 +169,12 @@ namespace onyxui {
      * layout->set_anchor(inventory.get(), anchor_point::bottom_center, 0, -100);
      * @endcode
      */
-    template<RectLike TRect, SizeLike TSize>
-    class anchor_layout : public layout_strategy <TRect, TSize> {
+    template<UIBackend Backend>
+    class anchor_layout : public layout_strategy<Backend> {
         public:
-            using elt_t = ui_element <TRect, TSize>;
+            using elt_t = ui_element<Backend>;
+            using rect_type = typename Backend::rect_type;
+            using size_type = typename Backend::size_type;
 
             /**
              * @brief Set the anchor point and offset for a child element
@@ -218,7 +219,7 @@ namespace onyxui {
              * full available dimensions. This ensures the parent expands to fill its
              * container, providing maximum space for anchor positioning.
              */
-            TSize measure_children(const elt_t* parent,
+            size_type measure_children(const elt_t* parent,
                                    int available_width,
                                    int available_height) const override;
 
@@ -238,7 +239,7 @@ namespace onyxui {
              * @note Children may overlap or extend outside content_area depending
              *       on their anchor configuration and offsets.
              */
-            void arrange_children(elt_t* parent, const TRect& content_area) override;
+            void arrange_children(elt_t* parent, const rect_type& content_area) override;
 
             /**
              * @brief Clean up anchor mapping when child is removed
@@ -302,8 +303,8 @@ namespace onyxui {
              * @note This is a static helper function with no side effects.
              *       The child may be positioned outside content_area bounds.
              */
-            static void calculate_anchor_position(const TRect& content_area,
-                                                  const TSize& child_size,
+            static void calculate_anchor_position(const rect_type& content_area,
+                                                  const size_type& child_size,
                                                   const anchor_info& info,
                                                   int& out_x, int& out_y);
     };
@@ -313,25 +314,25 @@ namespace onyxui {
     // ====================================================================================================
 
     // --------------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    TSize anchor_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+    template<UIBackend Backend>
+    typename Backend::size_type anchor_layout<Backend>::measure_children(const elt_t* parent, int available_width,
                                                          int available_height) const {
         // Measure all children with available space
         for (const auto& child : this->get_children(parent)) {
             if (child->is_visible()) {
-                child->measure(available_width, available_height);
+                [[maybe_unused]] auto size = child->measure(available_width, available_height);
             }
         }
 
         // Anchor layout uses all available space
-        TSize result = {};
+        size_type result = {};
         size_utils::set_size(result, available_width, available_height);
         return result;
     }
 
     // -------------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void anchor_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void anchor_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
         for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
 
@@ -340,7 +341,7 @@ namespace onyxui {
                                    ? it->second
                                    : anchor_info{anchor_point::top_left, 0, 0};
 
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
 
             int child_x, child_y;
             calculate_anchor_position(content_area, measured, info,
@@ -349,15 +350,15 @@ namespace onyxui {
             int child_w = size_utils::get_width(measured);
             int child_h = size_utils::get_height(measured);
 
-            TRect child_bounds;
+            rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y, child_w, child_h);
             child->arrange(child_bounds);
         }
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void anchor_layout <TRect, TSize>::calculate_anchor_position(const TRect& content_area, const TSize& child_size,
+    template<UIBackend Backend>
+    void anchor_layout<Backend>::calculate_anchor_position(const rect_type& content_area, const size_type& child_size,
                                                                  const anchor_info& info, int& out_x, int& out_y) {
         int content_x = rect_utils::get_x(content_area);
         int content_y = rect_utils::get_y(content_area);

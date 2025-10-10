@@ -6,7 +6,7 @@
 #include "utils/test_helpers.hh"
 #include <onyxui/layout/grid_layout.hh>
 
-using TestGridLayout = grid_layout<TestRect, TestSize>;
+using TestGridLayout = grid_layout<TestBackend>;
 
 TEST_SUITE("grid_layout") {
     TEST_CASE("Basic 2x2 grid with fixed cells") {
@@ -23,8 +23,8 @@ TEST_SUITE("grid_layout") {
         }
 
         TestSize measured = parent->measure(1000, 1000);
-        CHECK(measured.width == 210);  // 2*100 + 1*10
-        CHECK(measured.height == 105); // 2*50 + 1*5
+        CHECK(measured.w == 210);  // 2*100 + 1*10
+        CHECK(measured.h == 105); // 2*50 + 1*5
 
         parent->arrange({0, 0, 210, 105});
 
@@ -59,7 +59,11 @@ TEST_SUITE("grid_layout") {
         // Place children manually
         // Note: Can't access layout directly in tests, so cells auto-assign
 
-        parent->measure(1000, 1000);
+        // Measure: grid calculates required space
+        auto measured = parent->measure(1000, 1000);
+        CHECK(measured.w > 0);  // Grid reports space needed for children
+        CHECK(measured.h > 0);
+
         parent->arrange({0, 0, 1000, 1000});
 
         // Verify positions (auto-assigned sequentially)
@@ -92,14 +96,18 @@ TEST_SUITE("grid_layout") {
         // Note: Can't access layout directly in tests, so spans are auto-assigned
         // Without explicit spanning, children just occupy single cells
 
-        parent->measure(300, 200);
+        // Measure: grid with spanning considerations
+        auto measured = parent->measure(300, 200);
+        CHECK(measured.w > 0);
+        CHECK(measured.h > 0);
+
         parent->arrange({0, 0, 300, 200});
 
         // With fill_parent policy, child1 fills its cell width (which is ~90 with spacing)
-        CHECK(child1_ptr->bounds().width <= 100); // Single cell width
+        CHECK(child1_ptr->bounds().w <= 100); // Single cell width
 
         // Child2 is in second cell (1,0) and doesn't span rows
-        CHECK(child2_ptr->bounds().height == 40); // Fixed height, not spanning
+        CHECK(child2_ptr->bounds().h == 40); // Fixed height, not spanning
     }
 
     TEST_CASE("Fixed column and row dimensions") {
@@ -122,22 +130,22 @@ TEST_SUITE("grid_layout") {
         }
 
         TestSize measured = parent->measure(1000, 1000);
-        CHECK(measured.width == 250);  // 150 + 100
-        CHECK(measured.height == 140); // 60 + 80
+        CHECK(measured.w == 250);  // 150 + 100
+        CHECK(measured.h == 140); // 60 + 80
 
         parent->arrange({0, 0, 250, 140});
 
         // First column children
-        CHECK(parent->child_at(0)->bounds().width == 150);
-        CHECK(parent->child_at(2)->bounds().width == 150);
+        CHECK(parent->child_at(0)->bounds().w == 150);
+        CHECK(parent->child_at(2)->bounds().w == 150);
         // Second column children
-        CHECK(parent->child_at(1)->bounds().width == 100);
-        CHECK(parent->child_at(3)->bounds().width == 100);
+        CHECK(parent->child_at(1)->bounds().w == 100);
+        CHECK(parent->child_at(3)->bounds().w == 100);
         // First row children
-        CHECK(parent->child_at(0)->bounds().height == 60);
-        CHECK(parent->child_at(1)->bounds().height == 60);
+        CHECK(parent->child_at(0)->bounds().h == 60);
+        CHECK(parent->child_at(1)->bounds().h == 60);
         // Second row children
-        CHECK(parent->child_at(2)->bounds().height == 80);
-        CHECK(parent->child_at(3)->bounds().height == 80);
+        CHECK(parent->child_at(2)->bounds().h == 80);
+        CHECK(parent->child_at(3)->bounds().h == 80);
     }
 }

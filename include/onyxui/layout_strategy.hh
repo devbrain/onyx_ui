@@ -46,24 +46,24 @@
  *
  * #### 1. Dashboard Layout (Vertical → Horizontal)
  * ```cpp
- * // Root: Vertical layout for rows
- * auto dashboard = std::make_unique<ui_element<Rect, Size>>(nullptr);
+ * // Root: Vertical layout for rows (using Backend pattern)
+ * auto dashboard = std::make_unique<ui_element<MyBackend>>(nullptr);
  * dashboard->set_layout_strategy(
- *     std::make_unique<linear_layout<Rect, Size>>(direction::vertical, 10));
+ *     std::make_unique<linear_layout<MyBackend>>(direction::vertical, 10));
  *
  * // Metrics row: Horizontal layout for cards
- * auto metrics_row = std::make_unique<ui_element<Rect, Size>>(nullptr);
+ * auto metrics_row = std::make_unique<ui_element<MyBackend>>(nullptr);
  * metrics_row->set_layout_strategy(
- *     std::make_unique<linear_layout<Rect, Size>>(direction::horizontal, 15));
+ *     std::make_unique<linear_layout<MyBackend>>(direction::horizontal, 15));
  * metrics_row->add_child(create_metric_card("Users", "1,234"));
  * metrics_row->add_child(create_metric_card("Revenue", "$5,678"));
  * metrics_row->add_child(create_metric_card("Growth", "+12%"));
  * dashboard->add_child(std::move(metrics_row));
  *
  * // Charts grid: Grid layout for visualizations
- * auto charts = std::make_unique<ui_element<Rect, Size>>(nullptr);
+ * auto charts = std::make_unique<ui_element<MyBackend>>(nullptr);
  * charts->set_layout_strategy(
- *     std::make_unique<grid_layout<Rect, Size>>(2, 2));  // 2x2 grid
+ *     std::make_unique<grid_layout<MyBackend>>(2, 2));  // 2x2 grid
  * charts->add_child(create_line_chart());
  * charts->add_child(create_bar_chart());
  * charts->add_child(create_pie_chart());
@@ -192,6 +192,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <onyxui/backend.hh>
 #include <onyxui/concepts.hh>
 
 namespace onyxui {
@@ -478,7 +479,7 @@ namespace onyxui {
     };
 
     // Forward declaration
-    template<RectLike TRect, SizeLike TSize>
+    template<UIBackend Backend>
     class ui_element;
 
     /**
@@ -579,15 +580,18 @@ namespace onyxui {
      * - Document strategy-specific behavior clearly
      * - Test with edge cases (0 children, 1 child, many children)
      *
-     * @tparam TRect Rectangle type satisfying RectLike concept
-     * @tparam TSize Size type satisfying SizeLike concept
+     * @tparam Backend The backend traits type providing rect and size types
      *
      * @see ui_element The primary consumer of layout strategies
      * @see linear_layout Most commonly used concrete implementation
      * @see grid_layout For structured tabular layouts
      */
-    template<RectLike TRect, SizeLike TSize>
+    template<typename Backend>
     class layout_strategy {
+            static_assert(UIBackend<Backend>,
+                          "Template parameter must satisfy UIBackend concept for layout strategies");
+            using rect_type = typename Backend::rect_type;
+            using size_type = typename Backend::size_type;
         public:
             virtual ~layout_strategy() noexcept = default;
 
@@ -607,8 +611,8 @@ namespace onyxui {
              * @param available_height Maximum height available (pixels)
              * @return The total size needed to accommodate all children
              */
-            virtual TSize measure_children(
-                const ui_element <TRect, TSize>* parent,
+            virtual size_type measure_children(
+                const ui_element<Backend>* parent,
                 int available_width,
                 int available_height) const = 0;
 
@@ -626,8 +630,8 @@ namespace onyxui {
              * @param content_area The area available for children (excludes padding/margin)
              */
             virtual void arrange_children(
-                ui_element <TRect, TSize>* parent,
-                const TRect& content_area) = 0;
+                ui_element<Backend>* parent,
+                const rect_type& content_area) = 0;
 
             /**
              * @brief Called when a child is removed from the parent
@@ -638,7 +642,7 @@ namespace onyxui {
              *
              * @param child The child that was removed
              */
-            virtual void on_child_removed([[maybe_unused]] ui_element <TRect, TSize>* child) {
+            virtual void on_child_removed([[maybe_unused]] ui_element<Backend>* child) {
                 // Default: no cleanup needed
             }
 
@@ -663,7 +667,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return Const reference to the children vector
              */
-            const auto& get_children(const ui_element <TRect, TSize>* parent) const {
+            static const auto& get_children(const ui_element<Backend>* parent) {
                 return parent->children();
             }
 
@@ -673,7 +677,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return Reference to the children vector
              */
-            auto& get_mutable_children(ui_element <TRect, TSize>* parent) {
+            static auto& get_mutable_children(ui_element<Backend>* parent) {
                 return parent->mutable_children();
             }
 
@@ -683,7 +687,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return The last measured size
              */
-            const TSize& get_last_measured_size(const ui_element <TRect, TSize>* parent) const {
+            static const size_type& get_last_measured_size(const ui_element<Backend>* parent) {
                 return parent->last_measured_size();
             }
 
@@ -693,7 +697,7 @@ namespace onyxui {
              * @param child The child element
              * @return Horizontal alignment setting
              */
-            horizontal_alignment get_h_align(const ui_element <TRect, TSize>* child) const {
+            static horizontal_alignment get_h_align(const ui_element<Backend>* child) {
                 return child->h_align();
             }
 
@@ -703,7 +707,7 @@ namespace onyxui {
              * @param child The child element
              * @return Vertical alignment setting
              */
-            vertical_alignment get_v_align(const ui_element <TRect, TSize>* child) const {
+            static vertical_alignment get_v_align(const ui_element<Backend>* child) {
                 return child->v_align();
             }
     };

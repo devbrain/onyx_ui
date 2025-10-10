@@ -99,12 +99,11 @@ namespace onyxui {
      * - Prefer anchor_layout for responsive positioning
      * - Cache positions when implementing drag-and-drop
      *
-     * @tparam TRect Rectangle type satisfying RectLike concept
-     * @tparam TSize Size type satisfying SizeLike concept
+     * @tparam Backend The backend traits type providing rect and size types
      *
      * @example Tooltip Positioning
      * @code
-     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<absolute_layout<MyBackend>>();
      * overlay->set_layout_strategy(std::move(layout));
      *
      * // Position tooltip near mouse cursor
@@ -119,7 +118,7 @@ namespace onyxui {
      *
      * @example Drag and Drop Interface
      * @code
-     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<absolute_layout<MyBackend>>();
      * canvas->set_layout_strategy(std::move(layout));
      *
      * // Position draggable items
@@ -136,7 +135,7 @@ namespace onyxui {
      *
      * @example Custom Dialog Layout
      * @code
-     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<absolute_layout<MyBackend>>();
      * dialog->set_layout_strategy(std::move(layout));
      *
      * // Title at top
@@ -155,7 +154,7 @@ namespace onyxui {
      *
      * @example Node Editor
      * @code
-     * auto layout = std::make_unique<absolute_layout<MyRect, MySize>>();
+     * auto layout = std::make_unique<absolute_layout<MyBackend>>();
      * node_canvas->set_layout_strategy(std::move(layout));
      *
      * // Position nodes based on graph structure
@@ -169,10 +168,12 @@ namespace onyxui {
      * // Connections drawn separately (not part of layout)
      * @endcode
      */
-    template<RectLike TRect, SizeLike TSize>
-    class absolute_layout : public layout_strategy <TRect, TSize> {
+    template<UIBackend Backend>
+    class absolute_layout : public layout_strategy<Backend> {
         public:
-            using elt_t = ui_element <TRect, TSize>;
+            using elt_t = ui_element<Backend>;
+            using rect_type = typename Backend::rect_type;
+            using size_type = typename Backend::size_type;
 
             /**
              * @brief Set the position (and optionally size) for a child element
@@ -224,7 +225,7 @@ namespace onyxui {
              * @note Children at negative coordinates don't affect the bounding box.
              *       The parent's size is always at least (0, 0).
              */
-            TSize measure_children(const elt_t* parent,
+            size_type measure_children(const elt_t* parent,
                                    int available_width,
                                    int available_height) const override;
 
@@ -244,7 +245,7 @@ namespace onyxui {
              * @note Children may be positioned outside content_area bounds.
              *       Clipping behavior depends on the parent's rendering settings.
              */
-            void arrange_children(elt_t* parent, const TRect& content_area) override;
+            void arrange_children(elt_t* parent, const rect_type& content_area) override;
 
             /**
              * @brief Clean up position mapping when child is removed
@@ -296,8 +297,8 @@ namespace onyxui {
     // ===================================================================================================
 
     // -----------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    TSize absolute_layout <TRect, TSize>::measure_children(const elt_t* parent, int available_width,
+    template<UIBackend Backend>
+    typename Backend::size_type absolute_layout<Backend>::measure_children(const elt_t* parent, int available_width,
                                                            int available_height) const {
         int max_width = 0;
         int max_height = 0;
@@ -306,7 +307,7 @@ namespace onyxui {
         for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
-            TSize measured = child->measure(available_width, available_height);
+            size_type measured = child->measure(available_width, available_height);
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -325,14 +326,14 @@ namespace onyxui {
             }
         }
 
-        TSize result = {};
+        size_type result = {};
         size_utils::set_size(result, max_width, max_height);
         return result;
     }
 
     // -----------------------------------------------------------------------------------------------------
-    template<RectLike TRect, SizeLike TSize>
-    void absolute_layout <TRect, TSize>::arrange_children(elt_t* parent, const TRect& content_area) {
+    template<UIBackend Backend>
+    void absolute_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
         int content_x = rect_utils::get_x(content_area);
         int content_y = rect_utils::get_y(content_area);
 
@@ -344,7 +345,7 @@ namespace onyxui {
                                     ? it->second
                                     : position_info{0, 0, -1, -1};
 
-            const TSize& measured = this->get_last_measured_size(child.get());
+            const size_type& measured = this->get_last_measured_size(child.get());
             int meas_w = size_utils::get_width(measured);
             int meas_h = size_utils::get_height(measured);
 
@@ -353,7 +354,7 @@ namespace onyxui {
             int child_width = (pos.width > 0) ? pos.width : meas_w;
             int child_height = (pos.height > 0) ? pos.height : meas_h;
 
-            TRect child_bounds;
+            rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y, child_width, child_height);
             child->arrange(child_bounds);
         }

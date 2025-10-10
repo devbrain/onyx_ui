@@ -1,184 +1,239 @@
 /**
  * @file concepts.hh
- * @brief C++20 concepts and utility functions for type-agnostic geometric operations
+ * @brief Improved C++20 concepts supporting both member variables and methods
  * @author igor
- * @date 08/10/2025
+ * @date 10/10/2025
  *
- * This file defines the core concepts that enable framework-agnostic geometric types.
- * Users can bring their own Point, Size, and Rectangle types without wrappers or conversions,
- * as long as they satisfy the PointLike, SizeLike, or RectLike concepts.
- *
- * @example
- * @code
- * // SDL_Rect works automatically
- * SDL_Rect rect = {10, 20, 100, 50};
- * int w = rect_utils::get_width(rect);  // Returns 100
- *
- * // Custom types work too
- * struct MyRect { int x, y, width, height; };
- * MyRect my_rect = {0, 0, 200, 100};
- * rect_utils::set_bounds(my_rect, 10, 10, 150, 80);
- * @endcode
+ * This file provides improved concepts that can detect both data members and
+ * accessor methods, making them more flexible for different API styles.
  */
 
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 
 namespace onyxui {
+    // ======================================================================
+    // Helper concepts for member detection
+    // ======================================================================
+
+    template<typename T>
+    concept has_member_x = requires(T t)
+    {
+        { t.x } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_x = requires(T t)
+    {
+        { t.x() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_get_x = requires(T t)
+    {
+        { t.get_x() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_member_y = requires(T t)
+    {
+        { t.y } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_y = requires(T t)
+    {
+        { t.y() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_get_y = requires(T t)
+    {
+        { t.get_y() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_member_w = requires(T t)
+    {
+        { t.w } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_member_width = requires(T t)
+    {
+        { t.width } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_width = requires(T t)
+    {
+        { t.width() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_get_width = requires(T t)
+    {
+        { t.get_width() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_member_h = requires(T t)
+    {
+        { t.h } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_member_height = requires(T t)
+    {
+        { t.height } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_height = requires(T t)
+    {
+        { t.height() } -> std::convertible_to <int>;
+    };
+
+    template<typename T>
+    concept has_method_get_height = requires(T t)
+    {
+        { t.get_height() } -> std::convertible_to <int>;
+    };
+
+    // ======================================================================
+    // Main concepts (improved to support both members and methods)
+    // ======================================================================
+
     /**
      * @concept PointLike
      * @brief Concept for 2D point types with x and y coordinates
      *
-     * A type satisfies PointLike if it has members `x` and `y` that are
-     * convertible to int. This allows working with various point types
-     * from different frameworks (SDL_Point, sf::Vector2i, etc.).
-     *
-     * @tparam T The type to check
+     * Supports:
+     * - Data members: p.x, p.y
+     * - Methods: p.x(), p.y()
+     * - Getter methods: p.get_x(), p.get_y()
      */
     template<typename T>
-    concept PointLike = requires(T p)
-    {
-        { p.x } -> std::convertible_to <int>;
-        { p.y } -> std::convertible_to <int>;
-    };
+    concept PointLike =
+        (has_member_x <T> || has_method_x <T> || has_method_get_x <T>) &&
+        (has_member_y <T> || has_method_y <T> || has_method_get_y <T>);
 
     /**
      * @concept SizeLike
      * @brief Concept for 2D size types with width and height
      *
-     * A type satisfies SizeLike if it has either:
-     * - Members `width` and `height`, OR
-     * - Members `w` and `h`
-     *
-     * Both must be convertible to int. This handles different naming conventions
-     * across frameworks (SDL uses w/h, SFML uses width/height).
-     *
-     * @tparam T The type to check
+     * Supports multiple naming conventions:
+     * - Data members: s.w/s.h or s.width/s.height
+     * - Methods: s.width()/s.height() or s.w()/s.h()
+     * - Getter methods: s.get_width()/s.get_height()
      */
     template<typename T>
-    concept SizeLike = requires(T s)
-                       {
-                           { s.width } -> std::convertible_to <int>;
-                           { s.height } -> std::convertible_to <int>;
-                       } || requires(T s)
-                       {
-                           { s.w } -> std::convertible_to <int>;
-                           { s.h } -> std::convertible_to <int>;
-                       };
+    concept SizeLike =
+        (has_member_w <T> || has_member_width <T> ||
+         has_method_width <T> || has_method_get_width <T>) &&
+        (has_member_h <T> || has_member_height <T> ||
+         has_method_height <T> || has_method_get_height <T>);
 
     /**
      * @concept RectLike
      * @brief Concept for 2D rectangle types with position and dimensions
      *
-     * A type satisfies RectLike if it has members x, y and either:
-     * - Members `w` and `h`, OR
-     * - Members `width` and `height`
-     *
-     * All must be convertible to int. This enables working with SDL_Rect,
-     * SFML rectangles, and custom types seamlessly.
-     *
-     * @tparam T The type to check
+     * Combines PointLike (for x,y) and SizeLike (for width,height)
      */
     template<typename T>
-    concept RectLike = requires(T r)
-                       {
-                           { r.x } -> std::convertible_to <int>;
-                           { r.y } -> std::convertible_to <int>;
-                           { r.w } -> std::convertible_to <int>;
-                           { r.h } -> std::convertible_to <int>;
-                       } || requires(T r)
-                       {
-                           { r.x } -> std::convertible_to <int>;
-                           { r.y } -> std::convertible_to <int>;
-                           { r.width } -> std::convertible_to <int>;
-                           { r.height } -> std::convertible_to <int>;
-                       };
+    concept RectLike = PointLike <T> && SizeLike <T>;
 
-    /**
-     * @namespace rect_utils
-     * @brief Utility functions for working with RectLike types
-     *
-     * These template functions provide a uniform interface for accessing
-     * and modifying rectangle properties, regardless of whether the underlying
-     * type uses w/h or width/height naming conventions.
-     */
+    // ======================================================================
+    // Improved utility functions that handle both members and methods
+    // ======================================================================
+
     namespace rect_utils {
         /**
          * @brief Get the x coordinate of a rectangle
-         * @tparam R A RectLike type
-         * @param r The rectangle
-         * @return The x coordinate
+         * Tries: r.x, r.x(), r.get_x() in that order
          */
         template<RectLike R>
-        int get_x(const R& r) {
-            return r.x;
+        [[nodiscard]] constexpr int get_x(const R& r) noexcept {
+            if constexpr (has_member_x <R>) {
+                return static_cast <int>(r.x);
+            } else if constexpr (has_method_x <R>) {
+                return static_cast <int>(r.x());
+            } else if constexpr (has_method_get_x <R>) {
+                return static_cast <int>(r.get_x());
+            } else {
+                static_assert(false, "No x accessor found");
+            }
         }
 
         /**
          * @brief Get the y coordinate of a rectangle
-         * @tparam R A RectLike type
-         * @param r The rectangle
-         * @return The y coordinate
+         * Tries: r.y, r.y(), r.get_y() in that order
          */
         template<RectLike R>
-        int get_y(const R& r) {
-            return r.y;
+        [[nodiscard]] constexpr int get_y(const R& r) noexcept {
+            if constexpr (has_member_y <R>) {
+                return static_cast <int>(r.y);
+            } else if constexpr (has_method_y <R>) {
+                return static_cast <int>(r.y());
+            } else if constexpr (has_method_get_y <R>) {
+                return static_cast <int>(r.get_y());
+            } else {
+                static_assert(false, "No y accessor found");
+            }
         }
 
         /**
          * @brief Get the width of a rectangle
-         *
-         * Automatically detects whether the type uses `width` or `w` member.
-         *
-         * @tparam R A RectLike type
-         * @param r The rectangle
-         * @return The width in pixels
+         * Tries: r.width, r.w, r.width(), r.get_width() in that order
          */
         template<RectLike R>
-        int get_width(const R& r) {
-            if constexpr (requires { r.width; }) {
-                return r.width;
+        [[nodiscard]] constexpr int get_width(const R& r) noexcept {
+            if constexpr (has_member_width <R>) {
+                return static_cast <int>(r.width);
+            } else if constexpr (has_member_w <R>) {
+                return static_cast <int>(r.w);
+            } else if constexpr (has_method_width <R>) {
+                return static_cast <int>(r.width());
+            } else if constexpr (has_method_get_width <R>) {
+                return static_cast <int>(r.get_width());
             } else {
-                return r.w;
+                static_assert(false, "No width accessor found");
             }
         }
 
         /**
          * @brief Get the height of a rectangle
-         *
-         * Automatically detects whether the type uses `height` or `h` member.
-         *
-         * @tparam R A RectLike type
-         * @param r The rectangle
-         * @return The height in pixels
+         * Tries: r.height, r.h, r.height(), r.get_height() in that order
          */
         template<RectLike R>
-        int get_height(const R& r) {
-            if constexpr (requires { r.height; }) {
-                return r.height;
+        [[nodiscard]] constexpr int get_height(const R& r) noexcept {
+            if constexpr (has_member_height <R>) {
+                return static_cast <int>(r.height);
+            } else if constexpr (has_member_h <R>) {
+                return static_cast <int>(r.h);
+            } else if constexpr (has_method_height <R>) {
+                return static_cast <int>(r.height());
+            } else if constexpr (has_method_get_height <R>) {
+                return static_cast <int>(r.get_height());
             } else {
-                return r.h;
+                static_assert(false, "No height accessor found");
             }
         }
 
         /**
-         * @brief Set all bounds of a rectangle at once
-         *
-         * Automatically handles different member naming conventions.
-         *
-         * @tparam R A RectLike type
-         * @param r The rectangle to modify
-         * @param x The x coordinate
-         * @param y The y coordinate
-         * @param width The width in pixels
-         * @param height The height in pixels
+         * @brief Set bounds - only works with mutable data members
+         * For types with setters, use set_x, set_y, set_width, set_height separately
          */
         template<RectLike R>
-        void set_bounds(R& r, int x, int y, int width, int height) {
+            requires has_member_x <R> && has_member_y <R> &&
+                     (has_member_w <R> || has_member_width <R>) &&
+                     (has_member_h <R> || has_member_height <R>)
+        constexpr void set_bounds(R& r, int x, int y, int width, int height) noexcept {
             r.x = x;
             r.y = y;
-            if constexpr (requires { r.width; }) {
+            if constexpr (has_member_width <R>) {
                 r.width = width;
                 r.height = height;
             } else {
@@ -189,84 +244,75 @@ namespace onyxui {
 
         /**
          * @brief Test if a point is contained within a rectangle
-         *
-         * Uses half-open interval: point is inside if px >= x && px < x+w
-         * and py >= y && py < y+h. The right and bottom edges are exclusive.
-         *
-         * @tparam R A RectLike type
-         * @param r The rectangle
-         * @param px The x coordinate of the point
-         * @param py The y coordinate of the point
-         * @return true if the point is inside the rectangle, false otherwise
          */
         template<RectLike R>
-        bool contains(const R& r, int px, int py) {
+        [[nodiscard]] constexpr bool contains(const R& r, int px, int py) noexcept {
             int x = get_x(r);
             int y = get_y(r);
             int w = get_width(r);
             int h = get_height(r);
             return px >= x && px < x + w && py >= y && py < y + h;
         }
+
+        /**
+         * @brief Create a rectangle if it's aggregate-initializable
+         */
+        template<RectLike R>
+            requires std::is_aggregate_v <R>
+        [[nodiscard]] constexpr R make(int x, int y, int w, int h) noexcept {
+            if constexpr (has_member_width <R>) {
+                return R{x, y, w, h}; // Assumes {x, y, width, height} order
+            } else {
+                return R{x, y, w, h}; // Assumes {x, y, w, h} order
+            }
+        }
     }
 
-    /**
-     * @namespace size_utils
-     * @brief Utility functions for working with SizeLike types
-     *
-     * These template functions provide a uniform interface for accessing
-     * and modifying size properties, regardless of whether the underlying
-     * type uses w/h or width/height naming conventions.
-     */
     namespace size_utils {
         /**
          * @brief Get the width component of a size
-         *
-         * Automatically detects whether the type uses `width` or `w` member.
-         *
-         * @tparam S A SizeLike type
-         * @param s The size
-         * @return The width in pixels
          */
         template<SizeLike S>
-        int get_width(const S& s) {
-            if constexpr (requires { s.width; }) {
-                return s.width;
+        [[nodiscard]] constexpr int get_width(const S& s) noexcept {
+            if constexpr (has_member_width <S>) {
+                return static_cast <int>(s.width);
+            } else if constexpr (has_member_w <S>) {
+                return static_cast <int>(s.w);
+            } else if constexpr (has_method_width <S>) {
+                return static_cast <int>(s.width());
+            } else if constexpr (has_method_get_width <S>) {
+                return static_cast <int>(s.get_width());
             } else {
-                return s.w;
+                static_assert(false, "No width accessor found");
             }
         }
 
         /**
          * @brief Get the height component of a size
-         *
-         * Automatically detects whether the type uses `height` or `h` member.
-         *
-         * @tparam S A SizeLike type
-         * @param s The size
-         * @return The height in pixels
          */
         template<SizeLike S>
-        int get_height(const S& s) {
-            if constexpr (requires { s.height; }) {
-                return s.height;
+        [[nodiscard]] constexpr int get_height(const S& s) noexcept {
+            if constexpr (has_member_height <S>) {
+                return static_cast <int>(s.height);
+            } else if constexpr (has_member_h <S>) {
+                return static_cast <int>(s.h);
+            } else if constexpr (has_method_height <S>) {
+                return static_cast <int>(s.height());
+            } else if constexpr (has_method_get_height <S>) {
+                return static_cast <int>(s.get_height());
             } else {
-                return s.h;
+                static_assert(false, "No height accessor found");
             }
         }
 
         /**
-         * @brief Set both width and height of a size
-         *
-         * Automatically handles different member naming conventions.
-         *
-         * @tparam S A SizeLike type
-         * @param s The size to modify
-         * @param width The width in pixels
-         * @param height The height in pixels
+         * @brief Set both width and height - only works with mutable data members
          */
         template<SizeLike S>
-        void set_size(S& s, int width, int height) {
-            if constexpr (requires { s.width; }) {
+            requires (has_member_w <S> || has_member_width <S>) &&
+                     (has_member_h <S> || has_member_height <S>)
+        constexpr void set_size(S& s, int width, int height) noexcept {
+            if constexpr (has_member_width <S>) {
                 s.width = width;
                 s.height = height;
             } else {
@@ -276,21 +322,68 @@ namespace onyxui {
         }
 
         /**
+         * @brief Create a size if it's aggregate-initializable
+         */
+        template<SizeLike S>
+            requires std::is_aggregate_v <S>
+        [[nodiscard]] constexpr S make(int w, int h) noexcept {
+            if constexpr (has_member_width <S>) {
+                return S{w, h}; // Assumes {width, height} order
+            } else {
+                return S{w, h}; // Assumes {w, h} order
+            }
+        }
+
+        /**
          * @brief Compare two sizes for equality
-         *
-         * Returns true if both width and height are equal, regardless of
-         * whether the types use the same naming convention.
-         *
-         * @tparam S1 First SizeLike type
-         * @tparam S2 Second SizeLike type
-         * @param a First size
-         * @param b Second size
-         * @return true if sizes are equal, false otherwise
          */
         template<SizeLike S1, SizeLike S2>
-        bool equal(const S1& a, const S2& b) {
+        [[nodiscard]] constexpr bool equal(const S1& a, const S2& b) noexcept {
             return get_width(a) == get_width(b) &&
                    get_height(a) == get_height(b);
+        }
+    }
+
+    namespace point_utils {
+        /**
+         * @brief Get the x coordinate of a point
+         */
+        template<PointLike P>
+        [[nodiscard]] constexpr int get_x(const P& p) noexcept {
+            if constexpr (has_member_x <P>) {
+                return static_cast <int>(p.x);
+            } else if constexpr (has_method_x <P>) {
+                return static_cast <int>(p.x());
+            } else if constexpr (has_method_get_x <P>) {
+                return static_cast <int>(p.get_x());
+            } else {
+                static_assert(false, "No x accessor found");
+            }
+        }
+
+        /**
+         * @brief Get the y coordinate of a point
+         */
+        template<PointLike P>
+        [[nodiscard]] constexpr int get_y(const P& p) noexcept {
+            if constexpr (has_member_y <P>) {
+                return static_cast <int>(p.y);
+            } else if constexpr (has_method_y <P>) {
+                return static_cast <int>(p.y());
+            } else if constexpr (has_method_get_y <P>) {
+                return static_cast <int>(p.get_y());
+            } else {
+                static_assert(false, "No y accessor found");
+            }
+        }
+
+        /**
+         * @brief Create a point if it's aggregate-initializable
+         */
+        template<PointLike P>
+            requires std::is_aggregate_v <P>
+        [[nodiscard]] constexpr P make(int x, int y) noexcept {
+            return P{x, y};
         }
     }
 }

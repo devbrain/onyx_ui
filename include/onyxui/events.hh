@@ -157,20 +157,22 @@ namespace onyxui {
     // Traits for SDL_MouseMotionEvent
     template<>
     struct event_traits<SDL_MouseMotionEvent> {
-        static int mouse_x(const SDL_MouseMotionEvent& e) { return e.x; }
-        static int mouse_y(const SDL_MouseMotionEvent& e) { return e.y; }
-        static int delta_x(const SDL_MouseMotionEvent& e) { return e.xrel; }
-        static int delta_y(const SDL_MouseMotionEvent& e) { return e.yrel; }
-        static uint32_t timestamp(const SDL_MouseMotionEvent& e) { return e.timestamp; }
+        [[nodiscard]] static int mouse_x(const SDL_MouseMotionEvent& e) noexcept { return e.x; }
+        [[nodiscard]] static int mouse_y(const SDL_MouseMotionEvent& e) noexcept { return e.y; }
+        [[nodiscard]] static int delta_x(const SDL_MouseMotionEvent& e) noexcept { return e.xrel; }
+        [[nodiscard]] static int delta_y(const SDL_MouseMotionEvent& e) noexcept { return e.yrel; }
+        [[nodiscard]] static uint32_t timestamp(const SDL_MouseMotionEvent& e) noexcept { return e.timestamp; }
 
-        // Modifier state from SDL
-        static bool shift_pressed(const SDL_MouseMotionEvent&) {
+        // Modifier state from event state field
+        [[nodiscard]] static bool shift_pressed(const SDL_MouseMotionEvent& e) noexcept {
+            // SDL_MouseMotionEvent doesn't carry mod state, fall back to global
+            // This is a limitation of SDL's API
             return SDL_GetModState() & KMOD_SHIFT;
         }
-        static bool ctrl_pressed(const SDL_MouseMotionEvent&) {
+        [[nodiscard]] static bool ctrl_pressed(const SDL_MouseMotionEvent& e) noexcept {
             return SDL_GetModState() & KMOD_CTRL;
         }
-        static bool alt_pressed(const SDL_MouseMotionEvent&) {
+        [[nodiscard]] static bool alt_pressed(const SDL_MouseMotionEvent& e) noexcept {
             return SDL_GetModState() & KMOD_ALT;
         }
     };
@@ -178,22 +180,24 @@ namespace onyxui {
     // Traits for SDL_MouseButtonEvent
     template<>
     struct event_traits<SDL_MouseButtonEvent> {
-        static int mouse_x(const SDL_MouseButtonEvent& e) { return e.x; }
-        static int mouse_y(const SDL_MouseButtonEvent& e) { return e.y; }
-        static int mouse_button(const SDL_MouseButtonEvent& e) { return e.button; }
-        static bool is_button_press(const SDL_MouseButtonEvent& e) {
+        [[nodiscard]] static int mouse_x(const SDL_MouseButtonEvent& e) noexcept { return e.x; }
+        [[nodiscard]] static int mouse_y(const SDL_MouseButtonEvent& e) noexcept { return e.y; }
+        [[nodiscard]] static int mouse_button(const SDL_MouseButtonEvent& e) noexcept { return e.button; }
+        [[nodiscard]] static bool is_button_press(const SDL_MouseButtonEvent& e) noexcept {
             return e.type == SDL_MOUSEBUTTONDOWN;
         }
-        static int click_count(const SDL_MouseButtonEvent& e) { return e.clicks; }
-        static uint32_t timestamp(const SDL_MouseButtonEvent& e) { return e.timestamp; }
+        [[nodiscard]] static int click_count(const SDL_MouseButtonEvent& e) noexcept { return e.clicks; }
+        [[nodiscard]] static uint32_t timestamp(const SDL_MouseButtonEvent& e) noexcept { return e.timestamp; }
 
-        static bool shift_pressed(const SDL_MouseButtonEvent&) {
+        // SDL_MouseButtonEvent also doesn't have mod state in the event
+        // Must use global state (SDL limitation)
+        [[nodiscard]] static bool shift_pressed(const SDL_MouseButtonEvent&) noexcept {
             return SDL_GetModState() & KMOD_SHIFT;
         }
-        static bool ctrl_pressed(const SDL_MouseButtonEvent&) {
+        [[nodiscard]] static bool ctrl_pressed(const SDL_MouseButtonEvent&) noexcept {
             return SDL_GetModState() & KMOD_CTRL;
         }
-        static bool alt_pressed(const SDL_MouseButtonEvent&) {
+        [[nodiscard]] static bool alt_pressed(const SDL_MouseButtonEvent&) noexcept {
             return SDL_GetModState() & KMOD_ALT;
         }
     };
@@ -213,22 +217,37 @@ namespace onyxui {
     // Traits for SDL_KeyboardEvent
     template<>
     struct event_traits<SDL_KeyboardEvent> {
-        static int key_code(const SDL_KeyboardEvent& e) { return e.keysym.sym; }
-        static int scan_code(const SDL_KeyboardEvent& e) { return e.keysym.scancode; }
-        static bool is_key_press(const SDL_KeyboardEvent& e) {
+        [[nodiscard]] static int key_code(const SDL_KeyboardEvent& e) noexcept { return e.keysym.sym; }
+        [[nodiscard]] static int scan_code(const SDL_KeyboardEvent& e) noexcept { return e.keysym.scancode; }
+        [[nodiscard]] static bool is_key_press(const SDL_KeyboardEvent& e) noexcept {
             return e.type == SDL_KEYDOWN;
         }
-        static bool is_repeat(const SDL_KeyboardEvent& e) { return e.repeat != 0; }
-        static uint32_t timestamp(const SDL_KeyboardEvent& e) { return e.timestamp; }
+        [[nodiscard]] static bool is_repeat(const SDL_KeyboardEvent& e) noexcept { return e.repeat != 0; }
+        [[nodiscard]] static uint32_t timestamp(const SDL_KeyboardEvent& e) noexcept { return e.timestamp; }
 
-        static bool shift_pressed(const SDL_KeyboardEvent& e) {
-            return e.keysym.mod & KMOD_SHIFT;
+        // Read modifiers from the event payload (keysym.mod)
+        [[nodiscard]] static bool shift_pressed(const SDL_KeyboardEvent& e) noexcept {
+            return (e.keysym.mod & KMOD_SHIFT) != 0;
         }
-        static bool ctrl_pressed(const SDL_KeyboardEvent& e) {
-            return e.keysym.mod & KMOD_CTRL;
+        [[nodiscard]] static bool ctrl_pressed(const SDL_KeyboardEvent& e) noexcept {
+            return (e.keysym.mod & KMOD_CTRL) != 0;
         }
-        static bool alt_pressed(const SDL_KeyboardEvent& e) {
-            return e.keysym.mod & KMOD_ALT;
+        [[nodiscard]] static bool alt_pressed(const SDL_KeyboardEvent& e) noexcept {
+            return (e.keysym.mod & KMOD_ALT) != 0;
+        }
+
+        // Key identification methods
+        [[nodiscard]] static bool is_tab_key(const SDL_KeyboardEvent& e) noexcept {
+            return e.keysym.sym == SDLK_TAB;
+        }
+        [[nodiscard]] static bool is_enter_key(const SDL_KeyboardEvent& e) noexcept {
+            return e.keysym.sym == SDLK_RETURN || e.keysym.sym == SDLK_KP_ENTER;
+        }
+        [[nodiscard]] static bool is_space_key(const SDL_KeyboardEvent& e) noexcept {
+            return e.keysym.sym == SDLK_SPACE;
+        }
+        [[nodiscard]] static bool is_escape_key(const SDL_KeyboardEvent& e) noexcept {
+            return e.keysym.sym == SDLK_ESCAPE;
         }
     };
 
@@ -352,6 +371,20 @@ namespace onyxui {
         }
         static bool alt_pressed(const glfw_key_event& e) {
             return e.mods & GLFW_MOD_ALT;
+        }
+
+        // Key identification methods
+        static bool is_tab_key(const glfw_key_event& e) {
+            return e.key == GLFW_KEY_TAB;
+        }
+        static bool is_enter_key(const glfw_key_event& e) {
+            return e.key == GLFW_KEY_ENTER || e.key == GLFW_KEY_KP_ENTER;
+        }
+        static bool is_space_key(const glfw_key_event& e) {
+            return e.key == GLFW_KEY_SPACE;
+        }
+        static bool is_escape_key(const glfw_key_event& e) {
+            return e.key == GLFW_KEY_ESCAPE;
         }
     };
 #endif
