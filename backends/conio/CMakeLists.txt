@@ -22,8 +22,12 @@ add_executable(conio main.cc
         drawing_utils.cc
         drawing_utils.hh
         conio_backend.hh
-        conio_app.hh
-        conio_app.cc)
+        conio_renderer.cc
+       )
 
-# Link with termbox2 header library
-target_link_libraries(conio PRIVATE termbox2_lib onyx_ui)
+# Link with termbox2 header library and utf8cpp (for text measurement)
+target_link_libraries(conio PRIVATE
+    termbox2_lib
+    onyx_ui
+    thirdparty::utf8cpp  # Required for UTF-8 text measurement in renderer
+)
