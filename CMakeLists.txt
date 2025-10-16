@@ -122,6 +122,12 @@ set(ONYX_UI_PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
+
+# ===========================================================================
+# Failsafe Dependency
+# ===========================================================================
+# Fetch failsafe FIRST because it may provide utf8cpp transitively
+
 # First check if failsafe target already exists (from parent project)
 if(TARGET failsafe)
     message(STATUS "Found failsafe target from parent project")
@@ -155,6 +161,49 @@ else()
         message(STATUS "Found failsafe locally")
         if(NOT TARGET thirdparty::failsafe)
             add_library(thirdparty::failsafe ALIAS failsafe::failsafe)
+        endif()
+    endif()
+endif()
+
+# ===========================================================================
+# UTF8-CPP Dependency (header-only library)
+# ===========================================================================
+# Used by test backend for correct Unicode code point counting
+# Failsafe provides this transitively, but we create an explicit alias to be robust
+
+if(TARGET utf8cpp)
+    message(STATUS "Found utf8cpp target (likely from failsafe)")
+    if(NOT TARGET thirdparty::utf8cpp)
+        add_library(thirdparty::utf8cpp ALIAS utf8cpp)
+    endif()
+elseif(TARGET thirdparty::utf8cpp)
+    message(STATUS "Found thirdparty::utf8cpp target from parent project")
+else()
+    # Try to find utf8cpp locally
+    find_package(utf8cpp QUIET)
+
+    if(NOT utf8cpp_FOUND)
+        message(STATUS "utf8cpp not found - fetching from GitHub as fallback...")
+
+        fetchcontent_declare(
+            UTF8CPP
+            GIT_REPOSITORY "https://github.com/nemtrif/utfcpp.git"
+            GIT_TAG v4.0.5
+            GIT_PROGRESS TRUE
+            UPDATE_COMMAND ""
+        )
+        fetchcontent_makeavailable(UTF8CPP)
+
+        # utf8cpp uses utf8cpp target name
+        if(TARGET utf8cpp)
+            add_library(thirdparty::utf8cpp ALIAS utf8cpp)
+        else()
+            message(FATAL_ERROR "utf8cpp target not found after FetchContent")
+        endif()
+    else()
+        message(STATUS "Found utf8cpp locally")
+        if(NOT TARGET thirdparty::utf8cpp)
+            add_library(thirdparty::utf8cpp ALIAS utf8cpp::utf8cpp)
         endif()
     endif()
 endif()

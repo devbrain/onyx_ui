@@ -84,4 +84,8 @@ add_executable(ui_unittest
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ui_unittest onyx_ui doctest::doctest)
+target_link_libraries(ui_unittest
+    onyx_ui
+    doctest::doctest
+    thirdparty::utf8cpp  # Required by test_backend.hh for measure_text()
+)
