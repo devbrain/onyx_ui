@@ -127,4 +127,10 @@ enum dos_char {
     DOS_VERT_DOTTED = 0x250A, // ┊
     DOS_HORIZ_DOTTED = 0x2508, // ┈
     DOS_CROSS_DOTTED = 0x254B, // ┋ (approx)
+
+    // ──────────────────────────────────────
+    // Additional icons for renderer
+    DOS_CROSS = 0x2717, // ✗ (ballot X)
+    DOS_TRIANGLE_RIGHT = 0x25B6, // ▶ (black right-pointing triangle)
+    DOS_SQUARE_FILLED = 0x25A0, // ■ (black square)
 };

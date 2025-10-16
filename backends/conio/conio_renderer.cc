@@ -9,6 +9,18 @@
 
 namespace onyxui::conio {
     // ======================================================================
+    // Constants
+    // ======================================================================
+
+    namespace {
+        // TUI character cell dimensions
+        constexpr int TUI_CELL_HEIGHT = 1;  // Each character is 1 row high
+
+        // Rectangle boundary offsets
+        constexpr int RECT_EDGE_OFFSET = 1;  // Offset for inner edges (exclude corners)
+    } // anonymous namespace
+
+    // ======================================================================
     // Box Drawing
     // ======================================================================
 
@@ -45,51 +57,55 @@ namespace onyxui::conio {
                 return;
         }
 
+        // Calculate corner positions (last cell in each dimension)
+        const int right_edge = r.x + r.w - RECT_EDGE_OFFSET;
+        const int bottom_edge = r.y + r.h - RECT_EDGE_OFFSET;
+
         // Draw corners (if visible)
         if (r.x >= clip.x && r.x < clip.x + clip.w &&
             r.y >= clip.y && r.y < clip.y + clip.h) {
             m_vram->put(r.x, r.y, tl, m_fg, m_bg);  // Top-left
         }
 
-        if (r.x + r.w - 1 >= clip.x && r.x + r.w - 1 < clip.x + clip.w &&
+        if (right_edge >= clip.x && right_edge < clip.x + clip.w &&
             r.y >= clip.y && r.y < clip.y + clip.h) {
-            m_vram->put(r.x + r.w - 1, r.y, tr, m_fg, m_bg);  // Top-right
+            m_vram->put(right_edge, r.y, tr, m_fg, m_bg);  // Top-right
         }
 
         if (r.x >= clip.x && r.x < clip.x + clip.w &&
-            r.y + r.h - 1 >= clip.y && r.y + r.h - 1 < clip.y + clip.h) {
-            m_vram->put(r.x, r.y + r.h - 1, bl, m_fg, m_bg);  // Bottom-left
+            bottom_edge >= clip.y && bottom_edge < clip.y + clip.h) {
+            m_vram->put(r.x, bottom_edge, bl, m_fg, m_bg);  // Bottom-left
         }
 
-        if (r.x + r.w - 1 >= clip.x && r.x + r.w - 1 < clip.x + clip.w &&
-            r.y + r.h - 1 >= clip.y && r.y + r.h - 1 < clip.y + clip.h) {
-            m_vram->put(r.x + r.w - 1, r.y + r.h - 1, br, m_fg, m_bg);  // Bottom-right
+        if (right_edge >= clip.x && right_edge < clip.x + clip.w &&
+            bottom_edge >= clip.y && bottom_edge < clip.y + clip.h) {
+            m_vram->put(right_edge, bottom_edge, br, m_fg, m_bg);  // Bottom-right
         }
 
         // Draw horizontal lines
-        for (int x = r.x + 1; x < r.x + r.w - 1; ++x) {
+        for (int x = r.x + RECT_EDGE_OFFSET; x < r.x + r.w - RECT_EDGE_OFFSET; ++x) {
             if (x >= clip.x && x < clip.x + clip.w) {
                 // Top edge
                 if (r.y >= clip.y && r.y < clip.y + clip.h) {
                     m_vram->put(x, r.y, h, m_fg, m_bg);
                 }
                 // Bottom edge
-                if (r.y + r.h - 1 >= clip.y && r.y + r.h - 1 < clip.y + clip.h) {
-                    m_vram->put(x, r.y + r.h - 1, h, m_fg, m_bg);
+                if (r.y + r.h - RECT_EDGE_OFFSET >= clip.y && r.y + r.h - RECT_EDGE_OFFSET < clip.y + clip.h) {
+                    m_vram->put(x, r.y + r.h - RECT_EDGE_OFFSET, h, m_fg, m_bg);
                 }
             }
         }
 
         // Draw vertical lines
-        for (int y = r.y + 1; y < r.y + r.h - 1; ++y) {
+        for (int y = r.y + RECT_EDGE_OFFSET; y < r.y + r.h - RECT_EDGE_OFFSET; ++y) {
             if (y >= clip.y && y < clip.y + clip.h) {
                 // Left edge
                 if (r.x >= clip.x && r.x < clip.x + clip.w) {
                     m_vram->put(r.x, y, v, m_fg, m_bg);
                 }
                 // Right edge
-                if (r.x + r.w - 1 >= clip.x && r.x + r.w - 1 < clip.x + clip.w) {
-                    m_vram->put(r.x + r.w - 1, y, v, m_fg, m_bg);
+                if (r.x + r.w - RECT_EDGE_OFFSET >= clip.x && r.x + r.w - RECT_EDGE_OFFSET < clip.x + clip.w) {
+                    m_vram->put(r.x + r.w - RECT_EDGE_OFFSET, y, v, m_fg, m_bg);
                 }
             }
         }
@@ -151,14 +167,14 @@ namespace onyxui::conio {
         int ch;
         switch (style) {
             case icon_style::check:       ch = DOS_CHECK; break;
-            case icon_style::cross:       ch = 0x2717; break;  // ✗
+            case icon_style::cross:       ch = DOS_CROSS; break;
             case icon_style::arrow_up:    ch = DOS_ARROW_UP; break;
             case icon_style::arrow_down:  ch = DOS_ARROW_DOWN; break;
             case icon_style::arrow_left:  ch = DOS_ARROW_LEFT; break;
             case icon_style::arrow_right: ch = DOS_ARROW_RIGHT; break;
             case icon_style::bullet:      ch = DOS_BULLET; break;
-            case icon_style::folder:      ch = 0x25B6; break;  // ▶
-            case icon_style::file:        ch = 0x25A0; break;  // ■
+            case icon_style::folder:      ch = DOS_TRIANGLE_RIGHT; break;
+            case icon_style::file:        ch = DOS_SQUARE_FILLED; break;
             default:                      return;
         }
 
@@ -176,13 +192,21 @@ namespace onyxui::conio {
 
     void conio_renderer::pop_clip() {
         if (!m_vram) return;
-        // Reset to full screen clip
-        rect full{0, 0, m_vram->get_width(), m_vram->get_height()};
+        // Reset to full screen clip (origin at 0,0, full vram dimensions)
+        constexpr int SCREEN_ORIGIN_X = 0;
+        constexpr int SCREEN_ORIGIN_Y = 0;
+        const rect full{SCREEN_ORIGIN_X, SCREEN_ORIGIN_Y, m_vram->get_width(), m_vram->get_height()};
         m_vram->set_clip(full);
     }
 
     rect conio_renderer::get_clip_rect() const {
-        if (!m_vram) return rect{0, 0, 0, 0};
+        // Return empty rect if no vram
+        constexpr int EMPTY_RECT_X = 0;
+        constexpr int EMPTY_RECT_Y = 0;
+        constexpr int EMPTY_RECT_W = 0;
+        constexpr int EMPTY_RECT_H = 0;
+
+        if (!m_vram) return rect{EMPTY_RECT_X, EMPTY_RECT_Y, EMPTY_RECT_W, EMPTY_RECT_H};
         return m_vram->get_clip();
     }
 
@@ -192,12 +216,12 @@ namespace onyxui::conio {
 
     size conio_renderer::measure_text(std::string_view text, const font& /*f*/) {
         // Count Unicode code points (visual characters)
-        int glyph_count = static_cast<int>(
+        const int glyph_count = static_cast<int>(
             utf8::distance(text.begin(), text.end())
         );
 
         // In a TUI, each character is 1x1 cell
-        return size{glyph_count, 1};
+        return size{glyph_count, TUI_CELL_HEIGHT};
     }
 
     // ======================================================================

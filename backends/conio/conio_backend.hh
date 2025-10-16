@@ -191,8 +191,10 @@ namespace onyxui::conio {
 
     private:
         std::shared_ptr<vram> m_vram;
-        color m_fg{255, 255, 255};  // Default white
-        color m_bg{0, 0, 0};        // Default black
+        // Default white foreground
+        color m_fg{color::MAX_COMPONENT, color::MAX_COMPONENT, color::MAX_COMPONENT};
+        // Default black background
+        color m_bg{color::MIN_COMPONENT, color::MIN_COMPONENT, color::MIN_COMPONENT};
     };
 
     // ======================================================================
