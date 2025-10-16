@@ -44,8 +44,8 @@
 #pragma once
 
 #include <functional>
-#include <onyxui/backend.hh>
-#include <onyxui/events.hh>
+#include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/event_like.hh>
 
 namespace onyxui {
     // Forward declaration for friend declaration
@@ -100,6 +100,16 @@ namespace onyxui {
 
             virtual ~event_target() = default;
 
+            // Delete copy operations
+            // Rationale: Event handlers are per-instance and shouldn't be copied
+            event_target(const event_target&) = delete;
+            event_target& operator=(const event_target&) = delete;
+
+            // Allow move operations
+            // Rationale: Event handlers can transfer to new owner
+            event_target(event_target&&) noexcept = default;
+            event_target& operator=(event_target&&) noexcept = default;
+
             // -----------------------------------------------------------------------
             // Main Event Processing
             // -----------------------------------------------------------------------
@@ -110,6 +120,11 @@ namespace onyxui {
              * This template function accepts any event type that has event_traits
              * specialized for it. It extracts the necessary data using traits and
              * calls the appropriate virtual handler.
+             *
+             * @exception Any exception thrown by virtual handlers (handle_mouse_move, handle_key_down, etc.)
+             * @exception Any exception thrown by registered callbacks
+             * @note Exception safety: Basic guarantee - internal state (hover, pressed) may be modified before exception
+             * @note Returns false (no exception) if target is disabled
              */
             template<typename E>
             bool process_event(const E& event);
@@ -125,42 +140,159 @@ namespace onyxui {
             using text_callback = std::function <bool(std::string_view text)>;
             using simple_callback = std::function <bool()>;
 
+            /**
+             * @brief Set callback for mouse enter event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_mouse_enter(simple_callback cb) { m_on_mouse_enter = std::move(cb); }
+
+            /**
+             * @brief Set callback for mouse leave event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_mouse_leave(simple_callback cb) { m_on_mouse_leave = std::move(cb); }
+
+            /**
+             * @brief Set callback for mouse move event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_mouse_move(mouse_callback cb) { m_on_mouse_move = std::move(cb); }
+
+            /**
+             * @brief Set callback for mouse button down event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_mouse_down(button_callback cb) { m_on_mouse_down = std::move(cb); }
+
+            /**
+             * @brief Set callback for mouse button up event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_mouse_up(button_callback cb) { m_on_mouse_up = std::move(cb); }
+
+            /**
+             * @brief Set callback for click event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_click(mouse_callback cb) { m_on_click = std::move(cb); }
+
+            /**
+             * @brief Set callback for mouse wheel event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_wheel(wheel_callback cb) { m_on_wheel = std::move(cb); }
+
+            /**
+             * @brief Set callback for key down event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_key_down(key_callback cb) { m_on_key_down = std::move(cb); }
+
+            /**
+             * @brief Set callback for key up event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_key_up(key_callback cb) { m_on_key_up = std::move(cb); }
+
+            /**
+             * @brief Set callback for text input event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_text_input(text_callback cb) { m_on_text_input = std::move(cb); }
+
+            /**
+             * @brief Set callback for focus gained event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_focus_gained(simple_callback cb) { m_on_focus_gained = std::move(cb); }
+
+            /**
+             * @brief Set callback for focus lost event
+             * @exception std::bad_alloc If callback allocation fails
+             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
+             */
             void set_on_focus_lost(simple_callback cb) { m_on_focus_lost = std::move(cb); }
 
             // -----------------------------------------------------------------------
             // State Queries
             // -----------------------------------------------------------------------
 
+            /**
+             * @brief Check if mouse is currently hovering over this target
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] bool is_hovered() const noexcept { return m_is_hovered; }
+
+            /**
+             * @brief Check if mouse button is currently pressed on this target
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] bool is_pressed() const noexcept { return m_is_pressed; }
+
+            /**
+             * @brief Check if this target currently has keyboard focus
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] bool has_focus() const noexcept { return m_has_focus; }
+
+            /**
+             * @brief Check if this target can receive keyboard focus
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] bool is_focusable() const noexcept { return m_focusable; }
+
+            /**
+             * @brief Check if this target is enabled and can process events
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] bool is_enabled() const noexcept { return m_enabled; }
+
+            /**
+             * @brief Get the tab navigation order index
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             [[nodiscard]] int tab_index() const noexcept { return m_tab_index; }
 
             // -----------------------------------------------------------------------
             // State Setters
             // -----------------------------------------------------------------------
 
+            /**
+             * @brief Set whether this target can receive keyboard focus
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
             void set_focusable(bool focusable) noexcept { m_focusable = focusable; }
+
+            /**
+             * @brief Set whether this target is enabled and can process events
+             * @note Exception safety: No-throw guarantee (noexcept)
+             * @note When disabled, process_event() returns false immediately
+             */
             void set_enabled(bool enabled) noexcept { m_enabled = enabled; }
+
+            /**
+             * @brief Set the tab navigation order index
+             * @note Exception safety: No-throw guarantee (noexcept)
+             * @note Lower indices receive focus first during tab navigation
+             */
             void set_tab_index(int index) noexcept { m_tab_index = index; }
 
             // -----------------------------------------------------------------------
             // Virtual Handlers - Override these in derived classes
             // -----------------------------------------------------------------------
         protected:
+            event_target() = default;
             /**
              * @brief Handle mouse enter event
              */

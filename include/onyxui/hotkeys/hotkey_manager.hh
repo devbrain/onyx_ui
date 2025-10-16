@@ -1,0 +1,660 @@
+/**
+ * @file hotkey_manager.hh
+ * @brief Central manager for keyboard shortcuts and hotkey dispatch
+ * @author igor
+ * @date 16/10/2025
+ *
+ * @details
+ * Provides centralized hotkey management for UI applications, handling
+ * keyboard shortcut registration, conflict detection, and event dispatch.
+ *
+ * ## Design Philosophy
+ *
+ * **Centralized Management:**
+ * All hotkeys are registered with a single hotkey_manager instance.
+ * This allows conflict detection and provides a single source of truth.
+ *
+ * **Action-Based:**
+ * Hotkeys are registered for actions, not callbacks. This integrates
+ * seamlessly with the existing action system.
+ *
+ * **Scope-Aware:**
+ * Hotkeys can be global, window-scoped, or element-scoped:
+ * - **Global**: Work anywhere in the application (Ctrl+S for Save)
+ * - **Window**: Work when specific window has focus
+ * - **Element**: Work when specific element or its children have focus
+ *
+ * **Conflict Detection:**
+ * Detects when multiple hotkeys use the same key sequence within
+ * the same scope and provides warnings or errors.
+ *
+ * ## Usage Examples
+ *
+ * ### Basic Global Hotkeys
+ * ```cpp
+ * hotkey_manager<Backend> manager;
+ *
+ * auto save_action = std::make_shared<action<Backend>>();
+ * save_action->set_text("Save");
+ * save_action->set_shortcut('s', key_modifier::ctrl);
+ * save_action->triggered.connect([]() { save_document(); });
+ *
+ * // Register with manager
+ * manager.register_action(save_action);
+ *
+ * // Handle keyboard event
+ * if (event.key == 's' && event.ctrl) {
+ *     if (manager.handle_key_event(event)) {
+ *         // Hotkey was handled, don't propagate
+ *     }
+ * }
+ * ```
+ *
+ * ### Scoped Hotkeys (Context-Sensitive)
+ * ```cpp
+ * // Text editor hotkeys (only active when editor has focus)
+ * auto editor = std::make_unique<text_editor<Backend>>();
+ *
+ * auto bold_action = std::make_shared<action<Backend>>();
+ * bold_action->set_shortcut('b', key_modifier::ctrl);
+ *
+ * manager.register_action(bold_action, editor.get());
+ * // Ctrl+B only works when editor or its children have focus
+ * ```
+ *
+ * ### Conflict Detection
+ * ```cpp
+ * auto action1 = std::make_shared<action<Backend>>();
+ * action1->set_shortcut('s', key_modifier::ctrl);
+ *
+ * auto action2 = std::make_shared<action<Backend>>();
+ * action2->set_shortcut('s', key_modifier::ctrl);  // Conflict!
+ *
+ * manager.register_action(action1);
+ * manager.register_action(action2);  // Returns false, conflict detected
+ * ```
+ *
+ * ## Integration with Focus System
+ *
+ * The hotkey manager uses the focus system to determine which
+ * scoped hotkeys are active. When an element has focus:
+ * 1. Element-scoped hotkeys are checked first
+ * 2. Parent element hotkeys are checked (bubbling up)
+ * 3. Global hotkeys are checked last
+ *
+ * @see action.hh For action shortcuts
+ * @see key_sequence.hh For key representation
+ * @see focus_manager.hh For focus tracking
+ */
+
+#pragma once
+
+#include <onyxui/hotkeys/key_sequence.hh>
+#include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/event_like.hh>
+#include <onyxui/widgets/action.hh>
+#include <onyxui/element.hh>
+#include <failsafe/logger.hh>
+#include <map>
+#include <memory>
+#include <vector>
+#include <optional>
+#include <string>
+
+namespace onyxui {
+
+    /**
+     * @enum hotkey_scope
+     * @brief Defines the activation scope for a hotkey
+     *
+     * @details
+     * Controls when and where a hotkey is active:
+     *
+     * - **global**: Always active, regardless of focus
+     *   Example: Ctrl+S for Save, Ctrl+Q for Quit
+     *
+     * - **window**: Active when a specific window has focus
+     *   Example: Window-specific commands
+     *
+     * - **element**: Active when element or its children have focus
+     *   Example: Text editor formatting shortcuts
+     *
+     * **Priority Order:**
+     * Element-scoped hotkeys have highest priority, followed by
+     * window-scoped, then global. This allows context-specific
+     * overrides of global hotkeys.
+     */
+    enum class hotkey_scope {
+        global,   ///< Active anywhere in application
+        window,   ///< Active when window has focus
+        element   ///< Active when element or children have focus
+    };
+
+    /**
+     * @struct hotkey_registration
+     * @brief Internal registration info for a hotkey
+     *
+     * @details
+     * Stores all information needed to dispatch a hotkey:
+     * - The action to trigger
+     * - The key sequence
+     * - The scope (global, window, element)
+     * - The scope target (element or window)
+     *
+     * @tparam Backend The backend traits type satisfying UIBackend concept
+     */
+    template<UIBackend Backend>
+    struct hotkey_registration {
+        std::weak_ptr<action<Backend>> action_ptr;  ///< Action to trigger
+        key_sequence sequence;                       ///< Key combination
+        hotkey_scope scope;                          ///< Activation scope
+        ui_element<Backend>* scope_target;           ///< Target element/window (null for global)
+
+        /**
+         * @brief Check if registration is still valid
+         * @return True if action still exists
+         */
+        [[nodiscard]] bool is_valid() const noexcept {
+            return !action_ptr.expired();
+        }
+
+        /**
+         * @brief Get the action if still alive
+         * @return Shared pointer to action, or nullptr
+         */
+        [[nodiscard]] std::shared_ptr<action<Backend>> get_action() const noexcept {
+            return action_ptr.lock();
+        }
+    };
+
+    /**
+     * @class hotkey_manager
+     * @brief Manages keyboard shortcuts and dispatches hotkey events
+     *
+     * @details
+     * Central registry for all keyboard shortcuts in the application.
+     * Handles registration, conflict detection, scope resolution,
+     * and event dispatching.
+     *
+     * ## Lifecycle
+     *
+     * The hotkey_manager should be owned by the application and live
+     * for the entire application lifetime. Actions register themselves
+     * with the manager.
+     *
+     * ## Thread Safety
+     *
+     * Not thread-safe. All operations must be performed on the UI thread.
+     *
+     * @tparam Backend The backend traits type satisfying UIBackend concept
+     *
+     * @see action For action shortcuts
+     * @see key_sequence For key representation
+     */
+    template<UIBackend Backend>
+    class hotkey_manager {
+    public:
+        /**
+         * @brief Construct an empty hotkey manager
+         */
+        hotkey_manager()
+            : m_registrations()
+            , m_conflict_policy(conflict_policy::warn) {}
+
+        /**
+         * @brief Destructor
+         */
+        ~hotkey_manager() = default;
+
+        // Disable copy, allow move
+        hotkey_manager(const hotkey_manager&) = delete;
+        hotkey_manager& operator=(const hotkey_manager&) = delete;
+        hotkey_manager(hotkey_manager&&) noexcept = default;
+        hotkey_manager& operator=(hotkey_manager&&) noexcept = default;
+
+        /**
+         * @enum conflict_policy
+         * @brief How to handle hotkey conflicts
+         */
+        enum class conflict_policy {
+            allow,    ///< Allow conflicts (last registered wins)
+            warn,     ///< Allow but warn (default)
+            error     ///< Reject conflicting registrations
+        };
+
+        /**
+         * @brief Register an action's shortcut as a global hotkey
+         *
+         * @param action_ptr The action to register
+         * @return True if registered successfully, false if conflict
+         *
+         * @details
+         * Registers the action's shortcut (if it has one) as a global hotkey.
+         * Global hotkeys are active anywhere in the application.
+         *
+         * **Returns false if:**
+         * - Action has no shortcut
+         * - Conflict detected (depending on conflict_policy)
+         *
+         * @example
+         * @code
+         * auto save_action = std::make_shared<action<Backend>>();
+         * save_action->set_shortcut('s', key_modifier::ctrl);
+         *
+         * if (!manager.register_action(save_action)) {
+         *     // Conflict or no shortcut
+         * }
+         * @endcode
+         */
+        bool register_action(std::shared_ptr<action<Backend>> action_ptr) {
+            return register_action(action_ptr, hotkey_scope::global, nullptr);
+        }
+
+        /**
+         * @brief Register an action's shortcut scoped to an element
+         *
+         * @param action_ptr The action to register
+         * @param scope_element Element that must have focus
+         * @return True if registered successfully
+         *
+         * @details
+         * Registers a scoped hotkey that only activates when the given
+         * element or its children have focus.
+         *
+         * @example
+         * @code
+         * auto bold_action = std::make_shared<action<Backend>>();
+         * bold_action->set_shortcut('b', key_modifier::ctrl);
+         *
+         * manager.register_action(bold_action, text_editor.get());
+         * // Ctrl+B only works when text_editor has focus
+         * @endcode
+         */
+        bool register_action(
+            std::shared_ptr<action<Backend>> action_ptr,
+            ui_element<Backend>* scope_element
+        ) {
+            return register_action(action_ptr, hotkey_scope::element, scope_element);
+        }
+
+        /**
+         * @brief Unregister an action's hotkey
+         *
+         * @param action_ptr The action to unregister
+         *
+         * @details
+         * Removes all hotkey registrations for the given action.
+         * Safe to call even if action isn't registered.
+         */
+        void unregister_action(std::shared_ptr<action<Backend>> action_ptr) {
+            if (!action_ptr) return;
+
+            // Remove all registrations for this action
+            for (auto it = m_registrations.begin(); it != m_registrations.end();) {
+                bool should_remove = false;
+
+                for (auto& reg : it->second) {
+                    if (auto reg_action = reg.get_action()) {
+                        if (reg_action == action_ptr) {
+                            should_remove = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (should_remove) {
+                    it->second.erase(
+                        std::remove_if(it->second.begin(), it->second.end(),
+                            [&](const hotkey_registration<Backend>& reg) {
+                                auto reg_action = reg.get_action();
+                                return reg_action == action_ptr;
+                            }),
+                        it->second.end()
+                    );
+
+                    if (it->second.empty()) {
+                        it = m_registrations.erase(it);
+                    } else {
+                        ++it;
+                    }
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        /**
+         * @brief Handle a keyboard event
+         *
+         * @param event The keyboard event (must satisfy HotkeyCapable concept)
+         * @param focused_element Currently focused element (nullptr if none)
+         * @return True if hotkey was found and triggered
+         *
+         * @details
+         * Converts the keyboard event to a key_sequence and searches for
+         * matching registered hotkeys. Checks scoped hotkeys first, then global.
+         *
+         * **Priority Order:**
+         * 1. Element-scoped hotkeys (focused element and ancestors)
+         * 2. Global hotkeys
+         *
+         * **Example:**
+         * @code
+         * if (manager.handle_key_event(key_event, focused_widget)) {
+         *     return true;  // Event handled, don't propagate
+         * }
+         * @endcode
+         *
+         * @tparam KeyEvent Type satisfying HotkeyCapable concept
+         */
+        template<HotkeyCapable KeyEvent>
+        bool handle_key_event(
+            const KeyEvent& event,
+            ui_element<Backend>* focused_element = nullptr
+        ) {
+            using traits = event_traits<KeyEvent>;
+
+            // Only handle key presses (not releases)
+            if (!traits::is_key_press(event)) {
+                return false;
+            }
+
+            // Build key_sequence from event
+            std::optional<key_sequence> seq = event_to_sequence(event);
+            if (!seq) {
+                return false;  // Not a hotkey candidate
+            }
+
+            // Try scoped hotkeys first (if we have focus info)
+            if (focused_element) {
+                if (try_scoped_hotkeys(*seq, focused_element)) {
+                    return true;
+                }
+            }
+
+            // Try global hotkeys
+            return try_global_hotkeys(*seq);
+        }
+
+        /**
+         * @brief Set conflict handling policy
+         *
+         * @param policy The new policy
+         *
+         * @details
+         * Controls what happens when registering conflicting hotkeys:
+         * - allow: Accept conflicts, last registered wins
+         * - warn: Accept but log warning (default)
+         * - error: Reject conflicting registrations
+         */
+        void set_conflict_policy(conflict_policy policy) noexcept {
+            m_conflict_policy = policy;
+        }
+
+        /**
+         * @brief Get conflict handling policy
+         * @return Current policy
+         */
+        [[nodiscard]] conflict_policy get_conflict_policy() const noexcept {
+            return m_conflict_policy;
+        }
+
+        /**
+         * @brief Check if a key sequence is registered
+         *
+         * @param seq The key sequence to check
+         * @param scope_element Element scope (nullptr for global only)
+         * @return True if registered
+         */
+        [[nodiscard]] bool is_registered(
+            const key_sequence& seq,
+            ui_element<Backend>* scope_element = nullptr
+        ) const {
+            auto it = m_registrations.find(seq);
+            if (it == m_registrations.end()) {
+                return false;
+            }
+
+            // Check if any registration matches the scope
+            for (const auto& reg : it->second) {
+                if (!reg.is_valid()) continue;
+
+                if (scope_element == nullptr && reg.scope == hotkey_scope::global) {
+                    return true;
+                }
+
+                if (scope_element != nullptr && reg.scope_target == scope_element) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * @brief Clean up expired registrations
+         *
+         * @details
+         * Removes registrations for actions that no longer exist.
+         * Called automatically during event handling, but can be
+         * called explicitly for cleanup.
+         */
+        void cleanup() {
+            for (auto it = m_registrations.begin(); it != m_registrations.end();) {
+                // Remove expired registrations
+                it->second.erase(
+                    std::remove_if(it->second.begin(), it->second.end(),
+                        [](const hotkey_registration<Backend>& reg) {
+                            return !reg.is_valid();
+                        }),
+                    it->second.end()
+                );
+
+                // Remove empty entries
+                if (it->second.empty()) {
+                    it = m_registrations.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+    private:
+        /**
+         * @brief Register action with explicit scope
+         */
+        bool register_action(
+            std::shared_ptr<action<Backend>> action_ptr,
+            hotkey_scope scope,
+            ui_element<Backend>* scope_target
+        ) {
+            if (!action_ptr || !action_ptr->has_shortcut()) {
+                return false;
+            }
+
+            const auto& seq = action_ptr->shortcut().value();
+
+            // Check for conflicts
+            if (m_conflict_policy != conflict_policy::allow) {
+                if (is_registered(seq, scope_target)) {
+                    // Build conflict message
+                    std::string shortcut_str = format_key_sequence(seq);
+                    std::string scope_str = format_scope(scope, scope_target);
+                    std::string action_name = action_ptr->text().empty()
+                        ? "<unnamed>"
+                        : action_ptr->text();
+
+                    if (m_conflict_policy == conflict_policy::warn) {
+                        LOG_CAT_WARN("Hotkeys",
+                            "Hotkey conflict detected: ", shortcut_str,
+                            " is already registered in ", scope_str,
+                            ". Action '", action_name, "' will override existing registration.");
+                    } else if (m_conflict_policy == conflict_policy::error) {
+                        LOG_CAT_ERROR("Hotkeys",
+                            "Hotkey registration rejected: ", shortcut_str,
+                            " is already registered in ", scope_str,
+                            ". Action '", action_name, "' cannot be registered.");
+                        return false;
+                    }
+                }
+            }
+
+            // Add registration
+            hotkey_registration<Backend> reg;
+            reg.action_ptr = action_ptr;
+            reg.sequence = seq;
+            reg.scope = scope;
+            reg.scope_target = scope_target;
+
+            m_registrations[seq].push_back(reg);
+            return true;
+        }
+
+        /**
+         * @brief Convert keyboard event to key_sequence
+         */
+        template<HotkeyCapable KeyEvent>
+        std::optional<key_sequence> event_to_sequence(const KeyEvent& event) {
+            using traits = event_traits<KeyEvent>;
+
+            // Try ASCII key
+            char ascii = traits::to_ascii(event);
+            if (ascii != '\0') {
+                key_modifier mods = key_modifier::none;
+                if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
+                if (traits::alt_pressed(event)) mods |= key_modifier::alt;
+                if (traits::shift_pressed(event)) mods |= key_modifier::shift;
+
+                return key_sequence{ascii, mods};
+            }
+
+            // Try F-key
+            int f_key = traits::to_f_key(event);
+            if (f_key != 0) {
+                key_modifier mods = key_modifier::none;
+                if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
+                if (traits::alt_pressed(event)) mods |= key_modifier::alt;
+                if (traits::shift_pressed(event)) mods |= key_modifier::shift;
+
+                return key_sequence{f_key, mods};
+            }
+
+            return std::nullopt;
+        }
+
+        /**
+         * @brief Try to trigger scoped hotkeys
+         */
+        bool try_scoped_hotkeys(
+            const key_sequence& seq,
+            ui_element<Backend>* element
+        ) {
+            // Walk up the element tree checking for scoped hotkeys
+            ui_element<Backend>* current = element;
+            while (current != nullptr) {
+                if (try_hotkeys_for_scope(seq, current)) {
+                    return true;
+                }
+                current = current->parent();
+            }
+            return false;
+        }
+
+        /**
+         * @brief Try to trigger global hotkeys
+         */
+        bool try_global_hotkeys(const key_sequence& seq) {
+            return try_hotkeys_for_scope(seq, nullptr);
+        }
+
+        /**
+         * @brief Try hotkeys for specific scope
+         */
+        bool try_hotkeys_for_scope(
+            const key_sequence& seq,
+            ui_element<Backend>* scope_target
+        ) {
+            auto it = m_registrations.find(seq);
+            if (it == m_registrations.end()) {
+                return false;
+            }
+
+            // Find matching registration
+            for (const auto& reg : it->second) {
+                if (!reg.is_valid()) continue;
+
+                // Check scope match
+                if (scope_target == nullptr && reg.scope != hotkey_scope::global) {
+                    continue;
+                }
+                if (scope_target != nullptr && reg.scope_target != scope_target) {
+                    continue;
+                }
+
+                // Trigger action
+                if (auto act = reg.get_action()) {
+                    if (act->is_enabled()) {
+                        act->trigger();
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * @brief Format a key sequence for logging
+         */
+        [[nodiscard]] static std::string format_key_sequence(const key_sequence& seq) {
+            std::string result;
+
+            // Add modifiers
+            if ((seq.modifiers & key_modifier::ctrl) != key_modifier::none) {
+                result += "Ctrl+";
+            }
+            if ((seq.modifiers & key_modifier::alt) != key_modifier::none) {
+                result += "Alt+";
+            }
+            if ((seq.modifiers & key_modifier::shift) != key_modifier::none) {
+                result += "Shift+";
+            }
+
+            // Add key
+            if (seq.f_key != 0) {
+                result += "F" + std::to_string(seq.f_key);
+            } else {
+                result += static_cast<char>(std::toupper(static_cast<unsigned char>(seq.key)));
+            }
+
+            return result;
+        }
+
+        /**
+         * @brief Format scope information for logging
+         */
+        [[nodiscard]] static std::string format_scope(
+            hotkey_scope scope,
+            ui_element<Backend>* scope_target
+        ) {
+            switch (scope) {
+                case hotkey_scope::global:
+                    return "global scope";
+                case hotkey_scope::window:
+                    return scope_target
+                        ? "window scope (element: " + std::to_string(reinterpret_cast<std::uintptr_t>(scope_target)) + ")"
+                        : "window scope";
+                case hotkey_scope::element:
+                    return scope_target
+                        ? "element scope (element: " + std::to_string(reinterpret_cast<std::uintptr_t>(scope_target)) + ")"
+                        : "element scope";
+                default:
+                    return "unknown scope";
+            }
+        }
+
+        std::map<key_sequence, std::vector<hotkey_registration<Backend>>> m_registrations;
+        conflict_policy m_conflict_policy;
+    };
+
+} // namespace onyxui

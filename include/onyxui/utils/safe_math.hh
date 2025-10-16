@@ -161,7 +161,7 @@ namespace onyxui::safe_math {
      * @return true if multiplication succeeded, false if overflow would occur
      */
     template<std::integral T>
-    constexpr bool safe_multiply(T a, T b, T& result) noexcept {
+    [[nodiscard]] constexpr bool safe_multiply(T a, T b, T& result) noexcept {
 #if defined(__has_builtin)
 #  if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(a, b, &result);

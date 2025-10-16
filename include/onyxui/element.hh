@@ -44,11 +44,13 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <utility>  // for std::exchange
 
-#include <onyxui/backend.hh>
-#include <onyxui/concepts.hh>
+#include <onyxui/concepts/backend.hh>
 #include <onyxui/event_target.hh>
 #include <onyxui/layout_strategy.hh>
+#include <onyxui/themeable.hh>
+#include <onyxui/utils/safe_math.hh>
 
 namespace onyxui {
     /**
@@ -56,9 +58,9 @@ namespace onyxui {
      * @brief Represents spacing on all four sides (margin or padding)
      */
     struct thickness {
-        int left;   ///< Left spacing in pixels
-        int top;    ///< Top spacing in pixels
-        int right;  ///< Right spacing in pixels
+        int left; ///< Left spacing in pixels
+        int top; ///< Top spacing in pixels
+        int right; ///< Right spacing in pixels
         int bottom; ///< Bottom spacing in pixels
 
         /**
@@ -70,6 +72,49 @@ namespace onyxui {
          * @brief Calculate total vertical spacing (top + bottom)
          */
         [[nodiscard]] int vertical() const noexcept { return top + bottom; }
+
+        /**
+         * @brief Create uniform thickness on all sides
+         * @param value The spacing value for all sides
+         * @return thickness with equal spacing on all sides
+         *
+         * @example
+         * @code
+         * element->set_padding(thickness::all(10));  // 10px on all sides
+         * @endcode
+         */
+        [[nodiscard]] static constexpr thickness all(int value) noexcept {
+            return {value, value, value, value};
+        }
+
+        /**
+         * @brief Create symmetric thickness (horizontal and vertical)
+         * @param horizontal The spacing for left and right sides
+         * @param vertical The spacing for top and bottom sides
+         * @return thickness with symmetric spacing
+         *
+         * @example
+         * @code
+         * // 20px left/right, 10px top/bottom
+         * element->set_margin(thickness::symmetric(20, 10));
+         * @endcode
+         */
+        [[nodiscard]] static constexpr thickness symmetric(int horizontal, int vertical) noexcept {
+            return {horizontal, vertical, horizontal, vertical};
+        }
+
+        /**
+         * @brief Create thickness with no spacing
+         * @return thickness with all sides set to zero
+         *
+         * @example
+         * @code
+         * element->set_padding(thickness::none());  // No padding
+         * @endcode
+         */
+        [[nodiscard]] static constexpr thickness none() noexcept {
+            return {0, 0, 0, 0};
+        }
 
         bool operator==(const thickness& other) const noexcept {
             return left == other.left && top == other.top &&
@@ -118,279 +163,408 @@ namespace onyxui {
      * @endcode
      */
     template<UIBackend Backend>
-    class ui_element : public event_target<Backend> {
-        static_assert(UIBackend<Backend>,
+    class ui_element : public event_target <Backend>, public themeable <Backend> {
+        static_assert(UIBackend <Backend>,
                       "Template parameter must satisfy UIBackend concept. "
                       "Backend must provide rect_type, size_type, point_type, and event types.");
-    public:
-        // Type aliases from backend
-        using rect_type = typename Backend::rect_type;
-        using size_type = typename Backend::size_type;
-        using point_type = typename Backend::point_type;
-        using event_type = typename Backend::event_type;
 
-        // Convenience aliases
-        using ui_element_ptr = std::unique_ptr<ui_element>;
-        using layout_strategy_ptr = std::unique_ptr<layout_strategy<Backend>>;
+        public:
+            // Type aliases from backend
+            using rect_type = Backend::rect_type;
+            using size_type = Backend::size_type;
+            using point_type = Backend::point_type;
+            using event_type = Backend::event_type;
+            using theme_type = themeable <Backend>::theme_type;
+            using renderer_type = Backend::renderer_type;
+            // Convenience aliases
+            using ui_element_ptr = std::unique_ptr <ui_element>;
+            using layout_strategy_ptr = std::unique_ptr <layout_strategy <Backend>>;
 
-        // Grant access to layout strategies
-        friend class layout_strategy<Backend>;
+            // Grant access to layout strategies
+            friend class layout_strategy <Backend>;
 
-    public:
-        /**
-         * @brief Construct a UI element
-         * @param parent Pointer to the parent element (or nullptr for root)
-         */
-        explicit ui_element(ui_element* parent);
+        public:
+            /**
+             * @brief Construct a UI element
+             * @param parent Pointer to the parent element (or nullptr for root)
+             */
+            explicit ui_element(ui_element* parent);
 
-        /**
-         * @brief Virtual destructor for proper cleanup
-         */
-        virtual ~ui_element() noexcept = default;
+            /**
+             * @brief Virtual destructor for proper cleanup
+             */
+            virtual ~ui_element() noexcept = default;
 
-        // Rule of Five
-        ui_element(ui_element&& other) noexcept = default;
-        ui_element& operator=(ui_element&& other) noexcept = default;
-        ui_element(const ui_element&) = delete;
-        ui_element& operator=(const ui_element&) = delete;
+            // Rule of Five
+            /**
+             * @brief Move constructor
+             * @note Updates children's parent pointers to maintain tree consistency
+             */
+            ui_element(ui_element&& other) noexcept;
 
-        /**
-         * @brief Add a child element (takes ownership)
-         */
-        void add_child(ui_element_ptr child);
+            /**
+             * @brief Move assignment operator
+             * @note Updates children's parent pointers to maintain tree consistency
+             */
+            ui_element& operator=(ui_element&& other) noexcept;
 
-        /**
-         * @brief Remove a child element (returns ownership)
-         */
-        [[nodiscard]] ui_element_ptr remove_child(ui_element* child);
+            ui_element(const ui_element&) = delete;
+            ui_element& operator=(const ui_element&) = delete;
 
-        /**
-         * @brief Remove all child elements
-         */
-        void clear_children() noexcept;
+            /**
+             * @brief Add a child element (takes ownership)
+             * @param child The child element to add (must be non-null)
+             *
+             * @exception std::bad_alloc If vector reallocation fails
+             * @note Exception safety: Strong guarantee - if exception thrown, no state changes occur
+             * @note If child is null, this is a no-op (no exception thrown)
+             */
+            void add_child(ui_element_ptr child);
 
-        /**
-         * @brief Invalidate the measure cache
-         */
-        void invalidate_measure();
+            /**
+             * @brief Remove a child element (returns ownership)
+             * @param child Pointer to the child to remove
+             * @return The removed child, or nullptr if not found
+             *
+             * @exception Any exception thrown by layout_strategy::on_child_removed()
+             * @note Exception safety: Basic guarantee - child removed from vector even if cleanup throws
+             * @note Child's parent pointer is reset to nullptr before returning
+             */
+            [[nodiscard]] ui_element_ptr remove_child(ui_element* child);
 
-        /**
-         * @brief Invalidate the arrange cache
-         */
-        void invalidate_arrange();
+            /**
+             * @brief Remove all child elements
+             *
+             * @note Exception safety: No-throw guarantee (noexcept)
+             * @note All children's parent pointers are reset to nullptr
+             * @note Layout strategy's on_children_cleared() is called before clearing
+             */
+            void clear_children() noexcept;
 
-        /**
-         * @brief Measure phase: calculate desired size
-         */
-        [[nodiscard]] size_type measure(int available_width, int available_height);
+            /**
+             * @brief Invalidate the measure cache
+             *
+             * @note Exception safety: No-throw guarantee (noexcept)
+             * @note Recursively propagates up the parent chain
+             * @note Only modifies state flags, no allocations
+             */
+            void invalidate_measure() noexcept;
 
-        /**
-         * @brief Arrange phase: assign final bounds
-         */
-        void arrange(const rect_type& final_bounds);
+            /**
+             * @brief Invalidate the arrange cache
+             *
+             * @note Exception safety: No-throw guarantee (noexcept)
+             * @note Recursively propagates down to all children
+             * @note Only modifies state flags, no allocations
+             */
+            void invalidate_arrange() noexcept;
 
-        /**
-         * @brief Sort children by their z_index values
-         */
-        void sort_children_by_z_index();
+            /**
+             * @brief Measure phase: calculate desired size
+             * @param available_width Maximum width available (pixels)
+             * @param available_height Maximum height available (pixels)
+             * @return The measured size for this element
+             *
+             * @exception Any exception thrown by do_measure() override
+             * @exception Any exception thrown by layout_strategy::measure_children()
+             * @note Exception safety: Basic guarantee - cache may be partially updated if exception thrown
+             * @note Results are cached - repeated calls with same parameters return cached value
+             */
+            [[nodiscard]] size_type measure(int available_width, int available_height);
 
-        /**
-         * @brief Update child z-ordering
-         */
-        void update_child_order();
+            /**
+             * @brief Arrange phase: assign final bounds
+             * @param final_bounds The allocated rectangle for this element
+             *
+             * @exception Any exception thrown by do_arrange() override
+             * @exception Any exception thrown by layout_strategy::arrange_children()
+             * @note Exception safety: Basic guarantee - bounds updated before arrange, children may be partially arranged
+             * @note Skipped if bounds unchanged and layout state is valid
+             */
+            void arrange(const rect_type& final_bounds);
 
-        /**
-         * @brief Perform hit testing to find element at coordinates
-         */
-        [[nodiscard]] ui_element* hit_test(int x, int y);
+            /**
+             * @brief Sort children by their z_index values
+             *
+             * @exception Any exception thrown by std::stable_sort (typically std::bad_alloc)
+             * @note Exception safety: Basic guarantee - children may be partially sorted if exception thrown
+             * @note Uses stable sort to maintain relative order of elements with equal z_index
+             */
+            void sort_children_by_z_index();
 
-        // -----------------------------------------------------------------------
-        // Public Setters
-        // -----------------------------------------------------------------------
+            /**
+             * @brief Update child z-ordering
+             *
+             * @exception Any exception thrown by std::stable_sort (typically std::bad_alloc)
+             * @note Exception safety: Basic guarantee - calls sort_children_by_z_index() then invalidate_arrange()
+             * @note Convenience method that combines sorting and layout invalidation
+             */
+            void update_child_order();
 
-        /**
-         * @brief Set visibility state
-         */
-        void set_visible(bool visible) {
-            if (m_visible != visible) {
-                m_visible = visible;
-                invalidate_arrange();
-            }
-        }
+            /**
+             * @brief Perform hit testing to find element at coordinates
+             * @param x X coordinate in pixels
+             * @param y Y coordinate in pixels
+             * @return Pointer to the deepest visible element at (x,y), or nullptr if none found
+             *
+             * @note Exception safety: No-throw guarantee (no allocations, simple traversal)
+             * @note Searches in reverse z-order (highest z-index checked first)
+             * @note Only visible elements are considered for hit testing
+             */
+            [[nodiscard]] ui_element* hit_test(int x, int y);
 
-        /**
-         * @brief Set layout strategy
-         */
-        void set_layout_strategy(layout_strategy_ptr strategy) {
-            m_layout_strategy = std::move(strategy);
-            invalidate_measure();
-        }
+            // -----------------------------------------------------------------------
+            // Public Setters
+            // -----------------------------------------------------------------------
 
-        /**
-         * @brief Set width constraint
-         */
-        void set_width_constraint(const size_constraint& constraint) {
-            if (m_width_constraint != constraint) {
-                m_width_constraint = constraint;
-                invalidate_measure();
-            }
-        }
-
-        /**
-         * @brief Set height constraint
-         */
-        void set_height_constraint(const size_constraint& constraint) {
-            if (m_height_constraint != constraint) {
-                m_height_constraint = constraint;
-                invalidate_measure();
-            }
-        }
-
-        /**
-         * @brief Set horizontal alignment
-         */
-        void set_horizontal_align(horizontal_alignment align) {
-            if (m_h_align != align) {
-                m_h_align = align;
-                invalidate_arrange();
-            }
-        }
-
-        /**
-         * @brief Set vertical alignment
-         */
-        void set_vertical_align(vertical_alignment align) {
-            if (m_v_align != align) {
-                m_v_align = align;
-                invalidate_arrange();
-            }
-        }
-
-        /**
-         * @brief Set margin
-         */
-        void set_margin(const thickness& margin) {
-            if (m_margin != margin) {
-                m_margin = margin;
-                invalidate_measure();
-            }
-        }
-
-        /**
-         * @brief Set padding
-         */
-        void set_padding(const thickness& padding) {
-            if (m_padding != padding) {
-                m_padding = padding;
-                invalidate_measure();
-            }
-        }
-
-        /**
-         * @brief Set z-order
-         */
-        void set_z_order(int z_index) {
-            if (m_z_index != z_index) {
-                m_z_index = z_index;
-                if (m_parent) {
-                    m_parent->invalidate_arrange();
+            /**
+             * @brief Set visibility state
+             */
+            void set_visible(bool visible) {
+                if (m_visible != visible) {
+                    m_visible = visible;
+                    invalidate_arrange();
                 }
             }
-        }
 
-        // -----------------------------------------------------------------------
-        // Public Accessors
-        // -----------------------------------------------------------------------
+            /**
+             * @brief Set layout strategy
+             */
+            void set_layout_strategy(layout_strategy_ptr strategy) {
+                m_layout_strategy = std::move(strategy);
+                invalidate_measure();
+            }
 
-        const rect_type& bounds() const noexcept { return m_bounds; }
-        [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
-        [[nodiscard]] const size_constraint& width_constraint() const noexcept { return m_width_constraint; }
-        [[nodiscard]] const size_constraint& height_constraint() const noexcept { return m_height_constraint; }
-        [[nodiscard]] horizontal_alignment horizontal_align() const noexcept { return m_h_align; }
-        [[nodiscard]] vertical_alignment vertical_align() const noexcept { return m_v_align; }
-        [[nodiscard]] const thickness& margin() const noexcept { return m_margin; }
-        [[nodiscard]] const thickness& padding() const noexcept { return m_padding; }
-        [[nodiscard]] int z_order() const noexcept { return m_z_index; }
+            /**
+             * @brief Set width constraint
+             */
+            void set_width_constraint(const size_constraint& constraint) {
+                if (m_width_constraint != constraint) {
+                    m_width_constraint = constraint;
+                    invalidate_measure();
+                }
+            }
 
-        // For layout strategies
-        const std::vector<ui_element_ptr>& children() const noexcept { return m_children; }
-        std::vector<ui_element_ptr>& mutable_children() noexcept { return m_children; }
-        const size_type& last_measured_size() const noexcept { return m_last_measured_size; }
-        [[nodiscard]] horizontal_alignment h_align() const noexcept { return m_h_align; }
-        [[nodiscard]] vertical_alignment v_align() const noexcept { return m_v_align; }
-        [[nodiscard]] const size_constraint& w_constraint() const noexcept { return m_width_constraint; }
-        [[nodiscard]] const size_constraint& h_constraint() const noexcept { return m_height_constraint; }
+            /**
+             * @brief Set height constraint
+             */
+            void set_height_constraint(const size_constraint& constraint) {
+                if (m_height_constraint != constraint) {
+                    m_height_constraint = constraint;
+                    invalidate_measure();
+                }
+            }
 
-    protected:
-        // -----------------------------------------------------------------------
-        // Protected Virtual Methods (from event_target)
-        // -----------------------------------------------------------------------
+            /**
+             * @brief Set horizontal alignment
+             */
+            void set_horizontal_align(horizontal_alignment align) {
+                if (m_h_align != align) {
+                    m_h_align = align;
+                    invalidate_arrange();
+                }
+            }
 
-        /**
-         * @brief Check if a point is inside this element
-         * Implementation for event_target's pure virtual method
-         */
-        [[nodiscard]] bool is_inside(int x, int y) const override {
-            return rect_utils::contains(m_bounds, x, y);
-        }
+            /**
+             * @brief Set vertical alignment
+             */
+            void set_vertical_align(vertical_alignment align) {
+                if (m_v_align != align) {
+                    m_v_align = align;
+                    invalidate_arrange();
+                }
+            }
 
-        // -----------------------------------------------------------------------
-        // Protected Virtual Methods for Customization
-        // -----------------------------------------------------------------------
+            /**
+             * @brief Set margin
+             */
+            void set_margin(const thickness& margin) {
+                if (m_margin != margin) {
+                    m_margin = margin;
+                    invalidate_measure();
+                }
+            }
 
-        /**
-         * @brief Override to provide custom measurement logic
-         */
-        virtual size_type do_measure(int available_width, int available_height);
+            /**
+             * @brief Set padding
+             */
+            void set_padding(const thickness& padding) {
+                if (m_padding != padding) {
+                    m_padding = padding;
+                    invalidate_measure();
+                }
+            }
 
-        /**
-         * @brief Override to provide custom arrangement logic
-         */
-        virtual void do_arrange(const rect_type& final_bounds);
+            /**
+             * @brief Set z-order
+             */
+            void set_z_order(int z_index) {
+                if (m_z_index != z_index) {
+                    m_z_index = z_index;
+                    if (m_parent) {
+                        m_parent->invalidate_arrange();
+                    }
+                }
+            }
 
-        /**
-         * @brief Get the intrinsic content size
-         */
-        virtual size_type get_content_size() const {
-            size_type s = {};
-            size_utils::set_size(s, 0, 0);
-            return s;
-        }
+            /**
+       * @brief Render this element and its children with proper clipping
+       * @param renderer The backend renderer instance
+       */
+            void render(renderer_type& renderer) {
+                if (!m_visible) return;
 
-    private:
-        // Parent element (non-owning)
-        ui_element* m_parent = nullptr;
+                // Render this element (within parent's clip)
+                do_render(renderer);
 
-        // Children (owned)
-        std::vector<ui_element_ptr> m_children;
+                // Set clip rect for children (content area only)
+                rect_type content_area = get_content_area();
 
-        // Layout strategy (owned)
-        layout_strategy_ptr m_layout_strategy;
+                // Push clip rect before rendering children
+                renderer.push_clip(content_area);
 
-        // Layout state
-        enum class layout_state {
-            valid,
-            dirty
-        };
+                // Render children in z-order (they're already clipped)
+                for (const auto& child : m_children) {
+                    child->render(renderer);
+                }
 
-        layout_state measure_state = layout_state::dirty;
-        layout_state arrange_state = layout_state::dirty;
+                // Restore previous clip rect
+                renderer.pop_clip();
+            }
 
-        // Cache
-        size_type m_last_measured_size = {};
-        int m_last_available_width = -1;
-        int m_last_available_height = -1;
+            // -----------------------------------------------------------------------
+            // Public Accessors
+            // -----------------------------------------------------------------------
 
-        // Properties
-        bool m_visible = true;
-        rect_type m_bounds = {};
-        int m_z_index = 0;
-        size_constraint m_width_constraint;
-        size_constraint m_height_constraint;
-        horizontal_alignment m_h_align = horizontal_alignment::stretch;
-        vertical_alignment m_v_align = vertical_alignment::stretch;
-        thickness m_margin = {0, 0, 0, 0};
-        thickness m_padding = {0, 0, 0, 0};
+            [[nodiscard]] const rect_type& bounds() const noexcept { return m_bounds; }
+            [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
+            [[nodiscard]] const size_constraint& width_constraint() const noexcept { return m_width_constraint; }
+            [[nodiscard]] const size_constraint& height_constraint() const noexcept { return m_height_constraint; }
+            [[nodiscard]] horizontal_alignment horizontal_align() const noexcept { return m_h_align; }
+            [[nodiscard]] vertical_alignment vertical_align() const noexcept { return m_v_align; }
+            [[nodiscard]] const thickness& margin() const noexcept { return m_margin; }
+            [[nodiscard]] const thickness& padding() const noexcept { return m_padding; }
+            [[nodiscard]] int z_order() const noexcept { return m_z_index; }
+
+            // For layout strategies
+            [[nodiscard]] const std::vector <ui_element_ptr>& children() const noexcept { return m_children; }
+            [[nodiscard]] std::vector <ui_element_ptr>& mutable_children() noexcept { return m_children; }
+            [[nodiscard]] const size_type& last_measured_size() const noexcept { return m_last_measured_size; }
+            [[nodiscard]] horizontal_alignment h_align() const noexcept { return m_h_align; }
+            [[nodiscard]] vertical_alignment v_align() const noexcept { return m_v_align; }
+            [[nodiscard]] const size_constraint& w_constraint() const noexcept { return m_width_constraint; }
+            [[nodiscard]] const size_constraint& h_constraint() const noexcept { return m_height_constraint; }
+            [[nodiscard]] ui_element* parent() const noexcept { return m_parent; }
+            [[nodiscard]] bool has_layout_strategy() const noexcept { return m_layout_strategy != nullptr; }
+
+        protected:
+            // -----------------------------------------------------------------------
+            // Protected Virtual Methods (from event_target)
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Check if a point is inside this element
+             * Implementation for event_target's pure virtual method
+             */
+            [[nodiscard]] bool is_inside(int x, int y) const override {
+                return rect_utils::contains(m_bounds, x, y);
+            }
+
+            // -----------------------------------------------------------------------
+            // Protected Virtual Methods for Customization
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Override to provide custom measurement logic
+             */
+            virtual size_type do_measure(int available_width, int available_height);
+
+            /**
+             * @brief Override to provide custom arrangement logic
+             */
+            virtual void do_arrange(const rect_type& final_bounds);
+
+            /**
+             * @brief Get the intrinsic content size
+             */
+            [[nodiscard]] virtual size_type get_content_size() const {
+                size_type s = {};
+                size_utils::set_size(s, 0, 0);
+                return s;
+            }
+
+        protected:
+            void after_apply_theme([[maybe_unused]] const theme_type& theme) override {
+                for (auto& child : m_children) {
+                    child->apply_theme(theme);
+                }
+            }
+
+            virtual void do_render([[maybe_unused]] renderer_type& renderer) {
+                // Base: nothing to render
+            }
+
+        private:
+            /**
+             * @brief Calculate the content area (bounds minus margin and padding)
+             * @note noexcept - uses only safe arithmetic operations
+             */
+            rect_type get_content_area() const noexcept {
+                // Calculate position with safe addition
+                const int x = safe_math::add_clamped(rect_utils::get_x(m_bounds),
+                                                safe_math::add_clamped(m_margin.left, m_padding.left));
+                const int y = safe_math::add_clamped(rect_utils::get_y(m_bounds),
+                                                safe_math::add_clamped(m_margin.top, m_padding.top));
+
+                // Calculate dimensions with safe subtraction
+                const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
+                const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
+
+                int w = safe_math::subtract_clamped(rect_utils::get_width(m_bounds), total_h_spacing);
+                int h = safe_math::subtract_clamped(rect_utils::get_height(m_bounds), total_v_spacing);
+
+                // Clamp to non-negative
+                w = std::max(0, w);
+                h = std::max(0, h);
+
+                rect_type content_area;
+                rect_utils::set_bounds(content_area, x, y, w, h);
+                return content_area;
+            }
+
+            // Parent element (non-owning)
+            ui_element* m_parent = nullptr;
+
+            // Children (owned)
+            std::vector <ui_element_ptr> m_children;
+
+            // Layout strategy (owned)
+            layout_strategy_ptr m_layout_strategy;
+
+            // Layout state
+            enum class layout_state : std::uint8_t {
+                valid,
+                dirty
+            };
+
+            layout_state measure_state = layout_state::dirty;
+            layout_state arrange_state = layout_state::dirty;
+
+            // Cache
+            size_type m_last_measured_size = {};
+            int m_last_available_width = -1;
+            int m_last_available_height = -1;
+
+            // Properties
+            bool m_visible = true;
+            rect_type m_bounds = {};
+            int m_z_index = 0;
+            size_constraint m_width_constraint;
+            size_constraint m_height_constraint;
+            horizontal_alignment m_h_align = horizontal_alignment::stretch;
+            vertical_alignment m_v_align = vertical_alignment::stretch;
+            thickness m_margin = {0, 0, 0, 0};
+            thickness m_padding = {0, 0, 0, 0};
     };
 
     // ===============================================================================
@@ -398,8 +572,72 @@ namespace onyxui {
     // ===============================================================================
 
     template<UIBackend Backend>
-    ui_element<Backend>::ui_element(ui_element* parent)
-        : event_target<Backend>(), m_parent(parent) {
+    ui_element <Backend>::ui_element(ui_element* parent)
+        : event_target <Backend>(), m_parent(parent) {
+    }
+
+    template<UIBackend Backend>
+    ui_element<Backend>::ui_element(ui_element&& other) noexcept
+        // Initialize base classes first (required order), but only move the base class parts
+        : event_target<Backend>(std::move(static_cast<event_target<Backend>&>(other)))
+        , themeable<Backend>(std::move(static_cast<themeable<Backend>&>(other)))
+        // Now move member variables (after bases, as compiler requires)
+        , m_parent(std::exchange(other.m_parent, nullptr))
+        , m_children(std::move(other.m_children))
+        , m_layout_strategy(std::move(other.m_layout_strategy))
+        , measure_state(other.measure_state)
+        , arrange_state(other.arrange_state)
+        , m_last_measured_size(std::move(other.m_last_measured_size))
+        , m_last_available_width(other.m_last_available_width)
+        , m_last_available_height(other.m_last_available_height)
+        , m_visible(other.m_visible)
+        , m_bounds(std::move(other.m_bounds))
+        , m_z_index(other.m_z_index)
+        , m_width_constraint(other.m_width_constraint)
+        , m_height_constraint(other.m_height_constraint)
+        , m_h_align(other.m_h_align)
+        , m_v_align(other.m_v_align)
+        , m_margin(other.m_margin)
+        , m_padding(other.m_padding)
+    {
+        // CRITICAL: Fix children's parent pointers
+        for (auto& child : m_children) {
+            child->m_parent = this;
+        }
+    }
+
+    template<UIBackend Backend>
+    ui_element<Backend>& ui_element<Backend>::operator=(ui_element&& other) noexcept {
+        if (this != &other) {
+            // Move base classes
+            event_target<Backend>::operator=(std::move(other));
+            themeable<Backend>::operator=(std::move(other));
+
+            // Move members
+            m_parent = std::exchange(other.m_parent, nullptr);
+            m_children = std::move(other.m_children);
+            m_layout_strategy = std::move(other.m_layout_strategy);
+            measure_state = other.measure_state;
+            arrange_state = other.arrange_state;
+            m_last_measured_size = std::move(other.m_last_measured_size);
+            m_last_available_width = other.m_last_available_width;
+            m_last_available_height = other.m_last_available_height;
+            m_visible = other.m_visible;
+            m_bounds = std::move(other.m_bounds);
+            m_z_index = other.m_z_index;
+            m_width_constraint = other.m_width_constraint;
+            m_height_constraint = other.m_height_constraint;
+            m_h_align = other.m_h_align;
+            m_v_align = other.m_v_align;
+            m_margin = other.m_margin;
+            m_padding = other.m_padding;
+
+            // CRITICAL: Fix children's parent pointers
+            for (auto& child : m_children) {
+                child->m_parent = this;
+            }
+        }
+        return *this;
     }
 
     // -------------------------------------------------------------------------------
@@ -407,7 +645,7 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    void ui_element<Backend>::add_child(ui_element_ptr child) {
+    void ui_element <Backend>::add_child(ui_element_ptr child) {
         if (child) {
             child->m_parent = this;
             m_children.push_back(std::move(child));
@@ -416,7 +654,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void ui_element<Backend>::clear_children() noexcept {
+    void ui_element <Backend>::clear_children() noexcept {
         if (m_layout_strategy) {
             m_layout_strategy->on_children_cleared();
         }
@@ -430,8 +668,8 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    typename ui_element<Backend>::ui_element_ptr
-    ui_element<Backend>::remove_child(ui_element* child) {
+    typename ui_element <Backend>::ui_element_ptr
+    ui_element <Backend>::remove_child(ui_element* child) {
         auto it = std::find_if(m_children.begin(), m_children.end(),
                                [child](const ui_element_ptr& ptr) {
                                    return ptr.get() == child;
@@ -455,8 +693,10 @@ namespace onyxui {
     // Invalidation
     // -------------------------------------------------------------------------------
 
+    // NOLINTNEXTLINE(misc-no-recursion)
+    // Note: Tail recursion walking up parent chain, bounded by UI tree height
     template<UIBackend Backend>
-    void ui_element<Backend>::invalidate_measure() {
+    void ui_element <Backend>::invalidate_measure() noexcept {
         if (measure_state != layout_state::valid) {
             return;
         }
@@ -469,8 +709,10 @@ namespace onyxui {
         }
     }
 
+    // NOLINTNEXTLINE(misc-no-recursion)
+    // Note: Recursive tree traversal propagating down to children, bounded by UI tree height
     template<UIBackend Backend>
-    void ui_element<Backend>::invalidate_arrange() {
+    void ui_element <Backend>::invalidate_arrange() noexcept {
         if (arrange_state != layout_state::valid) {
             return;
         }
@@ -487,8 +729,8 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    typename ui_element<Backend>::size_type
-    ui_element<Backend>::measure(int available_width, int available_height) {
+    typename ui_element <Backend>::size_type
+    ui_element <Backend>::measure(int available_width, int available_height) {
         // Check cache
         if (measure_state == layout_state::valid &&
             m_last_available_width == available_width &&
@@ -496,16 +738,18 @@ namespace onyxui {
             return m_last_measured_size;
         }
 
-        // Account for margin
-        int content_width = std::max(0, available_width - m_margin.horizontal());
-        int content_height = std::max(0, available_height - m_margin.vertical());
+        // Account for margin using safe subtraction
+        int content_width = safe_math::subtract_clamped(available_width, m_margin.horizontal());
+        int content_height = safe_math::subtract_clamped(available_height, m_margin.vertical());
+        content_width = std::max(0, content_width);
+        content_height = std::max(0, content_height);
 
         // Measure content
         size_type measured = do_measure(content_width, content_height);
 
-        // Add margin back
-        int meas_w = size_utils::get_width(measured) + m_margin.horizontal();
-        int meas_h = size_utils::get_height(measured) + m_margin.vertical();
+        // Add margin back using safe addition
+        int meas_w = safe_math::add_clamped(size_utils::get_width(measured), m_margin.horizontal());
+        int meas_h = safe_math::add_clamped(size_utils::get_height(measured), m_margin.vertical());
 
         // Apply constraints
         meas_w = m_width_constraint.clamp(meas_w);
@@ -523,12 +767,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void ui_element<Backend>::arrange(const rect_type& final_bounds) {
+    void ui_element <Backend>::arrange(const rect_type& final_bounds) {
         // Check if bounds changed
-        bool bounds_changed = (rect_utils::get_x(m_bounds) != rect_utils::get_x(final_bounds) ||
-                               rect_utils::get_y(m_bounds) != rect_utils::get_y(final_bounds) ||
-                               rect_utils::get_width(m_bounds) != rect_utils::get_width(final_bounds) ||
-                               rect_utils::get_height(m_bounds) != rect_utils::get_height(final_bounds));
+        const bool bounds_changed = !rect_utils::equal(m_bounds, final_bounds);
 
         m_bounds = final_bounds;
 
@@ -538,12 +779,26 @@ namespace onyxui {
             return;
         }
 
-        // Calculate content area
+        // Calculate content area using safe arithmetic
         rect_type content_area;
-        int x = rect_utils::get_x(final_bounds) + m_margin.left + m_padding.left;
-        int y = rect_utils::get_y(final_bounds) + m_margin.top + m_padding.top;
-        int w = std::max(0, rect_utils::get_width(final_bounds) - m_margin.horizontal() - m_padding.horizontal());
-        int h = std::max(0, rect_utils::get_height(final_bounds) - m_margin.vertical() - m_padding.vertical());
+
+        // Calculate position with safe addition
+        const int x = safe_math::add_clamped(rect_utils::get_x(final_bounds),
+                                        safe_math::add_clamped(m_margin.left, m_padding.left));
+        const int y = safe_math::add_clamped(rect_utils::get_y(final_bounds),
+                                        safe_math::add_clamped(m_margin.top, m_padding.top));
+
+        // Calculate dimensions with safe subtraction
+        const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
+        const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
+
+        int w = safe_math::subtract_clamped(rect_utils::get_width(final_bounds), total_h_spacing);
+        int h = safe_math::subtract_clamped(rect_utils::get_height(final_bounds), total_v_spacing);
+
+        // Clamp to non-negative
+        w = std::max(0, w);
+        h = std::max(0, h);
+
         rect_utils::set_bounds(content_area, x, y, w, h);
 
         do_arrange(content_area);
@@ -555,7 +810,7 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    void ui_element<Backend>::sort_children_by_z_index() {
+    void ui_element <Backend>::sort_children_by_z_index() {
         std::stable_sort(m_children.begin(), m_children.end(),
                          [](const ui_element_ptr& a, const ui_element_ptr& b) {
                              return a->m_z_index < b->m_z_index;
@@ -563,7 +818,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void ui_element<Backend>::update_child_order() {
+    void ui_element <Backend>::update_child_order() {
         sort_children_by_z_index();
         invalidate_arrange();
     }
@@ -572,8 +827,10 @@ namespace onyxui {
     // Hit Testing
     // -------------------------------------------------------------------------------
 
+    // NOLINTNEXTLINE(misc-no-recursion)
+    // Note: Recursive tree traversal for hit testing, bounded by UI tree height
     template<UIBackend Backend>
-    ui_element<Backend>* ui_element<Backend>::hit_test(int x, int y) {
+    ui_element <Backend>* ui_element <Backend>::hit_test(int x, int y) {
         if (!m_visible || !rect_utils::contains(m_bounds, x, y)) {
             return nullptr;
         }
@@ -593,17 +850,17 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    typename ui_element<Backend>::size_type
-    ui_element<Backend>::do_measure(int available_width, int available_height) {
+    typename ui_element <Backend>::size_type
+    ui_element <Backend>::do_measure(int available_width, int available_height) {
         if (m_layout_strategy) {
             return m_layout_strategy->measure_children(
-                static_cast<const ui_element*>(this), available_width, available_height);
+                static_cast <const ui_element*>(this), available_width, available_height);
         }
         return get_content_size();
     }
 
     template<UIBackend Backend>
-    void ui_element<Backend>::do_arrange(const rect_type& final_bounds) {
+    void ui_element <Backend>::do_arrange(const rect_type& final_bounds) {
         if (m_layout_strategy) {
             m_layout_strategy->arrange_children(this, final_bounds);
         }

@@ -177,6 +177,22 @@ namespace onyxui {
             using size_type = typename Backend::size_type;
 
             /**
+             * @brief Default constructor
+             */
+            anchor_layout() = default;
+
+            /**
+             * @brief Destructor
+             */
+            ~anchor_layout() override = default;
+
+            // Rule of Five
+            anchor_layout(const anchor_layout&) = delete;
+            anchor_layout& operator=(const anchor_layout&) = delete;
+            anchor_layout(anchor_layout&&) noexcept = default;
+            anchor_layout& operator=(anchor_layout&&) noexcept = default;
+
+            /**
              * @brief Set the anchor point and offset for a child element
              *
              * @param child Pointer to the child element to anchor
@@ -250,7 +266,7 @@ namespace onyxui {
              * Override of layout_strategy::on_child_removed. Removes the child's
              * anchor configuration from the internal mapping to prevent memory leaks.
              */
-            void on_child_removed(elt_t* child) override {
+            void on_child_removed(elt_t* child) noexcept override {
                 m_anchor_mapping.erase(child);
             }
 
@@ -261,7 +277,7 @@ namespace onyxui {
              * Override of layout_strategy::on_children_cleared. Clears the entire
              * anchor mapping when the parent's children collection is cleared.
              */
-            void on_children_cleared() override {
+            void on_children_cleared() noexcept override {
                 m_anchor_mapping.clear();
             }
 
@@ -337,7 +353,7 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             auto it = m_anchor_mapping.find(child.get());
-            anchor_info info = (it != m_anchor_mapping.end())
+            const anchor_info info = (it != m_anchor_mapping.end())
                                    ? it->second
                                    : anchor_info{anchor_point::top_left, 0, 0};
 
@@ -360,12 +376,12 @@ namespace onyxui {
     template<UIBackend Backend>
     void anchor_layout<Backend>::calculate_anchor_position(const rect_type& content_area, const size_type& child_size,
                                                                  const anchor_info& info, int& out_x, int& out_y) {
-        int content_x = rect_utils::get_x(content_area);
-        int content_y = rect_utils::get_y(content_area);
-        int content_w = rect_utils::get_width(content_area);
-        int content_h = rect_utils::get_height(content_area);
-        int child_w = size_utils::get_width(child_size);
-        int child_h = size_utils::get_height(child_size);
+        const int content_x = rect_utils::get_x(content_area);
+        const int content_y = rect_utils::get_y(content_area);
+        const int content_w = rect_utils::get_width(content_area);
+        const int content_h = rect_utils::get_height(content_area);
+        const int child_w = size_utils::get_width(child_size);
+        const int child_h = size_utils::get_height(child_size);
 
         switch (info.point) {
             case anchor_point::top_left:

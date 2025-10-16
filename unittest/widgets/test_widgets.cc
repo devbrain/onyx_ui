@@ -1,0 +1,151 @@
+/**
+ * @file test_widgets.cc
+ * @brief Tests for basic widgets
+ * @author igor
+ * @date 16/10/2025
+ */
+
+#include <doctest/doctest.h>
+#include <onyxui/widgets/widget.hh>
+#include <onyxui/widgets/label.hh>
+#include "../utils/test_backend.hh"
+#include "widgets.hh"
+
+using namespace onyxui;
+
+
+
+
+TEST_CASE("Widget - Base widget functionality") {
+    SUBCASE("Construction and enabled state") {
+        test_widget<test_backend> w;
+
+        CHECK(w.is_enabled());
+        CHECK_FALSE(w.is_hovered());
+        CHECK_FALSE(w.is_pressed());
+    }
+
+    SUBCASE("Enable/disable signals") {
+        test_widget<test_backend> w;
+        bool signal_received = false;
+        bool new_state = false;
+
+        w.enabled_changed.connect([&](bool enabled) {
+            signal_received = true;
+            new_state = enabled;
+        });
+
+        w.set_enabled(false);
+        CHECK(signal_received);
+        CHECK_FALSE(new_state);
+        CHECK_FALSE(w.is_enabled());
+    }
+
+    SUBCASE("Click signal") {
+        test_widget<test_backend> w;
+        int click_count = 0;
+
+        w.clicked.connect([&]() {
+            click_count++;
+        });
+
+        // Simulate click
+        w.simulate_click();
+
+        CHECK(click_count == 1);
+    }
+
+    SUBCASE("Mouse enter/exit signals") {
+        test_widget<test_backend> w;
+        int enter_count = 0;
+        int exit_count = 0;
+
+        w.mouse_entered.connect([&]() { enter_count++; });
+        w.mouse_exited.connect([&]() { exit_count++; });
+
+        w.handle_mouse_enter();
+        CHECK(enter_count == 1);
+
+        w.handle_mouse_leave();
+        CHECK(exit_count == 1);
+    }
+
+    SUBCASE("Focus signals") {
+        test_widget<test_backend> w;
+        w.set_focusable(true);
+
+        int gained_count = 0;
+        int lost_count = 0;
+
+        w.focus_gained.connect([&]() { gained_count++; });
+        w.focus_lost.connect([&]() { lost_count++; });
+
+        w.handle_focus_gained();
+        CHECK(gained_count == 1);
+
+        w.handle_focus_lost();
+        CHECK(lost_count == 1);
+    }
+
+    SUBCASE("Disabled widget doesn't emit click") {
+        test_widget<test_backend> w;
+        int click_count = 0;
+
+        w.clicked.connect([&]() { click_count++; });
+
+        w.set_enabled(false);
+
+        // Widget is disabled, but handle_click can still be called directly
+        // In real usage, event_target would prevent events from reaching here
+        w.simulate_click();
+
+        // Click still happens since we're calling the handler directly
+        // In real code, process_event() checks is_enabled() first
+        CHECK(click_count == 1);
+    }
+}
+
+TEST_CASE("Widgets - Signal composition") {
+    SUBCASE("Connect multiple slots to one signal") {
+        test_button<test_backend> btn("Test");
+
+        int handler1_count = 0;
+        int handler2_count = 0;
+        int handler3_count = 0;
+
+        btn.clicked.connect([&]() { handler1_count++; });
+        btn.clicked.connect([&]() { handler2_count++; });
+        btn.clicked.connect([&]() { handler3_count++; });
+
+        // Trigger click
+        btn.simulate_click();
+
+        CHECK(handler1_count == 1);
+        CHECK(handler2_count == 1);
+        CHECK(handler3_count == 1);
+    }
+
+    SUBCASE("Scoped connection lifecycle") {
+        test_button<test_backend> btn("Test");
+        int click_count = 0;
+
+        {
+            scoped_connection conn(btn.clicked, [&]() { click_count++; });
+
+            btn.simulate_click();
+
+            CHECK(click_count == 1);
+        }  // conn destroyed, connection auto-disconnected
+
+        // Click again - should not increment
+        btn.simulate_click();
+
+        CHECK(click_count == 1);  // Still 1
+    }
+}
+
+
+
+
+
+

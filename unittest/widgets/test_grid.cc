@@ -1,0 +1,223 @@
+//
+// Created by igor on 16/10/2025.
+//
+
+#include <doctest/doctest.h>
+
+#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/vbox.hh>
+#include <onyxui/widgets/hbox.hh>
+#include <onyxui/widgets/grid.hh>
+#include <onyxui/widgets/label.hh>
+#include "../utils/test_backend.hh"
+#include "../utils/warnings.hh"
+using namespace onyxui;
+
+TEST_CASE("Grid - Grid layout widget") {
+    SUBCASE("Construction") {
+        grid<test_backend> g(3);  // 3 columns
+
+        CHECK_FALSE(g.is_focusable());
+        CHECK(g.num_columns() == 3);
+        CHECK(g.num_rows() == -1);  // Auto-calculate
+    }
+
+    SUBCASE("Add children with auto-assignment") {
+        grid<test_backend> g(2);  // 2 columns
+
+        auto btn1 = std::make_unique<button<test_backend>>("1");
+        auto btn2 = std::make_unique<button<test_backend>>("2");
+        auto btn3 = std::make_unique<button<test_backend>>("3");
+        auto btn4 = std::make_unique<button<test_backend>>("4");
+
+        g.add_child(std::move(btn1));
+        g.add_child(std::move(btn2));
+        g.add_child(std::move(btn3));
+        g.add_child(std::move(btn4));
+
+        CHECK(g.children().size() == 4);
+
+        // Should not crash
+        CHECK_NOTHROW((void)g.measure(200, 200));
+    }
+
+    SUBCASE("Explicit cell assignment") {
+        grid<test_backend> g(3, 3);  // 3x3 grid
+
+        auto header = std::make_unique<label<test_backend>>("Header");
+        auto* header_ptr = header.get();
+        g.add_child(std::move(header));
+
+        // Assign header to span entire top row
+        bool result = g.set_cell(header_ptr, 0, 0, 1, 3);  // row 0, col 0, span 1x3
+        CHECK(result);
+
+        // Measure should not crash
+        CHECK_NOTHROW((void)g.measure(300, 300));
+    }
+
+    SUBCASE("Fixed-size grid") {
+        std::vector<int> col_widths = {100, 150, 100};
+        std::vector<int> row_heights = {50, 50};
+
+        grid<test_backend> g(
+            3,              // 3 columns
+            2,              // 2 rows
+            5,              // column spacing
+            5,              // row spacing
+            false,          // Use fixed sizing
+            col_widths,     // Fixed column widths
+            row_heights     // Fixed row heights
+        );
+
+        // Add some children
+        for (int i = 0; i < 6; i++) {
+            g.add_child(std::make_unique<label<test_backend>>(std::to_string(i)));
+        }
+
+        auto size = g.measure(500, 500);
+        int width = size_utils::get_width(size);
+        int height = size_utils::get_height(size);
+
+        // Width = 100 + 150 + 100 + 2*5 (spacing) = 360
+        CHECK(width == 360);
+        // Height = 50 + 50 + 1*5 (spacing) = 105
+        CHECK(height == 105);
+    }
+
+    SUBCASE("Grid with spacing") {
+        grid<test_backend> g(2, 2, 10, 10);  // 2x2 grid with 10px spacing
+
+        for (int i = 0; i < 4; i++) {
+            g.add_child(std::make_unique<button<test_backend>>(std::to_string(i)));
+        }
+
+        CHECK_NOTHROW((void)g.measure(200, 200));
+
+        test_backend::rect bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 200, 200);
+        CHECK_NOTHROW(g.arrange(bounds));
+    }
+
+    SUBCASE("Cell spanning") {
+        grid<test_backend> g(4, 3);  // 4x3 grid
+
+        // Header spans all 4 columns
+        auto header = std::make_unique<label<test_backend>>("Header");
+        auto* header_ptr = header.get();
+        g.add_child(std::move(header));
+        CHECK(g.set_cell(header_ptr, 0, 0, 1, 4));  // row 0, col 0, span 1x4
+
+        // Sidebar spans 2 rows
+        auto sidebar = std::make_unique<label<test_backend>>("Sidebar");
+        auto* sidebar_ptr = sidebar.get();
+        g.add_child(std::move(sidebar));
+        CHECK(g.set_cell(sidebar_ptr, 1, 0, 2, 1));  // row 1, col 0, span 2x1
+
+        // Other items auto-assigned
+        for (int i = 0; i < 6; i++) {
+            g.add_child(std::make_unique<button<test_backend>>(std::to_string(i)));
+        }
+
+        CHECK(g.children().size() == 8);
+        CHECK_NOTHROW((void)g.measure(400, 300));
+    }
+
+    SUBCASE("Invalid cell assignment") {
+        grid<test_backend> g(3, 3);  // 3x3 grid
+
+        auto item = std::make_unique<label<test_backend>>("Item");
+        auto* item_ptr = item.get();
+        g.add_child(std::move(item));
+
+        // Out of bounds column
+        CHECK_FALSE(g.set_cell(item_ptr, 0, 3, 1, 1));
+
+        // Out of bounds row
+        CHECK_FALSE(g.set_cell(item_ptr, 3, 0, 1, 1));
+
+        // Span exceeds bounds
+        CHECK_FALSE(g.set_cell(item_ptr, 2, 2, 1, 2));  // Would span to column 4
+    }
+
+    SUBCASE("Rule of Five - Copy operations deleted") {
+        static_assert(!std::is_copy_constructible_v<grid<test_backend>>,
+                      "grid should not be copy constructible");
+        static_assert(!std::is_copy_assignable_v<grid<test_backend>>,
+                      "grid should not be copy assignable");
+    }
+
+    SUBCASE("Rule of Five - Move constructor") {
+        grid<test_backend> g1(3);
+
+        // Add children to g1
+        g1.add_child(std::make_unique<button<test_backend>>("1"));
+        g1.add_child(std::make_unique<button<test_backend>>("2"));
+
+        // Move construct
+        grid<test_backend> g2(std::move(g1));
+
+        // g2 should have the children
+        CHECK(g2.children().size() == 2);
+        CHECK(g2.num_columns() == 3);
+
+        // g1 should be in valid state (can add children)
+        CHECK_NOTHROW(g1.add_child(std::make_unique<button<test_backend>>("3")));
+    }
+
+    SUBCASE("Rule of Five - Move assignment") {
+        grid<test_backend> g1(2);
+        grid<test_backend> g2(4);
+
+        g1.add_child(std::make_unique<label<test_backend>>("A"));
+
+        // Move assign
+        g2 = std::move(g1);
+
+        CHECK(g2.num_columns() == 2);
+        CHECK(g2.children().size() == 1);
+        CHECK_NOTHROW(g1.add_child(std::make_unique<label<test_backend>>("B")));
+    }
+
+    SUBCASE("Rule of Five - Move semantics with containers") {
+        std::vector<grid<test_backend>> grids;
+
+        grids.push_back(grid<test_backend>(2));
+        grids.emplace_back(3);
+
+        CHECK(grids.size() == 2);
+        CHECK(grids[0].num_columns() == 2);
+        CHECK(grids[1].num_columns() == 3);
+    }
+
+    SUBCASE("Rule of Five - Self-assignment safety") {
+        grid<test_backend> g(3);
+SUPPRESS_SELF_MOVE_BEGIN
+        g = std::move(g);
+SUPPRESS_SELF_MOVE_END
+        CHECK_NOTHROW(g.add_child(std::make_unique<label<test_backend>>("Test")));
+    }
+
+    SUBCASE("Rule of Five - Dangling pointer fix verification") {
+        // This test specifically verifies that the dangling pointer bug is fixed
+        grid<test_backend> g1(2);
+
+        auto btn1 = std::make_unique<button<test_backend>>("Button");
+        auto* btn1_ptr = btn1.get();
+        g1.add_child(std::move(btn1));
+
+        // Set explicit cell
+        g1.set_cell(btn1_ptr, 0, 0);
+
+        // Move construct - this should NOT leave dangling pointer
+        grid<test_backend> g2(std::move(g1));
+
+        // g2's layout pointer should be valid, not dangling
+        CHECK_NOTHROW((void)g2.measure(100, 100));
+
+        // Arranging should work without crashes
+        test_backend::rect bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 100, 100);
+        CHECK_NOTHROW(g2.arrange(bounds));
+    }
+}

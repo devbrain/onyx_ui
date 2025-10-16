@@ -63,7 +63,14 @@
 
 #pragma once
 
-#include <onyxui/concepts.hh>
+#include <string_view>
+#include <type_traits>
+#include <variant>
+
+#include <onyxui/concepts/point_like.hh>
+#include <onyxui/concepts/size_like.hh>
+#include <onyxui/concepts/rect_like.hh>
+#include <onyxui/concepts/render_like.hh>
 
 namespace onyxui {
     /**
@@ -73,10 +80,33 @@ namespace onyxui {
      * A backend must provide all the types needed for the UI system:
      * - Geometric types (rect, size, point)
      * - Event types
-     * - Optional: color, font, texture types for rendering
+     * - Renderer type with text measurement capability (both instance and static)
+     *
+     * ## Renderer Static measure_text() Rationale
+     *
+     * Renderers must provide a **static** measure_text() method because widgets
+     * need to calculate their size during layout (in get_content_size()) but
+     * don't have access to a renderer instance at that point.
+     *
+     * This approach is correct because:
+     * - **Proper abstraction**: Renderer knows how to measure text (it draws it!)
+     * - **No renderer needed**: Static method works during layout calculations
+     * - **Accurate**: Not using text.length() (wrong for UTF-8, proportional fonts)
+     * - **Simple**: No complex caching or invalidation logic needed
+     *
+     * @example Label auto-sizing
+     * @code
+     * size_type get_content_size() const override {
+     *     typename Backend::renderer_type::font default_font{};
+     *     return Backend::renderer_type::measure_text(m_text, default_font);
+     * }
+     * @endcode
      */
     template<typename T>
-    concept UIBackend = requires
+    concept UIBackend = requires(
+        std::string_view text,
+        const typename T::renderer_type::font& font
+    )
     {
         // Required geometric types
         typename T::rect_type;
@@ -89,6 +119,13 @@ namespace onyxui {
         typename T::mouse_button_event_type;
         typename T::mouse_motion_event_type;
 
+        // Renderer
+        typename T::renderer_type;
+
+        // Static text measurement on renderer (for layout without renderer instance)
+        { T::renderer_type::measure_text(text, font) } -> std::same_as<typename T::size_type>;
+
+        requires RenderLike<typename T::renderer_type, typename T::rect_type>;
         // The geometric types must satisfy our concepts
         requires RectLike <typename T::rect_type>;
         requires SizeLike <typename T::size_type>;
@@ -122,6 +159,7 @@ namespace onyxui {
         using keyboard_event = typename Backend::keyboard_event_type;
         using mouse_button_event = typename Backend::mouse_button_event_type;
         using mouse_motion_event = typename Backend::mouse_motion_event_type;
+        using renderer = typename Backend::renderer_type;
     };
 
     /**

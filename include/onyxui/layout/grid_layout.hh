@@ -45,7 +45,7 @@
 #include <unordered_map>
 #include <set>
 #include <onyxui/layout_strategy.hh>
-#include <onyxui/safe_math.hh>
+#include <onyxui/utils/safe_math.hh>
 
 namespace onyxui {
     /**
@@ -217,6 +217,17 @@ namespace onyxui {
             );
 
             /**
+             * @brief Destructor
+             */
+            ~grid_layout() override = default;
+
+            // Rule of Five
+            grid_layout(const grid_layout&) = delete;
+            grid_layout& operator=(const grid_layout&) = delete;
+            grid_layout(grid_layout&&) noexcept = default;
+            grid_layout& operator=(grid_layout&&) noexcept = default;
+
+            /**
              * @brief Explicitly assign a child to a grid cell
              *
              * Validates all parameters to ensure cell assignment is within bounds.
@@ -237,13 +248,13 @@ namespace onyxui {
              * @brief Get number of columns
              * @return Number of columns
              */
-            int num_columns() const noexcept { return m_num_columns; }
+            [[nodiscard]] int num_columns() const noexcept { return m_num_columns; }
 
             /**
              * @brief Get number of rows
              * @return Number of rows (-1 if auto-calculated)
              */
-            int num_rows() const noexcept { return m_num_rows; }
+            [[nodiscard]] int num_rows() const noexcept { return m_num_rows; }
 
         protected:
             /**
@@ -292,7 +303,7 @@ namespace onyxui {
              * Override of layout_strategy::on_child_removed.
              * Removes the child's cell assignment from mapping.
              */
-            void on_child_removed(elt_t* child) override {
+            void on_child_removed(elt_t* child) noexcept override {
                 m_cell_mapping.erase(child);
             }
 
@@ -303,7 +314,7 @@ namespace onyxui {
              * Override of layout_strategy::on_children_cleared.
              * Clears all cell assignments.
              */
-            void on_children_cleared() override {
+            void on_children_cleared() noexcept override {
                 m_cell_mapping.clear();
             }
 
@@ -487,7 +498,7 @@ namespace onyxui {
         auto_assign_cells(parent);
 
         // Calculate actual row count
-        int actual_rows = calculate_row_count(parent);
+        const int actual_rows = calculate_row_count(parent);
 
         if (m_auto_size_cells) {
             // Measure all children to determine cell sizes
@@ -505,7 +516,7 @@ namespace onyxui {
         }
         int column_spacing_total = 0;
         if (m_num_columns > 1) {
-            safe_math::safe_multiply(m_column_spacing, m_num_columns - 1, column_spacing_total);
+            column_spacing_total = safe_math::multiply_clamped(m_column_spacing, m_num_columns - 1);
         }
         safe_math::accumulate_safe(total_width, column_spacing_total);
 
@@ -515,7 +526,7 @@ namespace onyxui {
         }
         int row_spacing_total = 0;
         if (actual_rows > 1) {
-            safe_math::safe_multiply(m_row_spacing, actual_rows - 1, row_spacing_total);
+            row_spacing_total = safe_math::multiply_clamped(m_row_spacing, actual_rows - 1);
         }
         safe_math::accumulate_safe(total_height, row_spacing_total);
 
@@ -529,7 +540,7 @@ namespace onyxui {
     void grid_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
         if (parent->children().empty()) return;
 
-        int actual_rows = static_cast<int>(m_row_heights.size());
+        const int actual_rows = static_cast<int>(m_row_heights.size());
 
         // Calculate cell positions
         std::vector <int> column_positions(static_cast<size_t>(m_num_columns));

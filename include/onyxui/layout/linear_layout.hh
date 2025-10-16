@@ -42,7 +42,7 @@
 
 #include <vector>
 #include <onyxui/layout_strategy.hh>
-#include <onyxui/safe_math.hh>
+#include <onyxui/utils/safe_math.hh>
 
 namespace onyxui {
     /**
@@ -198,6 +198,17 @@ namespace onyxui {
             }
 
             /**
+             * @brief Destructor
+             */
+            ~linear_layout() override = default;
+
+            // Rule of Five
+            linear_layout(const linear_layout&) = delete;
+            linear_layout& operator=(const linear_layout&) = delete;
+            linear_layout(linear_layout&&) noexcept = default;
+            linear_layout& operator=(linear_layout&&) noexcept = default;
+
+            /**
              * @brief Get layout direction
              * @return Direction (vertical or horizontal)
              */
@@ -351,7 +362,7 @@ namespace onyxui {
         int total_height = 0;
         int total_spacing = 0;
         if (visible_count > 1) {
-            safe_math::safe_multiply(m_spacing, visible_count - 1, total_spacing);
+            total_spacing = safe_math::multiply_clamped(m_spacing, visible_count - 1);
         }
 
         if (m_layout_direction == direction::vertical) {
@@ -423,7 +434,7 @@ namespace onyxui {
     template<UIBackend Backend>
     void linear_layout<Backend>::arrange_vertical(elt_t* parent, const rect_type& content_area) {
         const auto& children = this->get_mutable_children(parent);
-        int content_h = rect_utils::get_height(content_area);
+        const int content_h = rect_utils::get_height(content_area);
 
         // Calculate total desired height and identify expanding/weighted children
         int total_fixed_height = 0;
@@ -451,11 +462,11 @@ namespace onyxui {
         }
 
         // Calculate spacing
-        int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
+        const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
         int available_height = content_h - total_fixed_height - total_spacing;
 
         // Distribute space for expanding children
-        int expand_height = (num_expanding > 0 && available_height > 0)
+        const int expand_height = (num_expanding > 0 && available_height > 0)
                                 ? available_height / num_expanding
                                 : 0;
 
@@ -471,7 +482,7 @@ namespace onyxui {
         }
 
         // Handle remainder from integer division
-        int expand_remainder = (num_expanding > 0 && available_height > 0)
+        const int expand_remainder = (num_expanding > 0 && available_height > 0)
                                    ? available_height - (expand_height * num_expanding)
                                    : 0;
 
@@ -541,7 +552,7 @@ namespace onyxui {
     template<UIBackend Backend>
     void linear_layout<Backend>::arrange_horizontal(elt_t* parent, const rect_type& content_area) {
         const auto& children = this->get_mutable_children(parent);
-        int content_w = rect_utils::get_width(content_area);
+        const int content_w = rect_utils::get_width(content_area);
 
         // Calculate total desired width and identify expanding/weighted children
         int total_fixed_width = 0;
@@ -569,11 +580,11 @@ namespace onyxui {
         }
 
         // Calculate spacing
-        int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
+        const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
         int available_width = content_w - total_fixed_width - total_spacing;
 
         // Distribute space for expanding children
-        int expand_width = (num_expanding > 0 && available_width > 0)
+        const int expand_width = (num_expanding > 0 && available_width > 0)
                                ? available_width / num_expanding
                                : 0;
 
@@ -589,7 +600,7 @@ namespace onyxui {
         }
 
         // Handle remainder from integer division
-        int expand_remainder = (num_expanding > 0 && available_width > 0)
+        const int expand_remainder = (num_expanding > 0 && available_width > 0)
                                    ? available_width - (expand_width * num_expanding)
                                    : 0;
 

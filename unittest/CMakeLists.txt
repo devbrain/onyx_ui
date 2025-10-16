@@ -46,17 +46,41 @@ if (doctest_FOUND OR TARGET doctest::doctest)
 endif()
 
 add_executable(ui_unittest
-        main.cc
         core/test_element.cc
-        layout/test_linear.cc
-        layout/test_grid.cc
-        layout/test_anchor.cc
-        layout/test_absolute.cc
-        layout/test_composition.cc
+        core/test_signal_slot.cc
+        core/test_rule_of_five.cc
         events/test_events.cc
         focus/test_focus_manager.cc
-        utils/test_helpers.hh
+        layout/test_absolute.cc
+        layout/test_anchor.cc
+        layout/test_composition.cc
+        layout/test_grid.cc
+        layout/test_linear.cc
+        main.cc
         utils/test_backend.hh
+        utils/test_helpers.hh
+        widgets/test_widgets.cc
+        widgets/widgets.hh
+        widgets/test_hbox.cc
+        widgets/test_vbox.cc
+        widgets/test_grid.cc
+        widgets/test_anchor_panel.cc
+        widgets/test_absolute_panel.cc
+        widgets/test_button.cc
+        widgets/test_label.cc
+        widgets/test_panel.cc
+        widgets/test_spacer.cc
+        utils/warnings.hh
+        widgets/test_spring.cc
+        widgets/test_layout_correctness.cc
+        widgets/test_factory_functions.cc
+        widgets/test_actions.cc
+        widgets/test_mnemonics.cc
+        widgets/test_menus.cc
+        widgets/test_status_bar.cc
+        widgets/test_group_box.cc
+        hotkeys/test_hotkeys.cc
+        hotkeys/test_hotkey_manager.cc
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

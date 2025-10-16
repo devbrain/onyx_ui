@@ -191,9 +191,10 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <numeric>
-#include <onyxui/backend.hh>
-#include <onyxui/concepts.hh>
+#include <onyxui/concepts/backend.hh>
+
 
 namespace onyxui {
     /**
@@ -224,7 +225,7 @@ namespace onyxui {
      * @see vertical_alignment For vertical positioning options
      * @see size_constraint For width constraints that interact with alignment
      */
-    enum class horizontal_alignment {
+    enum class horizontal_alignment : std::uint8_t {
         left, ///< Align to the left edge of allocated space
         center, ///< Center horizontally within allocated space
         right, ///< Align to the right edge of allocated space
@@ -260,7 +261,7 @@ namespace onyxui {
      * @see horizontal_alignment For horizontal positioning options
      * @see size_constraint For height constraints that interact with alignment
      */
-    enum class vertical_alignment {
+    enum class vertical_alignment : std::uint8_t {
         top, ///< Align to the top edge of allocated space
         center, ///< Center vertically within allocated space
         bottom, ///< Align to the bottom edge of allocated space
@@ -296,7 +297,7 @@ namespace onyxui {
      *
      * @see linear_layout The primary consumer of this enum
      */
-    enum class direction {
+    enum class direction : std::uint8_t {
         horizontal, ///< Stack elements left-to-right in a row
         vertical ///< Stack elements top-to-bottom in a column
     };
@@ -351,7 +352,7 @@ namespace onyxui {
      *
      * @see size_constraint For complete sizing configuration including bounds
      */
-    enum class size_policy {
+    enum class size_policy : std::uint8_t {
         fixed, ///< Use preferred_size exactly, ignoring content
         content, ///< Size based on natural content dimensions (default)
         expand, ///< Grow to fill remaining space equally with other expand children
@@ -438,7 +439,69 @@ namespace onyxui {
         float percentage = 1.0f; ///< Percentage for 'percentage' policy (0.0 to 1.0)
 
         /**
-         * @brief Clamp a size value to the min/max constraints
+         * @brief Check if the constraint is in a valid state
+         *
+         * @return true if min_size <= max_size, false otherwise
+         *
+         * @details
+         * A constraint is valid when the minimum size does not exceed the maximum.
+         * Invalid constraints can lead to undefined behavior in layout calculations.
+         * Use this method to validate constraints before applying them.
+         *
+         * @note Exception safety: No-throw guarantee (noexcept)
+         *
+         * @example Validation Example
+         * @code
+         * size_constraint c;
+         * c.min_size = 100;
+         * c.max_size = 50;
+         * if (!c.is_valid()) {
+         *     // Handle error: min_size > max_size
+         * }
+         * @endcode
+         */
+        [[nodiscard]] constexpr bool is_valid() const noexcept {
+            return min_size <= max_size;
+        }
+
+        /**
+         * @brief Set min and max size with auto-correction
+         *
+         * @param min The minimum size (pixels)
+         * @param max The maximum size (pixels)
+         *
+         * @details
+         * Sets both min_size and max_size atomically. If min > max, the values
+         * are automatically swapped to maintain the invariant min_size <= max_size.
+         * This auto-correction approach is more robust than assertions and prevents
+         * undefined behavior in release builds.
+         *
+         * @note Auto-Correction: If min > max, values are swapped automatically
+         * @note Exception safety: No-throw guarantee (noexcept)
+         * @note This method always maintains the invariant: min_size <= max_size
+         *
+         * @example Safe Range Setting
+         * @code
+         * size_constraint width;
+         * width.set_range(80, 200);  // Min: 80px, Max: 200px
+         *
+         * // Auto-correction: swaps values if inverted
+         * width.set_range(200, 80);  // Becomes: Min: 80px, Max: 200px
+         * @endcode
+         */
+        constexpr void set_range(int min, int max) noexcept {
+            // Auto-correct: swap if min > max to maintain invariant
+            if (min > max) {
+                min_size = max;
+                max_size = min;
+            } else {
+                min_size = min;
+                max_size = max;
+            }
+        }
+
+        /**
+         * @brief Clamp a size value to the min/max constraints with auto-correction
          *
          * @param value The unconstrained size value to clamp
          * @return The value clamped to [min_size, max_size]
@@ -446,11 +509,28 @@ namespace onyxui {
          * @details
          * Ensures any calculated size respects the minimum and maximum bounds.
          * This is called by layout strategies after calculating initial sizes
-         * to enforce the constraints.
+         * to enforce the constraints. If the constraint is invalid (min > max),
+         * the method auto-corrects by using min as both bounds.
          *
-         * @note This is a const noexcept function suitable for high-frequency calls.
+         * @note This is a const noexcept function suitable for high-frequency calls
+         * @note Auto-Correction: If min_size > max_size, uses min_size as the clamped value
+         * @note Exception safety: No-throw guarantee (noexcept)
+         *
+         * @example
+         * @code
+         * size_constraint c;
+         * c.min_size = 100;
+         * c.max_size = 200;
+         * int size = c.clamp(150);  // Returns 150
+         * int size2 = c.clamp(50);  // Returns 100 (clamped to min)
+         * int size3 = c.clamp(300); // Returns 200 (clamped to max)
+         * @endcode
          */
         [[nodiscard]] int clamp(int value) const noexcept {
+            // Auto-correct: if invalid constraint, use min as both bounds
+            if (min_size > max_size) {
+                return min_size;
+            }
             return std::max(min_size, std::min(max_size, value));
         }
 
@@ -464,9 +544,33 @@ namespace onyxui {
          * Performs exact comparison of all fields including floating-point
          * values. This is used for change detection and caching validation.
          *
-         * @warning Floating-point comparison uses exact equality, which may
-         *          cause issues with computed values. Consider using epsilon
-         *          comparison for weight/percentage if needed.
+         * ## Float Comparison Behavior
+         *
+         * The weight and percentage fields use **exact equality (==)** comparison,
+         * not epsilon-based comparison. This has important implications:
+         *
+         * **Why Exact Comparison:**
+         * - Constraints are typically set explicitly by users (e.g., `weight = 2.0f`)
+         * - Values rarely result from floating-point arithmetic
+         * - Exact comparison is fast and appropriate for user-defined values
+         * - Avoids false positives from epsilon tolerance
+         *
+         * **When This May Cause Issues:**
+         * - If weight/percentage are computed from complex calculations
+         * - If values are loaded from text files and parsed
+         * - If values result from division or other FP operations
+         *
+         * **Workaround for Computed Values:**
+         * Round computed values to a reasonable precision before assignment:
+         * @code
+         * float computed_weight = complex_calculation();
+         * constraint.weight = std::round(computed_weight * 1000.0f) / 1000.0f;
+         * @endcode
+         *
+         * @warning Floating-point exact comparison: 2.0f == 2.0f (true),
+         *          but 2.0f / 3.0f * 3.0f may not equal 2.0f due to rounding errors
+         * @note Exception safety: No-throw guarantee (noexcept)
+         * @note For most use cases (user-set values), exact comparison is correct
          */
         bool operator==(const size_constraint& other) const noexcept {
             return policy == other.policy &&
@@ -595,6 +699,14 @@ namespace onyxui {
         public:
             virtual ~layout_strategy() noexcept = default;
 
+            // Delete copy operations (polymorphic base - prevent slicing)
+            layout_strategy(const layout_strategy&) = delete;
+            layout_strategy& operator=(const layout_strategy&) = delete;
+
+            // Delete move operations (polymorphic base - prevent slicing)
+            layout_strategy(layout_strategy&&) = delete;
+            layout_strategy& operator=(layout_strategy&&) = delete;
+
             /**
              * @brief Measure phase: calculate the total size needed for all children
              *
@@ -610,6 +722,11 @@ namespace onyxui {
              * @param available_width Maximum width available (pixels)
              * @param available_height Maximum height available (pixels)
              * @return The total size needed to accommodate all children
+             *
+             * @exception Any exception thrown by child->measure()
+             * @exception std::bad_alloc If derived implementation allocates memory
+             * @note Exception safety: Depends on derived class implementation
+             * @note Base class provides no exception guarantees - derived classes should document their behavior
              */
             virtual size_type measure_children(
                 const ui_element<Backend>* parent,
@@ -628,6 +745,11 @@ namespace onyxui {
              *
              * @param parent The parent element whose children to arrange
              * @param content_area The area available for children (excludes padding/margin)
+             *
+             * @exception Any exception thrown by child->arrange()
+             * @exception std::bad_alloc If derived implementation allocates memory
+             * @note Exception safety: Depends on derived class implementation
+             * @note Base class provides no exception guarantees - derived classes should document their behavior
              */
             virtual void arrange_children(
                 ui_element<Backend>* parent,
@@ -641,8 +763,9 @@ namespace onyxui {
              * Default implementation does nothing.
              *
              * @param child The child that was removed
+             * @note Must not throw - cleanup operations should be noexcept
              */
-            virtual void on_child_removed([[maybe_unused]] ui_element<Backend>* child) {
+            virtual void on_child_removed([[maybe_unused]] ui_element<Backend>* child) noexcept {
                 // Default: no cleanup needed
             }
 
@@ -651,12 +774,18 @@ namespace onyxui {
              *
              * Allows layout strategies to clear all internal state.
              * Default implementation does nothing.
+             *
+             * @note Must not throw - cleanup operations should be noexcept
              */
-            virtual void on_children_cleared() {
+            virtual void on_children_cleared() noexcept {
                 // Default: no cleanup needed
             }
 
         protected:
+            // Only derived classes can construct
+            layout_strategy() = default;
+
+            // Protected helpers for accessing ui_element internals
             /**
              * @brief Get const reference to parent's children
              *
@@ -667,7 +796,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return Const reference to the children vector
              */
-            static const auto& get_children(const ui_element<Backend>* parent) {
+            [[nodiscard]] static const auto& get_children(const ui_element<Backend>* parent) noexcept {
                 return parent->children();
             }
 
@@ -677,7 +806,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return Reference to the children vector
              */
-            static auto& get_mutable_children(ui_element<Backend>* parent) {
+            [[nodiscard]] static auto& get_mutable_children(ui_element<Backend>* parent) noexcept {
                 return parent->mutable_children();
             }
 
@@ -687,7 +816,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return The last measured size
              */
-            static const size_type& get_last_measured_size(const ui_element<Backend>* parent) {
+            [[nodiscard]] static const size_type& get_last_measured_size(const ui_element<Backend>* parent) noexcept {
                 return parent->last_measured_size();
             }
 
@@ -697,7 +826,7 @@ namespace onyxui {
              * @param child The child element
              * @return Horizontal alignment setting
              */
-            static horizontal_alignment get_h_align(const ui_element<Backend>* child) {
+            [[nodiscard]] static horizontal_alignment get_h_align(const ui_element<Backend>* child) noexcept {
                 return child->h_align();
             }
 
@@ -707,7 +836,7 @@ namespace onyxui {
              * @param child The child element
              * @return Vertical alignment setting
              */
-            static vertical_alignment get_v_align(const ui_element<Backend>* child) {
+            [[nodiscard]] static vertical_alignment get_v_align(const ui_element<Backend>* child) noexcept {
                 return child->v_align();
             }
     };

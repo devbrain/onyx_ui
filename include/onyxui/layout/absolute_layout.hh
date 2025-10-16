@@ -176,6 +176,22 @@ namespace onyxui {
             using size_type = typename Backend::size_type;
 
             /**
+             * @brief Default constructor
+             */
+            absolute_layout() = default;
+
+            /**
+             * @brief Destructor
+             */
+            ~absolute_layout() override = default;
+
+            // Rule of Five
+            absolute_layout(const absolute_layout&) = delete;
+            absolute_layout& operator=(const absolute_layout&) = delete;
+            absolute_layout(absolute_layout&&) noexcept = default;
+            absolute_layout& operator=(absolute_layout&&) noexcept = default;
+
+            /**
              * @brief Set the position (and optionally size) for a child element
              *
              * @param child Pointer to the child element to position
@@ -256,7 +272,7 @@ namespace onyxui {
              * Override of layout_strategy::on_child_removed. Removes the child's
              * position configuration to prevent memory leaks.
              */
-            void on_child_removed(elt_t* child) override {
+            void on_child_removed(elt_t* child) noexcept override {
                 m_position_mapping.erase(child);
             }
 
@@ -267,7 +283,7 @@ namespace onyxui {
              * Override of layout_strategy::on_children_cleared. Clears the entire
              * position mapping when the parent's children collection is cleared.
              */
-            void on_children_cleared() override {
+            void on_children_cleared() noexcept override {
                 m_position_mapping.clear();
             }
 
@@ -341,7 +357,7 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             auto it = m_position_mapping.find(child.get());
-            position_info pos = (it != m_position_mapping.end())
+            const position_info pos = (it != m_position_mapping.end())
                                     ? it->second
                                     : position_info{0, 0, -1, -1};
 

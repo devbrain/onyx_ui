@@ -4,7 +4,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/events.hh>
+#include <onyxui/concepts/event_like.hh>
 #include <utils/test_backend.hh>
 
 using namespace onyxui;

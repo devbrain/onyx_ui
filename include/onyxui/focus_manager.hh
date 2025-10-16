@@ -45,10 +45,11 @@
 #pragma once
 
 #include <onyxui/event_target.hh>
-#include <onyxui/events.hh>
+#include <onyxui/concepts/event_like.hh>
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <utility>  // for std::exchange
 
 namespace onyxui {
     /**
@@ -107,9 +108,58 @@ namespace onyxui {
         focus_manager() = default;
 
         /**
+         * @brief Destructor - clears focus without callbacks
+         *
+         * @details
+         * Resets the focus pointer without calling handle_focus_lost() on the target.
+         * This is necessary because the target may have already been destroyed, and
+         * calling methods on a dangling pointer would cause undefined behavior.
+         * The target's own destructor is responsible for cleaning up its focus state.
+         *
+         * @note This is noexcept - destructors must not throw
+         */
+        ~focus_manager() noexcept {
+            // Just reset the pointer without callbacks - target may already be destroyed
+            m_focused_target = nullptr;
+        }
+
+        // Delete copy operations
+        // Rationale: Focus state is unique per manager
+        focus_manager(const focus_manager&) = delete;
+        focus_manager& operator=(const focus_manager&) = delete;
+
+        /**
+         * @brief Move constructor - transfers focus state
+         */
+        focus_manager(focus_manager&& other) noexcept
+            : m_focused_target(std::exchange(other.m_focused_target, nullptr)) {
+        }
+
+        /**
+         * @brief Move assignment - transfers focus state
+         *
+         * @details
+         * Transfers focus from another manager without calling callbacks.
+         * Similar to the destructor, we cannot safely call handle_focus_lost()
+         * because we don't know if the current focused target is still alive.
+         */
+        focus_manager& operator=(focus_manager&& other) noexcept {
+            if (this != &other) {
+                // Just reset the pointer without callbacks - target may not be valid
+                m_focused_target = std::exchange(other.m_focused_target, nullptr);
+            }
+            return *this;
+        }
+
+        /**
          * @brief Set keyboard focus to a target
          * @param target The target to focus (or nullptr to clear focus)
-         * @return true if focus was changed
+         * @return true if focus was changed, false if target is non-focusable, disabled, or already focused
+         *
+         * @exception Any exception thrown by target->handle_focus_lost()
+         * @exception Any exception thrown by target->handle_focus_gained()
+         * @note Exception safety: Basic guarantee - if handle_focus_gained() throws, old focus was already lost
+         * @note Returns false (no exception) for non-focusable or disabled targets
          */
         bool set_focus(target_ptr target) {
             if (target && !target->is_focusable()) {
@@ -142,6 +192,8 @@ namespace onyxui {
         /**
          * @brief Get currently focused target
          * @return Pointer to focused target or nullptr
+         *
+         * @note Exception safety: No-throw guarantee (noexcept)
          */
         [[nodiscard]] target_ptr get_focused() const noexcept {
             return m_focused_target;
@@ -149,6 +201,9 @@ namespace onyxui {
 
         /**
          * @brief Clear focus (no element focused)
+         *
+         * @exception Any exception thrown by set_focus()
+         * @note Exception safety: Basic guarantee - delegates to set_focus(nullptr)
          */
         void clear_focus() {
             set_focus(nullptr);
@@ -158,6 +213,8 @@ namespace onyxui {
          * @brief Check if a specific target has focus
          * @param target The target to check
          * @return true if the target has focus
+         *
+         * @note Exception safety: No-throw guarantee (noexcept)
          */
         [[nodiscard]] bool has_focus(target_ptr target) const noexcept {
             return m_focused_target == target;
@@ -166,6 +223,11 @@ namespace onyxui {
         /**
          * @brief Move focus to next focusable target
          * @param targets Collection of all available targets
+         *
+         * @exception std::bad_alloc If vector allocation or sort fails
+         * @exception Any exception thrown by set_focus()
+         * @note Exception safety: Strong guarantee - focus unchanged if exception thrown during sort
+         * @note If targets list is empty, this is a no-op
          */
         void focus_next(const std::vector<target_ptr>& targets) {
             auto focusables = collect_focusable_targets(targets);
@@ -197,18 +259,30 @@ namespace onyxui {
             // Find current in list
             auto it = std::find(focusables.begin(), focusables.end(), m_focused_target);
 
-            if (it == focusables.end() || ++it == focusables.end()) {
-                // Nothing focused or at end, focus first
+            if (it == focusables.end()) {
+                // Nothing focused, focus first
                 set_focus(focusables.front());
             } else {
-                // Focus next
-                set_focus(*it);
+                // Move to next element
+                ++it;
+                if (it == focusables.end()) {
+                    // At end, wrap to beginning
+                    set_focus(focusables.front());
+                } else {
+                    // Focus next
+                    set_focus(*it);
+                }
             }
         }
 
         /**
          * @brief Move focus to previous focusable target
          * @param targets Collection of all available targets
+         *
+         * @exception std::bad_alloc If vector allocation or sort fails
+         * @exception Any exception thrown by set_focus()
+         * @note Exception safety: Strong guarantee - focus unchanged if exception thrown during sort
+         * @note If targets list is empty, this is a no-op
          */
         void focus_previous(const std::vector<target_ptr>& targets) {
             auto focusables = collect_focusable_targets(targets);
@@ -258,7 +332,11 @@ namespace onyxui {
          * @tparam E The specific event type (must satisfy KeyboardEvent concept)
          * @param event The keyboard event
          * @param targets Collection of all available targets
-         * @return true if Tab was handled
+         * @return true if Tab was handled, false if not a Tab key press
+         *
+         * @exception Any exception thrown by focus_next() or focus_previous()
+         * @note Exception safety: Strong guarantee - focus unchanged if exception thrown
+         * @note Returns false (no exception) for non-Tab keys or key release events
          *
          * @example
          * @code
@@ -307,6 +385,10 @@ namespace onyxui {
          * @param event Any event (will check if it's a keyboard event)
          * @param targets Collection of all available targets
          * @return true if the event was handled (Tab navigation occurred)
+         *
+         * @exception Any exception thrown by handle_tab_navigation() if event is a keyboard event
+         * @note Exception safety: Strong guarantee - delegates to handle_tab_navigation()
+         * @note Returns false (no exception) for non-keyboard events
          */
         template<typename E>
         bool process_navigation_event(const E& event, const std::vector<target_ptr>& targets) {
@@ -319,7 +401,11 @@ namespace onyxui {
         /**
          * @brief Forward an event to the focused target
          * @param event The event to forward
-         * @return true if the focused target handled the event
+         * @return true if the focused target handled the event, false if no target focused
+         *
+         * @exception Any exception thrown by target->process_event()
+         * @note Exception safety: Depends on focused target's process_event() implementation
+         * @note Returns false (no exception) if no target currently has focus
          */
         template<typename E>
         bool forward_to_focused(const E& event) {
@@ -336,6 +422,17 @@ namespace onyxui {
          * @brief Collect all focusable targets from a list
          * @param targets The list of all targets
          * @return Vector of focusable and enabled targets
+         *
+         * @details
+         * Filters the input list to include only targets that are both focusable
+         * and enabled. This method relies on RVO (Return Value Optimization) to
+         * avoid copying the result vector. Modern C++ compilers (C++11 and later)
+         * guarantee copy elision for return values, making this pattern efficient.
+         *
+         * @note Performance: O(n) where n = number of targets in input list
+         * @note RVO Optimization: The returned vector is constructed directly at
+         *       the call site without copying or moving, thanks to guaranteed copy
+         *       elision in C++17 and earlier RVO in C++11/14.
          */
         std::vector<target_ptr> collect_focusable_targets(const std::vector<target_ptr>& targets) {
             std::vector<target_ptr> result;
@@ -405,9 +502,15 @@ namespace onyxui {
          * @param element The element to start from
          * @return Vector of all event_target pointers in tree
          *
-         * Note: This assumes ElementType either:
+         * @details
+         * Traverses the element tree depth-first, collecting all targets that
+         * can be focused. This method assumes ElementType either:
          * 1. Is or inherits from event_target<EventType>
          * 2. Has a method to get its event_target
+         *
+         * @note Performance: O(n) where n = total number of elements in tree
+         * @note RVO Optimization: Return value benefits from guaranteed copy elision,
+         *       avoiding vector copy overhead
          */
         std::vector<target_ptr> collect_all_targets(element_ptr element) {
             std::vector<target_ptr> result;
