@@ -31,3 +31,43 @@ target_link_libraries(conio PRIVATE
     onyx_ui
     thirdparty::utf8cpp  # Required for UTF-8 text measurement in renderer
 )
+
+# Optional: DOS theme showcase demo
+option(BUILD_DOS_THEME_SHOWCASE "Build the DOS theme showcase demo" OFF)
+
+if(BUILD_DOS_THEME_SHOWCASE)
+    add_executable(dos_theme_showcase
+        dos_theme_showcase.cc
+        dos_theme.hh
+        vram.cc
+        vram.hh
+        colors.hh
+        rect.hh
+        dos_chars.h
+        conio_backend.hh
+        conio_renderer.cc
+    )
+
+    target_link_libraries(dos_theme_showcase PRIVATE
+        termbox2_lib
+        onyx_ui
+        thirdparty::utf8cpp
+    )
+endif()
+
+# Optional: Text attributes demo
+option(BUILD_TEXT_ATTRIBUTES_DEMO "Build the text attributes demo" OFF)
+
+if(BUILD_TEXT_ATTRIBUTES_DEMO)
+    add_executable(text_attributes_demo
+        text_attributes_demo.cc
+        vram.cc
+        vram.hh
+        colors.hh
+        rect.hh
+    )
+
+    target_link_libraries(text_attributes_demo PRIVATE
+        termbox2_lib
+    )
+endif()

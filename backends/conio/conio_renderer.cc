@@ -115,11 +115,23 @@ namespace onyxui::conio {
     // Text Drawing
     // ======================================================================
 
-    void conio_renderer::draw_text(const rect& r, std::string_view text, const font& /*f*/) {
+    void conio_renderer::draw_text(const rect& r, std::string_view text, const font& f) {
         if (!m_vram) return;
         if (text.empty()) return;
 
         const rect clip = get_clip_rect();
+
+        // Convert font attributes to text_attribute flags
+        text_attribute attr = text_attribute::none;
+        if (f.bold) {
+            attr |= text_attribute::bold;
+        }
+        if (f.underline) {
+            attr |= text_attribute::underline;
+        }
+        if (f.reverse) {
+            attr |= text_attribute::reverse;
+        }
 
         int x = r.x;
         int y = r.y;
@@ -136,8 +148,8 @@ namespace onyxui::conio {
                 // Get next UTF-8 codepoint
                 uint32_t codepoint = utf8::next(it, end);
 
-                // Draw the character
-                m_vram->put(x, y, static_cast<int>(codepoint), m_fg, m_bg);
+                // Draw the character with attributes
+                m_vram->put(x, y, static_cast<int>(codepoint), m_fg, m_bg, attr);
             } else {
                 // Still need to advance iterator even if not drawing
                 utf8::next(it, end);

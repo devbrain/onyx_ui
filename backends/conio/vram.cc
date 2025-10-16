@@ -32,6 +32,7 @@ namespace onyxui::conio {
         int ch {' '};
         color_t fg {rgb24(0,0,0)};
         color_t bg {rgb24(0,0,0)};
+        uint32_t attr {0};  ///< Text attributes (termbox2 format)
     };
 
     enum colorcap_t {
@@ -113,6 +114,26 @@ namespace onyxui::conio {
         static void fini_termbox() {
             tb_shutdown();
         }
+
+        /**
+         * @brief Convert text_attribute flags to termbox2 attribute flags
+         */
+        static uint32_t to_tb_attr(text_attribute attr) noexcept {
+            uint32_t result = 0;
+            if ((attr & text_attribute::bold) != text_attribute::none) {
+                result |= TB_BOLD;
+            }
+            if ((attr & text_attribute::underline) != text_attribute::none) {
+                result |= TB_UNDERLINE;
+            }
+            if ((attr & text_attribute::reverse) != text_attribute::none) {
+                result |= TB_REVERSE;
+            }
+            if ((attr & text_attribute::italic) != text_attribute::none) {
+                result |= TB_ITALIC;
+            }
+            return result;
+        }
     }
 
     struct vram::impl {
@@ -186,7 +207,8 @@ namespace onyxui::conio {
         for (int y=0; y<m_height; y++) {
             for (int x=0; x<m_width; x++) {
                 const auto& c = m_cells[idx++];
-                tb_set_cell(x, y, c.ch, c.fg, c.bg);
+                // OR attributes with foreground color for termbox2
+                tb_set_cell(x, y, c.ch, c.fg | c.attr, c.bg);
             }
         }
     }
@@ -206,7 +228,7 @@ namespace onyxui::conio {
         return m_pimpl->m_clip_rect;
     }
 
-    void vram::put(int x, int y, int ch, color fg, color bg) {
+    void vram::put(int x, int y, int ch, color fg, color bg, text_attribute attr) {
         if (!m_pimpl->clip(x, y)) {
             return;
         }
@@ -215,6 +237,7 @@ namespace onyxui::conio {
         c.ch = ch;
         c.fg = m_pimpl->m_mapper_fn(fg.r, fg.g, fg.b);
         c.bg = m_pimpl->m_mapper_fn(bg.r, bg.g, bg.b);
+        c.attr = detail::to_tb_attr(attr);
 
         m_pimpl->m_dirty = true;
     }
