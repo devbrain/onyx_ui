@@ -103,29 +103,19 @@ public:
     }
 
     /**
-     * @brief Set UI handle reference for menu popups
+     * @brief Set UI handle reference for menu bar
      * @param ui Pointer to UI handle
      *
      * @details
-     * Must be called after ui_handle is constructed to enable menu popups.
+     * Must be called after ui_handle is created to enable menu popups.
      */
     void set_ui_handle(ui_handle<conio_backend>* ui) {
         m_ui_handle = ui;
-    }
 
-    /**
-     * @brief Check if a menu is currently open
-     * @return True if menu popup is visible
-     */
-    bool has_open_menu() const noexcept {
-        return m_current_menu_layer.is_valid();
-    }
-
-    /**
-     * @brief Close any open menu (public API)
-     */
-    void close_menu() {
-        on_menu_wants_to_close();
+        // Give menu_bar access to ui_handle for self-contained popup management
+        if (m_menu_bar) {
+            m_menu_bar->set_ui_handle(ui);
+        }
     }
 
 private:
@@ -230,12 +220,6 @@ private:
         // Apply theme to file menu BEFORE adding to menu_bar
         file_menu->apply_theme(m_themes[m_current_theme]);
 
-        // Connect menu closing signal (do this BEFORE moving ownership to menu_bar)
-        auto* file_menu_ptr = file_menu.get();
-        file_menu->closing.connect([this, file_menu_ptr]() {
-            on_menu_wants_to_close();
-        });
-
         menu_bar_ptr->add_menu("&File", std::move(file_menu));
 
         // Theme menu
@@ -250,11 +234,6 @@ private:
         // Apply theme to theme menu BEFORE adding to menu_bar
         theme_menu->apply_theme(m_themes[m_current_theme]);
 
-        // Connect menu closing signal
-        theme_menu->closing.connect([this]() {
-            on_menu_wants_to_close();
-        });
-
         menu_bar_ptr->add_menu("&Theme", std::move(theme_menu));
 
         // Help menu
@@ -266,84 +245,13 @@ private:
         // Apply theme to help menu BEFORE adding to menu_bar
         help_menu->apply_theme(m_themes[m_current_theme]);
 
-        // Connect menu closing signal
-        help_menu->closing.connect([this]() {
-            on_menu_wants_to_close();
-        });
-
         menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
         // Store pointer before moving
         m_menu_bar = menu_bar_ptr.get();
 
-        // Connect menu signals
-        m_menu_bar->menu_opened.connect([this](std::size_t index, menu<conio_backend>* menu_ptr) {
-            on_menu_opened(index, menu_ptr);
-        });
-
-        m_menu_bar->menu_closed.connect([this](std::size_t /*index*/) {
-            on_menu_closed();
-        });
-
         // Add menu bar to UI
         this->add_child(std::move(menu_bar_ptr));
-    }
-
-    void on_menu_opened(std::size_t index, menu<conio_backend>* menu_ptr) {
-        if (!m_ui_handle || !m_menu_bar || !menu_ptr) return;
-
-        // Close previous menu if any
-        if (m_current_menu_layer.is_valid()) {
-            m_ui_handle->layers().remove_layer(m_current_menu_layer);
-            m_current_menu_layer = layer_id::invalid();
-        }
-
-        // Get actual anchor bounds from menu_bar button
-        conio_backend::rect_type anchor_bounds = m_menu_bar->get_menu_button_bounds(index);
-
-        // Show actual menu using layer manager
-        m_current_menu_layer = m_ui_handle->layers().show_popup(
-            menu_ptr,  // Non-owning pointer - menu_bar owns it
-            anchor_bounds,
-            popup_placement::below
-        );
-
-        // Focus the menu so it receives keyboard events
-        m_ui_handle->focus().set_focus(menu_ptr);
-
-        // Focus first menu item
-        menu_ptr->focus_first();
-    }
-
-    void on_menu_wants_to_close() {
-        if (!m_ui_handle) return;
-
-        // Close the layer
-        if (m_current_menu_layer.is_valid()) {
-            m_ui_handle->layers().remove_layer(m_current_menu_layer);
-            m_current_menu_layer = layer_id::invalid();
-        }
-
-        // Tell menu_bar to close
-        if (m_menu_bar) {
-            m_menu_bar->close_menu();
-        }
-
-        // CRITICAL: Restore focus to main widget
-        m_ui_handle->focus().set_focus(this);
-    }
-
-    void on_menu_closed() {
-        if (!m_ui_handle) return;
-
-        // Remove menu popup layer
-        if (m_current_menu_layer.is_valid()) {
-            m_ui_handle->layers().remove_layer(m_current_menu_layer);
-            m_current_menu_layer = layer_id::invalid();
-        }
-
-        // Restore focus to main widget
-        m_ui_handle->focus().set_focus(this);
     }
 
     void switch_theme(size_t theme_index) {
@@ -363,7 +271,6 @@ private:
     label<conio_backend>* m_theme_label = nullptr;
     menu_bar<conio_backend>* m_menu_bar = nullptr;
     ui_handle<conio_backend>* m_ui_handle = nullptr;
-    layer_id m_current_menu_layer;  // Track current menu popup layer
 
     std::shared_ptr<onyxui::action<conio_backend>> m_quit_action;
     std::vector<std::shared_ptr<onyxui::action<conio_backend>>> m_theme_actions;  // Keep actions alive!
@@ -443,13 +350,8 @@ int main() {
 
             // Route all events through ui_handle's event system
             // (including resize events - ui_handle will call renderer.on_resize())
+            // menu_bar now handles its own popups, focus, and click-outside behavior
             bool handled = ui.handle_event(ev);
-
-            // Click-outside-to-close: If menu is open and click wasn't handled, close menu
-            if (ev.type == TB_EVENT_MOUSE && !handled && widget_ptr->has_open_menu()) {
-                widget_ptr->close_menu();
-                // Don't continue - still render the frame
-            }
 
             // If ESC wasn't handled by UI (no menu open), quit
             if (ev.type == TB_EVENT_KEY && ev.key == TB_KEY_ESC && !handled) {

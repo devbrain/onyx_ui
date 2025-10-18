@@ -402,6 +402,11 @@ TEST_SUITE("menu_bar") {
         CHECK(!bar->has_open_menu());
     }
 
+    // NOTE: These tests are disabled because menu_bar no longer uses signals.
+    // menu_bar is now self-contained and manages popups internally.
+    // The functionality is still tested by "Open menu by index" and "Close menu" tests.
+
+#if 0
     TEST_CASE("Opening menu emits signal") {
         auto bar = std::make_unique<menu_bar<Backend>>();
 
@@ -409,7 +414,7 @@ TEST_SUITE("menu_bar") {
 
         bool opened = false;
         std::size_t opened_index = 999;
-        bar->menu_opened.connect([&](std::size_t index, menu<Backend>* /*menu_ptr*/) {
+        bar->menu_opened.connect([&](std::size_t index, menu<Backend>* menu_ptr) {
             opened = true;
             opened_index = index;
         });
@@ -427,7 +432,7 @@ TEST_SUITE("menu_bar") {
         bar->open_menu(0);
 
         bool closed = false;
-        bar->menu_closed.connect([&](std::size_t /*index*/) {
+        bar->menu_closed.connect([&](std::size_t index) {
             closed = true;
         });
 
@@ -435,6 +440,7 @@ TEST_SUITE("menu_bar") {
 
         CHECK(closed);
     }
+#endif
 
     TEST_CASE("Navigate to next menu") {
         auto bar = std::make_unique<menu_bar<Backend>>();

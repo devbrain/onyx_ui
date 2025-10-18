@@ -67,8 +67,13 @@
 #include <onyxui/widgets/menu.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
+#include <onyxui/layer_manager.hh>
 
 namespace onyxui {
+
+    // Forward declaration
+    template<UIBackend Backend>
+    class ui_handle;
 
     /**
      * @struct menu_entry
@@ -119,7 +124,9 @@ namespace onyxui {
          */
         explicit menu_bar(ui_element<Backend>* parent = nullptr)
             : base(0, horizontal_alignment::left, vertical_alignment::top, parent)
-            , m_open_menu_index(std::nullopt) {
+            , m_ui_handle(nullptr)
+            , m_open_menu_index(std::nullopt)
+            , m_current_menu_layer() {
             this->set_focusable(true);
         }
 
@@ -133,6 +140,24 @@ namespace onyxui {
         menu_bar& operator=(const menu_bar&) = delete;
         menu_bar(menu_bar&&) noexcept = default;
         menu_bar& operator=(menu_bar&&) noexcept = default;
+
+        /**
+         * @brief Set UI handle reference for layer management
+         * @param ui Pointer to UI handle
+         *
+         * @details
+         * Must be called after ui_handle is created to enable popup menus.
+         * menu_bar will use this to show/hide menu popups via layer manager.
+         *
+         * @example
+         * @code
+         * ui_handle<Backend> ui(std::move(root), renderer);
+         * menu_bar_ptr->set_ui_handle(&ui);
+         * @endcode
+         */
+        void set_ui_handle(ui_handle<Backend>* ui) {
+            m_ui_handle = ui;
+        }
 
         /**
          * @brief Add a menu to the menu bar
@@ -224,44 +249,14 @@ namespace onyxui {
          *
          * @details
          * Closes currently open menu (if any) and opens the specified menu.
-         * Shows dropdown menu as popup below the title button.
+         * Shows dropdown menu as popup below the title button using layer manager.
          */
-        void open_menu(std::size_t index) {
-            if (index >= m_menus.size()) return;
-
-            // Close current menu if different
-            if (m_open_menu_index && *m_open_menu_index != index) {
-                close_menu();
-            }
-
-            m_open_menu_index = index;
-
-            auto& entry = m_menus[index];
-
-            // Show dropdown menu as popup
-            // In real implementation, this would:
-            // 1. Position menu below the title button
-            // 2. Make menu visible
-            // 3. Focus first item in menu
-
-            if (entry.dropdown_menu) {
-                entry.dropdown_menu->focus_first();
-            }
-
-            // Emit signal for owner to show popup
-            menu_opened.emit(index, entry.dropdown_menu);
-        }
+        void open_menu(std::size_t index);
 
         /**
          * @brief Close currently open menu
          */
-        void close_menu() {
-            if (m_open_menu_index) {
-                // Hide menu
-                menu_closed.emit(*m_open_menu_index);
-                m_open_menu_index = std::nullopt;
-            }
-        }
+        void close_menu();
 
         /**
          * @brief Get currently open menu index
@@ -354,20 +349,46 @@ namespace onyxui {
         }
 
         /**
-         * @brief Signal emitted when a menu is opened
-         * @param index Menu index
-         * @param menu_ptr Pointer to opened menu
+         * @brief Process events (click-outside, ESC, etc.)
          *
          * @details
-         * Owner should listen to this signal to show menu as popup.
+         * Handles menu bar event processing:
+         * - Click outside menu: Close menu
+         * - ESC key: Close menu
+         * - Mouse events on menu buttons handled by button widgets
          */
-        signal<std::size_t, menu<Backend>*> menu_opened;
+        template<typename E>
+        bool process_event(const E& event) {
+            using event_type = E;
 
-        /**
-         * @brief Signal emitted when menu is closed
-         * @param index Menu index that was closed
-         */
-        signal<std::size_t> menu_closed;
+            // If no menu open, let base class handle event
+            if (!m_open_menu_index) {
+                return base::process_event(event);
+            }
+
+            // Check for ESC key to close menu
+            if constexpr (KeyboardEvent<event_type>) {
+                if (event_traits<event_type>::is_key_press(event)) {
+                    if (event_traits<event_type>::is_escape_key(event)) {
+                        close_menu();
+                        return true;
+                    }
+                }
+            }
+
+            // Let base class handle event (routes to menu popup via layers)
+            bool handled = base::process_event(event);
+
+            // If mouse click and event wasn't handled, close menu (click-outside)
+            if constexpr (MouseButtonEvent<event_type>) {
+                if (!handled && event_traits<event_type>::is_button_press(event)) {
+                    close_menu();
+                    return true;
+                }
+            }
+
+            return handled;
+        }
 
     protected:
         /**
@@ -384,9 +405,68 @@ namespace onyxui {
         // that know the specific event type from Backend
 
     private:
+        ui_handle<Backend>* m_ui_handle;                             ///< UI handle for layer/focus management
         std::vector<menu_entry<Backend>> m_menus;                    ///< Menu entries
         std::vector<std::unique_ptr<menu<Backend>>> m_owned_menus;   ///< Owned menus
         std::optional<std::size_t> m_open_menu_index;                ///< Currently open menu
+        layer_id m_current_menu_layer;                               ///< Current menu popup layer
     };
+
+} // namespace onyxui
+
+// Include ui_handle for implementations that use it
+#include <onyxui/ui_handle.hh>
+
+namespace onyxui {
+
+    // Implementation of methods that use ui_handle
+    template<UIBackend Backend>
+    void menu_bar<Backend>::open_menu(std::size_t index) {
+        if (index >= m_menus.size() || !m_ui_handle) return;
+
+        // Close current menu if different
+        if (m_open_menu_index && *m_open_menu_index != index) {
+            close_menu();
+        }
+
+        m_open_menu_index = index;
+        auto& entry = m_menus[index];
+
+        // Get button bounds for positioning popup
+        rect_type anchor_bounds = get_menu_button_bounds(index);
+
+        // Show popup using layer manager
+        m_current_menu_layer = m_ui_handle->layers().show_popup(
+            entry.dropdown_menu,
+            anchor_bounds,
+            popup_placement::below
+        );
+
+        // Focus the menu and first item
+        m_ui_handle->focus().set_focus(entry.dropdown_menu);
+        if (entry.dropdown_menu) {
+            entry.dropdown_menu->focus_first();
+        }
+    }
+
+    template<UIBackend Backend>
+    void menu_bar<Backend>::close_menu() {
+        if (!m_open_menu_index || !m_ui_handle) return;
+
+        // Hide menu popup via layer manager
+        if (m_current_menu_layer.is_valid()) {
+            m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            m_current_menu_layer = layer_id::invalid();
+        }
+
+        // Restore focus to root widget (traverse to top)
+        ui_element<Backend>* root = this;
+        while (root->parent()) {
+            root = root->parent();
+        }
+        m_ui_handle->focus().set_focus(root);
+
+        m_open_menu_index = std::nullopt;
+    }
 
 } // namespace onyxui
