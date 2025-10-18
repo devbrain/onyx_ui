@@ -348,47 +348,6 @@ namespace onyxui {
             }
         }
 
-        /**
-         * @brief Process events (click-outside, ESC, etc.)
-         *
-         * @details
-         * Handles menu bar event processing:
-         * - Click outside menu: Close menu
-         * - ESC key: Close menu
-         * - Mouse events on menu buttons handled by button widgets
-         */
-        template<typename E>
-        bool process_event(const E& event) {
-            using event_type = E;
-
-            // If no menu open, let base class handle event
-            if (!m_open_menu_index) {
-                return base::process_event(event);
-            }
-
-            // Check for ESC key to close menu
-            if constexpr (KeyboardEvent<event_type>) {
-                if (event_traits<event_type>::is_key_press(event)) {
-                    if (event_traits<event_type>::is_escape_key(event)) {
-                        close_menu();
-                        return true;
-                    }
-                }
-            }
-
-            // Let base class handle event (routes to menu popup via layers)
-            bool handled = base::process_event(event);
-
-            // If mouse click and event wasn't handled, close menu (click-outside)
-            if constexpr (MouseButtonEvent<event_type>) {
-                if (!handled && event_traits<event_type>::is_button_press(event)) {
-                    close_menu();
-                    return true;
-                }
-            }
-
-            return handled;
-        }
 
     protected:
         /**
@@ -451,20 +410,23 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void menu_bar<Backend>::close_menu() {
-        if (!m_open_menu_index || !m_ui_handle) return;
+        if (!m_open_menu_index || !m_ui_handle) {
+            return;
+        }
 
-        // Hide menu popup via layer manager
+        // Hide menu popup via layer manager (if it still exists)
+        // Note: layer_manager may have already removed it on click-outside
         if (m_current_menu_layer.is_valid()) {
-            m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            // Check if layer still exists before trying to remove it
+            if (m_ui_handle->layers().is_layer_visible(m_current_menu_layer)) {
+                m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            }
             m_current_menu_layer = layer_id::invalid();
         }
 
-        // Restore focus to root widget (traverse to top)
-        ui_element<Backend>* root = this;
-        while (root->parent()) {
-            root = root->parent();
-        }
-        m_ui_handle->focus().set_focus(root);
+        // Clear focus instead of setting to root
+        // This allows clicks to work normally
+        m_ui_handle->focus().clear_focus();
 
         m_open_menu_index = std::nullopt;
     }

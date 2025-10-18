@@ -74,6 +74,10 @@
 
 namespace onyxui {
 
+    // Forward declaration for menu widget
+    template<UIBackend Backend>
+    class menu;
+
     // ======================================================================
     // Layer ID Type
     // ======================================================================
@@ -426,6 +430,49 @@ namespace onyxui {
                 if (layer.modal && layer.visible) {
                     modal_z_index = layer.z_index;
                     break;
+                }
+            }
+
+            // Special handling for popup click-outside
+            // We need to defer the actual close to avoid modifying m_layers while iterating
+            menu<Backend>* menu_to_close = nullptr;
+            layer_id layer_to_remove = layer_id::invalid();
+
+            // Check if this is a mouse click event
+            if constexpr (requires { event_traits<event_type>::is_button_press(event); }) {
+                if (event_traits<event_type>::is_button_press(event)) {
+                    // Check if we have any popup layers
+                    for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+                        if (it->type == layer_type::popup && it->visible && it->root) {
+                            // Get click position
+                            int click_x = event_traits<event_type>::mouse_x(event);
+                            int click_y = event_traits<event_type>::mouse_y(event);
+
+                            // Check if click is outside popup bounds
+                            if (!rect_utils::contains(it->bounds, click_x, click_y)) {
+                                // Click is outside popup - mark for closing after iteration
+                                if (auto* menu_ptr = dynamic_cast<menu<Backend>*>(it->root)) {
+                                    menu_to_close = menu_ptr;
+                                } else {
+                                    layer_to_remove = it->id;
+                                }
+                                // Stop checking other layers
+                                break;
+                            }
+                            // Only check the topmost popup
+                            break;
+                        }
+                    }
+
+                    // Now handle the deferred close (after iteration is complete)
+                    if (menu_to_close) {
+                        menu_to_close->closing.emit();
+                        return true;  // We handled the click by triggering close
+                    }
+                    if (layer_to_remove.is_valid()) {
+                        remove_layer(layer_to_remove);
+                        return true;
+                    }
                 }
             }
 

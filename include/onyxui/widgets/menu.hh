@@ -336,48 +336,6 @@ namespace onyxui {
          */
         signal<> closing;
 
-        /**
-         * @brief Handle event (add keyboard navigation for menus)
-         */
-        template<typename E>
-        bool process_event(const E& event) {
-            using event_type = E;
-
-            // Check if this is a keyboard event
-            if constexpr (KeyboardEvent<event_type>) {
-                if (event_traits<event_type>::is_key_press(event)) {
-                    int key_code = event_traits<event_type>::key_code(event);
-
-                    // Escape - close menu
-                    if (event_traits<event_type>::is_escape_key(event)) {
-                        closing.emit();
-                        return true;
-                    }
-
-                    // Enter - activate focused item
-                    if (event_traits<event_type>::is_enter_key(event)) {
-                        activate_focused();
-                        return true;
-                    }
-
-                    // Up arrow - focus previous
-                    if (key_code == static_cast<int>(event_traits<event_type>::KEY_ARROW_UP)) {
-                        focus_previous();
-                        return true;
-                    }
-
-                    // Down arrow - focus next
-                    if (key_code == static_cast<int>(event_traits<event_type>::KEY_ARROW_DOWN)) {
-                        focus_next();
-                        return true;
-                    }
-                }
-            }
-
-            // Let base class handle other events (mouse, etc.)
-            return base::process_event(event);
-        }
-
     protected:
         /**
          * @brief Handle item activation
