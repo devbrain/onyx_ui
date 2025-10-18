@@ -1,13 +1,17 @@
 //
 // Created by igor on 16/10/2025.
 //
-// Simple showcase of DOS themes using direct vram rendering
+// DOS theme showcase using the onyx_ui widget system
 //
-// This demo demonstrates the onyx_ui action and hotkey system:
-// - Actions encapsulate user commands (switching themes, quitting)
-// - Keyboard shortcuts are assigned to actions via set_shortcut()
-// - hotkey_manager handles event dispatch and conflict detection
-// - Actions emit signals when triggered, connected to application logic
+// This demo demonstrates the full widget rendering pipeline:
+// - Proper widget tree with panel, label, button widgets
+// - Layout system (vbox for vertical stacking)
+// - Two-pass layout (measure then arrange)
+// - Rendering via conio_renderer with text attribute support
+// - Action and hotkey system for theme switching
+// - Backend-agnostic UI creation with templated function
+// - Clean, ergonomic widget creation API
+// - Terminal resize support
 //
 // Hotkeys:
 //   1 - Switch to DOS Blue theme (Classic)
@@ -18,163 +22,360 @@
 
 #include "dos_theme.hh"
 #include "vram.hh"
-#include "dos_chars.h"
+#include "conio_backend.hh"
+#include <onyxui/ui_handle.hh>
+#include <onyxui/widgets/panel.hh>
+#include <onyxui/widgets/label.hh>
+#include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/action.hh>
+#include <onyxui/widgets/menu_bar.hh>
+#include <onyxui/widgets/menu.hh>
+#include <onyxui/widgets/menu_item.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <termbox2.h>
 #include <memory>
 #include <vector>
 #include <string>
-#include <cstring>
+#include <iostream>
 
 using namespace onyxui;
 using namespace onyxui::conio;
 
-/**
- * @brief Draw a text line at position with given colors
- */
-static void draw_text(vram* v, int x, int y, const std::string& text, const color& fg, const color& bg) {
-    for (size_t i = 0; i < text.length() && x + static_cast<int>(i) < v->get_width(); ++i) {
-        v->put(x + static_cast<int>(i), y, text[i], fg, bg);
-    }
-}
+// Compile-time check: does tb_event satisfy WindowEvent?
+static_assert(WindowEvent<tb_event>, "tb_event must satisfy WindowEvent concept");
 
 /**
- * @brief Draw a filled rectangle
+ * @brief Main widget for DOS theme showcase
+ *
+ * @details
+ * This widget encapsulates the entire theme showcase application:
+ * - UI structure (panels, labels, buttons)
+ * - Theme management and switching
+ * - Actions and hotkey bindings
+ * - Quit functionality
+ *
+ * This demonstrates the pattern of encapsulating application logic
+ * in a widget class rather than in main().
  */
-static void fill_rect(vram* v, int x, int y, int w, int h, const color& fg, const color& bg) {
-    for (int dy = 0; dy < h; ++dy) {
-        for (int dx = 0; dx < w; ++dx) {
-            if (x + dx < v->get_width() && y + dy < v->get_height()) {
-                v->put(x + dx, y + dy, ' ', fg, bg);
-            }
+class main_widget : public panel<conio_backend> {
+public:
+    /**
+     * @brief Construct the main widget with themes
+     * @param themes Available themes
+     * @param theme_names Human-readable theme names
+     * @param initial_theme Index of initial theme to apply
+     */
+    main_widget(std::vector<ui_theme<conio_backend>> themes,
+                std::vector<std::string> theme_names,
+                size_t initial_theme = 0)
+        : panel<conio_backend>(nullptr)
+        , m_themes(std::move(themes))
+        , m_theme_names(std::move(theme_names))
+        , m_current_theme(initial_theme)
+        , m_should_quit(false)
+    {
+        // Set up layout
+        set_vbox_layout(0);  // Vertical layout with no spacing for compact DOS look
+        set_padding(thickness::all(0));  // No internal padding for compact DOS look
+
+        // Set up actions and hotkeys (must come before build_menu_bar)
+        setup_actions();
+
+        // Build UI structure (including menu bar)
+        build_ui();
+
+        // Apply initial theme
+        apply_theme(m_themes[m_current_theme]);
+    }
+
+    /**
+     * @brief Check if application should quit
+     */
+    bool should_quit() const noexcept {
+        return m_should_quit;
+    }
+
+    /**
+     * @brief Trigger quit action
+     */
+    void quit() {
+        m_should_quit = true;
+    }
+
+    /**
+     * @brief Set UI handle reference for menu popups
+     * @param ui Pointer to UI handle
+     *
+     * @details
+     * Must be called after ui_handle is constructed to enable menu popups.
+     */
+    void set_ui_handle(ui_handle<conio_backend>* ui) {
+        m_ui_handle = ui;
+    }
+
+    /**
+     * @brief Check if a menu is currently open
+     * @return True if menu popup is visible
+     */
+    bool has_open_menu() const noexcept {
+        return m_current_menu_layer.is_valid();
+    }
+
+    /**
+     * @brief Close any open menu (public API)
+     */
+    void close_menu() {
+        on_menu_wants_to_close();
+    }
+
+private:
+    void build_ui() {
+        // Menu bar (at the top)
+        build_menu_bar();
+
+        // Title
+        add_label(*this, "DOS Theme Showcase");
+
+        // Theme label (keep pointer for updates)
+        m_theme_label = add_label(*this, m_theme_names[m_current_theme]);
+
+        // Spacer
+        add_label(*this, "");
+
+        // Demo panel with border
+        auto* demo_panel = add_panel(*this);
+        demo_panel->set_has_border(true);
+        demo_panel->set_padding(thickness::all(1));
+        demo_panel->set_vbox_layout(1);
+
+        add_label(*demo_panel, "Panel with Border");
+        add_label(*demo_panel, "This is a panel example");
+
+        // Spacer
+        add_label(*this, "");
+
+        // Button section
+        add_label(*this, "Button States:");
+        add_button(*this, "Normal");
+        add_button(*this, "Focused");
+
+        auto* disabled_btn = add_button(*this, "Disabled");
+        disabled_btn->set_enabled(false);
+
+        // Spacer
+        add_label(*this, "");
+
+        // Quit button (test mouse interaction!)
+        auto* quit_btn = add_button(*this, "Quit");
+        quit_btn->set_focusable(true);
+        quit_btn->clicked.connect([this]() {
+            quit();
+        });
+
+        // Spacer and instructions
+        add_label(*this, "");
+        add_label(*this, "Press 1-4 to switch themes | ESC, Ctrl+C, or click Quit");
+    }
+
+    void setup_actions() {
+        // Theme switching actions
+        for (size_t i = 0; i < m_themes.size() && i < 4; ++i) {
+            auto theme_action = std::make_shared<onyxui::action<conio_backend>>();
+            theme_action->set_text("Theme " + std::to_string(i + 1) + " - " + m_theme_names[i]);
+            theme_action->set_shortcut(static_cast<char>('1' + i));
+            theme_action->triggered.connect([this, i]() {
+                switch_theme(i);
+            });
+            this->hotkeys().register_action(theme_action);
+            m_theme_actions.push_back(theme_action);  // Keep action alive!
         }
-    }
-}
 
-/**
- * @brief Draw a simple box using DOS characters
- */
-static void draw_box(vram* v, int x, int y, int w, int h, const color& fg, const color& bg, bool double_line = false) {
-    int tl, tr, bl, br, horiz, vert;
-
-    if (double_line) {
-        tl = DOS_TL2; tr = DOS_TR2; bl = DOS_BL2; br = DOS_BR2;
-        horiz = DOS_H2; vert = DOS_V2;
-    } else {
-        tl = DOS_TL; tr = DOS_TR; bl = DOS_BL; br = DOS_BR;
-        horiz = DOS_H; vert = DOS_V;
+        // Quit action
+        auto quit_action = std::make_shared<onyxui::action<conio_backend>>();
+        quit_action->set_text("Quit");
+        quit_action->triggered.connect([this]() {
+            quit();
+        });
+        m_quit_action = quit_action;
     }
 
-    // Corners
-    v->put(x, y, tl, fg, bg);
-    v->put(x + w - 1, y, tr, fg, bg);
-    v->put(x, y + h - 1, bl, fg, bg);
-    v->put(x + w - 1, y + h - 1, br, fg, bg);
+    void build_menu_bar() {
+        // Create menu bar
+        auto menu_bar_ptr = std::make_unique<menu_bar<conio_backend>>(this);
 
-    // Horizontal lines
-    for (int i = 1; i < w - 1; ++i) {
-        v->put(x + i, y, horiz, fg, bg);
-        v->put(x + i, y + h - 1, horiz, fg, bg);
+        // File menu
+        auto file_menu = std::make_unique<menu<conio_backend>>();
+
+        auto new_item = std::make_unique<menu_item<conio_backend>>("New");
+        new_item->clicked.connect([]() {
+            std::cerr << "DEBUG: New item clicked!" << std::endl;
+        });
+        file_menu->add_item(std::move(new_item));
+
+        auto open_item = std::make_unique<menu_item<conio_backend>>("Open");
+        open_item->clicked.connect([]() {
+            std::cerr << "DEBUG: Open item clicked!" << std::endl;
+        });
+        file_menu->add_item(std::move(open_item));
+
+        file_menu->add_separator();
+
+        auto quit_item = std::make_unique<menu_item<conio_backend>>("Quit");
+        quit_item->set_action(m_quit_action);
+        quit_item->clicked.connect([]() {
+            std::cerr << "DEBUG: Quit item clicked!" << std::endl;
+        });
+        file_menu->add_item(std::move(quit_item));
+
+        // Apply theme to file menu BEFORE adding to menu_bar
+        file_menu->apply_theme(m_themes[m_current_theme]);
+
+        // Connect menu closing signal (do this BEFORE moving ownership to menu_bar)
+        auto* file_menu_ptr = file_menu.get();
+        file_menu->closing.connect([this, file_menu_ptr]() {
+            on_menu_wants_to_close();
+        });
+
+        menu_bar_ptr->add_menu("&File", std::move(file_menu));
+
+        // Theme menu
+        auto theme_menu = std::make_unique<menu<conio_backend>>();
+
+        for (size_t i = 0; i < m_themes.size(); ++i) {
+            auto theme_item = std::make_unique<menu_item<conio_backend>>(m_theme_names[i]);
+            theme_item->set_action(m_theme_actions[i]);
+            theme_menu->add_item(std::move(theme_item));
+        }
+
+        // Apply theme to theme menu BEFORE adding to menu_bar
+        theme_menu->apply_theme(m_themes[m_current_theme]);
+
+        // Connect menu closing signal
+        theme_menu->closing.connect([this]() {
+            on_menu_wants_to_close();
+        });
+
+        menu_bar_ptr->add_menu("&Theme", std::move(theme_menu));
+
+        // Help menu
+        auto help_menu = std::make_unique<menu<conio_backend>>();
+
+        auto about_item = std::make_unique<menu_item<conio_backend>>("About");
+        help_menu->add_item(std::move(about_item));
+
+        // Apply theme to help menu BEFORE adding to menu_bar
+        help_menu->apply_theme(m_themes[m_current_theme]);
+
+        // Connect menu closing signal
+        help_menu->closing.connect([this]() {
+            on_menu_wants_to_close();
+        });
+
+        menu_bar_ptr->add_menu("&Help", std::move(help_menu));
+
+        // Store pointer before moving
+        m_menu_bar = menu_bar_ptr.get();
+
+        // Connect menu signals
+        m_menu_bar->menu_opened.connect([this](std::size_t index, menu<conio_backend>* menu_ptr) {
+            on_menu_opened(index, menu_ptr);
+        });
+
+        m_menu_bar->menu_closed.connect([this](std::size_t /*index*/) {
+            on_menu_closed();
+        });
+
+        // Add menu bar to UI
+        this->add_child(std::move(menu_bar_ptr));
     }
 
-    // Vertical lines
-    for (int i = 1; i < h - 1; ++i) {
-        v->put(x, y + i, vert, fg, bg);
-        v->put(x + w - 1, y + i, vert, fg, bg);
+    void on_menu_opened(std::size_t index, menu<conio_backend>* menu_ptr) {
+        if (!m_ui_handle || !m_menu_bar || !menu_ptr) return;
+
+        // Close previous menu if any
+        if (m_current_menu_layer.is_valid()) {
+            m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            m_current_menu_layer = layer_id::invalid();
+        }
+
+        // Get actual anchor bounds from menu_bar button
+        conio_backend::rect_type anchor_bounds = m_menu_bar->get_menu_button_bounds(index);
+
+        // Show actual menu using layer manager
+        m_current_menu_layer = m_ui_handle->layers().show_popup(
+            menu_ptr,  // Non-owning pointer - menu_bar owns it
+            anchor_bounds,
+            popup_placement::below
+        );
+
+        // Focus the menu so it receives keyboard events
+        m_ui_handle->focus().set_focus(menu_ptr);
+
+        // Focus first menu item
+        menu_ptr->focus_first();
     }
-}
 
-/**
- * @brief Render a theme showcase
- */
-static void render_theme(vram* v, const onyxui::ui_theme<conio_backend>& theme, const std::string& theme_name) {
-    const int width = v->get_width();
-    const int height = v->get_height();
+    void on_menu_wants_to_close() {
+        if (!m_ui_handle) return;
 
-    // Clear with window background
-    fill_rect(v, 0, 0, width, height, theme.text_fg, theme.window_bg);
+        // Close the layer
+        if (m_current_menu_layer.is_valid()) {
+            m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            m_current_menu_layer = layer_id::invalid();
+        }
 
-    int y = 1;
+        // Tell menu_bar to close
+        if (m_menu_bar) {
+            m_menu_bar->close_menu();
+        }
 
-    // Title
-    const std::string title = "DOS Theme Showcase";
-    const int title_x = (width - static_cast<int>(title.length())) / 2;
-    draw_text(v, title_x, y, title, theme.border_color, theme.window_bg);
-    y += 2;
+        // CRITICAL: Restore focus to main widget
+        m_ui_handle->focus().set_focus(this);
+    }
 
-    // Theme name
-    const std::string name_prefix = "Current: ";
-    const int name_x = (width - static_cast<int>(name_prefix.length() + theme_name.length())) / 2;
-    draw_text(v, name_x, y, name_prefix + theme_name, theme.text_fg, theme.window_bg);
-    y += 3;
+    void on_menu_closed() {
+        if (!m_ui_handle) return;
 
-    // Panel demo
-    const int panel_x = 2;
-    const int panel_w = width - 4;
-    const int panel_h = 10;
+        // Remove menu popup layer
+        if (m_current_menu_layer.is_valid()) {
+            m_ui_handle->layers().remove_layer(m_current_menu_layer);
+            m_current_menu_layer = layer_id::invalid();
+        }
 
-    draw_box(v, panel_x, y, panel_w, panel_h, theme.panel.border_color, theme.panel.background, false);
-    fill_rect(v, panel_x + 1, y + 1, panel_w - 2, panel_h - 2, theme.panel.border_color, theme.panel.background);
+        // Restore focus to main widget
+        m_ui_handle->focus().set_focus(this);
+    }
 
-    // Panel title
-    const std::string panel_title = " Panel Example ";
-    draw_text(v, panel_x + 2, y, panel_title, theme.border_color, theme.window_bg);
+    void switch_theme(size_t theme_index) {
+        if (theme_index >= m_themes.size()) return;
 
-    // Panel content
-    draw_text(v, panel_x + 2, y + 2, "This is a panel with border", theme.text_fg, theme.panel.background);
-    draw_text(v, panel_x + 2, y + 3, "Panel background color shown here", theme.text_fg, theme.panel.background);
+        m_current_theme = theme_index;
+        m_theme_label->set_text(m_theme_names[m_current_theme]);
+        apply_theme(m_themes[m_current_theme]);
+    }
 
-    y += panel_h + 2;
+private:
+    std::vector<ui_theme<conio_backend>> m_themes;
+    std::vector<std::string> m_theme_names;
+    size_t m_current_theme;
+    bool m_should_quit;
 
-    // Button demo
-    const int btn_y = y;
-    const int btn_width = 12;
-    const int btn_height = 3;
-    const int btn_spacing = 2;
+    label<conio_backend>* m_theme_label = nullptr;
+    menu_bar<conio_backend>* m_menu_bar = nullptr;
+    ui_handle<conio_backend>* m_ui_handle = nullptr;
+    layer_id m_current_menu_layer;  // Track current menu popup layer
 
-    // Normal button
-    int btn_x = 5;
-    fill_rect(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_normal, theme.button.bg_normal);
-    draw_box(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_normal, theme.button.bg_normal, false);
-    draw_text(v, btn_x + 2, btn_y + 1, " Normal ", theme.button.fg_normal, theme.button.bg_normal);
-
-    // Hover button
-    btn_x += btn_width + btn_spacing;
-    fill_rect(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_hover, theme.button.bg_hover);
-    draw_box(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_hover, theme.button.bg_hover, false);
-    draw_text(v, btn_x + 2, btn_y + 1, " Hover  ", theme.button.fg_hover, theme.button.bg_hover);
-
-    // Pressed button
-    btn_x += btn_width + btn_spacing;
-    fill_rect(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_pressed, theme.button.bg_pressed);
-    draw_box(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_pressed, theme.button.bg_pressed, false);
-    draw_text(v, btn_x + 2, btn_y + 1, "Pressed ", theme.button.fg_pressed, theme.button.bg_pressed);
-
-    // Disabled button
-    btn_x += btn_width + btn_spacing;
-    fill_rect(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_disabled, theme.button.bg_disabled);
-    draw_box(v, btn_x, btn_y, btn_width, btn_height, theme.button.fg_disabled, theme.button.bg_disabled, false);
-    draw_text(v, btn_x + 2, btn_y + 1, "Disabled", theme.button.fg_disabled, theme.button.bg_disabled);
-
-    y = btn_y + btn_height + 2;
-
-    // Label demo
-    draw_text(v, 5, y, "Label (normal text):", theme.label.text, theme.label.background);
-    draw_text(v, 30, y, "Sample Label Text", theme.label.text, theme.label.background);
-
-    y += 2;
-
-    // Instructions
-    const std::string instr = "Press 1-4 to switch themes | ESC or Ctrl+C to quit";
-    const int instr_x = (width - static_cast<int>(instr.length())) / 2;
-    draw_text(v, instr_x, height - 2, instr, theme.border_color, theme.window_bg);
-}
+    std::shared_ptr<onyxui::action<conio_backend>> m_quit_action;
+    std::vector<std::shared_ptr<onyxui::action<conio_backend>>> m_theme_actions;  // Keep actions alive!
+};
 
 int main() {
     try {
         // Create vram instance (handles termbox2 initialization)
-        vram v;
+        auto vram_ptr = std::make_shared<vram>();
+
+        // Create renderer
+        conio_renderer renderer(vram_ptr);
 
         // Initialize themes
         std::vector<ui_theme<conio_backend>> themes;
@@ -192,70 +393,88 @@ int main() {
         themes.push_back(create_norton_utilities_theme());
         theme_names.push_back("Norton Utilities (Amber)");
 
-        size_t current_theme = 0;
+        // Create main widget with all themes and logic
+        auto widget = std::make_unique<main_widget>(
+            std::move(themes),
+            std::move(theme_names),
+            0  // Initial theme index
+        );
 
-        // Create hotkey manager
-        hotkey_manager<conio_backend> hotkeys;
+        // Keep reference to widget for event handling before moving it
+        auto* widget_ptr = widget.get();
 
-        // Create actions for theme switching
-        auto theme1_action = std::make_shared<action<conio_backend>>();
-        theme1_action->set_text("Theme 1 - DOS Blue");
-        theme1_action->set_shortcut('1');
-        theme1_action->triggered.connect([&]() { current_theme = 0; });
-        hotkeys.register_action(theme1_action);
+        // Create UI handle with main widget and renderer
+        ui_handle<conio_backend> ui(std::move(widget), renderer);
 
-        auto theme2_action = std::make_shared<action<conio_backend>>();
-        theme2_action->set_text("Theme 2 - DOS Dark");
-        theme2_action->set_shortcut('2');
-        theme2_action->triggered.connect([&]() { current_theme = 1; });
-        hotkeys.register_action(theme2_action);
+        // Give widget access to UI handle for menu popups
+        widget_ptr->set_ui_handle(&ui);
 
-        auto theme3_action = std::make_shared<action<conio_backend>>();
-        theme3_action->set_text("Theme 3 - DOS Monochrome");
-        theme3_action->set_shortcut('3');
-        theme3_action->triggered.connect([&]() { current_theme = 2; });
-        hotkeys.register_action(theme3_action);
+        // Initial render - display UI once before entering event loop
+        // (otherwise screen is blank until first event arrives)
+        {
+            const int width = vram_ptr->get_width();
+            const int height = vram_ptr->get_height();
+            conio_backend::rect_type bounds;
+            rect_utils::set_bounds(bounds, 0, 0, width, height);
+            ui.display(bounds);
+            ui.present();
+        }
 
-        auto theme4_action = std::make_shared<action<conio_backend>>();
-        theme4_action->set_text("Theme 4 - Norton Utilities");
-        theme4_action->set_shortcut('4');
-        theme4_action->triggered.connect([&]() { current_theme = 3; });
-        hotkeys.register_action(theme4_action);
-
-        // Create quit action (ESC)
-        bool should_quit = false;
-        auto quit_action = std::make_shared<action<conio_backend>>();
-        quit_action->set_text("Quit");
-        quit_action->triggered.connect([&]() { should_quit = true; });
-        // Note: ESC is not an ASCII key, handle separately
-
-        // Main loop
-        while (!should_quit) {
-            // Render current theme
-            render_theme(&v, themes[current_theme], theme_names[current_theme]);
-            v.present();
-
-            // Wait for event
+        // Main loop - event-driven design
+        // Poll events, handle them (including resize), then render
+        while (!widget_ptr->should_quit()) {
+            // Wait for event (blocking)
             tb_event ev;
-            if (tb_poll_event(&ev) != TB_OK) {
-                break;
+            int poll_result = tb_poll_event(&ev);
+
+            // Handle polling errors gracefully
+            // Note: On terminal resize, termbox2 may return an error on the first poll,
+            // then return TB_EVENT_RESIZE on the second poll. We must continue to get
+            // the actual resize event.
+            if (poll_result != TB_OK) {
+                continue;  // Don't break - next poll will have the actual event
             }
 
-            if (ev.type == TB_EVENT_KEY) {
-                // Handle ESC and Ctrl+C specially (not through hotkey manager)
-                if (ev.key == TB_KEY_ESC || (ev.ch == 'c' && (ev.mod & TB_MOD_CTRL))) {
-                    quit_action->trigger();
-                    continue;
-                }
-
-                // Try to handle through hotkey manager
-                hotkeys.handle_key_event(ev, nullptr);
+            // Handle Ctrl+C specially (always quit)
+            if (ev.type == TB_EVENT_KEY && ev.ch == 'c' && (ev.mod & TB_MOD_CTRL)) {
+                widget_ptr->quit();
+                continue;
             }
+
+            // Route all events through ui_handle's event system
+            // (including resize events - ui_handle will call renderer.on_resize())
+            bool handled = ui.handle_event(ev);
+
+            // Click-outside-to-close: If menu is open and click wasn't handled, close menu
+            if (ev.type == TB_EVENT_MOUSE && !handled && widget_ptr->has_open_menu()) {
+                widget_ptr->close_menu();
+                // Don't continue - still render the frame
+            }
+
+            // If ESC wasn't handled by UI (no menu open), quit
+            if (ev.type == TB_EVENT_KEY && ev.key == TB_KEY_ESC && !handled) {
+                widget_ptr->quit();
+                continue;
+            }
+
+            // NOW safe to render - vram buffer has been resized if needed
+            // Get terminal size
+            const int width = vram_ptr->get_width();
+            const int height = vram_ptr->get_height();
+
+            // Display UI within terminal bounds
+            conio_backend::rect_type bounds;
+            rect_utils::set_bounds(bounds, 0, 0, width, height);
+            ui.display(bounds);
+
+            // Present the frame
+            ui.present();
         }
 
         return 0;
 
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
 }

@@ -105,6 +105,7 @@ namespace onyxui {
         using base = widget<Backend>;
         using renderer_type = typename Backend::renderer_type;
         using size_type = typename Backend::size_type;
+        using rect_type = typename Backend::rect_type;
         using theme_type = typename base::theme_type;
 
         /**
@@ -251,21 +252,71 @@ namespace onyxui {
         /**
          * @brief Render the menu item
          */
-        void do_render(renderer_type& /*renderer*/) override {
-            // Rendering implementation would go here
-            //
-            // Separator: Draw horizontal line
-            // if (is_separator()) {
-            //     renderer.draw_line(...);
-            //     return;
-            // }
-            //
-            // Normal item:
-            // - Background (highlighted if focused/hovered)
-            // - Icon (if present)
-            // - Text with mnemonic
-            // - Shortcut text (right-aligned)
-            // - Submenu arrow (if has submenu)
+        void do_render(renderer_type& renderer) override {
+            if (!this->m_theme) return;
+
+            const auto& theme = *this->m_theme;
+            const auto& item_bounds = this->bounds();
+
+            // Separator rendering
+            if (is_separator()) {
+                // Use label theme for separator color
+                renderer.set_foreground(theme.label.text);
+                renderer.set_background(theme.label.background);
+
+                // Draw horizontal line across the menu item width
+                typename renderer_type::font sep_font{};
+                int width = rect_utils::get_width(item_bounds);
+                std::string sep_line(static_cast<size_t>(width), '-');
+                renderer.draw_text(item_bounds, sep_line, sep_font);
+                return;
+            }
+
+            // Normal item rendering
+            bool is_focused = this->has_focus();
+            bool is_hovered = this->is_hovered();
+            bool is_highlighted = is_focused || is_hovered;
+
+            // Set colors based on state
+            if (!this->is_enabled()) {
+                // Disabled state
+                renderer.set_foreground(theme.button.fg_disabled);
+                renderer.set_background(theme.button.bg_disabled);
+            } else if (is_highlighted) {
+                // Focused/hovered state
+                renderer.set_foreground(theme.button.fg_hover);
+                renderer.set_background(theme.button.bg_hover);
+            } else {
+                // Normal state
+                renderer.set_foreground(theme.button.fg_normal);
+                renderer.set_background(theme.button.bg_normal);
+            }
+
+            // Draw background fill
+            int width = rect_utils::get_width(item_bounds);
+            std::string background_fill(static_cast<size_t>(width), ' ');
+            typename renderer_type::font bg_font{};
+            renderer.draw_text(item_bounds, background_fill, bg_font);
+
+            // Draw item text (left side)
+            typename renderer_type::font text_font = theme.button.font;
+            int text_x = rect_utils::get_x(item_bounds) + 1;  // 1 char padding
+            int text_y = rect_utils::get_y(item_bounds);
+            rect_type text_bounds;
+            rect_utils::set_bounds(text_bounds, text_x, text_y, width - 2, 1);
+            renderer.draw_text(text_bounds, m_text, text_font);
+
+            // Draw shortcut (right side)
+            std::string shortcut = get_shortcut_text();
+            if (!shortcut.empty()) {
+                int shortcut_width = static_cast<int>(shortcut.length());
+                int shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 1;
+                rect_type shortcut_bounds;
+                rect_utils::set_bounds(shortcut_bounds, shortcut_x, text_y, shortcut_width, 1);
+
+                typename renderer_type::font shortcut_font{};
+                renderer.draw_text(shortcut_bounds, shortcut, shortcut_font);
+            }
         }
 
         /**

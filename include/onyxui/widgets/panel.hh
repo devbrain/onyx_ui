@@ -114,23 +114,23 @@ namespace onyxui {
         /**
          * @brief Render the panel background and border
          */
-        void do_render(renderer_type& /*renderer*/) override {
-            // Rendering implementation would go here
+        void do_render(renderer_type& renderer) override {
+            auto* theme = this->m_theme;
+            if (!theme) return;
 
-            // Example (pseudo-code):
-            // auto* theme = this->m_theme;
-            // if (!theme) return;
-            //
-            // const auto& bounds = this->bounds();
-            //
-            // // Draw background
-            // renderer.fill_rect(bounds, theme->panel.background);
-            //
-            // // Draw border if enabled
-            // if (m_has_border) {
-            //     renderer.draw_box(bounds, theme->panel.border_color,
-            //                      theme->panel.background, m_border_style);
-            // }
+            const auto& bounds = this->bounds();
+
+            // Set colors from theme
+            renderer.set_foreground(theme->panel.border_color);
+            renderer.set_background(theme->panel.background);
+
+            // Draw border if enabled
+            if (m_has_border) {
+                renderer.draw_box(bounds, theme->panel.box_style);
+            }
+
+            // Note: Background is implicitly set via renderer.set_background()
+            // Children will be drawn on top with proper clipping
         }
 
         /**
@@ -165,4 +165,35 @@ namespace onyxui {
         bool m_has_border = false;
         box_style_type m_border_style{};
     };
+
+    // =========================================================================
+    // Helper Functions
+    // =========================================================================
+
+    /**
+     * @brief Add a panel widget to a parent
+     * @tparam Parent Parent widget type (backend deduced automatically)
+     * @tparam Args Constructor argument types (forwarded to panel constructor)
+     * @param parent Parent widget to add panel to
+     * @param args Arguments forwarded to panel constructor
+     * @return Pointer to the created panel
+     *
+     * @details
+     * Convenience helper that creates a panel and adds it to the parent in one call.
+     * The backend type is automatically deduced from the parent.
+     * All arguments are forwarded to the panel constructor.
+     *
+     * @example
+     * @code
+     * auto root = std::make_unique<panel<Backend>>();
+     * auto* group = add_panel(*root);
+     * group->set_has_border(true);
+     * group->set_vbox_layout(5);
+     * @endcode
+     */
+    template<typename Parent, typename... Args>
+    auto* add_panel(Parent& parent, Args&&... args) {
+        using Backend = typename Parent::backend_type;
+        return parent.template emplace_child<panel>(std::forward<Args>(args)...);
+    }
 }

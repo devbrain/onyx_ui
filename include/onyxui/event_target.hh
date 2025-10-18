@@ -48,8 +48,9 @@
 #include <onyxui/concepts/event_like.hh>
 
 namespace onyxui {
-    // Forward declaration for friend declaration
+    // Forward declarations for friend declarations
     template<UIBackend Backend> class focus_manager;
+    template<UIBackend Backend> class ui_handle;
 
     /**
      * @class event_target
@@ -90,6 +91,8 @@ namespace onyxui {
     class event_target {
         // Allow focus_manager to access protected focus methods
         friend class focus_manager<Backend>;
+        // Allow ui_handle to access protected mouse event handlers
+        friend class ui_handle<Backend>;
 
         public:
             // Type aliases from backend
@@ -444,19 +447,26 @@ namespace onyxui {
             return false;
         }
 
+        // Handle mouse button events FIRST (more specific than position events)
+        // Note: Remove 'else' to allow fall-through for events that satisfy both concepts
+        if constexpr (MouseButtonEvent<E>) {
+            int button = event_traits<E>::mouse_button(event);
+            bool is_press = event_traits<E>::is_button_press(event);
+
+            // Runtime check: only treat as button event if button != 0 or it's a press
+            // This handles backends where the same type is used for button and move events
+            if (button != 0 || is_press) {
+                int x = event_traits<E>::mouse_x(event);
+                int y = event_traits<E>::mouse_y(event);
+                return process_mouse_button(x, y, button, is_press);
+            }
+            // Fall through to position event handling if not a real button event
+        }
         // Handle mouse position events (motion)
         if constexpr (MousePositionEvent <E>) {
             int x = event_traits <E>::mouse_x(event);
             int y = event_traits <E>::mouse_y(event);
             return process_mouse_move(x, y);
-        }
-        // Handle mouse button events
-        else if constexpr (MouseButtonEvent <E>) {
-            int x = event_traits <E>::mouse_x(event);
-            int y = event_traits <E>::mouse_y(event);
-            int button = event_traits <E>::mouse_button(event);
-            bool pressed = event_traits <E>::is_button_press(event);
-            return process_mouse_button(x, y, button, pressed);
         }
         // Handle mouse wheel events
         else if constexpr (MouseWheelEvent <E>) {

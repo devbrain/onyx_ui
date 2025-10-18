@@ -33,6 +33,8 @@
 
 #include <onyxui/element.hh>
 #include <onyxui/signal.hh>
+#include <onyxui/layout/linear_layout.hh>
+#include <onyxui/hotkeys/hotkey_manager.hh>
 #include <memory>
 
 namespace onyxui {
@@ -155,6 +157,81 @@ namespace onyxui {
         }
 
         // Note: is_hovered() and is_pressed() are inherited from event_target<Backend>
+
+        /**
+         * @brief Set vertical box layout strategy
+         * @param spacing Spacing between children in pixels
+         *
+         * @details
+         * Convenience method that sets a vertical linear layout strategy.
+         * Children will be stacked vertically with the specified spacing.
+         *
+         * @example
+         * @code
+         * auto panel = std::make_unique<panel<Backend>>();
+         * panel->set_vbox_layout(5);  // 5px spacing between children
+         * @endcode
+         */
+        void set_vbox_layout(int spacing = 0) {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(direction::vertical, spacing)
+            );
+        }
+
+        /**
+         * @brief Set horizontal box layout strategy
+         * @param spacing Spacing between children in pixels
+         *
+         * @details
+         * Convenience method that sets a horizontal linear layout strategy.
+         * Children will be laid out horizontally with the specified spacing.
+         *
+         * @example
+         * @code
+         * auto toolbar = std::make_unique<panel<Backend>>();
+         * toolbar->set_hbox_layout(2);  // 2px spacing between buttons
+         * @endcode
+         */
+        void set_hbox_layout(int spacing = 0) {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(direction::horizontal, spacing)
+            );
+        }
+
+        /**
+         * @brief Get the hotkey manager for this widget
+         * @return Reference to the widget's hotkey manager
+         *
+         * @details
+         * Every widget has its own hotkey manager that can register
+         * keyboard shortcuts and handle key events. This allows widgets
+         * to define their own local keyboard shortcuts.
+         *
+         * @example
+         * @code
+         * auto panel = std::make_unique<panel<Backend>>();
+         *
+         * // Register a hotkey
+         * auto save_action = std::make_shared<action<Backend>>();
+         * save_action->set_shortcut('s');
+         * save_action->triggered.connect([]() { save_document(); });
+         * panel->hotkeys().register_action(save_action);
+         *
+         * // Handle key events
+         * panel->hotkeys().handle_key_event(event, focused_widget);
+         * @endcode
+         */
+        [[nodiscard]] hotkey_manager<Backend>& hotkeys() noexcept {
+            return m_hotkey_manager;
+        }
+
+        /**
+         * @brief Get the hotkey manager for this widget (const)
+         * @return Const reference to the widget's hotkey manager
+         */
+        [[nodiscard]] const hotkey_manager<Backend>& hotkeys() const noexcept {
+            return m_hotkey_manager;
+        }
 
         /**
          * @brief Associate an action with this widget
@@ -280,6 +357,7 @@ namespace onyxui {
 
         std::weak_ptr<action<Backend>> m_action;                     ///< Associated action (weak reference)
         std::vector<scoped_connection> m_action_connections;         ///< Auto-cleanup connections
+        hotkey_manager<Backend> m_hotkey_manager;                    ///< Widget's hotkey manager
 
     protected:
         /**

@@ -116,11 +116,24 @@ namespace onyxui {
             bool operator==(const point&) const = default;
         };
 
+        // Simple color for testing (defined before renderer needs it)
+        struct color {
+            uint8_t r = 0, g = 0, b = 0, a = 255;
+        };
+
         struct renderer {
             struct box_style {};
             struct icon_style {};
             struct font {};
             using size_type = size;  // Required by RenderLike concept
+
+            void set_foreground([[maybe_unused]] const color& c) {
+                // Stub for testing
+            }
+
+            void set_background([[maybe_unused]] const color& c) {
+                // Stub for testing
+            }
 
             void draw_box([[maybe_unused]] const rect& r,[[maybe_unused]]  const box_style& box) {
 
@@ -180,10 +193,32 @@ namespace onyxui {
                 return size{glyph_count, 1};  // width = glyph count, height = 1
             }
 
+            /**
+             * @brief Get border thickness for a box style (static - no instance needed)
+             * @param style The box style to query (unused in test backend)
+             * @return Border thickness in units (always 1 for test backend)
+             *
+             * @details For test backend, always returns 1 to simulate a simple border.
+             * Real backends would check the style and return appropriate thickness.
+             */
+            [[nodiscard]] static constexpr int get_border_thickness([[maybe_unused]] const box_style& style) noexcept {
+                return 1;  // Simple default for testing
+            }
+
             void push_clip([[maybe_unused]] const rect& r) {}
             void pop_clip() {}
             rect get_clip_rect() const {
                 return rect {};
+            }
+            rect get_viewport() const {
+                // Return a default viewport for testing (800x600)
+                return rect{0, 0, 800, 600};
+            }
+            void present() {
+                // Stub for testing - no actual presentation in test backend
+            }
+            void on_resize() {
+                // Stub for testing - no actual resize handling needed
             }
         };
 
@@ -208,6 +243,12 @@ namespace onyxui {
             bool pressed = false;
         };
 
+        struct test_window_event {
+            int width = 0;
+            int height = 0;
+            bool is_resize = false;
+        };
+
         // Type aliases
         using rect_type = rect;
         using size_type = size;
@@ -218,12 +259,7 @@ namespace onyxui {
         using mouse_motion_event_type = test_mouse_event;
         using mouse_wheel_event_type = test_mouse_event;
         using text_input_event_type = test_event;
-        using window_event_type = test_event;
-
-        // Simple color for testing
-        struct color {
-            uint8_t r = 0, g = 0, b = 0, a = 255;
-        };
+        using window_event_type = test_window_event;
 
         using color_type = color;
         using renderer_type = renderer;
@@ -310,6 +346,13 @@ namespace onyxui {
         [[nodiscard]] static int mouse_y(const test_backend::test_mouse_event& e) noexcept { return e.y; }
         [[nodiscard]] static int mouse_button(const test_backend::test_mouse_event& e) noexcept { return e.button; }
         [[nodiscard]] static bool is_button_press(const test_backend::test_mouse_event& e) noexcept { return e.pressed; }
+    };
+
+    template<>
+    struct event_traits <test_backend::test_window_event> {
+        [[nodiscard]] static bool is_resize_event(const test_backend::test_window_event& e) noexcept { return e.is_resize; }
+        [[nodiscard]] static int window_width(const test_backend::test_window_event& e) noexcept { return e.width; }
+        [[nodiscard]] static int window_height(const test_backend::test_window_event& e) noexcept { return e.height; }
     };
 }
 

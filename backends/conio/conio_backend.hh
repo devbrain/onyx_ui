@@ -150,6 +150,39 @@ namespace onyxui::conio {
         rect get_clip_rect() const;
 
         // ===================================================================
+        // Presentation Method (Required by RenderLike Concept)
+        // ===================================================================
+
+        /**
+         * @brief Present the rendered frame to the display
+         *
+         * @details
+         * Swaps the back buffer with the front buffer, making all rendered
+         * content visible on screen. This should be called after all rendering
+         * operations are complete.
+         */
+        void present();
+
+        /**
+         * @brief Handle window resize event
+         *
+         * @details
+         * Called by ui_handle when a resize event is detected.
+         * Resizes the internal vram buffer to match new terminal dimensions.
+         */
+        void on_resize();
+
+        /**
+         * @brief Get the current viewport (full terminal bounds)
+         * @return Rectangle covering the entire terminal
+         *
+         * @details
+         * Returns the full vram dimensions as a viewport rect.
+         * This is used by ui_handle::display() to get rendering bounds.
+         */
+        [[nodiscard]] rect get_viewport() const;
+
+        // ===================================================================
         // Static Text Measurement (Required by UIBackend Concept)
         // ===================================================================
 
@@ -164,6 +197,27 @@ namespace onyxui::conio {
          * without needing a renderer instance.
          */
         static size measure_text(std::string_view text, const font& f);
+
+        /**
+         * @brief Get border thickness for a box style (static - no instance needed)
+         * @param style The box style to query
+         * @return Border thickness in characters (0 for none, 1 for borders)
+         *
+         * @details Returns the thickness of ONE side of the border.
+         * Total space consumed by borders = thickness * 2 (left+right or top+bottom).
+         *
+         * This is a static method so widgets can calculate sizing during layout
+         * without needing a renderer instance.
+         *
+         * @example
+         * @code
+         * int border = conio_renderer::get_border_thickness(theme.button.box_style);
+         * int total_width = text_width + padding*2 + border*2;  // border on both sides
+         * @endcode
+         */
+        [[nodiscard]] static constexpr int get_border_thickness(box_style style) noexcept {
+            return (style == box_style::none) ? 0 : 1;
+        }
 
         // ===================================================================
         // Color Management
@@ -271,6 +325,12 @@ namespace onyxui {
         static constexpr uint16_t KEY_SPACE = TB_KEY_SPACE;
         static constexpr uint16_t KEY_ESCAPE = TB_KEY_ESC;
 
+        // Arrow keys
+        static constexpr uint16_t KEY_ARROW_UP = TB_KEY_ARROW_UP;
+        static constexpr uint16_t KEY_ARROW_DOWN = TB_KEY_ARROW_DOWN;
+        static constexpr uint16_t KEY_ARROW_LEFT = TB_KEY_ARROW_LEFT;
+        static constexpr uint16_t KEY_ARROW_RIGHT = TB_KEY_ARROW_RIGHT;
+
         // F-key constants
         static constexpr uint16_t KEY_F1 = TB_KEY_F1;
         static constexpr uint16_t KEY_F2 = TB_KEY_F2;
@@ -345,7 +405,16 @@ namespace onyxui {
         }
 
         [[nodiscard]] static bool is_button_press(const tb_event& e) noexcept {
-            return e.type == TB_EVENT_MOUSE;
+            // In termbox2, all mouse events have type TB_EVENT_MOUSE
+            // The 'key' field indicates what kind of mouse event:
+            // - TB_KEY_MOUSE_LEFT/RIGHT/MIDDLE = button press
+            // - TB_KEY_MOUSE_RELEASE = button release
+            if (e.type != TB_EVENT_MOUSE) return false;
+
+            // Check if it's a button press (not a release or wheel event)
+            return e.key == TB_KEY_MOUSE_LEFT ||
+                   e.key == TB_KEY_MOUSE_RIGHT ||
+                   e.key == TB_KEY_MOUSE_MIDDLE;
         }
 
         // Hotkey support - convert to ASCII
@@ -376,6 +445,21 @@ namespace onyxui {
                 return (e.key - TB_KEY_F1) + 1;  // F1=1, F2=2, ..., F12=12
             }
             return 0;  // Not an F-key
+        }
+
+        // Window event methods (for resize)
+        [[nodiscard]] static bool is_resize_event(const tb_event& e) noexcept {
+            return e.type == TB_EVENT_RESIZE;
+        }
+
+        [[nodiscard]] static int window_width([[maybe_unused]] const tb_event& e) noexcept {
+            // termbox2 doesn't store dimensions in the event - query from termbox2
+            return tb_width();
+        }
+
+        [[nodiscard]] static int window_height([[maybe_unused]] const tb_event& e) noexcept {
+            // termbox2 doesn't store dimensions in the event - query from termbox2
+            return tb_height();
         }
     };
 } // namespace onyxui

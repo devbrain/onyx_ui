@@ -75,6 +75,15 @@ namespace onyxui::conio {
             [[nodiscard]] int get_width() const;
             [[nodiscard]] int get_height() const;
 
+            /**
+             * @brief Resize vram buffer to match current terminal dimensions
+             *
+             * @details
+             * Should be called when TB_EVENT_RESIZE is received to reallocate
+             * the internal cell buffer to match the new terminal size.
+             */
+            void resize();
+
             void present();
         private:
             struct impl;

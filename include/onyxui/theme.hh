@@ -5,8 +5,12 @@
 #pragma once
 
 #include <onyxui/concepts/backend.hh>
+#include <cstdint>  // For uint8_t
 
 namespace onyxui {
+    // Forward declaration to avoid circular dependency
+    enum class horizontal_alignment : std::uint8_t;
+
     template<UIBackend Backend>
     struct ui_theme {
         using color_type = typename Backend::color_type;
@@ -30,7 +34,9 @@ namespace onyxui {
             font_type mnemonic_font;        // "Which font to use for mnemonic character (typically underlined)"
 
             // Layout preferences
-            int padding = 4;
+            int padding_horizontal = 4;  // Horizontal padding (left/right) in renderer units
+            int padding_vertical = 4;    // Vertical padding (top/bottom) in renderer units
+            horizontal_alignment text_align;  // Text alignment within button (no default - set in theme creation)
             int corner_radius = 0;  // Hint for renderer, if supported
         };
 

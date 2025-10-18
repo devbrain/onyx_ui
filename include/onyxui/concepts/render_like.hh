@@ -22,6 +22,9 @@ namespace onyxui {
      * - **Drawing methods**: draw_box, draw_text, draw_icon
      * - **Text measurement**: measure_text (returns size_type with width/height)
      * - **Clipping methods**: push_clip, pop_clip, get_clip_rect
+     * - **Viewport management**: get_viewport (returns drawable area bounds)
+     * - **Presentation**: present (display rendered content)
+     * - **Resize handling**: on_resize (update buffers on window resize)
      *
      * ## measure_text() Rationale
      *
@@ -38,12 +41,28 @@ namespace onyxui {
      * - Counts bytes, not visual characters (wrong for UTF-8: "→" = 3 bytes, 1 char)
      * - Ignores kerning, ligatures, and font metrics
      *
+     * ## get_viewport() Rationale
+     *
+     * The viewport defines the drawable area for the renderer:
+     * - **Auto-layout**: ui_handle::display() needs viewport to measure/arrange UI
+     * - **Fullscreen rendering**: Viewport = entire window/screen
+     * - **Sub-region rendering**: Viewport = portion of screen (e.g., HUD area)
+     * - **Multi-renderer**: Different viewports for different UI panels
+     *
      * @example Proper text measurement
      * @code
      * auto size = renderer.measure_text("Hello", font);
      * rect text_bounds{x, y, size.width, size.height};
      * renderer.draw_text(text_bounds, "Hello", font);
      * x += size.width;  // Correct advance
+     * @endcode
+     *
+     * @example Viewport usage
+     * @code
+     * auto viewport = renderer.get_viewport();
+     * root->measure(viewport.w, viewport.h);
+     * root->arrange(viewport);
+     * root->render(renderer);
      * @endcode
      */
     template<typename T, typename R>
@@ -67,5 +86,14 @@ namespace onyxui {
         { renderer.push_clip(rect) } -> std::same_as<void>;
         { renderer.pop_clip() } -> std::same_as<void>;
         { renderer.get_clip_rect() } -> std::same_as<R>;
+
+        // Viewport management
+        { renderer.get_viewport() } -> std::same_as<R>;
+
+        // Presentation method
+        { renderer.present() } -> std::same_as<void>;
+
+        // Resize handling
+        { renderer.on_resize() } -> std::same_as<void>;
     };
 }

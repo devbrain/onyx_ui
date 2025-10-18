@@ -169,6 +169,9 @@ namespace onyxui {
                       "Backend must provide rect_type, size_type, point_type, and event types.");
 
         public:
+            // Backend type (for template metaprogramming)
+            using backend_type = Backend;
+
             // Type aliases from backend
             using rect_type = Backend::rect_type;
             using size_type = Backend::size_type;
@@ -220,6 +223,33 @@ namespace onyxui {
              * @note If child is null, this is a no-op (no exception thrown)
              */
             void add_child(ui_element_ptr child);
+
+            /**
+             * @brief Emplace a child element with automatic backend deduction
+             * @tparam WidgetTemplate Widget template class (e.g., onyxui::label, onyxui::button)
+             * @tparam Args Constructor argument types
+             * @param args Arguments to forward to the widget constructor
+             * @return Pointer to the newly created child
+             *
+             * @details
+             * Creates a widget in-place, automatically using the parent's Backend type.
+             * This eliminates the need to specify the backend explicitly.
+             *
+             * @example
+             * @code
+             * auto root = std::make_unique<panel<conio_backend>>();
+             * root->emplace_child<onyxui::label>("Hello");  // Backend deduced!
+             * auto* btn = root->emplace_child<onyxui::button>("Click");
+             * @endcode
+             */
+            template<template<UIBackend> class WidgetTemplate, typename... Args>
+            auto* emplace_child(Args&&... args) {
+                using WidgetType = WidgetTemplate<Backend>;
+                auto child = std::make_unique<WidgetType>(std::forward<Args>(args)...);
+                auto* ptr = child.get();
+                add_child(std::move(child));
+                return ptr;
+            }
 
             /**
              * @brief Remove a child element (returns ownership)

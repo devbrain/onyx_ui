@@ -33,7 +33,7 @@ target_link_libraries(conio PRIVATE
 )
 
 # Optional: DOS theme showcase demo
-option(BUILD_DOS_THEME_SHOWCASE "Build the DOS theme showcase demo" OFF)
+option(BUILD_DOS_THEME_SHOWCASE "Build the DOS theme showcase demo" ON)
 
 if(BUILD_DOS_THEME_SHOWCASE)
     add_executable(dos_theme_showcase
@@ -71,3 +71,12 @@ if(BUILD_TEXT_ATTRIBUTES_DEMO)
         termbox2_lib
     )
 endif()
+
+# Event tester
+add_executable(test_tb_events
+    test_tb_events.cc
+)
+
+target_link_libraries(test_tb_events PRIVATE
+    termbox2_lib
+)

@@ -223,6 +223,15 @@ namespace onyxui::conio {
     }
 
     // ======================================================================
+    // Presentation
+    // ======================================================================
+
+    void conio_renderer::present() {
+        if (!m_vram) return;
+        m_vram->present();
+    }
+
+    // ======================================================================
     // Text Measurement (Static)
     // ======================================================================
 
@@ -246,5 +255,27 @@ namespace onyxui::conio {
 
     void conio_renderer::set_background(const color& c) {
         m_bg = c;
+    }
+
+    // ======================================================================
+    // Resize Handling
+    // ======================================================================
+
+    void conio_renderer::on_resize() {
+        if (!m_vram) return;
+        m_vram->resize();
+        // Reset clip rect to full new vram dimensions
+        // This ensures any previously set clip is updated to the new size
+        pop_clip();
+    }
+
+    // ======================================================================
+    // Viewport
+    // ======================================================================
+
+    rect conio_renderer::get_viewport() const {
+        if (!m_vram) return rect{0, 0, 0, 0};
+        // Return full vram dimensions as viewport
+        return rect{0, 0, m_vram->get_width(), m_vram->get_height()};
     }
 }

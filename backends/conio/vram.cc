@@ -90,6 +90,9 @@ namespace onyxui::conio {
             SetConsoleCP(65001);
 #endif
 
+            // Enable mouse input (if supported by terminal)
+            tb_set_input_mode(TB_INPUT_ESC | TB_INPUT_MOUSE);
+
             color_mapper_fn mapper{};
 
             switch (detect_color_capability()) {
@@ -145,6 +148,8 @@ namespace onyxui::conio {
         cell& get_cell(int x, int y);
 
         void draw() const;
+
+        void resize();
 
         color_mapper_fn m_mapper_fn;
         std::vector <cell> m_cells;
@@ -213,6 +218,37 @@ namespace onyxui::conio {
         }
     }
 
+    void vram::impl::resize() {
+        // Get new dimensions from termbox2
+        auto w = tb_width();
+        auto h = tb_height();
+
+        // Validate dimensions
+        if (w <= 0 || w > 1000) {
+            throw std::runtime_error("illegal terminal width");
+        }
+        if (h <= 0 || h > 1000) {
+            throw std::runtime_error("illegal terminal height");
+        }
+
+        // Reallocate buffer if dimensions changed
+        if (w != m_width || h != m_height) {
+            // Clear termbox2 screen to prevent visual artifacts from old content
+            tb_clear();
+
+            // Reallocate internal buffer
+            m_cells.clear();
+            m_cells.resize(w * h);
+            m_width = w;
+            m_height = h;
+            m_clip_rect.x = 0;
+            m_clip_rect.y = 0;
+            m_clip_rect.w = w;
+            m_clip_rect.h = h;
+            m_dirty = true;  // Force redraw after resize
+        }
+    }
+
     vram::vram()
         : m_pimpl(std::make_unique<impl>()){
 
@@ -243,11 +279,21 @@ namespace onyxui::conio {
     }
 
     int vram::get_width() const {
-        return tb_width();
+        // Return our internal width, not tb_width()
+        // tb_width() returns the CURRENT terminal size which may have changed
+        // before resize() was called, causing a race condition
+        return m_pimpl->m_width;
     }
 
     int vram::get_height() const {
-        return tb_height();
+        // Return our internal height, not tb_height()
+        // tb_height() returns the CURRENT terminal size which may have changed
+        // before resize() was called, causing a race condition
+        return m_pimpl->m_height;
+    }
+
+    void vram::resize() {
+        m_pimpl->resize();
     }
 
     void vram::present() {

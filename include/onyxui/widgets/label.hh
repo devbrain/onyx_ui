@@ -140,30 +140,34 @@ namespace onyxui {
         /**
          * @brief Render the label
          */
-        void do_render(renderer_type& /*renderer*/) override {
-            // Rendering implementation would go here
-            // In practice, would use renderer.draw_text() with theme colors
+        void do_render(renderer_type& renderer) override {
+            auto* theme = this->m_theme;
+            if (!theme) return;
 
-            // Example (correct pseudo-code using static measure_text):
-            // auto* theme = this->m_theme;
-            // if (!theme) return;
-            //
-            // if (m_has_mnemonic) {
-            //     // Render styled text with mnemonic (multi-segment)
-            //     int x = this->bounds().x;
-            //     int y = this->bounds().y;
-            //     for (const auto& segment : m_mnemonic_info.text) {
-            //         // CORRECT: Use static renderer_type::measure_text()
-            //         auto text_size = renderer_type::measure_text(segment.text, segment.font);
-            //         rect text_rect{x, y, text_size.w, text_size.h};
-            //         renderer.draw_text(text_rect, segment.text, segment.font);
-            //         x += text_size.w;  // ✓ Correct advance (not segment.text.length()!)
-            //     }
-            // } else {
-            //     // Render plain text
-            //     renderer.draw_text(this->bounds(), m_text,
-            //                       theme->label.text, theme->label.background);
-            // }
+            // Set colors from theme
+            renderer.set_foreground(theme->label.text);
+            renderer.set_background(theme->label.background);
+
+            const auto& bounds = this->bounds();
+
+            if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
+                // Render styled text with mnemonic (multi-segment)
+                int x = rect_utils::get_x(bounds);
+                int y = rect_utils::get_y(bounds);
+
+                for (const auto& segment : m_mnemonic_info.text) {
+                    auto text_size = renderer_type::measure_text(segment.text, segment.font);
+                    typename Backend::rect_type text_rect;
+                    rect_utils::set_bounds(text_rect, x, y,
+                                          size_utils::get_width(text_size),
+                                          size_utils::get_height(text_size));
+                    renderer.draw_text(text_rect, segment.text, segment.font);
+                    x += size_utils::get_width(text_size);
+                }
+            } else {
+                // Render plain text
+                renderer.draw_text(bounds, m_text, theme->label.font);
+            }
         }
 
         /**
@@ -205,4 +209,34 @@ namespace onyxui {
         mnemonic_info<Backend> m_mnemonic_info;  ///< Parsed mnemonic text with styling
         bool m_has_mnemonic = false;              ///< Whether mnemonic is active
     };
+
+    // =========================================================================
+    // Helper Functions
+    // =========================================================================
+
+    /**
+     * @brief Add a label widget to a parent
+     * @tparam Parent Parent widget type (backend deduced automatically)
+     * @tparam Args Constructor argument types (forwarded to label constructor)
+     * @param parent Parent widget to add label to
+     * @param args Arguments forwarded to label constructor
+     * @return Pointer to the created label
+     *
+     * @details
+     * Convenience helper that creates a label and adds it to the parent in one call.
+     * The backend type is automatically deduced from the parent.
+     * All arguments are forwarded to the label constructor.
+     *
+     * @example
+     * @code
+     * auto root = std::make_unique<panel<Backend>>();
+     * auto* title = add_label(*root, "Hello World");
+     * auto* label2 = add_label(*root, "Text", nullptr);  // With explicit parent
+     * @endcode
+     */
+    template<typename Parent, typename... Args>
+    auto* add_label(Parent& parent, Args&&... args) {
+        using Backend = typename Parent::backend_type;
+        return parent.template emplace_child<label>(std::forward<Args>(args)...);
+    }
 }

@@ -298,6 +298,22 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get the bounds of a menu button
+         * @param index Menu index
+         * @return Button bounds, or default rect if invalid index
+         *
+         * @details
+         * Returns the actual rendered bounds of the menu title button.
+         * Used for positioning dropdown menus below their buttons.
+         */
+        [[nodiscard]] rect_type get_menu_button_bounds(std::size_t index) const {
+            if (index < m_menus.size() && m_menus[index].title_button) {
+                return m_menus[index].title_button->bounds();
+            }
+            return rect_type{};
+        }
+
+        /**
          * @brief Navigate to next menu
          *
          * @details

@@ -50,6 +50,7 @@ add_executable(ui_unittest
         core/test_signal_slot.cc
         core/test_rule_of_five.cc
         events/test_events.cc
+        events/test_event_target.cc
         focus/test_focus_manager.cc
         layout/test_absolute.cc
         layout/test_anchor.cc

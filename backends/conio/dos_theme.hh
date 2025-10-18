@@ -5,6 +5,7 @@
 #pragma once
 
 #include <onyxui/theme.hh>
+#include <onyxui/layout_strategy.hh>  // For horizontal_alignment enum values
 #include "conio_backend.hh"
 
 namespace onyxui::conio {
@@ -85,7 +86,9 @@ namespace onyxui::conio {
         theme.button.font = conio_renderer::font{false, false, false};
         theme.button.mnemonic_font = conio_renderer::font{false, true, false};  // Underlined
 
-        theme.button.padding = 1;  // Minimal padding for compact DOS look
+        theme.button.padding_horizontal = 1;  // Minimal horizontal padding
+        theme.button.padding_vertical = 0;    // No vertical padding for compact DOS look
+        theme.button.text_align = horizontal_alignment::center;  // Center text in button
         theme.button.corner_radius = 0;  // Sharp corners
 
         // =================================================================
@@ -148,7 +151,9 @@ namespace onyxui::conio {
         theme.button.font = conio_renderer::font{false, false, false};
         theme.button.mnemonic_font = conio_renderer::font{false, true, false};
 
-        theme.button.padding = 1;
+        theme.button.padding_horizontal = 1;  // Minimal horizontal padding
+        theme.button.padding_vertical = 0;    // No vertical padding for compact DOS look
+        theme.button.text_align = horizontal_alignment::center;  // Center text in button
         theme.button.corner_radius = 0;
 
         // =================================================================
@@ -209,7 +214,9 @@ namespace onyxui::conio {
         theme.button.font = conio_renderer::font{false, false, false};
         theme.button.mnemonic_font = conio_renderer::font{true, false, false};  // Bold
 
-        theme.button.padding = 1;
+        theme.button.padding_horizontal = 1;  // Minimal horizontal padding
+        theme.button.padding_vertical = 0;    // No vertical padding for compact DOS look
+        theme.button.text_align = horizontal_alignment::center;  // Center text in button
         theme.button.corner_radius = 0;
 
         // =================================================================
@@ -270,7 +277,9 @@ namespace onyxui::conio {
         theme.button.font = conio_renderer::font{true, false, false};  // Bold
         theme.button.mnemonic_font = conio_renderer::font{true, true, false};  // Bold + underline
 
-        theme.button.padding = 1;
+        theme.button.padding_horizontal = 1;  // Minimal horizontal padding
+        theme.button.padding_vertical = 0;    // No vertical padding for compact DOS look
+        theme.button.text_align = horizontal_alignment::center;  // Center text in button
         theme.button.corner_radius = 0;
 
         // =================================================================

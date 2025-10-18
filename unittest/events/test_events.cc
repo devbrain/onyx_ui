@@ -518,4 +518,129 @@ TEST_SUITE("Events") {
             CHECK(std::is_same_v<decltype(pressed), bool>);
         }
     }
+
+    // ======================================================================
+    // Window Event Tests
+    // ======================================================================
+
+    TEST_CASE("WindowEvent concept") {
+        SUBCASE("test_window_event satisfies WindowEvent") {
+            CHECK(WindowEvent<test_backend::test_window_event>);
+        }
+
+        SUBCASE("test_keyboard_event does not satisfy WindowEvent") {
+            CHECK_FALSE(WindowEvent<test_backend::test_keyboard_event>);
+        }
+
+        SUBCASE("test_mouse_event does not satisfy WindowEvent") {
+            CHECK_FALSE(WindowEvent<test_backend::test_mouse_event>);
+        }
+    }
+
+    TEST_CASE("Window event traits - dimensions") {
+        using traits = event_traits<test_backend::test_window_event>;
+
+        SUBCASE("window_width accessor") {
+            test_backend::test_window_event evt;
+            evt.width = 800;
+            CHECK(traits::window_width(evt) == 800);
+        }
+
+        SUBCASE("window_height accessor") {
+            test_backend::test_window_event evt;
+            evt.height = 600;
+            CHECK(traits::window_height(evt) == 600);
+        }
+
+        SUBCASE("zero dimensions") {
+            test_backend::test_window_event evt;
+            evt.width = 0;
+            evt.height = 0;
+            CHECK(traits::window_width(evt) == 0);
+            CHECK(traits::window_height(evt) == 0);
+        }
+
+        SUBCASE("large dimensions") {
+            test_backend::test_window_event evt;
+            evt.width = 3840;  // 4K width
+            evt.height = 2160;  // 4K height
+            CHECK(traits::window_width(evt) == 3840);
+            CHECK(traits::window_height(evt) == 2160);
+        }
+    }
+
+    TEST_CASE("Window event traits - resize detection") {
+        using traits = event_traits<test_backend::test_window_event>;
+
+        SUBCASE("is_resize_event when true") {
+            test_backend::test_window_event evt;
+            evt.is_resize = true;
+            CHECK(traits::is_resize_event(evt) == true);
+        }
+
+        SUBCASE("is_resize_event when false") {
+            test_backend::test_window_event evt;
+            evt.is_resize = false;
+            CHECK(traits::is_resize_event(evt) == false);
+        }
+    }
+
+    TEST_CASE("Window event traits - combined scenarios") {
+        using traits = event_traits<test_backend::test_window_event>;
+
+        SUBCASE("terminal resize to 80x24") {
+            test_backend::test_window_event evt;
+            evt.width = 80;
+            evt.height = 24;
+            evt.is_resize = true;
+
+            CHECK(traits::window_width(evt) == 80);
+            CHECK(traits::window_height(evt) == 24);
+            CHECK(traits::is_resize_event(evt) == true);
+        }
+
+        SUBCASE("fullscreen event") {
+            test_backend::test_window_event evt;
+            evt.width = 1920;
+            evt.height = 1080;
+            evt.is_resize = true;
+
+            CHECK(traits::window_width(evt) == 1920);
+            CHECK(traits::window_height(evt) == 1080);
+            CHECK(traits::is_resize_event(evt) == true);
+        }
+    }
+
+    TEST_CASE("Window event traits are noexcept") {
+        using traits = event_traits<test_backend::test_window_event>;
+
+        SUBCASE("window trait methods are noexcept") {
+            test_backend::test_window_event evt;
+            CHECK(noexcept(traits::window_width(evt)));
+            CHECK(noexcept(traits::window_height(evt)));
+            CHECK(noexcept(traits::is_resize_event(evt)));
+        }
+    }
+
+    TEST_CASE("Window event traits return correct types") {
+        using traits = event_traits<test_backend::test_window_event>;
+
+        SUBCASE("window_width returns int") {
+            test_backend::test_window_event evt;
+            auto width = traits::window_width(evt);
+            CHECK(std::is_same_v<decltype(width), int>);
+        }
+
+        SUBCASE("window_height returns int") {
+            test_backend::test_window_event evt;
+            auto height = traits::window_height(evt);
+            CHECK(std::is_same_v<decltype(height), int>);
+        }
+
+        SUBCASE("is_resize_event returns bool") {
+            test_backend::test_window_event evt;
+            auto is_resize = traits::is_resize_event(evt);
+            CHECK(std::is_same_v<decltype(is_resize), bool>);
+        }
+    }
 }
