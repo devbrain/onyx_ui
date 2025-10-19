@@ -17,6 +17,8 @@
 #include <onyxui/widgets/menu.hh>
 #include <onyxui/widgets/menu_bar.hh>
 #include <onyxui/widgets/action.hh>
+#include <onyxui/layer_manager.hh>
+#include <onyxui/ui_services.hh>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -593,5 +595,157 @@ TEST_SUITE("menu_integration") {
         menu_ptr->activate_focused();
 
         CHECK(new_triggered);
+    }
+
+    // ======================================================================
+    // Integration Tests: Layer Manager & Outside-Click Detection
+    // ======================================================================
+
+    TEST_CASE("menu_bar - outside click closes menu via callback") {
+        using Backend = test_backend;
+
+        // Setup layer manager
+        auto mgr = std::make_shared<layer_manager<Backend>>();
+        ui_services<Backend>::set_layer_manager(mgr.get());
+
+        // Create menu bar with a menu
+        auto bar = std::make_unique<menu_bar<Backend>>();
+        auto file_menu = std::make_unique<menu<Backend>>();
+        bar->add_menu("File", std::move(file_menu));
+
+        // Open menu - should create a layer
+        bar->open_menu(0);
+        CHECK(bar->has_open_menu());
+        CHECK(mgr->layer_count() == 1);
+
+        // Trigger outside click on the topmost layer
+        layer_id top_layer = mgr->get_topmost_layer();
+        CHECK(top_layer.is_valid());
+
+        bool callback_triggered = mgr->trigger_outside_click(top_layer);
+        CHECK(callback_triggered);
+
+        // Menu should be closed
+        CHECK_FALSE(bar->has_open_menu());
+        CHECK(mgr->layer_count() == 0);
+
+        // Cleanup
+        ui_services<Backend>::set_layer_manager(nullptr);
+    }
+
+    TEST_CASE("menu_bar - closing signal connected properly") {
+        using Backend = test_backend;
+
+        // Setup layer manager
+        auto mgr = std::make_shared<layer_manager<Backend>>();
+        ui_services<Backend>::set_layer_manager(mgr.get());
+
+        // Create menu bar with a menu
+        auto bar = std::make_unique<menu_bar<Backend>>();
+        auto file_menu = std::make_unique<menu<Backend>>();
+        menu<Backend>* file_menu_ptr = file_menu.get();
+        bar->add_menu("File", std::move(file_menu));
+
+        // Open menu
+        bar->open_menu(0);
+        CHECK(bar->has_open_menu());
+        CHECK(mgr->layer_count() == 1);
+
+        // Emit closing signal from menu - should close menu_bar
+        file_menu_ptr->closing.emit();
+
+        // Menu bar should close the menu
+        CHECK_FALSE(bar->has_open_menu());
+        CHECK(mgr->layer_count() == 0);
+
+        // Cleanup
+        ui_services<Backend>::set_layer_manager(nullptr);
+    }
+
+    TEST_CASE("menu_bar - scoped_layer auto-cleanup on reassignment") {
+        using Backend = test_backend;
+
+        // Setup layer manager
+        auto mgr = std::make_shared<layer_manager<Backend>>();
+        ui_services<Backend>::set_layer_manager(mgr.get());
+
+        // Create menu bar with two menus
+        auto bar = std::make_unique<menu_bar<Backend>>();
+        auto file_menu = std::make_unique<menu<Backend>>();
+        auto edit_menu = std::make_unique<menu<Backend>>();
+        bar->add_menu("File", std::move(file_menu));
+        bar->add_menu("Edit", std::move(edit_menu));
+
+        // Open first menu
+        bar->open_menu(0);
+        CHECK(bar->open_menu_index() == 0);
+        CHECK(mgr->layer_count() == 1);
+        layer_id first_layer = mgr->get_topmost_layer();
+
+        // Open second menu - should auto-close first menu via scoped_layer reassignment
+        bar->open_menu(1);
+        CHECK(bar->open_menu_index() == 1);
+        CHECK(mgr->layer_count() == 1);  // Still 1 layer, but different one
+        layer_id second_layer = mgr->get_topmost_layer();
+
+        // Should be a different layer
+        CHECK(first_layer != second_layer);
+
+        // First layer should be removed
+        CHECK_FALSE(mgr->is_layer_visible(first_layer));
+        CHECK(mgr->is_layer_visible(second_layer));
+
+        // Cleanup
+        ui_services<Backend>::set_layer_manager(nullptr);
+    }
+
+    TEST_CASE("menu_bar - clicking different menu button switches menus") {
+        using Backend = test_backend;
+
+        // Setup layer manager
+        auto mgr = std::make_shared<layer_manager<Backend>>();
+        ui_services<Backend>::set_layer_manager(mgr.get());
+
+        // Create menu bar with two menus
+        auto bar = std::make_unique<menu_bar<Backend>>();
+        auto file_menu = std::make_unique<menu<Backend>>();
+        auto theme_menu = std::make_unique<menu<Backend>>();
+        bar->add_menu("File", std::move(file_menu));
+        bar->add_menu("Theme", std::move(theme_menu));
+
+        // Measure and arrange so buttons have bounds
+        using size_type = Backend::size_type;
+        using rect_type = Backend::rect_type;
+        size_type size = bar->measure(800, 600);
+        bar->arrange(rect_type{0, 0, size.w, size.h});
+
+        // Open File menu
+        bar->open_menu(0);
+        CHECK(bar->open_menu_index() == 0);
+        CHECK(mgr->layer_count() == 1);
+        layer_id file_layer = mgr->get_topmost_layer();
+
+        // Simulate clicking on Theme button (index 1)
+        // The click should:
+        // 1. Trigger outside-click for File menu (close it)
+        // 2. Continue to Theme button (event not consumed)
+        // 3. Theme button click opens Theme menu
+
+        // We can't easily simulate the full click event, but we can verify
+        // that calling open_menu(1) while menu 0 is open works correctly
+        bar->open_menu(1);
+
+        // File menu should be closed
+        CHECK_FALSE(mgr->is_layer_visible(file_layer));
+
+        // Theme menu should be open
+        CHECK(bar->open_menu_index() == 1);
+        CHECK(mgr->layer_count() == 1);
+        layer_id theme_layer = mgr->get_topmost_layer();
+        CHECK(theme_layer != file_layer);
+        CHECK(mgr->is_layer_visible(theme_layer));
+
+        // Cleanup
+        ui_services<Backend>::set_layer_manager(nullptr);
     }
 }

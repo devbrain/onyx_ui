@@ -68,16 +68,13 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <functional>
 #include <algorithm>
 #include <iostream>  // For debug output
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/element.hh>
 
 namespace onyxui {
-
-    // Forward declaration for menu widget
-    template<UIBackend Backend>
-    class menu;
 
     // ======================================================================
     // Layer ID Type
@@ -104,6 +101,13 @@ namespace onyxui {
 
         static constexpr layer_id invalid() noexcept { return layer_id(0); }
     };
+
+    // ======================================================================
+    // Forward Declarations
+    // ======================================================================
+
+    template<UIBackend Backend>
+    class scoped_layer;
 
     // ======================================================================
     // Layer Types and Configuration
@@ -229,20 +233,27 @@ namespace onyxui {
         // ============================================================
 
         /**
-         * @brief Add a new layer
+         * @brief Add a new layer with lifetime tracking (RECOMMENDED)
          *
          * @param type Layer type (determines default z-index)
-         * @param root Root element for this layer (non-owning pointer)
+         * @param root Root element for this layer (shared_ptr for lifetime tracking)
          * @param custom_z_index Custom z-index (-1 = use default for type)
          * @return Layer ID for later reference
          *
          * @details
-         * The layer_manager does NOT take ownership of the element.
-         * Caller must ensure the element remains valid while the layer exists.
-         * Call remove_layer() before destroying the element.
+         * **Phase 1.2**: This is the SAFE API that tracks element lifetime.
+         * The layer_manager tracks the element via weak_ptr and automatically
+         * handles cleanup if the element is destroyed.
+         *
+         * **Usage**:
+         * @code
+         * auto menu = std::make_shared<menu<Backend>>();
+         * layer_id id = mgr.add_layer(layer_type::popup, menu);
+         * // Safe: Layer manager tracks lifetime via weak_ptr
+         * @endcode
          */
         layer_id add_layer(layer_type type,
-                          element_type* root,
+                          std::shared_ptr<element_type> root,
                           int custom_z_index = -1) {
             layer_id id(m_next_id++);
 
@@ -252,16 +263,50 @@ namespace onyxui {
                 id,
                 type,
                 z_index,
-                root,
+                std::weak_ptr<element_type>(root),  // Store as weak_ptr for tracking
+                nullptr,  // owner: nullptr for add_layer (caller owns the element)
                 true,  // visible
                 type == layer_type::modal,  // modal
-                type == layer_type::modal   // blocks_events
+                type == layer_type::modal,  // blocks_events
+                {},  // bounds
+                {},  // anchor_bounds
+                popup_placement::below,  // placement
+                dialog_position::center,  // dialog_pos
+                false,  // needs_positioning
+                nullptr  // outside_click_callback (Phase 1.3)
             });
 
             sort_layers_by_z_index();
 
             return id;
         }
+
+        /**
+         * @brief Create a layer with RAII automatic cleanup (Phase 1.4)
+         *
+         * @param type Layer type (determines default z-index)
+         * @param root Root element for this layer (shared_ptr for lifetime safety)
+         * @param custom_z_index Custom z-index (-1 = use default for type)
+         * @return RAII handle that auto-removes layer on destruction
+         *
+         * @details
+         * Returns a scoped_layer handle that automatically removes the layer
+         * when it goes out of scope. This provides exception-safe layer management.
+         *
+         * **Usage**:
+         * @code
+         * auto menu = std::make_shared<menu<Backend>>();
+         * {
+         *     auto layer = mgr.add_scoped_layer(layer_type::popup, menu);
+         *     // Use layer...
+         * }  // Layer automatically removed here
+         * @endcode
+         *
+         * **Note**: Defined in scoped_layer.hh (after scoped_layer class definition)
+         */
+        scoped_layer<Backend> add_scoped_layer(layer_type type,
+                                               std::shared_ptr<element_type> root,
+                                               int custom_z_index = -1);
 
         /**
          * @brief Remove a layer
@@ -310,19 +355,24 @@ namespace onyxui {
          * @return Layer ID
          *
          * @details
-         * Caller must keep content alive while layer exists.
+         * Creates a non-owning reference to the content. Caller MUST keep
+         * content alive while layer exists and remove layer before destroying content.
          */
         layer_id show_popup(element_type* content,
                            const rect_type& anchor_bounds,
-                           popup_placement placement = popup_placement::below) {
-            // Store anchor bounds for positioning during render
-            layer_id id = add_layer(layer_type::popup, content);
+                           popup_placement placement = popup_placement::below,
+                           std::function<void()> outside_click_callback = nullptr) {
+            // Create non-owning shared_ptr (caller owns the memory)
+            auto non_owning = std::shared_ptr<element_type>(content, [](element_type*) {});
+            layer_id id = add_layer(layer_type::popup, non_owning);
 
             auto it = find_layer(id);
             if (it != m_layers.end()) {
+                it->owner = non_owning;  // Store to keep weak_ptr valid
                 it->anchor_bounds = anchor_bounds;
                 it->placement = placement;
                 it->needs_positioning = true;
+                it->outside_click_callback = std::move(outside_click_callback);  // Phase 1.3
             }
 
             return id;
@@ -337,14 +387,18 @@ namespace onyxui {
          * @return Layer ID
          *
          * @details
-         * Caller must keep content alive while layer exists.
+         * Creates a non-owning reference to the content. Caller MUST keep
+         * content alive while layer exists and remove layer before destroying content.
          */
         layer_id show_tooltip(element_type* content,
                              int x, int y) {
-            layer_id id = add_layer(layer_type::tooltip, content);
+            // Create non-owning shared_ptr (caller owns the memory)
+            auto non_owning = std::shared_ptr<element_type>(content, [](element_type*) {});
+            layer_id id = add_layer(layer_type::tooltip, non_owning);
 
             auto it = find_layer(id);
             if (it != m_layers.end()) {
+                it->owner = non_owning;  // Store to keep weak_ptr valid
                 rect_type pos;
                 rect_utils::set_bounds(pos, x, y, 0, 0);
                 it->anchor_bounds = pos;
@@ -363,14 +417,18 @@ namespace onyxui {
          * @return Layer ID
          *
          * @details
-         * Caller must keep content alive while layer exists.
+         * Creates a non-owning reference to the content. Caller MUST keep
+         * content alive while layer exists and remove layer before destroying content.
          */
         layer_id show_modal_dialog(element_type* content,
                                    dialog_position pos = dialog_position::center) {
-            layer_id id = add_layer(layer_type::modal, content);
+            // Create non-owning shared_ptr (caller owns the memory)
+            auto non_owning = std::shared_ptr<element_type>(content, [](element_type*) {});
+            layer_id id = add_layer(layer_type::modal, non_owning);
 
             auto it = find_layer(id);
             if (it != m_layers.end()) {
+                it->owner = non_owning;  // Store to keep weak_ptr valid
                 it->dialog_pos = pos;
                 it->needs_positioning = true;
             }
@@ -405,7 +463,8 @@ namespace onyxui {
          */
         [[nodiscard]] bool is_layer_visible(layer_id id) const {
             if (auto it = find_layer_const(id); it != m_layers.end()) {
-                return it->visible;
+                // Phase 1.2: Return false for expired layers
+                return it->is_valid() && it->visible;
             }
             return false;
         }
@@ -425,37 +484,41 @@ namespace onyxui {
          * only routes to modal and layers above it.
          */
         bool route_event(const event_type& event) {
+            // Phase 1.2: Clean up expired layers first
+            cleanup_expired_layers();
+
             // Check if modal is active
             std::optional<int> modal_z_index;
             for (const auto& layer : m_layers) {
-                if (layer.modal && layer.visible) {
+                if (layer.modal && layer.visible && layer.is_valid()) {
                     modal_z_index = layer.z_index;
                     break;
                 }
             }
 
-            // Special handling for popup click-outside
-            // We need to defer the actual close to avoid modifying m_layers while iterating
-            menu<Backend>* menu_to_close = nullptr;
-            layer_id layer_to_remove = layer_id::invalid();
+            // Phase 1.3: Generic click-outside detection
+            // We need to defer the callback to avoid modifying m_layers while iterating
+            std::function<void()> deferred_callback;
 
             // Check if this is a mouse click event
             if constexpr (requires { event_traits<event_type>::is_button_press(event); }) {
                 if (event_traits<event_type>::is_button_press(event)) {
                     // Check if we have any popup layers
                     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-                        if (it->type == layer_type::popup && it->visible && it->root) {
+                        if (it->type == layer_type::popup && it->visible && it->is_valid()) {
                             // Get click position
                             int click_x = event_traits<event_type>::mouse_x(event);
                             int click_y = event_traits<event_type>::mouse_y(event);
 
                             // Check if click is outside popup bounds
                             if (!rect_utils::contains(it->bounds, click_x, click_y)) {
-                                // Click is outside popup - mark for closing after iteration
-                                if (auto* menu_ptr = dynamic_cast<menu<Backend>*>(it->root)) {
-                                    menu_to_close = menu_ptr;
-                                } else {
-                                    layer_to_remove = it->id;
+                                // Click outside popup - trigger callback but DON'T consume event
+                                // This allows:
+                                // 1. Menu switching: Click Theme while File is open → File closes, Theme opens
+                                // 2. Normal clicks: Click anywhere → menu closes, click continues to target
+                                if (it->outside_click_callback) {
+                                    it->outside_click_callback();
+                                    // Don't set deferred_callback - event continues to underlying widget
                                 }
                             }
                             // Only check the topmost popup (whether inside or outside)
@@ -463,29 +526,32 @@ namespace onyxui {
                         }
                     }
 
-                    // Now handle the deferred close (after iteration is complete)
-                    if (menu_to_close) {
-                        menu_to_close->closing.emit();
-                        return true;  // We handled the click by triggering close
-                    }
-                    if (layer_to_remove.is_valid()) {
-                        remove_layer(layer_to_remove);
-                        return true;
+                    // Now invoke the deferred callback (after iteration is complete)
+                    if (deferred_callback) {
+                        deferred_callback();
+                        return true;  // We handled the click by triggering callback
                     }
                 }
             }
 
             // Route to layers (highest z first)
             for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-                if (!it->visible) continue;
+                if (!it->visible || !it->is_valid()) continue;
 
                 // If modal active, skip layers below it
                 if (modal_z_index.has_value() && it->z_index < *modal_z_index) {
                     continue;
                 }
 
-                // Route event to layer
-                if (it->root && it->root->process_event(event)) {
+                // Route event to layer - Phase 1.2: Use safe access
+                bool handled = false;
+                it->with_root([&](element_type* root_ptr) {
+                    if (root_ptr->process_event(event)) {
+                        handled = true;
+                    }
+                });
+
+                if (handled) {
                     return true;  // Event handled
                 }
 
@@ -511,11 +577,14 @@ namespace onyxui {
          * @details
          * Renders all visible layers from lowest z to highest z.
          * Performs layout (measure/arrange) before rendering.
+         * **Phase 1.2**: Automatically skips expired layers.
          */
         void render_all_layers(renderer_type& renderer, const rect_type& viewport) {
+            // Phase 1.2: Clean up expired layers first
+            cleanup_expired_layers();
+
             for (auto& layer : m_layers) {
-                if (!layer.visible) continue;
-                if (!layer.root) continue;
+                if (!layer.visible || !layer.is_valid()) continue;
 
                 // Position layer if needed
                 if (layer.needs_positioning) {
@@ -523,14 +592,17 @@ namespace onyxui {
                     layer.needs_positioning = false;
                 }
 
-                // Measure and arrange
-                int width = rect_utils::get_width(layer.bounds);
-                int height = rect_utils::get_height(layer.bounds);
-                [[maybe_unused]] auto measured_size = layer.root->measure(width, height);
-                layer.root->arrange(layer.bounds);
+                // Measure, arrange, and render - Phase 1.2: Use safe access
+                layer.with_root([&](element_type* root_ptr) {
+                    // Measure and arrange
+                    int width = rect_utils::get_width(layer.bounds);
+                    int height = rect_utils::get_height(layer.bounds);
+                    [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
+                    root_ptr->arrange(layer.bounds);
 
-                // Render
-                layer.root->render(renderer);
+                    // Render
+                    root_ptr->render(renderer);
+                });
             }
         }
 
@@ -540,11 +612,14 @@ namespace onyxui {
 
         /**
          * @brief Check if any modal layer is active
+         *
+         * @details
+         * **Phase 1.2**: Only counts valid (non-expired) modal layers.
          */
         [[nodiscard]] bool has_modal_layer() const {
             return std::any_of(m_layers.begin(), m_layers.end(),
                 [](const layer_data& layer) {
-                    return layer.modal && layer.visible;
+                    return layer.modal && layer.visible && layer.is_valid();
                 });
         }
 
@@ -555,13 +630,45 @@ namespace onyxui {
             return m_layers.size();
         }
 
+        /**
+         * @brief Test helper: Get topmost visible layer ID
+         * @return Layer ID of topmost layer, or invalid if no layers
+         */
+        [[nodiscard]] layer_id get_topmost_layer() const {
+            for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+                if (it->visible && it->is_valid()) {
+                    return it->id;
+                }
+            }
+            return layer_id::invalid();
+        }
+
+        /**
+         * @brief Test helper: Trigger outside-click callback for a layer
+         * @param id Layer to trigger callback for
+         * @return true if callback was triggered, false if no callback or invalid ID
+         *
+         * @details
+         * This is a test utility to verify outside-click behavior without
+         * needing to simulate actual mouse clicks with coordinates.
+         */
+        bool trigger_outside_click(layer_id id) {
+            auto it = find_layer(id);
+            if (it != m_layers.end() && it->outside_click_callback) {
+                it->outside_click_callback();
+                return true;
+            }
+            return false;
+        }
+
     private:
         // Layer data structure
         struct layer_data {
             layer_id id;
             layer_type type;
             int z_index;
-            element_type* root;  // Non-owning pointer
+            std::weak_ptr<element_type> root;  // Safe lifetime tracking (Phase 1.2)
+            std::shared_ptr<element_type> owner;  // Keeps root alive (may be non-owning for show_popup/etc)
             bool visible;
             bool modal;
             bool blocks_events;
@@ -572,6 +679,57 @@ namespace onyxui {
             popup_placement placement = popup_placement::below;
             dialog_position dialog_pos = dialog_position::center;
             bool needs_positioning = false;
+
+            // Click-outside callback (Phase 1.3)
+            std::function<void()> outside_click_callback;
+
+            /**
+             * @brief Check if the layer's element is still valid
+             * @return true if element exists, false if destroyed
+             *
+             * @details
+             * Checks if the weak_ptr to the element is still valid.
+             * Returns false if the element has been destroyed.
+             */
+            [[nodiscard]] bool is_valid() const noexcept {
+                return !root.expired();
+            }
+
+            /**
+             * @brief Safely access the root element
+             * @param fn Function to call with the locked pointer
+             * @return true if element was valid and function was called
+             *
+             * @details
+             * Locks the weak_ptr, calls the function if valid, automatically releases.
+             * Thread-safe access pattern.
+             *
+             * @code
+             * layer.with_root([](element_type* elem) {
+             *     elem->process_event(event);
+             * });
+             * @endcode
+             */
+            template<typename Fn>
+            bool with_root(Fn&& fn) {
+                if (auto locked = root.lock()) {
+                    fn(locked.get());
+                    return true;
+                }
+                return false;
+            }
+
+            /**
+             * @brief Safely access the root element (const version)
+             */
+            template<typename Fn>
+            bool with_root(Fn&& fn) const {
+                if (auto locked = root.lock()) {
+                    fn(locked.get());
+                    return true;
+                }
+                return false;
+            }
         };
 
         config m_config;
@@ -600,6 +758,27 @@ namespace onyxui {
                 });
         }
 
+        /**
+         * @brief Remove layers whose elements have been destroyed
+         *
+         * @details
+         * **Phase 1.2**: Automatic cleanup of expired layers.
+         * Scans the layer list and removes any layers whose weak_ptr has expired.
+         * Called automatically at strategic points (event routing, rendering).
+         *
+         * **Performance**: O(n) where n = number of layers. Typically very fast
+         * since most layers remain valid.
+         */
+        void cleanup_expired_layers() {
+            m_layers.erase(
+                std::remove_if(m_layers.begin(), m_layers.end(),
+                    [](const layer_data& layer) {
+                        return !layer.is_valid();
+                    }),
+                m_layers.end()
+            );
+        }
+
         void position_layer(layer_data& layer, const rect_type& viewport) {
             if (layer.type == layer_type::modal) {
                 position_dialog(layer, viewport);
@@ -612,92 +791,98 @@ namespace onyxui {
         }
 
         void position_dialog(layer_data& layer, const rect_type& viewport) {
-            // Measure to get desired size
-            int vp_width = rect_utils::get_width(viewport);
-            int vp_height = rect_utils::get_height(viewport);
+            // Phase 1.2: Use safe access for positioning
+            layer.with_root([&](element_type* root_ptr) {
+                // Measure to get desired size
+                int vp_width = rect_utils::get_width(viewport);
+                int vp_height = rect_utils::get_height(viewport);
 
-            auto size = layer.root->measure(vp_width, vp_height);
+                auto size = root_ptr->measure(vp_width, vp_height);
 
-            int width = size_utils::get_width(size);
-            int height = size_utils::get_height(size);
+                int width = size_utils::get_width(size);
+                int height = size_utils::get_height(size);
 
-            // Center in viewport
-            int x = rect_utils::get_x(viewport) + (vp_width - width) / 2;
-            int y = rect_utils::get_y(viewport) + (vp_height - height) / 2;
+                // Center in viewport
+                int x = rect_utils::get_x(viewport) + (vp_width - width) / 2;
+                int y = rect_utils::get_y(viewport) + (vp_height - height) / 2;
 
-            rect_utils::set_bounds(layer.bounds, x, y, width, height);
+                rect_utils::set_bounds(layer.bounds, x, y, width, height);
+            });
         }
 
         void position_popup(layer_data& layer, const rect_type& viewport) {
-            // Measure to get desired size
-            int vp_width = rect_utils::get_width(viewport);
-            int vp_height = rect_utils::get_height(viewport);
+            // Phase 1.2: Use safe access for positioning
+            layer.with_root([&](element_type* root_ptr) {
+                // Measure to get desired size
+                int vp_width = rect_utils::get_width(viewport);
+                int vp_height = rect_utils::get_height(viewport);
 
-            auto size = layer.root->measure(vp_width, vp_height);
+                auto size = root_ptr->measure(vp_width, vp_height);
 
-            int width = size_utils::get_width(size);
-            int height = size_utils::get_height(size);
+                int width = size_utils::get_width(size);
+                int height = size_utils::get_height(size);
 
-            // Get anchor position
-            int anchor_x = rect_utils::get_x(layer.anchor_bounds);
-            int anchor_y = rect_utils::get_y(layer.anchor_bounds);
-            int anchor_w = rect_utils::get_width(layer.anchor_bounds);
-            int anchor_h = rect_utils::get_height(layer.anchor_bounds);
+                // Get anchor position
+                int anchor_x = rect_utils::get_x(layer.anchor_bounds);
+                int anchor_y = rect_utils::get_y(layer.anchor_bounds);
+                int anchor_w = rect_utils::get_width(layer.anchor_bounds);
+                int anchor_h = rect_utils::get_height(layer.anchor_bounds);
 
-            // Calculate position based on placement
-            int x = anchor_x;
-            int y = anchor_y;
+                // Calculate position based on placement
+                int x = anchor_x;
+                int y = anchor_y;
 
-            switch (layer.placement) {
-                case popup_placement::below:
-                    y = anchor_y + anchor_h;
-                    break;
+                switch (layer.placement) {
+                    case popup_placement::below:
+                        y = anchor_y + anchor_h;
+                        break;
 
-                case popup_placement::above:
-                    y = anchor_y - height;
-                    break;
+                    case popup_placement::above:
+                        y = anchor_y - height;
+                        break;
 
-                case popup_placement::left:
-                    x = anchor_x - width;
-                    break;
+                    case popup_placement::left:
+                        x = anchor_x - width;
+                        break;
 
-                case popup_placement::right:
-                    x = anchor_x + anchor_w;
-                    break;
+                    case popup_placement::right:
+                        x = anchor_x + anchor_w;
+                        break;
 
-                case popup_placement::below_right:
-                    x = anchor_x + anchor_w - width;
-                    y = anchor_y + anchor_h;
-                    break;
+                    case popup_placement::below_right:
+                        x = anchor_x + anchor_w - width;
+                        y = anchor_y + anchor_h;
+                        break;
 
-                case popup_placement::above_right:
-                    x = anchor_x + anchor_w - width;
-                    y = anchor_y - height;
-                    break;
+                    case popup_placement::above_right:
+                        x = anchor_x + anchor_w - width;
+                        y = anchor_y - height;
+                        break;
 
-                case popup_placement::auto_best:
-                    // Try below first, then above, then right, then left
-                    if (anchor_y + anchor_h + height <= rect_utils::get_y(viewport) + vp_height) {
-                        y = anchor_y + anchor_h;  // Below fits
-                    } else if (anchor_y - height >= rect_utils::get_y(viewport)) {
-                        y = anchor_y - height;  // Above fits
-                    } else if (anchor_x + anchor_w + width <= rect_utils::get_x(viewport) + vp_width) {
-                        x = anchor_x + anchor_w;  // Right fits
-                        y = anchor_y;
-                    } else {
-                        x = anchor_x - width;  // Left
-                        y = anchor_y;
-                    }
-                    break;
-            }
+                    case popup_placement::auto_best:
+                        // Try below first, then above, then right, then left
+                        if (anchor_y + anchor_h + height <= rect_utils::get_y(viewport) + vp_height) {
+                            y = anchor_y + anchor_h;  // Below fits
+                        } else if (anchor_y - height >= rect_utils::get_y(viewport)) {
+                            y = anchor_y - height;  // Above fits
+                        } else if (anchor_x + anchor_w + width <= rect_utils::get_x(viewport) + vp_width) {
+                            x = anchor_x + anchor_w;  // Right fits
+                            y = anchor_y;
+                        } else {
+                            x = anchor_x - width;  // Left
+                            y = anchor_y;
+                        }
+                        break;
+                }
 
-            // Clamp to viewport
-            int vp_x = rect_utils::get_x(viewport);
-            int vp_y = rect_utils::get_y(viewport);
-            x = std::max(vp_x, std::min(x, vp_x + vp_width - width));
-            y = std::max(vp_y, std::min(y, vp_y + vp_height - height));
+                // Clamp to viewport
+                int vp_x = rect_utils::get_x(viewport);
+                int vp_y = rect_utils::get_y(viewport);
+                x = std::max(vp_x, std::min(x, vp_x + vp_width - width));
+                y = std::max(vp_y, std::min(y, vp_y + vp_height - height));
 
-            rect_utils::set_bounds(layer.bounds, x, y, width, height);
+                rect_utils::set_bounds(layer.bounds, x, y, width, height);
+            });
         }
     };
 

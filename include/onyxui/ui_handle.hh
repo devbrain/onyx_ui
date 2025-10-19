@@ -47,6 +47,7 @@
 #include <onyxui/element.hh>
 #include <onyxui/focus_manager.hh>
 #include <onyxui/layer_manager.hh>
+#include <onyxui/ui_services.hh>
 #include <onyxui/widgets/widget.hh>
 
 namespace onyxui {
@@ -113,11 +114,16 @@ namespace onyxui {
          *
          * @details
          * The ui_handle takes ownership of the root widget and
-         * creates its own renderer instance.
+         * creates its own renderer instance. Automatically registers
+         * layer and focus managers with ui_services for global access.
          */
         explicit ui_handle(std::unique_ptr<widget_type> root)
             : m_root(std::move(root))
             , m_renderer() {
+
+            // Register services globally
+            ui_services<Backend>::set_layer_manager(&m_layer_manager);
+            ui_services<Backend>::set_focus_manager(&m_focus_manager);
         }
 
         /**
@@ -128,10 +134,26 @@ namespace onyxui {
          * @details
          * This constructor allows passing a pre-configured renderer,
          * useful when the renderer needs special initialization.
+         * Automatically registers layer and focus managers with ui_services.
          */
         ui_handle(std::unique_ptr<widget_type> root, renderer_type renderer)
             : m_root(std::move(root))
             , m_renderer(std::move(renderer)) {
+
+            // Register services globally
+            ui_services<Backend>::set_layer_manager(&m_layer_manager);
+            ui_services<Backend>::set_focus_manager(&m_focus_manager);
+        }
+
+        /**
+         * @brief Destructor - clears service registry
+         *
+         * @details
+         * Unregisters layer and focus managers from ui_services.
+         * After destruction, widgets will receive nullptr from service lookups.
+         */
+        ~ui_handle() {
+            ui_services<Backend>::clear();
         }
 
         /**
@@ -153,8 +175,10 @@ namespace onyxui {
             // Get viewport from renderer (renderer knows its size)
             auto bounds = m_renderer.get_viewport();
 
-            // Clear dirty regions from previous frame
+            // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
+
+            // Clear dirty regions before rendering
             for (const auto& region : dirty_regions) {
                 m_renderer.clear_region(region);
             }
@@ -164,8 +188,9 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
-            // Render base UI to back buffer
-            m_root->render(m_renderer);
+            // Render base UI to back buffer with dirty rectangle optimization
+            // Only renders widgets that intersect with dirty regions
+            m_root->render(m_renderer, dirty_regions);
 
             // Render all overlay layers
             m_layer_manager.render_all_layers(m_renderer, bounds);
@@ -183,8 +208,10 @@ namespace onyxui {
         void display(const rect_type& bounds) {
             if (!m_root) return;
 
-            // Clear dirty regions from previous frame
+            // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
+
+            // Clear dirty regions before rendering
             for (const auto& region : dirty_regions) {
                 m_renderer.clear_region(region);
             }
@@ -194,8 +221,9 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
-            // Render base UI to back buffer
-            m_root->render(m_renderer);
+            // Render base UI to back buffer with dirty rectangle optimization
+            // Only renders widgets that intersect with dirty regions
+            m_root->render(m_renderer, dirty_regions);
 
             // Render all overlay layers
             m_layer_manager.render_all_layers(m_renderer, bounds);

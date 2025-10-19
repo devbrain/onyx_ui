@@ -503,10 +503,32 @@ namespace onyxui {
        * @param renderer The backend renderer instance
        */
             void render(renderer_type& renderer) {
+                render(renderer, {});  // Empty vector means "render everything"
+            }
+
+            /**
+       * @brief Render this element and its children with dirty rectangle optimization
+       * @param renderer The backend renderer instance
+       * @param dirty_regions Regions that need redrawing (empty = render everything)
+       *
+       * @details
+       * Uses dirty rectangle optimization to skip rendering elements that don't
+       * intersect with any dirty region. This significantly improves performance
+       * when only small portions of the UI change.
+       */
+            void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
                 if (!m_visible) return;
 
-                // Create draw context and render this element (within parent's clip)
-                draw_context<Backend> ctx(renderer);
+                // Create draw context with dirty regions for optimization
+                draw_context<Backend> ctx(renderer, dirty_regions);
+
+                // Skip rendering if this element doesn't intersect with any dirty region
+                if (!ctx.should_render(m_bounds)) {
+                    // Early return - don't render this element or its children
+                    return;
+                }
+
+                // Render this element (within parent's clip)
                 do_render(ctx);
 
                 // Set clip rect for children (content area only)
@@ -516,8 +538,9 @@ namespace onyxui {
                 renderer.push_clip(content_area);
 
                 // Render children in z-order (they're already clipped)
+                // Pass dirty regions down to children for continued optimization
                 for (const auto& child : m_children) {
-                    child->render(renderer);
+                    child->render(renderer, dirty_regions);
                 }
 
                 // Restore previous clip rect

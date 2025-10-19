@@ -9,6 +9,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 #include <onyxui/concepts/backend.hh>
 
 namespace onyxui {
@@ -215,6 +216,52 @@ namespace onyxui {
          */
         [[nodiscard]] virtual renderer_type* renderer() noexcept {
             return nullptr;
+        }
+
+        /**
+         * @brief Set dirty regions for optimized rendering
+         * @param regions List of rectangles that need redrawing
+         *
+         * @details
+         * When dirty regions are set, the context can optimize rendering by:
+         * - Skipping widgets that don't intersect with dirty regions
+         * - Clipping rendering operations to dirty regions
+         *
+         * **Usage**:
+         * @code
+         * draw_context<Backend> ctx(renderer);
+         * ctx.set_dirty_regions(dirty_rects);
+         * widget->do_render(ctx);  // Only renders if intersects dirty regions
+         * @endcode
+         *
+         * **Note**: Empty vector means "render everything" (default behavior)
+         */
+        virtual void set_dirty_regions(const std::vector<rect_type>& regions) {
+            // Default: no-op (measure_context doesn't care about dirty regions)
+            (void)regions;
+        }
+
+        /**
+         * @brief Check if a rectangle should be rendered
+         * @param bounds The rectangle to check
+         * @return true if should render, false to skip
+         *
+         * @details
+         * - **No dirty regions**: Returns true (render everything)
+         * - **Has dirty regions**: Returns true only if bounds intersects with any dirty region
+         *
+         * Widgets can call this to optimize their rendering:
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     if (!ctx.should_render(m_bounds)) return;  // Skip if not dirty
+         *     // ... render content ...
+         * }
+         * @endcode
+         */
+        [[nodiscard]] virtual bool should_render(const rect_type& bounds) const {
+            // Default: always render (no optimization)
+            (void)bounds;
+            return true;
         }
 
     protected:

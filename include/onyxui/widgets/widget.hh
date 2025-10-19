@@ -37,12 +37,24 @@
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/measure_context.hh>
+#include <onyxui/ui_services.hh>
+#include <onyxui/scoped_layer.hh>
+#include <onyxui/layer_manager.hh>
 #include <memory>
 
 namespace onyxui {
-    // Forward declaration for pointer usage
+    // Forward declarations
     template<UIBackend Backend>
     class action;
+
+    template<UIBackend Backend>
+    class menu;
+
+    template<UIBackend Backend>
+    class label;
+
+    template<UIBackend Backend>
+    class scoped_tooltip;
 }
 
 // Include after forward declaration to avoid circular dependency issues
@@ -291,6 +303,152 @@ namespace onyxui {
          */
         [[nodiscard]] std::shared_ptr<action<Backend>> get_action() const noexcept {
             return m_action.lock();
+        }
+
+        // ================================================================
+        // Layer Management Convenience Methods
+        // ================================================================
+
+
+        /**
+         * @brief Show a tooltip with custom content
+         * @param content Tooltip content (caller manages lifetime)
+         * @return Layer ID, or invalid if no layer manager available
+         *
+         * @details
+         * Shows a custom widget as a tooltip. Caller must ensure content
+         * remains valid while the tooltip is visible.
+         */
+        layer_id show_tooltip(ui_element<Backend>* content) {
+            auto* layers = ui_services<Backend>::layers();
+            if (!layers) return layer_id::invalid();
+
+            auto bounds = this->bounds();
+            int x = rect_utils::get_x(bounds);
+            int y = rect_utils::get_y(bounds) + rect_utils::get_height(bounds);
+
+            return layers->show_tooltip(content, x, y);
+        }
+
+        /**
+         * @brief Show a popup relative to this widget
+         * @param content Popup content (caller manages lifetime)
+         * @param placement Where to position the popup
+         * @return Layer ID, or invalid if no layer manager available
+         *
+         * @example
+         * @code
+         * void show_dropdown() {
+         *     this->show_popup(m_dropdown_menu.get(), popup_placement::below);
+         * }
+         * @endcode
+         */
+        layer_id show_popup(ui_element<Backend>* content,
+                           popup_placement placement = popup_placement::below,
+                           std::function<void()> outside_click_callback = nullptr) {
+            auto* layers = ui_services<Backend>::layers();
+            if (!layers) return layer_id::invalid();
+
+            return layers->show_popup(content, this->bounds(), placement, std::move(outside_click_callback));
+        }
+
+        /**
+         * @brief Show a context menu at widget position
+         * @param menu_content Menu to show (caller manages lifetime)
+         * @return Layer ID, or invalid if no layer manager available
+         *
+         * @example
+         * @code
+         * void on_mouse_down(const event_type& e) override {
+         *     if (is_right_click(e)) {
+         *         this->show_context_menu(m_context_menu.get());
+         *     }
+         * }
+         * @endcode
+         */
+        layer_id show_context_menu(menu<Backend>* menu_content) {
+            auto* layers = ui_services<Backend>::layers();
+            if (!layers) return layer_id::invalid();
+
+            // Phase 1.3: Pass callback to emit menu's closing signal on outside click
+            return layers->show_popup(menu_content, this->bounds(), popup_placement::auto_best,
+                [menu_content]() {
+                    if (menu_content) {
+                        menu_content->closing.emit();
+                    }
+                });
+        }
+
+        /**
+         * @brief Show a modal dialog
+         * @param content Dialog content (caller manages lifetime)
+         * @return Layer ID, or invalid if no layer manager available
+         */
+        layer_id show_modal_dialog(ui_element<Backend>* content) {
+            auto* layers = ui_services<Backend>::layers();
+            if (!layers) return layer_id::invalid();
+
+            return layers->show_modal_dialog(content, dialog_position::center);
+        }
+
+        // ================================================================
+        // SCOPED VERSIONS (RAII cleanup)
+        // ================================================================
+
+        /**
+         * @brief Show text tooltip with automatic cleanup
+         * @param text Tooltip text
+         * @return scoped_tooltip that owns both content and layer
+         *
+         * @details
+         * Creates a label with the given text, shows it as a tooltip below
+         * this widget, and returns a scoped_tooltip that owns both the label
+         * and manages the layer lifetime.
+         *
+         * @note Requires scoped_tooltip.hh to be included in implementation file
+         *
+         * @example
+         * @code
+         * class help_button : public button<Backend> {
+         *     scoped_tooltip<Backend> m_tooltip;
+         *
+         *     void on_mouse_enter() override {
+         *         m_tooltip = this->show_tooltip_scoped("Click for help");
+         *     }
+         * };
+         * @endcode
+         */
+        [[nodiscard]] scoped_tooltip<Backend> show_tooltip_scoped(const std::string& text);
+
+        /**
+         * @brief Show tooltip with custom content and automatic cleanup
+         */
+        [[nodiscard]] scoped_layer<Backend> show_tooltip_scoped(ui_element<Backend>* content) {
+            return scoped_layer<Backend>(ui_services<Backend>::layers(), show_tooltip(content));
+        }
+
+        /**
+         * @brief Show popup with automatic cleanup
+         */
+        [[nodiscard]] scoped_layer<Backend> show_popup_scoped(
+            ui_element<Backend>* content,
+            popup_placement placement = popup_placement::below) {
+
+            return scoped_layer<Backend>(ui_services<Backend>::layers(), show_popup(content, placement));
+        }
+
+        /**
+         * @brief Show context menu with automatic cleanup
+         */
+        [[nodiscard]] scoped_layer<Backend> show_context_menu_scoped(menu<Backend>* menu_content) {
+            return scoped_layer<Backend>(ui_services<Backend>::layers(), show_context_menu(menu_content));
+        }
+
+        /**
+         * @brief Show modal dialog with automatic cleanup
+         */
+        [[nodiscard]] scoped_layer<Backend> show_modal_dialog_scoped(ui_element<Backend>* content) {
+            return scoped_layer<Backend>(ui_services<Backend>::layers(), show_modal_dialog(content));
         }
 
     protected:

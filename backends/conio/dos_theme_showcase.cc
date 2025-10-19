@@ -112,10 +112,7 @@ public:
     void set_ui_handle(ui_handle<conio_backend>* ui) {
         m_ui_handle = ui;
 
-        // Give menu_bar access to ui_handle for self-contained popup management
-        if (m_menu_bar) {
-            m_menu_bar->set_ui_handle(ui);
-        }
+        // No longer needed - menu_bar uses ui_services automatically
     }
 
 private:

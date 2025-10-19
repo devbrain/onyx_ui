@@ -194,7 +194,7 @@ namespace onyxui {
      */
     template<typename Parent, typename... Args>
     auto* add_panel(Parent& parent, Args&&... args) {
-        using Backend = typename Parent::backend_type;
+        //using Backend = typename Parent::backend_type;
         return parent.template emplace_child<panel>(std::forward<Args>(args)...);
     }
 }

@@ -68,6 +68,8 @@
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 #include <onyxui/layer_manager.hh>
+#include <onyxui/scoped_layer.hh>
+#include <onyxui/ui_services.hh>
 
 namespace onyxui {
 
@@ -124,9 +126,7 @@ namespace onyxui {
          */
         explicit menu_bar(ui_element<Backend>* parent = nullptr)
             : base(0, horizontal_alignment::left, vertical_alignment::top, parent)
-            , m_ui_handle(nullptr)
-            , m_open_menu_index(std::nullopt)
-            , m_current_menu_layer() {
+            , m_open_menu_index(std::nullopt) {
             this->set_focusable(true);
         }
 
@@ -141,23 +141,6 @@ namespace onyxui {
         menu_bar(menu_bar&&) noexcept = default;
         menu_bar& operator=(menu_bar&&) noexcept = default;
 
-        /**
-         * @brief Set UI handle reference for layer management
-         * @param ui Pointer to UI handle
-         *
-         * @details
-         * Must be called after ui_handle is created to enable popup menus.
-         * menu_bar will use this to show/hide menu popups via layer manager.
-         *
-         * @example
-         * @code
-         * ui_handle<Backend> ui(std::move(root), renderer);
-         * menu_bar_ptr->set_ui_handle(&ui);
-         * @endcode
-         */
-        void set_ui_handle(ui_handle<Backend>* ui) {
-            m_ui_handle = ui;
-        }
 
         /**
          * @brief Add a menu to the menu bar
@@ -364,21 +347,18 @@ namespace onyxui {
         // that know the specific event type from Backend
 
     private:
-        ui_handle<Backend>* m_ui_handle;                             ///< UI handle for layer/focus management
         std::vector<menu_entry<Backend>> m_menus;                    ///< Menu entries
         std::vector<std::unique_ptr<menu<Backend>>> m_owned_menus;   ///< Owned menus
         std::optional<std::size_t> m_open_menu_index;                ///< Currently open menu
-        layer_id m_current_menu_layer;                               ///< Current menu popup layer
+        scoped_layer<Backend> m_current_menu;                        ///< Current menu popup (RAII cleanup)
     };
 
 } // namespace onyxui
 
-// Include ui_handle for implementations that use it
-#include <onyxui/ui_handle.hh>
 
 namespace onyxui {
 
-    // Implementation of methods that use ui_handle
+    // Implementation of methods using ui_services
     template<UIBackend Backend>
     void menu_bar<Backend>::open_menu(std::size_t index) {
         if (index >= m_menus.size()) return;
@@ -389,26 +369,20 @@ namespace onyxui {
         }
 
         m_open_menu_index = index;
-
-        // If no ui_handle, we're in test mode - just track the index
-        if (!m_ui_handle) return;
-
         auto& entry = m_menus[index];
 
-        // Get button bounds for positioning popup
-        rect_type anchor_bounds = get_menu_button_bounds(index);
-
-        // Show popup using layer manager
-        m_current_menu_layer = m_ui_handle->layers().show_popup(
-            entry.dropdown_menu,
-            anchor_bounds,
-            popup_placement::below
+        // Show context menu with outside click detection (Phase 1.3)
+        // scoped_layer auto-closes previous menu when reassigned
+        m_current_menu = entry.title_button->show_context_menu_scoped(
+            entry.dropdown_menu
         );
 
         // Focus the menu and first item
-        m_ui_handle->focus().set_focus(entry.dropdown_menu);
-        if (entry.dropdown_menu) {
-            entry.dropdown_menu->focus_first();
+        if (auto* focus = ui_services<Backend>::focus()) {
+            focus->set_focus(entry.dropdown_menu);
+            if (entry.dropdown_menu) {
+                entry.dropdown_menu->focus_first();
+            }
         }
     }
 
@@ -418,25 +392,13 @@ namespace onyxui {
             return;
         }
 
-        // If no ui_handle, we're in test mode - just clear the index
-        if (!m_ui_handle) {
-            m_open_menu_index = std::nullopt;
-            return;
-        }
+        // RAII cleanup - scoped_layer automatically removes layer
+        m_current_menu.reset();
 
-        // Hide menu popup via layer manager (if it still exists)
-        // Note: layer_manager may have already removed it on click-outside
-        if (m_current_menu_layer.is_valid()) {
-            // Check if layer still exists before trying to remove it
-            if (m_ui_handle->layers().is_layer_visible(m_current_menu_layer)) {
-                m_ui_handle->layers().remove_layer(m_current_menu_layer);
-            }
-            m_current_menu_layer = layer_id::invalid();
+        // Clear focus
+        if (auto* focus = ui_services<Backend>::focus()) {
+            focus->clear_focus();
         }
-
-        // Clear focus instead of setting to root
-        // This allows clicks to work normally
-        m_ui_handle->focus().clear_focus();
 
         m_open_menu_index = std::nullopt;
     }

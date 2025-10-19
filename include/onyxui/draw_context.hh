@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <vector>
 #include <onyxui/render_context.hh>
 #include <onyxui/concepts/size_like.hh>
 #include <onyxui/concepts/rect_like.hh>
@@ -73,6 +74,18 @@ namespace onyxui {
          */
         explicit draw_context(renderer_type& renderer)
             : m_renderer(&renderer) {}
+
+        /**
+         * @brief Construct draw context with renderer and dirty regions
+         * @param renderer Reference to the actual renderer
+         * @param dirty_regions List of rectangles that need redrawing
+         *
+         * @details
+         * When dirty regions are provided, only widgets that intersect with
+         * these regions will be rendered, optimizing performance.
+         */
+        draw_context(renderer_type& renderer, const std::vector<rect_type>& dirty_regions)
+            : m_renderer(&renderer), m_dirty_regions(dirty_regions) {}
 
         /**
          * @brief Destructor
@@ -206,7 +219,68 @@ namespace onyxui {
             return m_renderer;
         }
 
+        /**
+         * @brief Set dirty regions for optimized rendering
+         * @param regions List of rectangles that need redrawing
+         */
+        void set_dirty_regions(const std::vector<rect_type>& regions) override {
+            m_dirty_regions = regions;
+        }
+
+        /**
+         * @brief Check if a rectangle should be rendered
+         * @param bounds The rectangle to check
+         * @return true if should render, false to skip
+         *
+         * @details
+         * - If no dirty regions are set: Returns true (render everything)
+         * - If dirty regions are set: Returns true only if bounds intersects
+         *   with at least one dirty region
+         */
+        [[nodiscard]] bool should_render(const rect_type& bounds) const override {
+            // No dirty regions means render everything
+            if (m_dirty_regions.empty()) {
+                return true;
+            }
+
+            // Check if bounds intersect with any dirty region
+            for (const auto& dirty_rect : m_dirty_regions) {
+                if (rects_intersect(bounds, dirty_rect)) {
+                    return true;
+                }
+            }
+
+            // No intersection with any dirty region - skip rendering
+            return false;
+        }
+
     private:
+        /**
+         * @brief Check if two rectangles intersect
+         * @param a First rectangle
+         * @param b Second rectangle
+         * @return true if rectangles overlap
+         */
+        [[nodiscard]] static bool rects_intersect(const rect_type& a, const rect_type& b) {
+            int a_left = rect_utils::get_x(a);
+            int a_top = rect_utils::get_y(a);
+            int a_right = a_left + rect_utils::get_width(a);
+            int a_bottom = a_top + rect_utils::get_height(a);
+
+            int b_left = rect_utils::get_x(b);
+            int b_top = rect_utils::get_y(b);
+            int b_right = b_left + rect_utils::get_width(b);
+            int b_bottom = b_top + rect_utils::get_height(b);
+
+            // Check for non-intersection (easier to reason about)
+            // Rectangles DON'T intersect if one is completely to the side of the other
+            return !(a_right <= b_left ||   // a is completely left of b
+                    b_right <= a_left ||    // b is completely left of a
+                    a_bottom <= b_top ||    // a is completely above b
+                    b_bottom <= a_top);     // b is completely above a
+        }
+
         renderer_type* m_renderer;  ///< Non-owning pointer to renderer
+        std::vector<rect_type> m_dirty_regions;  ///< Dirty regions for optimized rendering
     };
 }

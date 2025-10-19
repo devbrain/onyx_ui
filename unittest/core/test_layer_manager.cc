@@ -138,37 +138,37 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Add a layer") {
-            auto layer = std::make_unique<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            auto layer = std::make_shared<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer);
 
             CHECK(id.is_valid());
             CHECK(mgr.layer_count() == 1);
         }
 
         SUBCASE("Remove a layer") {
-            auto layer = std::make_unique<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            auto layer = std::make_shared<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer);
 
             mgr.remove_layer(id);
             CHECK(mgr.layer_count() == 0);
         }
 
         SUBCASE("Remove invalid layer ID does nothing") {
-            auto layer = std::make_unique<TestLayer>();
-            mgr.add_layer(layer_type::popup, layer.get());
+            auto layer = std::make_shared<TestLayer>();
+            mgr.add_layer(layer_type::popup, layer);
 
             mgr.remove_layer(layer_id::invalid());
             CHECK(mgr.layer_count() == 1);
         }
 
         SUBCASE("Clear layers by type") {
-            auto popup1 = std::make_unique<TestLayer>();
-            auto popup2 = std::make_unique<TestLayer>();
-            auto dialog = std::make_unique<TestLayer>();
+            auto popup1 = std::make_shared<TestLayer>();
+            auto popup2 = std::make_shared<TestLayer>();
+            auto dialog = std::make_shared<TestLayer>();
 
-            mgr.add_layer(layer_type::popup, popup1.get());
-            mgr.add_layer(layer_type::popup, popup2.get());
-            mgr.add_layer(layer_type::dialog, dialog.get());
+            mgr.add_layer(layer_type::popup, popup1);
+            mgr.add_layer(layer_type::popup, popup2);
+            mgr.add_layer(layer_type::dialog, dialog);
 
             CHECK(mgr.layer_count() == 3);
 
@@ -177,11 +177,11 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Clear all layers") {
-            auto layer1 = std::make_unique<TestLayer>();
-            auto layer2 = std::make_unique<TestLayer>();
+            auto layer1 = std::make_shared<TestLayer>();
+            auto layer2 = std::make_shared<TestLayer>();
 
-            mgr.add_layer(layer_type::popup, layer1.get());
-            mgr.add_layer(layer_type::dialog, layer2.get());
+            mgr.add_layer(layer_type::popup, layer1);
+            mgr.add_layer(layer_type::dialog, layer2);
 
             mgr.clear_all_layers();
             CHECK(mgr.layer_count() == 0);
@@ -202,24 +202,24 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Layers sorted by z-index") {
-            auto tooltip = std::make_unique<TestLayer>();
-            auto popup = std::make_unique<TestLayer>();
-            auto dialog = std::make_unique<TestLayer>();
+            auto tooltip = std::make_shared<TestLayer>();
+            auto popup = std::make_shared<TestLayer>();
+            auto dialog = std::make_shared<TestLayer>();
 
             // Add in reverse z-order
-            mgr.add_layer(layer_type::dialog, dialog.get());   // z=300
-            mgr.add_layer(layer_type::tooltip, tooltip.get()); // z=100
-            mgr.add_layer(layer_type::popup, popup.get());     // z=200
+            mgr.add_layer(layer_type::dialog, dialog);   // z=300
+            mgr.add_layer(layer_type::tooltip, tooltip); // z=100
+            mgr.add_layer(layer_type::popup, popup);     // z=200
 
             // Layers should be internally sorted by z-index
             CHECK(mgr.layer_count() == 3);
         }
 
         SUBCASE("Custom z-index") {
-            auto layer = std::make_unique<TestLayer>();
+            auto layer = std::make_shared<TestLayer>();
 
             // Use custom z-index instead of default
-            mgr.add_layer(layer_type::popup, layer.get(), 999);
+            mgr.add_layer(layer_type::popup, layer, 999);
 
             CHECK(mgr.layer_count() == 1);
         }
@@ -228,8 +228,8 @@ TEST_SUITE("Layer Manager") {
     TEST_CASE("Layer visibility") {
         layer_manager<test_backend> mgr;
 
-        auto layer = std::make_unique<TestLayer>();
-        layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+        auto layer = std::make_shared<TestLayer>();
+        layer_id id = mgr.add_layer(layer_type::popup, layer);
 
         SUBCASE("Layers are visible by default") {
             CHECK(mgr.is_layer_visible(id));
@@ -260,26 +260,26 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Modal layer detected") {
-            auto modal = std::make_unique<TestLayer>();
-            mgr.add_layer(layer_type::modal, modal.get());
+            auto modal = std::make_shared<TestLayer>();
+            mgr.add_layer(layer_type::modal, modal);
 
             CHECK(mgr.has_modal_layer());
         }
 
         SUBCASE("Hidden modal not counted") {
-            auto modal = std::make_unique<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::modal, modal.get());
+            auto modal = std::make_shared<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::modal, modal);
 
             mgr.hide_layer(id);
             CHECK(!mgr.has_modal_layer());
         }
 
         SUBCASE("Non-modal layers not counted") {
-            auto popup = std::make_unique<TestLayer>();
-            auto dialog = std::make_unique<TestLayer>();
+            auto popup = std::make_shared<TestLayer>();
+            auto dialog = std::make_shared<TestLayer>();
 
-            mgr.add_layer(layer_type::popup, popup.get());
-            mgr.add_layer(layer_type::dialog, dialog.get());
+            mgr.add_layer(layer_type::popup, popup);
+            mgr.add_layer(layer_type::dialog, dialog);
 
             CHECK(!mgr.has_modal_layer());
         }
@@ -297,34 +297,34 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Single layer handles event") {
-            auto layer = std::make_unique<TestLayer>();
+            auto layer = std::make_shared<TestLayer>();
             layer->event_handled = true; // Configure to handle
 
-            mgr.add_layer(layer_type::popup, layer.get());
+            mgr.add_layer(layer_type::popup, layer);
 
             CHECK(mgr.route_event(event));
             CHECK(layer->last_event_received);
         }
 
         SUBCASE("Single layer doesn't handle event") {
-            auto layer = std::make_unique<TestLayer>();
+            auto layer = std::make_shared<TestLayer>();
             layer->event_handled = false; // Configure to not handle
 
-            mgr.add_layer(layer_type::popup, layer.get());
+            mgr.add_layer(layer_type::popup, layer);
 
             CHECK(!mgr.route_event(event));
             CHECK(layer->last_event_received); // Still received it
         }
 
         SUBCASE("Higher z-index layer gets event first") {
-            auto lower = std::make_unique<TestLayer>();
-            auto higher = std::make_unique<TestLayer>();
+            auto lower = std::make_shared<TestLayer>();
+            auto higher = std::make_shared<TestLayer>();
 
             lower->event_handled = true;
             higher->event_handled = true;
 
-            mgr.add_layer(layer_type::tooltip, lower.get());  // z=100
-            mgr.add_layer(layer_type::popup, higher.get());   // z=200
+            mgr.add_layer(layer_type::tooltip, lower);  // z=100
+            mgr.add_layer(layer_type::popup, higher);   // z=200
 
             CHECK(mgr.route_event(event));
 
@@ -333,14 +333,14 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Event passes through if not handled") {
-            auto lower = std::make_unique<TestLayer>();
-            auto higher = std::make_unique<TestLayer>();
+            auto lower = std::make_shared<TestLayer>();
+            auto higher = std::make_shared<TestLayer>();
 
             lower->event_handled = true;
             higher->event_handled = false; // Higher doesn't handle
 
-            mgr.add_layer(layer_type::tooltip, lower.get());
-            mgr.add_layer(layer_type::popup, higher.get());
+            mgr.add_layer(layer_type::tooltip, lower);
+            mgr.add_layer(layer_type::popup, higher);
 
             CHECK(mgr.route_event(event));
 
@@ -349,10 +349,10 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Hidden layers don't receive events") {
-            auto layer = std::make_unique<TestLayer>();
+            auto layer = std::make_shared<TestLayer>();
             layer->event_handled = true;
 
-            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            layer_id id = mgr.add_layer(layer_type::popup, layer);
             mgr.hide_layer(id);
 
             CHECK(!mgr.route_event(event));
@@ -360,14 +360,14 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Modal blocks events to lower layers") {
-            auto base = std::make_unique<TestLayer>();
-            auto modal = std::make_unique<TestLayer>();
+            auto base = std::make_shared<TestLayer>();
+            auto modal = std::make_shared<TestLayer>();
 
             base->event_handled = true;
             modal->event_handled = false; // Modal doesn't handle
 
-            mgr.add_layer(layer_type::base, base.get());    // z=0
-            mgr.add_layer(layer_type::modal, modal.get());  // z=400
+            mgr.add_layer(layer_type::base, base);    // z=0
+            mgr.add_layer(layer_type::modal, modal);  // z=400
 
             CHECK(mgr.route_event(event)); // Returns true (blocked by modal)
 
@@ -376,14 +376,14 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Layers above modal still get events") {
-            auto modal = std::make_unique<TestLayer>();
-            auto debug = std::make_unique<TestLayer>();
+            auto modal = std::make_shared<TestLayer>();
+            auto debug = std::make_shared<TestLayer>();
 
             modal->event_handled = false;
             debug->event_handled = true;
 
-            mgr.add_layer(layer_type::modal, modal.get());  // z=400
-            mgr.add_layer(layer_type::debug, debug.get());  // z=1000
+            mgr.add_layer(layer_type::modal, modal);  // z=400
+            mgr.add_layer(layer_type::debug, debug);  // z=1000
 
             CHECK(mgr.route_event(event));
 
@@ -396,7 +396,7 @@ TEST_SUITE("Layer Manager") {
         layer_manager<test_backend> mgr;
 
         SUBCASE("Show popup") {
-            auto popup = std::make_unique<TestLayer>();
+            auto popup = std::make_shared<TestLayer>();
             TestRect anchor{10, 20, 100, 30};
 
             layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below);
@@ -407,7 +407,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Show tooltip") {
-            auto tooltip = std::make_unique<TestLayer>();
+            auto tooltip = std::make_shared<TestLayer>();
 
             layer_id id = mgr.show_tooltip(tooltip.get(), 50, 60);
 
@@ -417,7 +417,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Show modal dialog") {
-            auto dialog = std::make_unique<TestLayer>();
+            auto dialog = std::make_shared<TestLayer>();
 
             layer_id id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
 
@@ -438,8 +438,8 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Single layer rendered") {
-            auto layer = std::make_unique<TestLayer>();
-            mgr.add_layer(layer_type::popup, layer.get());
+            auto layer = std::make_shared<TestLayer>();
+            mgr.add_layer(layer_type::popup, layer);
 
             mgr.render_all_layers(renderer, viewport);
 
@@ -447,8 +447,8 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Hidden layers not rendered") {
-            auto layer = std::make_unique<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            auto layer = std::make_shared<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer);
             mgr.hide_layer(id);
 
             mgr.render_all_layers(renderer, viewport);
@@ -457,13 +457,13 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Multiple layers rendered in z-order") {
-            auto layer1 = std::make_unique<TestLayer>();
-            auto layer2 = std::make_unique<TestLayer>();
-            auto layer3 = std::make_unique<TestLayer>();
+            auto layer1 = std::make_shared<TestLayer>();
+            auto layer2 = std::make_shared<TestLayer>();
+            auto layer3 = std::make_shared<TestLayer>();
 
-            mgr.add_layer(layer_type::popup, layer1.get());    // z=200
-            mgr.add_layer(layer_type::tooltip, layer2.get());  // z=100
-            mgr.add_layer(layer_type::dialog, layer3.get());   // z=300
+            mgr.add_layer(layer_type::popup, layer1);    // z=200
+            mgr.add_layer(layer_type::tooltip, layer2);  // z=100
+            mgr.add_layer(layer_type::dialog, layer3);   // z=300
 
             mgr.render_all_layers(renderer, viewport);
 
@@ -473,7 +473,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Layer positioning for popup") {
-            auto popup = std::make_unique<TestLayer>();
+            auto popup = std::make_shared<TestLayer>();
             TestRect anchor{100, 50, 80, 30};
 
             // Set a size for the popup
@@ -490,7 +490,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Layer positioning for dialog") {
-            auto dialog = std::make_unique<TestLayer>();
+            auto dialog = std::make_shared<TestLayer>();
 
             // Set a size for the dialog
             dialog->set_preferred_size(200, 150);
@@ -513,7 +513,7 @@ TEST_SUITE("Layer Manager") {
 
         // Create popup with fixed size
         auto create_popup = []() {
-            auto popup = std::make_unique<TestLayer>();
+            auto popup = std::make_shared<TestLayer>();
             popup->set_preferred_size(150, 80);
             return popup;
         };
@@ -638,13 +638,13 @@ TEST_SUITE("Layer Manager") {
         TestRect viewport{0, 0, 800, 600};
 
         // Create multiple layers
-        auto base = std::make_unique<TestLayer>();
-        auto popup = std::make_unique<TestLayer>();
-        auto modal = std::make_unique<TestLayer>();
-        auto tooltip = std::make_unique<TestLayer>();
+        auto base = std::make_shared<TestLayer>();
+        auto popup = std::make_shared<TestLayer>();
+        auto modal = std::make_shared<TestLayer>();
+        auto tooltip = std::make_shared<TestLayer>();
 
         // Add layers in various orders
-        layer_id base_id = mgr.add_layer(layer_type::base, base.get());
+        layer_id base_id = mgr.add_layer(layer_type::base, base);
         layer_id popup_id = mgr.show_popup(popup.get(), TestRect{100, 100, 50, 30});
         layer_id modal_id = mgr.show_modal_dialog(modal.get());
         layer_id tooltip_id = mgr.show_tooltip(tooltip.get(), 200, 200);
