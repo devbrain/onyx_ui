@@ -265,10 +265,13 @@ namespace onyxui::safe_math {
             return std::numeric_limits<T>::max(); // Unsigned can only overflow upward
         } else {
             // Signed: determine direction from operands
-            if ((a > 0 && b > 0) || (a >= 0 && b > 0) || (a > 0 && b >= 0)) {
-                return std::numeric_limits<T>::max(); // Positive overflow
-            } else {
-                return std::numeric_limits<T>::min(); // Negative overflow
+            // Mixed signs cannot overflow in addition, so we know both have same sign
+            // If both positive: overflow upward to max
+            // If both negative: overflow downward to min
+            if (b > 0) {  // Both must be positive to overflow
+                return std::numeric_limits<T>::max();
+            } else {  // Both must be negative to overflow
+                return std::numeric_limits<T>::min();
             }
         }
     }
@@ -319,6 +322,11 @@ namespace onyxui::safe_math {
         if constexpr (std::is_unsigned_v<T>) {
             return std::numeric_limits<T>::max();
         } else {
+            // Multiplication overflow direction:
+            // - pos * pos = pos overflow → max
+            // - neg * neg = pos overflow → max
+            // - pos * neg = neg overflow → min
+            // - neg * pos = neg overflow → min
             // Result is positive if signs match, negative if they differ
             bool result_positive = (a > 0) == (b > 0);
             return result_positive ? std::numeric_limits<T>::max()

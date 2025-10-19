@@ -49,6 +49,9 @@ add_executable(ui_unittest
         core/test_element.cc
         core/test_signal_slot.cc
         core/test_rule_of_five.cc
+        core/test_dirty_tracking.cc
+        core/test_exception_safety.cc
+        core/test_layer_manager.cc
         events/test_events.cc
         events/test_event_target.cc
         focus/test_focus_manager.cc
@@ -57,9 +60,11 @@ add_executable(ui_unittest
         layout/test_composition.cc
         layout/test_grid.cc
         layout/test_linear.cc
+        layout/test_size_constraint.cc
         main.cc
         utils/test_backend.hh
         utils/test_helpers.hh
+        utils/test_safe_math.cc
         widgets/test_widgets.cc
         widgets/widgets.hh
         widgets/test_hbox.cc

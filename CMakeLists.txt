@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(ONYX_UI_BUILD_TEST "Build unittests for onyx_ui" ON)
 option(ONYX_UI_ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
 option(ONYX_UI_ENABLE_CPPCHECK "Enable cppcheck static analysis" OFF)
+option(ONYXUI_THREAD_SAFE "Enable thread-safe signal/slot system (adds mutex overhead)" ON)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(ONYX_UI_WARNING_FLAGS
@@ -245,6 +246,25 @@ target_include_directories(onyx_ui INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(onyx_ui INTERFACE thirdparty::failsafe)
+
+# Thread safety configuration
+if(ONYXUI_THREAD_SAFE)
+    target_compile_definitions(onyx_ui INTERFACE ONYXUI_THREAD_SAFE=1)
+    message(STATUS "Thread-safe signal/slot system enabled (ONYXUI_THREAD_SAFE=1)")
+else()
+    message(STATUS "Thread-safe signal/slot system disabled (maximum performance, single-threaded only)")
+endif()
+
+# Failsafe logging configuration
+# Debug builds: Enable verbose logging for development and debugging
+# Release builds: Only log errors to minimize performance impact
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(onyx_ui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_DEBUG)
+    message(STATUS "Failsafe logging: DEBUG level enabled")
+else()
+    target_compile_definitions(onyx_ui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_ERROR)
+    message(STATUS "Failsafe logging: ERROR level only")
+endif()
 
 if (ONYX_UI_BUILD_TEST)
     add_subdirectory(unittest)

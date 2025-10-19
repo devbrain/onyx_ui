@@ -153,4 +153,77 @@ TEST_SUITE("ui_element") {
         CHECK(!(t1 == t3));
         CHECK(!(t1 != t2));
     }
+
+    TEST_CASE("Deep hierarchy - recursion safety") {
+        SUBCASE("Moderate depth (50 levels) - typical deep UI") {
+            // Create a 50-level deep hierarchy
+            auto root = std::make_unique<TestElement>();
+            TestElement* current = root.get();
+
+            for (int i = 0; i < 49; i++) {
+                auto child = std::make_unique<TestElement>();
+                TestElement* child_ptr = child.get();
+                current->add_test_child(std::move(child));
+                current = child_ptr;
+            }
+
+            // Test invalidate_measure (walks UP the tree)
+            current->invalidate_measure();
+
+            // Test measure/arrange (walks DOWN the tree)
+            auto size = root->measure(1000, 1000);
+            CHECK(size.w >= 0);
+            CHECK(size.h >= 0);
+            root->arrange(test_backend::rect{0, 0, 1000, 1000});
+            CHECK(root->bounds().w == 1000);
+
+            // Test hit_test (walks DOWN the tree)
+            auto* hit = root->hit_test(500, 500);
+            CHECK(hit != nullptr);
+        }
+
+        SUBCASE("Reasonable depth (100 levels) - stress test") {
+            // Create a 100-level deep hierarchy
+            auto root = std::make_unique<TestElement>();
+            TestElement* current = root.get();
+
+            for (int i = 0; i < 99; i++) {
+                auto child = std::make_unique<TestElement>();
+                TestElement* child_ptr = child.get();
+                current->add_test_child(std::move(child));
+                current = child_ptr;
+            }
+
+            // All operations should work without stack overflow
+            current->invalidate_measure();
+            auto size = root->measure(1000, 1000);
+            root->arrange(test_backend::rect{0, 0, 1000, 1000});
+            auto* hit = root->hit_test(500, 500);
+
+            CHECK(size.w >= 0);
+            CHECK(hit != nullptr);
+        }
+
+        SUBCASE("Wide tree (100 children at one level)") {
+            // Test wide tree instead of deep
+            auto root = std::make_unique<TestElement>();
+
+            for (int i = 0; i < 100; i++) {
+                auto child = std::make_unique<TestElement>();
+                root->add_test_child(std::move(child));
+            }
+
+            CHECK(root->child_count() == 100);
+
+            // Should handle invalidation efficiently
+            root->invalidate_measure();
+            auto size = root->measure(1000, 1000);
+            root->arrange(test_backend::rect{0, 0, 1000, 1000});
+
+            // Hit testing should work
+            auto* hit = root->hit_test(500, 500);
+            CHECK(size.w >= 0);
+            CHECK(hit != nullptr);
+        }
+    }
 }

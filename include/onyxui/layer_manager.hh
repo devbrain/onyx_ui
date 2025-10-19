@@ -69,6 +69,7 @@
 #include <memory>
 #include <optional>
 #include <algorithm>
+#include <iostream>  // For debug output
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/element.hh>
 
@@ -456,10 +457,8 @@ namespace onyxui {
                                 } else {
                                     layer_to_remove = it->id;
                                 }
-                                // Stop checking other layers
-                                break;
                             }
-                            // Only check the topmost popup
+                            // Only check the topmost popup (whether inside or outside)
                             break;
                         }
                     }

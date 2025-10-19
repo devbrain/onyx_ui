@@ -36,6 +36,32 @@
  * platform-specific types through a traits structure. This simplifies the API
  * and ensures type consistency.
  *
+ * ## Recursion Safety
+ *
+ * Several methods use recursion to traverse the UI tree. All recursive operations
+ * are bounded by the UI tree depth, which is typically shallow in practice:
+ *
+ * - **Typical depth**: 5-15 levels (most applications)
+ * - **Complex applications**: 20-30 levels
+ * - **Stress-tested**: 100 levels (verified in tests)
+ * - **Theoretical maximum**: Limited by stack size (~1000-10000 levels depending on platform)
+ *
+ * **Recursive Functions:**
+ * 1. `invalidate_measure()` - Tail recursion walking UP the parent chain
+ * 2. `invalidate_arrange()` - Recursion propagating DOWN to children
+ * 3. `hit_test()` - Depth-first search DOWN the tree
+ *
+ * All recursive functions have early termination conditions and are safe for
+ * normal UI hierarchies. Stack overflow is not a practical concern for typical use.
+ *
+ * **Performance Characteristics:**
+ * - Recursion depth = O(tree height), typically < 30
+ * - Stack frame size is small (~100-200 bytes per level)
+ * - Total stack usage typically < 10KB for deep hierarchies
+ *
+ * @note If building pathological hierarchies (>100 levels), consider flattening
+ *       the structure or using a different layout approach.
+ *
  * @tparam Backend The backend traits type (e.g., sdl_backend, glfw_backend)
  */
 
@@ -195,21 +221,42 @@ namespace onyxui {
 
             /**
              * @brief Virtual destructor for proper cleanup
+             *
+             * @details
+             * Nulls out all children's parent pointers before destruction as a
+             * defensive measure. This helps catch bugs where code might hold raw
+             * pointers to children and access them after parent destruction.
+             *
+             * @note Exception safety: No-throw guarantee (noexcept)
              */
-            virtual ~ui_element() noexcept = default;
+            virtual ~ui_element() noexcept {
+                // Defensive: null out children's parent pointers before destruction
+                // This catches bugs where someone holds a child pointer after parent dies
+                for (auto& child : m_children) {
+                    if (child) {
+                        child->m_parent = nullptr;
+                    }
+                }
+            }
 
             // Rule of Five
             /**
              * @brief Move constructor
              * @note Updates children's parent pointers to maintain tree consistency
+             * @note noexcept specification is conditional on base classes
              */
-            ui_element(ui_element&& other) noexcept;
+            ui_element(ui_element&& other) noexcept(
+                std::is_nothrow_move_constructible_v<event_target<Backend>> &&
+                std::is_nothrow_move_constructible_v<themeable<Backend>>);
 
             /**
              * @brief Move assignment operator
              * @note Updates children's parent pointers to maintain tree consistency
+             * @note noexcept specification is conditional on base classes
              */
-            ui_element& operator=(ui_element&& other) noexcept;
+            ui_element& operator=(ui_element&& other) noexcept(
+                std::is_nothrow_move_assignable_v<event_target<Backend>> &&
+                std::is_nothrow_move_assignable_v<themeable<Backend>>);
 
             ui_element(const ui_element&) = delete;
             ui_element& operator=(const ui_element&) = delete;
@@ -352,8 +399,20 @@ namespace onyxui {
              */
             void set_visible(bool visible) {
                 if (m_visible != visible) {
+                    // Mark dirty before changing visibility
+                    // This ensures hidden elements get cleared
+                    if (m_visible) {
+                        mark_dirty();
+                    }
+
                     m_visible = visible;
                     invalidate_arrange();
+
+                    // Mark dirty after becoming visible
+                    // This ensures newly visible elements get drawn
+                    if (m_visible) {
+                        mark_dirty();
+                    }
                 }
             }
 
@@ -487,6 +546,31 @@ namespace onyxui {
             [[nodiscard]] ui_element* parent() const noexcept { return m_parent; }
             [[nodiscard]] bool has_layout_strategy() const noexcept { return m_layout_strategy != nullptr; }
 
+            /**
+             * @brief Mark this element's bounds as dirty (needs redraw)
+             *
+             * @details
+             * Marks the current bounds as needing to be cleared/redrawn.
+             * This propagates up to the root element which collects dirty regions.
+             */
+            void mark_dirty();
+
+            /**
+             * @brief Mark a specific region as dirty (internal use)
+             * @param region The region that needs redrawing
+             */
+            void mark_dirty_region(const rect_type& region);
+
+            /**
+             * @brief Get and clear accumulated dirty regions (root only)
+             * @return Vector of dirty regions that need clearing
+             *
+             * @details
+             * Only valid for root elements. Returns all accumulated dirty
+             * regions and clears the internal list.
+             */
+            [[nodiscard]] std::vector<rect_type> get_and_clear_dirty_regions();
+
         protected:
             // -----------------------------------------------------------------------
             // Protected Virtual Methods (from event_target)
@@ -595,6 +679,9 @@ namespace onyxui {
             vertical_alignment m_v_align = vertical_alignment::stretch;
             thickness m_margin = {0, 0, 0, 0};
             thickness m_padding = {0, 0, 0, 0};
+
+            // Dirty region tracking (only used by root element)
+            std::vector<rect_type> m_dirty_regions;
     };
 
     // ===============================================================================
@@ -607,7 +694,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    ui_element<Backend>::ui_element(ui_element&& other) noexcept
+    ui_element<Backend>::ui_element(ui_element&& other) noexcept(
+        std::is_nothrow_move_constructible_v<event_target<Backend>> &&
+        std::is_nothrow_move_constructible_v<themeable<Backend>>)
         // Initialize base classes first (required order), but only move the base class parts
         : event_target<Backend>(std::move(static_cast<event_target<Backend>&>(other)))
         , themeable<Backend>(std::move(static_cast<themeable<Backend>&>(other)))
@@ -637,7 +726,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    ui_element<Backend>& ui_element<Backend>::operator=(ui_element&& other) noexcept {
+    ui_element<Backend>& ui_element<Backend>::operator=(ui_element&& other) noexcept(
+        std::is_nothrow_move_assignable_v<event_target<Backend>> &&
+        std::is_nothrow_move_assignable_v<themeable<Backend>>) {
         if (this != &other) {
             // Move base classes
             event_target<Backend>::operator=(std::move(other));
@@ -677,8 +768,10 @@ namespace onyxui {
     template<UIBackend Backend>
     void ui_element <Backend>::add_child(ui_element_ptr child) {
         if (child) {
-            child->m_parent = this;
+            // Push to vector first - if this throws, no state has been modified
             m_children.push_back(std::move(child));
+            // Now safe to modify the child's parent pointer
+            m_children.back()->m_parent = this;
             invalidate_measure();
         }
     }
@@ -706,13 +799,18 @@ namespace onyxui {
                                });
 
         if (it != m_children.end()) {
-            if (m_layout_strategy) {
-                m_layout_strategy->on_child_removed(child);
-            }
-
+            // Exception safety: Remove child from vector FIRST, then call cleanup.
+            // This ensures the child is removed even if layout_strategy->on_child_removed() throws.
+            // Basic guarantee: child removed from vector even if cleanup throws.
             ui_element_ptr removed = std::move(*it);
             m_children.erase(it);
             removed->m_parent = nullptr;
+
+            // Cleanup can throw, but child is already removed at this point
+            if (m_layout_strategy) {
+                m_layout_strategy->on_child_removed(removed.get());
+            }
+
             invalidate_measure();
             return removed;
         }
@@ -800,6 +898,11 @@ namespace onyxui {
     void ui_element <Backend>::arrange(const rect_type& final_bounds) {
         // Check if bounds changed
         const bool bounds_changed = !rect_utils::equal(m_bounds, final_bounds);
+
+        // Mark old bounds as dirty if they changed
+        if (bounds_changed && m_visible) {
+            mark_dirty();
+        }
 
         m_bounds = final_bounds;
 
@@ -894,5 +997,33 @@ namespace onyxui {
         if (m_layout_strategy) {
             m_layout_strategy->arrange_children(this, final_bounds);
         }
+    }
+
+    // -------------------------------------------------------------------------------
+    // Dirty Region Tracking
+    // -------------------------------------------------------------------------------
+
+    template<UIBackend Backend>
+    void ui_element<Backend>::mark_dirty() {
+        mark_dirty_region(m_bounds);
+    }
+
+    template<UIBackend Backend>
+    void ui_element<Backend>::mark_dirty_region(const rect_type& region) {
+        // If we have a parent, propagate up to the root
+        if (m_parent) {
+            m_parent->mark_dirty_region(region);
+        } else {
+            // We're the root - store the dirty region
+            m_dirty_regions.push_back(region);
+        }
+    }
+
+    template<UIBackend Backend>
+    std::vector<typename ui_element<Backend>::rect_type>
+    ui_element<Backend>::get_and_clear_dirty_regions() {
+        auto regions = std::move(m_dirty_regions);
+        m_dirty_regions.clear();
+        return regions;
     }
 }

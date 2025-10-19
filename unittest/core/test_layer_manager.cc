@@ -1,0 +1,680 @@
+/**
+ * @file test_layer_manager.cc
+ * @brief Comprehensive unit tests for layer manager functionality
+ * @author Assistant
+ * @date 2024
+ */
+
+#include <doctest/doctest.h>
+#include <onyxui/layer_manager.hh>
+#include "../utils/test_helpers.hh"
+#include <memory>
+#include <vector>
+#include <limits>
+
+using namespace onyxui;
+
+// Type aliases for test backend types
+using TestEvent = test_backend::event_type;
+using TestRenderer = test_backend::renderer_type;
+using TestMouseEvent = test_backend::mouse_button_event_type;
+
+/**
+ * @class TestLayer
+ * @brief Test element that tracks events and rendering
+ */
+class TestLayer : public TestElement {
+public:
+    explicit TestLayer(TestElement* parent = nullptr)
+        : TestElement(parent)
+        , event_handled(false)
+        , render_called(false)
+        , process_called(false)
+        , last_event_received(false) {
+        set_focusable(true);
+        // Give default bounds so is_inside works
+        arrange(TestRect{0, 0, 100, 50});
+    }
+
+    // Override virtual process_event for polymorphic dispatch
+    bool process_event(const TestEvent& event) override {
+        process_called = true;
+        last_event_received = true;
+
+        // For testing: if configured to handle, return true
+        // Otherwise delegate to base class
+        if (event_handled) {
+            return true;
+        }
+
+        // Call base implementation which will use process_event_impl
+        return TestElement::process_event(event);
+    }
+
+    // Override mouse down handler (called by process_event_impl)
+    bool handle_mouse_down(int x, int y, int button) override {
+        (void)x; (void)y; (void)button;
+        process_called = true;
+        last_event_received = true;
+        return event_handled;  // Return configured value
+    }
+
+    // Override mouse click handler
+    bool handle_click(int x, int y) override {
+        (void)x; (void)y;
+        process_called = true;
+        last_event_received = true;
+        return event_handled;  // Return configured value
+    }
+
+    // Override rendering
+    void do_render(TestRenderer& renderer) override {
+        render_called = true;
+        TestElement::do_render(renderer);
+    }
+
+    // Override hit testing for event routing
+    bool is_inside(int x, int y) const override {
+        auto b = bounds();
+        return x >= b.x && x < b.x + b.w &&
+               y >= b.y && y < b.y + b.h;
+    }
+
+    // Set preferred size for layout testing
+    void set_preferred_size(int w, int h) {
+        preferred_width = w;
+        preferred_height = h;
+
+        size_constraint width_constraint;
+        width_constraint.policy = size_policy::fixed;
+        width_constraint.preferred_size = w;
+        width_constraint.min_size = 0;
+        width_constraint.max_size = std::numeric_limits<int>::max();
+        set_width_constraint(width_constraint);
+
+        size_constraint height_constraint;
+        height_constraint.policy = size_policy::fixed;
+        height_constraint.preferred_size = h;
+        height_constraint.min_size = 0;
+        height_constraint.max_size = std::numeric_limits<int>::max();
+        set_height_constraint(height_constraint);
+    }
+
+protected:
+    TestSize get_content_size() const override {
+        return TestSize{preferred_width, preferred_height};
+    }
+
+public:
+    // Test configuration
+    bool event_handled;       // What to return from process_event
+    bool render_called;        // Track if render was called
+    bool process_called;       // Track if process_event was called
+    bool last_event_received;  // Track if event was received
+
+    int preferred_width = 100;
+    int preferred_height = 50;
+
+    // Reset test state
+    void reset() {
+        event_handled = false;
+        render_called = false;
+        process_called = false;
+        last_event_received = false;
+    }
+};
+
+TEST_SUITE("Layer Manager") {
+
+    TEST_CASE("Basic layer management") {
+        layer_manager<test_backend> mgr;
+
+        SUBCASE("Initially empty") {
+            CHECK(mgr.layer_count() == 0);
+            CHECK(!mgr.has_modal_layer());
+        }
+
+        SUBCASE("Add a layer") {
+            auto layer = std::make_unique<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+
+            CHECK(id.is_valid());
+            CHECK(mgr.layer_count() == 1);
+        }
+
+        SUBCASE("Remove a layer") {
+            auto layer = std::make_unique<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+
+            mgr.remove_layer(id);
+            CHECK(mgr.layer_count() == 0);
+        }
+
+        SUBCASE("Remove invalid layer ID does nothing") {
+            auto layer = std::make_unique<TestLayer>();
+            mgr.add_layer(layer_type::popup, layer.get());
+
+            mgr.remove_layer(layer_id::invalid());
+            CHECK(mgr.layer_count() == 1);
+        }
+
+        SUBCASE("Clear layers by type") {
+            auto popup1 = std::make_unique<TestLayer>();
+            auto popup2 = std::make_unique<TestLayer>();
+            auto dialog = std::make_unique<TestLayer>();
+
+            mgr.add_layer(layer_type::popup, popup1.get());
+            mgr.add_layer(layer_type::popup, popup2.get());
+            mgr.add_layer(layer_type::dialog, dialog.get());
+
+            CHECK(mgr.layer_count() == 3);
+
+            mgr.clear_layers(layer_type::popup);
+            CHECK(mgr.layer_count() == 1); // Only dialog remains
+        }
+
+        SUBCASE("Clear all layers") {
+            auto layer1 = std::make_unique<TestLayer>();
+            auto layer2 = std::make_unique<TestLayer>();
+
+            mgr.add_layer(layer_type::popup, layer1.get());
+            mgr.add_layer(layer_type::dialog, layer2.get());
+
+            mgr.clear_all_layers();
+            CHECK(mgr.layer_count() == 0);
+        }
+    }
+
+    TEST_CASE("Z-ordering") {
+        layer_manager<test_backend> mgr;
+
+        SUBCASE("Default z-indices for layer types") {
+            CHECK(get_default_z_index(layer_type::base) == 0);
+            CHECK(get_default_z_index(layer_type::tooltip) == 100);
+            CHECK(get_default_z_index(layer_type::popup) == 200);
+            CHECK(get_default_z_index(layer_type::dialog) == 300);
+            CHECK(get_default_z_index(layer_type::modal) == 400);
+            CHECK(get_default_z_index(layer_type::notification) == 500);
+            CHECK(get_default_z_index(layer_type::debug) == 1000);
+        }
+
+        SUBCASE("Layers sorted by z-index") {
+            auto tooltip = std::make_unique<TestLayer>();
+            auto popup = std::make_unique<TestLayer>();
+            auto dialog = std::make_unique<TestLayer>();
+
+            // Add in reverse z-order
+            mgr.add_layer(layer_type::dialog, dialog.get());   // z=300
+            mgr.add_layer(layer_type::tooltip, tooltip.get()); // z=100
+            mgr.add_layer(layer_type::popup, popup.get());     // z=200
+
+            // Layers should be internally sorted by z-index
+            CHECK(mgr.layer_count() == 3);
+        }
+
+        SUBCASE("Custom z-index") {
+            auto layer = std::make_unique<TestLayer>();
+
+            // Use custom z-index instead of default
+            mgr.add_layer(layer_type::popup, layer.get(), 999);
+
+            CHECK(mgr.layer_count() == 1);
+        }
+    }
+
+    TEST_CASE("Layer visibility") {
+        layer_manager<test_backend> mgr;
+
+        auto layer = std::make_unique<TestLayer>();
+        layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+
+        SUBCASE("Layers are visible by default") {
+            CHECK(mgr.is_layer_visible(id));
+        }
+
+        SUBCASE("Hide layer") {
+            mgr.hide_layer(id);
+            CHECK(!mgr.is_layer_visible(id));
+            CHECK(mgr.layer_count() == 1); // Still exists, just hidden
+        }
+
+        SUBCASE("Show hidden layer") {
+            mgr.hide_layer(id);
+            mgr.show_layer(id);
+            CHECK(mgr.is_layer_visible(id));
+        }
+
+        SUBCASE("Check visibility of invalid ID") {
+            CHECK(!mgr.is_layer_visible(layer_id::invalid()));
+        }
+    }
+
+    TEST_CASE("Modal layer detection") {
+        layer_manager<test_backend> mgr;
+
+        SUBCASE("No modal initially") {
+            CHECK(!mgr.has_modal_layer());
+        }
+
+        SUBCASE("Modal layer detected") {
+            auto modal = std::make_unique<TestLayer>();
+            mgr.add_layer(layer_type::modal, modal.get());
+
+            CHECK(mgr.has_modal_layer());
+        }
+
+        SUBCASE("Hidden modal not counted") {
+            auto modal = std::make_unique<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::modal, modal.get());
+
+            mgr.hide_layer(id);
+            CHECK(!mgr.has_modal_layer());
+        }
+
+        SUBCASE("Non-modal layers not counted") {
+            auto popup = std::make_unique<TestLayer>();
+            auto dialog = std::make_unique<TestLayer>();
+
+            mgr.add_layer(layer_type::popup, popup.get());
+            mgr.add_layer(layer_type::dialog, dialog.get());
+
+            CHECK(!mgr.has_modal_layer());
+        }
+    }
+
+    TEST_CASE("Event routing") {
+        layer_manager<test_backend> mgr;
+
+        // Use the generic event type
+        TestEvent event;
+        event.type = TestEvent::mouse_down;
+
+        SUBCASE("No layers - event not handled") {
+            CHECK(!mgr.route_event(event));
+        }
+
+        SUBCASE("Single layer handles event") {
+            auto layer = std::make_unique<TestLayer>();
+            layer->event_handled = true; // Configure to handle
+
+            mgr.add_layer(layer_type::popup, layer.get());
+
+            CHECK(mgr.route_event(event));
+            CHECK(layer->last_event_received);
+        }
+
+        SUBCASE("Single layer doesn't handle event") {
+            auto layer = std::make_unique<TestLayer>();
+            layer->event_handled = false; // Configure to not handle
+
+            mgr.add_layer(layer_type::popup, layer.get());
+
+            CHECK(!mgr.route_event(event));
+            CHECK(layer->last_event_received); // Still received it
+        }
+
+        SUBCASE("Higher z-index layer gets event first") {
+            auto lower = std::make_unique<TestLayer>();
+            auto higher = std::make_unique<TestLayer>();
+
+            lower->event_handled = true;
+            higher->event_handled = true;
+
+            mgr.add_layer(layer_type::tooltip, lower.get());  // z=100
+            mgr.add_layer(layer_type::popup, higher.get());   // z=200
+
+            CHECK(mgr.route_event(event));
+
+            CHECK(higher->last_event_received); // Higher got it
+            CHECK(!lower->last_event_received); // Lower didn't (event was handled)
+        }
+
+        SUBCASE("Event passes through if not handled") {
+            auto lower = std::make_unique<TestLayer>();
+            auto higher = std::make_unique<TestLayer>();
+
+            lower->event_handled = true;
+            higher->event_handled = false; // Higher doesn't handle
+
+            mgr.add_layer(layer_type::tooltip, lower.get());
+            mgr.add_layer(layer_type::popup, higher.get());
+
+            CHECK(mgr.route_event(event));
+
+            CHECK(higher->last_event_received); // Higher got it first
+            CHECK(lower->last_event_received);  // Lower also got it
+        }
+
+        SUBCASE("Hidden layers don't receive events") {
+            auto layer = std::make_unique<TestLayer>();
+            layer->event_handled = true;
+
+            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            mgr.hide_layer(id);
+
+            CHECK(!mgr.route_event(event));
+            CHECK(!layer->last_event_received);
+        }
+
+        SUBCASE("Modal blocks events to lower layers") {
+            auto base = std::make_unique<TestLayer>();
+            auto modal = std::make_unique<TestLayer>();
+
+            base->event_handled = true;
+            modal->event_handled = false; // Modal doesn't handle
+
+            mgr.add_layer(layer_type::base, base.get());    // z=0
+            mgr.add_layer(layer_type::modal, modal.get());  // z=400
+
+            CHECK(mgr.route_event(event)); // Returns true (blocked by modal)
+
+            CHECK(modal->last_event_received); // Modal got it
+            CHECK(!base->last_event_received); // Base blocked
+        }
+
+        SUBCASE("Layers above modal still get events") {
+            auto modal = std::make_unique<TestLayer>();
+            auto debug = std::make_unique<TestLayer>();
+
+            modal->event_handled = false;
+            debug->event_handled = true;
+
+            mgr.add_layer(layer_type::modal, modal.get());  // z=400
+            mgr.add_layer(layer_type::debug, debug.get());  // z=1000
+
+            CHECK(mgr.route_event(event));
+
+            CHECK(debug->last_event_received); // Debug got it (above modal)
+            CHECK(!modal->last_event_received); // Modal didn't (event handled)
+        }
+    }
+
+    TEST_CASE("Popup helpers") {
+        layer_manager<test_backend> mgr;
+
+        SUBCASE("Show popup") {
+            auto popup = std::make_unique<TestLayer>();
+            TestRect anchor{10, 20, 100, 30};
+
+            layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below);
+
+            CHECK(id.is_valid());
+            CHECK(mgr.layer_count() == 1);
+            CHECK(mgr.is_layer_visible(id));
+        }
+
+        SUBCASE("Show tooltip") {
+            auto tooltip = std::make_unique<TestLayer>();
+
+            layer_id id = mgr.show_tooltip(tooltip.get(), 50, 60);
+
+            CHECK(id.is_valid());
+            CHECK(mgr.layer_count() == 1);
+            CHECK(mgr.is_layer_visible(id));
+        }
+
+        SUBCASE("Show modal dialog") {
+            auto dialog = std::make_unique<TestLayer>();
+
+            layer_id id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+
+            CHECK(id.is_valid());
+            CHECK(mgr.layer_count() == 1);
+            CHECK(mgr.has_modal_layer());
+        }
+    }
+
+    TEST_CASE("Rendering") {
+        layer_manager<test_backend> mgr;
+        TestRenderer renderer;
+        TestRect viewport{0, 0, 800, 600};
+
+        SUBCASE("No layers - nothing rendered") {
+            mgr.render_all_layers(renderer, viewport);
+            // No assertions needed - just shouldn't crash
+        }
+
+        SUBCASE("Single layer rendered") {
+            auto layer = std::make_unique<TestLayer>();
+            mgr.add_layer(layer_type::popup, layer.get());
+
+            mgr.render_all_layers(renderer, viewport);
+
+            CHECK(layer->render_called);
+        }
+
+        SUBCASE("Hidden layers not rendered") {
+            auto layer = std::make_unique<TestLayer>();
+            layer_id id = mgr.add_layer(layer_type::popup, layer.get());
+            mgr.hide_layer(id);
+
+            mgr.render_all_layers(renderer, viewport);
+
+            CHECK(!layer->render_called);
+        }
+
+        SUBCASE("Multiple layers rendered in z-order") {
+            auto layer1 = std::make_unique<TestLayer>();
+            auto layer2 = std::make_unique<TestLayer>();
+            auto layer3 = std::make_unique<TestLayer>();
+
+            mgr.add_layer(layer_type::popup, layer1.get());    // z=200
+            mgr.add_layer(layer_type::tooltip, layer2.get());  // z=100
+            mgr.add_layer(layer_type::dialog, layer3.get());   // z=300
+
+            mgr.render_all_layers(renderer, viewport);
+
+            CHECK(layer1->render_called);
+            CHECK(layer2->render_called);
+            CHECK(layer3->render_called);
+        }
+
+        SUBCASE("Layer positioning for popup") {
+            auto popup = std::make_unique<TestLayer>();
+            TestRect anchor{100, 50, 80, 30};
+
+            // Set a size for the popup
+            popup->set_preferred_size(120, 60);
+
+            mgr.show_popup(popup.get(), anchor, popup_placement::below);
+            mgr.render_all_layers(renderer, viewport);
+
+            // Popup should be positioned below anchor
+            // Expected position: x=anchor.x, y=anchor.y+anchor.h
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 100);
+            CHECK(bounds.y == 80); // 50 + 30
+        }
+
+        SUBCASE("Layer positioning for dialog") {
+            auto dialog = std::make_unique<TestLayer>();
+
+            // Set a size for the dialog
+            dialog->set_preferred_size(200, 150);
+
+            mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+            mgr.render_all_layers(renderer, viewport);
+
+            // Dialog should be centered in viewport
+            auto bounds = dialog->bounds();
+            CHECK(bounds.x == 300); // (800 - 200) / 2
+            CHECK(bounds.y == 225); // (600 - 150) / 2
+        }
+    }
+
+    TEST_CASE("Popup placement") {
+        layer_manager<test_backend> mgr;
+        TestRenderer renderer;
+        TestRect viewport{0, 0, 800, 600};
+        TestRect anchor{400, 300, 100, 50};
+
+        // Create popup with fixed size
+        auto create_popup = []() {
+            auto popup = std::make_unique<TestLayer>();
+            popup->set_preferred_size(150, 80);
+            return popup;
+        };
+
+        SUBCASE("Placement below") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::below);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 400);
+            CHECK(bounds.y == 350); // anchor.y + anchor.h
+        }
+
+        SUBCASE("Placement above") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::above);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 400);
+            CHECK(bounds.y == 220); // anchor.y - popup.h
+        }
+
+        SUBCASE("Placement left") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::left);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 250); // anchor.x - popup.w
+            CHECK(bounds.y == 300);
+        }
+
+        SUBCASE("Placement right") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::right);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 500); // anchor.x + anchor.w
+            CHECK(bounds.y == 300);
+        }
+
+        SUBCASE("Placement below_right") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::below_right);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
+            CHECK(bounds.y == 350); // anchor.y + anchor.h
+        }
+
+        SUBCASE("Placement above_right") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::above_right);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
+            CHECK(bounds.y == 220); // anchor.y - popup.h
+        }
+
+        SUBCASE("Auto placement when below fits") {
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), anchor, popup_placement::auto_best);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.y == 350); // Chose below
+        }
+
+        SUBCASE("Auto placement when below doesn't fit") {
+            TestRect bottom_anchor{400, 550, 100, 30}; // Near bottom
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), bottom_anchor, popup_placement::auto_best);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.y == 470); // Chose above (550 - 80)
+        }
+
+        SUBCASE("Clamping to viewport") {
+            TestRect edge_anchor{750, 100, 100, 50}; // Near right edge
+            auto popup = create_popup();
+            mgr.show_popup(popup.get(), edge_anchor, popup_placement::below);
+            mgr.render_all_layers(renderer, viewport);
+
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 650); // Clamped to fit (800 - 150)
+            CHECK(bounds.y == 150); // Below anchor
+        }
+    }
+
+    TEST_CASE("Layer ID") {
+        SUBCASE("Invalid ID") {
+            layer_id invalid = layer_id::invalid();
+            CHECK(!invalid.is_valid());
+            CHECK(invalid.value == 0);
+        }
+
+        SUBCASE("Valid ID") {
+            layer_id valid(42);
+            CHECK(valid.is_valid());
+            CHECK(valid.value == 42);
+        }
+
+        SUBCASE("ID comparison") {
+            layer_id id1(1);
+            layer_id id2(2);
+            layer_id id1_copy(1);
+
+            CHECK(id1 == id1_copy);
+            CHECK(id1 != id2);
+        }
+    }
+
+    TEST_CASE("Multiple operations sequence") {
+        layer_manager<test_backend> mgr;
+        TestRenderer renderer;
+        TestRect viewport{0, 0, 800, 600};
+
+        // Create multiple layers
+        auto base = std::make_unique<TestLayer>();
+        auto popup = std::make_unique<TestLayer>();
+        auto modal = std::make_unique<TestLayer>();
+        auto tooltip = std::make_unique<TestLayer>();
+
+        // Add layers in various orders
+        layer_id base_id = mgr.add_layer(layer_type::base, base.get());
+        layer_id popup_id = mgr.show_popup(popup.get(), TestRect{100, 100, 50, 30});
+        layer_id modal_id = mgr.show_modal_dialog(modal.get());
+        layer_id tooltip_id = mgr.show_tooltip(tooltip.get(), 200, 200);
+
+        CHECK(mgr.layer_count() == 4);
+        CHECK(mgr.has_modal_layer());
+
+        // Hide modal
+        mgr.hide_layer(modal_id);
+        CHECK(!mgr.has_modal_layer());
+
+        // Remove popup
+        mgr.remove_layer(popup_id);
+        CHECK(mgr.layer_count() == 3);
+
+        // Show modal again
+        mgr.show_layer(modal_id);
+        CHECK(mgr.has_modal_layer());
+
+        // Clear all tooltips
+        mgr.clear_layers(layer_type::tooltip);
+        CHECK(mgr.layer_count() == 2);
+
+        // Test event routing with remaining layers
+        TestEvent event;
+        base->event_handled = true;
+        modal->event_handled = false;
+
+        CHECK(mgr.route_event(event)); // Blocked by modal
+        CHECK(!base->last_event_received); // Base didn't get it
+
+        // Clear everything
+        mgr.clear_all_layers();
+        CHECK(mgr.layer_count() == 0);
+    }
+}

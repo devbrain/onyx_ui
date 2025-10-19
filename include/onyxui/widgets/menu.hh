@@ -58,6 +58,7 @@
 
 #include <vector>
 #include <memory>
+#include <iostream>  // For debug output
 #include <onyxui/widgets/vbox.hh>
 #include <onyxui/widgets/menu_item.hh>
 #include <onyxui/focus_manager.hh>
@@ -323,6 +324,7 @@ namespace onyxui {
             }
         }
 
+
         /**
          * @brief Signal emitted when menu should close
          *
@@ -337,6 +339,30 @@ namespace onyxui {
         signal<> closing;
 
     protected:
+        /**
+         * @brief Override click to forward to children
+         */
+        bool handle_click(int x, int y) override {
+            // Forward click to children
+            for (auto& child : this->children()) {
+                if (!child || !child->is_visible()) continue;
+
+                // Check if click is inside child bounds
+                auto child_bounds = child->bounds();
+                if (rect_utils::contains(child_bounds, x, y)) {
+                    // Trigger the child's click handler directly
+                    if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
+                        // Emit the clicked signal which will trigger the action
+                        item->clicked.emit();
+                        return true;
+                    }
+                }
+            }
+
+            // Don't call base implementation - we don't want the menu itself to handle clicks
+            return false;
+        }
+
         /**
          * @brief Handle item activation
          *

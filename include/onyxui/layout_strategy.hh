@@ -192,6 +192,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
+#include <concepts>
+#include <cstdint>
 #include <numeric>
 #include <onyxui/concepts/backend.hh>
 
@@ -360,6 +363,44 @@ namespace onyxui {
         percentage, ///< Take a percentage (0.0-1.0) of parent's dimension
         weighted ///< Proportional distribution based on weight (like flex-grow)
     };
+
+    /**
+     * @brief Approximate equality comparison for floating-point values
+     *
+     * @tparam T Floating-point type (float or double)
+     * @param a First value
+     * @param b Second value
+     * @param epsilon Tolerance for comparison (default: reasonable for float)
+     * @return true if values are approximately equal within tolerance
+     *
+     * @details
+     * Uses relative epsilon comparison which scales with the magnitude of values.
+     * This handles both small and large values correctly.
+     *
+     * Formula: |a - b| <= epsilon * max(|a|, |b|)
+     *
+     * @note For exact zero comparisons, falls back to absolute epsilon check
+     */
+    template<std::floating_point T>
+    [[nodiscard]] constexpr bool approx_equal(T a, T b, T epsilon = T(0.0001)) noexcept {
+        // Handle exact equality (including both zero)
+        if (a == b) {
+            return true;
+        }
+
+        // Relative epsilon comparison
+        const T abs_a = std::abs(a);
+        const T abs_b = std::abs(b);
+        const T diff = std::abs(a - b);
+
+        // For values near zero, use absolute epsilon
+        if (abs_a < epsilon || abs_b < epsilon) {
+            return diff <= epsilon;
+        }
+
+        // For larger values, use relative epsilon
+        return diff <= epsilon * std::max(abs_a, abs_b);
+    }
 
     /**
      * @struct size_constraint
@@ -538,47 +579,56 @@ namespace onyxui {
          * @brief Compare two size constraints for equality
          *
          * @param other The other constraint to compare against
-         * @return true if all fields are exactly equal, false otherwise
+         * @return true if all fields are approximately equal, false otherwise
          *
          * @details
-         * Performs exact comparison of all fields including floating-point
-         * values. This is used for change detection and caching validation.
+         * Performs comparison of all fields with epsilon-based comparison for
+         * floating-point values (weight and percentage). This is used for change
+         * detection and caching validation.
          *
          * ## Float Comparison Behavior
          *
-         * The weight and percentage fields use **exact equality (==)** comparison,
-         * not epsilon-based comparison. This has important implications:
+         * The weight and percentage fields now use **epsilon-based comparison**
+         * via the approx_equal() function. This handles floating-point rounding
+         * errors correctly.
          *
-         * **Why Exact Comparison:**
-         * - Constraints are typically set explicitly by users (e.g., `weight = 2.0f`)
-         * - Values rarely result from floating-point arithmetic
-         * - Exact comparison is fast and appropriate for user-defined values
-         * - Avoids false positives from epsilon tolerance
+         * **Why Epsilon Comparison:**
+         * - Handles rounding errors from floating-point arithmetic
+         * - Works correctly for computed values (e.g., 2.0f / 3.0f * 3.0f)
+         * - Still works for user-set values (e.g., weight = 2.0f)
+         * - Default epsilon (0.0001) is appropriate for typical UI values
          *
-         * **When This May Cause Issues:**
-         * - If weight/percentage are computed from complex calculations
-         * - If values are loaded from text files and parsed
-         * - If values result from division or other FP operations
+         * **Epsilon Value:**
+         * - Default: 0.0001 (1/10000)
+         * - Relative epsilon: scales with magnitude of values
+         * - Handles both small and large values correctly
          *
-         * **Workaround for Computed Values:**
-         * Round computed values to a reasonable precision before assignment:
+         * **Examples:**
          * @code
-         * float computed_weight = complex_calculation();
-         * constraint.weight = std::round(computed_weight * 1000.0f) / 1000.0f;
+         * size_constraint a, b;
+         * a.weight = 2.0f;
+         * b.weight = 2.0f;
+         * assert(a == b);  // Equal
+         *
+         * a.weight = 2.0f / 3.0f * 3.0f;  // May have rounding error
+         * b.weight = 2.0f;
+         * assert(a == b);  // Still equal (within epsilon)
+         *
+         * a.weight = 2.0f;
+         * b.weight = 2.1f;
+         * assert(a != b);  // Different (exceeds epsilon)
          * @endcode
          *
-         * @warning Floating-point exact comparison: 2.0f == 2.0f (true),
-         *          but 2.0f / 3.0f * 3.0f may not equal 2.0f due to rounding errors
          * @note Exception safety: No-throw guarantee (noexcept)
-         * @note For most use cases (user-set values), exact comparison is correct
+         * @note Integer fields (preferred_size, min_size, max_size) use exact comparison
          */
         bool operator==(const size_constraint& other) const noexcept {
             return policy == other.policy &&
                    preferred_size == other.preferred_size &&
                    min_size == other.min_size &&
                    max_size == other.max_size &&
-                   weight == other.weight &&
-                   percentage == other.percentage;
+                   approx_equal(weight, other.weight) &&
+                   approx_equal(percentage, other.percentage);
         }
     };
 
