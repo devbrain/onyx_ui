@@ -77,6 +77,8 @@
 #include <onyxui/layout_strategy.hh>
 #include <onyxui/themeable.hh>
 #include <onyxui/utils/safe_math.hh>
+#include <onyxui/render_context.hh>
+#include <onyxui/draw_context.hh>
 
 namespace onyxui {
     /**
@@ -503,8 +505,9 @@ namespace onyxui {
             void render(renderer_type& renderer) {
                 if (!m_visible) return;
 
-                // Render this element (within parent's clip)
-                do_render(renderer);
+                // Create draw context and render this element (within parent's clip)
+                draw_context<Backend> ctx(renderer);
+                do_render(ctx);
 
                 // Set clip rect for children (content area only)
                 rect_type content_area = get_content_area();
@@ -614,7 +617,18 @@ namespace onyxui {
                 }
             }
 
-            virtual void do_render([[maybe_unused]] renderer_type& renderer) {
+            /**
+             * @brief Render this element using render context (visitor pattern)
+             * @param ctx Render context (draw_context for rendering, measure_context for sizing)
+             *
+             * @details
+             * Override this method to implement custom rendering. The context
+             * handles both rendering (draw_context) and measurement (measure_context),
+             * eliminating duplication between rendering and sizing logic.
+             *
+             * **Important**: This method is const to allow measurement from const widgets.
+             */
+            virtual void do_render([[maybe_unused]] render_context<Backend>& ctx) const {
                 // Base: nothing to render
             }
 

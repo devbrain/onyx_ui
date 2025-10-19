@@ -160,6 +160,28 @@ namespace onyxui::conio {
     }
 
     // ======================================================================
+    // Region Clearing
+    // ======================================================================
+
+    void conio_renderer::clear_region(const rect& r) {
+        if (!m_vram) return;
+
+        const rect clip = get_clip_rect();
+
+        // Clear by filling with spaces using current background color
+        for (int y = r.y; y < r.y + r.h; ++y) {
+            for (int x = r.x; x < r.x + r.w; ++x) {
+                // Check if position is within clip region
+                if (x >= clip.x && x < clip.x + clip.w &&
+                    y >= clip.y && y < clip.y + clip.h) {
+                    // Put a space character with current background
+                    m_vram->put(x, y, ' ', m_fg, m_bg);
+                }
+            }
+        }
+    }
+
+    // ======================================================================
     // Icon Drawing
     // ======================================================================
 

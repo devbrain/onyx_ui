@@ -83,7 +83,8 @@ namespace onyxui {
      * test_target target;
      * test_backend::test_mouse_event evt;
      * evt.x = 50; evt.y = 25; evt.pressed = true;
-     * target.process_event(evt);
+     * target.process_event_impl(evt);  // Use template method directly
+     * // Or: target.process_event(evt) if evt matches event_type
      * assert(target.click_count == 1);
      * @endcode
      */
@@ -118,6 +119,25 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             /**
+             * @brief Virtual method for polymorphic event dispatch
+             *
+             * This virtual method enables layer managers and other systems to route events
+             * through base pointers. It accepts the backend's concrete event type and
+             * forwards it to the template process_event method.
+             *
+             * @param event The backend-specific event to process
+             * @return true if the event was handled
+             *
+             * @note This method exists to solve the polymorphic dispatch problem where
+             *       layer_manager needs to call process_event through a base pointer.
+             * @note Default implementation forwards to the template method.
+             */
+            virtual bool process_event(const event_type& event) {
+                // Default: forward to template method
+                return process_event_impl(event);
+            }
+
+            /**
              * @brief Process any event type that has traits defined
              *
              * This template function accepts any event type that has event_traits
@@ -128,9 +148,10 @@ namespace onyxui {
              * @exception Any exception thrown by registered callbacks
              * @note Exception safety: Basic guarantee - internal state (hover, pressed) may be modified before exception
              * @note Returns false (no exception) if target is disabled
+             * @note Renamed from process_event to process_event_impl to avoid confusion with virtual method
              */
             template<typename E>
-            bool process_event(const E& event);
+            bool process_event_impl(const E& event);
 
             // -----------------------------------------------------------------------
             // Callback Setters
@@ -442,7 +463,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     template<typename E>
-    bool event_target<Backend>::process_event(const E& event) {
+    bool event_target<Backend>::process_event_impl(const E& event) {
         if (!m_enabled) {
             return false;
         }

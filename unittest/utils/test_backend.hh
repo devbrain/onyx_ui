@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
-#include <utf8.h>  // From utf8cpp (included via failsafe)
+#include <utf8.h>  // From utf8cpp
 
 namespace onyxui {
     // ======================================================================
@@ -147,6 +147,10 @@ namespace onyxui {
 
             }
 
+            void clear_region([[maybe_unused]] const rect& r) {
+                // Stub for testing - tracks what regions are cleared
+            }
+
             /**
              * @brief Static text measurement for layout calculations
              * @param text Text to measure (UTF-8 encoded)
@@ -191,6 +195,25 @@ namespace onyxui {
                 );
 
                 return size{glyph_count, 1};  // width = glyph count, height = 1
+            }
+
+            /**
+             * @brief Get icon size for test renderer (static - no instance needed)
+             * @param icon The icon style (unused - all icons are 1x1)
+             * @return Size with width = 1, height = 1
+             *
+             * @details
+             * **Static method** - can be called without a renderer instance!
+             * In test/TUI rendering, icons are represented as single characters.
+             *
+             * @example
+             * @code
+             * auto icon_size = renderer::get_icon_size(icon_style{});
+             * // icon_size = {w: 1, h: 1}
+             * @endcode
+             */
+            [[nodiscard]] static size get_icon_size([[maybe_unused]] const icon_style& icon) noexcept {
+                return size{1, 1};  // Icons are 1x1 in test backend
             }
 
             /**

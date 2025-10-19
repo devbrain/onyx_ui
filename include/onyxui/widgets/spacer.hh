@@ -297,17 +297,20 @@ namespace onyxui {
             /**
              * @brief Render (no-op for spacer)
              *
-             * @param renderer The renderer to use (unused)
+             * @param ctx The render context (unused)
              *
              * @details
              * Spacers are invisible and don't render anything.
              * This method is intentionally empty.
              *
+             * **Non-visual widget:** Spacers are layout-only elements with no visual representation.
+             * Size comes from configured dimensions (get_content_size), not from rendering.
+             *
              * **Exception Safety:** No-throw guarantee (empty implementation)
              *
              * @note Override of widget::do_render()
              */
-            void do_render([[maybe_unused]] typename Backend::renderer_type& renderer) override {
+            void do_render([[maybe_unused]] render_context<Backend>& ctx) const override {
                 // Spacers are invisible - nothing to render
             }
 

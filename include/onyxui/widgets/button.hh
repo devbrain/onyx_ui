@@ -152,140 +152,107 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Render the button with current state
+         * @brief Render button using render context (handles both rendering and measurement)
+         *
+         * @details
+         * Uses the visitor pattern via render_context. This single method handles
+         * BOTH rendering (draw_context) and measurement (measure_context).
+         *
+         * During measurement: Draws text to measure it, adds padding and border space
+         * During rendering: Actually draws the button box and text with proper state colors
          */
-        void do_render(renderer_type& renderer) override {
+        void do_render(render_context<Backend>& ctx) const override {
             auto* theme = this->m_theme;
-            if (!theme) return;
 
-            const auto& bounds = this->bounds();
+            // Use default values if no theme (for measurement without theme)
+            int padding_horizontal = theme ? theme->button.padding_horizontal : 2;
+            int padding_vertical = theme ? theme->button.padding_vertical : 1;
+            int border = theme ? renderer_type::get_border_thickness(theme->button.box_style) : 1;
 
-            // Select colors based on state
-            typename Backend::color_type fg, bg;
-            if (!this->is_enabled()) {
-                fg = theme->button.fg_disabled;
-                bg = theme->button.bg_disabled;
-            } else if (this->is_pressed()) {
-                fg = theme->button.fg_pressed;
-                bg = theme->button.bg_pressed;
-            } else if (this->is_hovered() || this->has_focus()) {
-                fg = theme->button.fg_hover;
-                bg = theme->button.bg_hover;
-            } else {
-                fg = theme->button.fg_normal;
-                bg = theme->button.bg_normal;
-            }
-
-            // Set colors
-            renderer.set_foreground(fg);
-            renderer.set_background(bg);
-
-            // Draw button box/border
-            renderer.draw_box(bounds, theme->button.box_style);
-
-            // Calculate border thickness to offset text correctly
-            int border = renderer_type::get_border_thickness(theme->button.box_style);
-
-            // Calculate available space for text
-            int available_width = rect_utils::get_width(bounds) - ((border + theme->button.padding_horizontal) * 2);
-            int available_height = rect_utils::get_height(bounds) - ((border + theme->button.padding_vertical) * 2);
-
-            // Measure text to calculate alignment offset
+            // Measure text first (needed for both measurement and rendering)
             typename renderer_type::font default_font{};
             auto text_size = renderer_type::measure_text(m_text, default_font);
             int text_width = size_utils::get_width(text_size);
+            int text_height = size_utils::get_height(text_size);
 
-            // Calculate horizontal alignment offset
-            int align_offset = 0;
-            switch (theme->button.text_align) {
-                case horizontal_alignment::left:
-                    align_offset = 0;
-                    break;
-                case horizontal_alignment::center:
-                    align_offset = (available_width - text_width) / 2;
-                    break;
-                case horizontal_alignment::right:
-                    align_offset = available_width - text_width;
-                    break;
-                case horizontal_alignment::stretch:
-                    // Stretch doesn't apply to text, treat as left
-                    align_offset = 0;
-                    break;
-            }
+            // Calculate total button size
+            int total_width = text_width + (padding_horizontal * 2) + (border * 2);
+            int total_height = text_height + (padding_vertical * 2) + (border * 2);
 
-            // Render text (offset by border + padding + alignment)
-            int text_x = rect_utils::get_x(bounds) + border + theme->button.padding_horizontal + align_offset;
-            int text_y = rect_utils::get_y(bounds) + border + theme->button.padding_vertical;
+            if (ctx.is_rendering()) {
+                // RENDERING PATH: Requires theme
+                if (!theme) return;
+                // RENDERING PATH: Draw button with current state
+                const auto& bounds = this->bounds();
 
-            if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
-                // Render styled text with multiple fonts (multi-segment)
-                int x = text_x;
-                for (const auto& segment : m_mnemonic_info.text) {
-                    auto seg_size = renderer_type::measure_text(segment.text, segment.font);
-                    typename Backend::rect_type text_rect;
-                    rect_utils::set_bounds(text_rect, x, text_y,
-                                          size_utils::get_width(seg_size),
-                                          size_utils::get_height(seg_size));
-                    renderer.draw_text(text_rect, segment.text, segment.font);
-                    x += size_utils::get_width(seg_size);
+                // Select colors based on state
+                typename Backend::color_type fg, bg;
+                if (!this->is_enabled()) {
+                    fg = theme->button.fg_disabled;
+                    bg = theme->button.bg_disabled;
+                } else if (this->is_pressed()) {
+                    fg = theme->button.fg_pressed;
+                    bg = theme->button.bg_pressed;
+                } else if (this->is_hovered() || this->has_focus()) {
+                    fg = theme->button.fg_hover;
+                    bg = theme->button.bg_hover;
+                } else {
+                    fg = theme->button.fg_normal;
+                    bg = theme->button.bg_normal;
+                }
+
+                // Draw button box/border
+                ctx.draw_rect(bounds, theme->button.box_style);
+
+                // Calculate available space for text
+                int available_width = rect_utils::get_width(bounds) - ((border + padding_horizontal) * 2);
+
+                // Calculate horizontal alignment offset
+                int align_offset = 0;
+                switch (theme->button.text_align) {
+                    case horizontal_alignment::left:
+                        align_offset = 0;
+                        break;
+                    case horizontal_alignment::center:
+                        align_offset = (available_width - text_width) / 2;
+                        break;
+                    case horizontal_alignment::right:
+                        align_offset = available_width - text_width;
+                        break;
+                    case horizontal_alignment::stretch:
+                        align_offset = 0;
+                        break;
+                }
+
+                // Calculate text position (offset by border + padding + alignment)
+                int text_x = rect_utils::get_x(bounds) + border + padding_horizontal + align_offset;
+                int text_y = rect_utils::get_y(bounds) + border + padding_vertical;
+
+                if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
+                    // Render styled text with multiple fonts (multi-segment)
+                    int x = text_x;
+                    for (const auto& segment : m_mnemonic_info.text) {
+                        typename Backend::point_type pos{x, text_y};
+                        auto seg_size = ctx.draw_text(segment.text, pos, segment.font, fg);
+                        x += size_utils::get_width(seg_size);
+                    }
+                } else {
+                    // Render plain text
+                    typename Backend::point_type pos{text_x, text_y};
+                    ctx.draw_text(m_text, pos, theme->button.font, fg);
                 }
             } else {
-                // Render plain text
-                typename Backend::rect_type text_rect;
-                rect_utils::set_bounds(text_rect, text_x, text_y, available_width, available_height);
-                renderer.draw_text(text_rect, m_text, theme->button.font);
+                // MEASUREMENT PATH: Just track the size (no actual rendering)
+                // Draw a rectangle representing the button's full size
+                typename Backend::rect_type button_rect;
+                rect_utils::set_bounds(button_rect, 0, 0, total_width, total_height);
+                typename renderer_type::box_style default_style{};
+                ctx.draw_rect(button_rect, theme ? theme->button.box_style : default_style);
             }
         }
 
-        /**
-         * @brief Calculate content size based on text + padding + border
-         *
-         * @details
-         * Uses renderer's static measure_text() method to correctly measure text,
-         * then adds space for button padding and border based on the theme's box_style.
-         *
-         * The renderer is the correct abstraction level for text measurement
-         * since it's the component that actually draws text!
-         *
-         * Typical button layouts:
-         * ```
-         * With border (box_style != none):
-         * ┌─────────┐
-         * │  Save  │  ← Text with padding
-         * └─────────┘
-         *
-         * Without border (box_style == none):
-         *   Save    ← Just text with padding
-         * ```
-         */
-        size_type get_content_size() const override {
-            // Measure text correctly using renderer's static method
-            typename renderer_type::font default_font{};
-            auto text_size = renderer_type::measure_text(m_text, default_font);
-
-            // Get padding and border from theme
-            // Note: All measurements are in "renderer units" (characters for TUI, pixels for GUI)
-            int padding_horizontal = 0;  // Horizontal padding per side (e.g., 2 = 2 chars left + 2 chars right)
-            int padding_vertical = 0;    // Vertical padding per side (e.g., 1 = 1 line top + 1 line bottom)
-            int border = 0;              // Border thickness per side (e.g., 1 = 1 char on each side)
-
-            if (auto* theme = this->m_theme) {
-                padding_horizontal = theme->button.padding_horizontal;  // From theme (e.g., default is 4 in theme)
-                padding_vertical = theme->button.padding_vertical;      // From theme (e.g., default is 4 in theme)
-                // Use renderer's static method to get border thickness for this box_style
-                border = renderer_type::get_border_thickness(theme->button.box_style);
-            }
-
-            // Calculate total size: text + padding on both sides + border on both sides
-            // Example: "Save" (4 chars) + padding_h=2 (2+2=4) + border=1 (1+1=2) = 10 width
-            //          "Save" (1 line) + padding_v=0 (0+0=0) + border=1 (1+1=2) = 3 height
-            int width = size_utils::get_width(text_size) + (padding_horizontal * 2) + (border * 2);
-            int height = size_utils::get_height(text_size) + (padding_vertical * 2) + (border * 2);
-
-            size_type size{};
-            size_utils::set_size(size, width, height);
-            return size;
-        }
+        // Note: get_content_size() is automatically handled by base widget class!
+        // This eliminates ~50 lines of duplicated measurement code.
 
         /**
          * @brief Apply theme to button

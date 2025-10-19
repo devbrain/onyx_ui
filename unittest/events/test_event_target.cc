@@ -109,7 +109,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         press.button = 1;
         press.pressed = true;
 
-        target.process_event(press);
+        target.process_event_impl(press);
         CHECK(target.down_count == 1);
         CHECK(target.is_pressed());
 
@@ -120,7 +120,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         release.button = 1;
         release.pressed = false;
 
-        target.process_event(release);
+        target.process_event_impl(release);
         CHECK(target.up_count == 1);
         CHECK(target.click_count == 1);  // ✅ Click generated!
         CHECK_FALSE(target.is_pressed());
@@ -136,7 +136,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         press.button = 1;
         press.pressed = true;
 
-        target.process_event(press);
+        target.process_event_impl(press);
         CHECK(target.down_count == 0);  // Not called
         CHECK_FALSE(target.is_pressed());
 
@@ -147,7 +147,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         release.button = 1;
         release.pressed = false;
 
-        target.process_event(release);
+        target.process_event_impl(release);
         CHECK(target.click_count == 0);  // ❌ No click (press was outside)
     }
 
@@ -161,7 +161,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         press.button = 1;
         press.pressed = true;
 
-        target.process_event(press);
+        target.process_event_impl(press);
         CHECK(target.down_count == 1);
         CHECK(target.is_pressed());
 
@@ -172,7 +172,7 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         release.button = 1;
         release.pressed = false;
 
-        target.process_event(release);
+        target.process_event_impl(release);
         CHECK(target.up_count == 1);  // Still called
         CHECK(target.click_count == 0);  // ❌ No click (release outside)
     }
@@ -186,14 +186,14 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         press1.y = 25;
         press1.button = 1;
         press1.pressed = true;
-        target.process_event(press1);
+        target.process_event_impl(press1);
 
         test_backend::test_mouse_event release1;
         release1.x = 50;
         release1.y = 25;
         release1.button = 1;
         release1.pressed = false;
-        target.process_event(release1);
+        target.process_event_impl(release1);
 
         CHECK(target.click_count == 1);
 
@@ -203,14 +203,14 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
         press2.y = 30;
         press2.button = 1;
         press2.pressed = true;
-        target.process_event(press2);
+        target.process_event_impl(press2);
 
         test_backend::test_mouse_event release2;
         release2.x = 60;
         release2.y = 30;
         release2.button = 1;
         release2.pressed = false;
-        target.process_event(release2);
+        target.process_event_impl(release2);
 
         CHECK(target.click_count == 2);  // ✅ Two clicks
     }
@@ -224,14 +224,14 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
             press.y = 25;
             press.button = 1;
             press.pressed = true;
-            target.process_event(press);
+            target.process_event_impl(press);
 
             test_backend::test_mouse_event release;
             release.x = 50;
             release.y = 25;
             release.button = 1;
             release.pressed = false;
-            target.process_event(release);
+            target.process_event_impl(release);
 
             CHECK(target.click_count == 1);
             CHECK(target.last_button == 1);
@@ -243,14 +243,14 @@ TEST_SUITE("EventTarget - Mouse Click Generation") {
             press.y = 25;
             press.button = 3;
             press.pressed = true;
-            target.process_event(press);
+            target.process_event_impl(press);
 
             test_backend::test_mouse_event release;
             release.x = 50;
             release.y = 25;
             release.button = 3;
             release.pressed = false;
-            target.process_event(release);
+            target.process_event_impl(release);
 
             CHECK(target.click_count == 1);
             CHECK(target.last_button == 3);
@@ -280,7 +280,7 @@ TEST_SUITE("EventTarget - Event Concept Priority") {
             CHECK(MousePositionEvent<test_backend::test_mouse_event>);
 
             // Process event - should be treated as button event, NOT move!
-            target.process_event(press);
+            target.process_event_impl(press);
 
             CHECK(target.down_count == 1);     // ✅ Mouse down called
             CHECK(target.move_count == 0);     // ❌ Mouse move NOT called
@@ -294,7 +294,7 @@ TEST_SUITE("EventTarget - Event Concept Priority") {
             press.y = 25;
             press.button = 1;
             press.pressed = true;
-            target.process_event(press);
+            target.process_event_impl(press);
 
             // Then release
             test_backend::test_mouse_event release;
@@ -303,7 +303,7 @@ TEST_SUITE("EventTarget - Event Concept Priority") {
             release.button = 1;
             release.pressed = false;
 
-            target.process_event(release);
+            target.process_event_impl(release);
 
             CHECK(target.up_count == 1);      // ✅ Mouse up called
             CHECK(target.click_count == 1);   // ✅ Click generated
@@ -317,7 +317,7 @@ TEST_SUITE("EventTarget - Event Concept Priority") {
             press.y = 25;
             press.button = 1;
             press.pressed = true;
-            target.process_event(press);
+            target.process_event_impl(press);
 
             // Release
             test_backend::test_mouse_event release;
@@ -325,7 +325,7 @@ TEST_SUITE("EventTarget - Event Concept Priority") {
             release.y = 25;
             release.button = 1;
             release.pressed = false;
-            target.process_event(release);
+            target.process_event_impl(release);
 
             // Verify: down + up + click, but NO move
             CHECK(target.down_count == 1);
@@ -351,7 +351,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         outside.button = 0;
         outside.pressed = false;
 
-        target.process_event(outside);
+        target.process_event_impl(outside);
         CHECK(target.enter_count == 0);
         CHECK_FALSE(target.is_hovered());
 
@@ -362,7 +362,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         inside.button = 0;
         inside.pressed = false;
 
-        target.process_event(inside);
+        target.process_event_impl(inside);
         CHECK(target.enter_count == 1);  // ✅ Enter event!
         CHECK(target.is_hovered());
     }
@@ -376,7 +376,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         inside.y = 25;
         inside.button = 0;
         inside.pressed = false;
-        target.process_event(inside);
+        target.process_event_impl(inside);
 
         CHECK(target.enter_count == 1);
         CHECK(target.is_hovered());
@@ -387,7 +387,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         outside.y = 25;
         outside.button = 0;
         outside.pressed = false;
-        target.process_event(outside);
+        target.process_event_impl(outside);
 
         CHECK(target.leave_count == 1);  // ✅ Leave event!
         CHECK_FALSE(target.is_hovered());
@@ -402,7 +402,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         pos1.y = 25;
         pos1.button = 0;
         pos1.pressed = false;
-        target.process_event(pos1);
+        target.process_event_impl(pos1);
 
         CHECK(target.enter_count == 1);
 
@@ -412,7 +412,7 @@ TEST_SUITE("EventTarget - Mouse Enter/Leave") {
         pos2.y = 30;
         pos2.button = 0;
         pos2.pressed = false;
-        target.process_event(pos2);
+        target.process_event_impl(pos2);
 
         // Still only 1 enter, no leave
         CHECK(target.enter_count == 1);
@@ -437,7 +437,7 @@ TEST_SUITE("EventTarget - State Management") {
         press.y = 25;
         press.button = 1;
         press.pressed = true;
-        target.process_event(press);
+        target.process_event_impl(press);
 
         CHECK(target.is_pressed());
 
@@ -447,7 +447,7 @@ TEST_SUITE("EventTarget - State Management") {
         release.y = 25;
         release.button = 1;
         release.pressed = false;
-        target.process_event(release);
+        target.process_event_impl(release);
 
         CHECK_FALSE(target.is_pressed());
     }
@@ -463,7 +463,7 @@ TEST_SUITE("EventTarget - State Management") {
         inside.y = 25;
         inside.button = 0;
         inside.pressed = false;
-        target.process_event(inside);
+        target.process_event_impl(inside);
 
         CHECK(target.is_hovered());
 
@@ -473,7 +473,7 @@ TEST_SUITE("EventTarget - State Management") {
         outside.y = 25;
         outside.button = 0;
         outside.pressed = false;
-        target.process_event(outside);
+        target.process_event_impl(outside);
 
         CHECK_FALSE(target.is_hovered());
     }
@@ -489,7 +489,7 @@ TEST_SUITE("EventTarget - State Management") {
         press.button = 1;
         press.pressed = true;
 
-        bool handled = target.process_event(press);
+        bool handled = target.process_event_impl(press);
 
         CHECK_FALSE(handled);
         CHECK(target.down_count == 0);  // Not called!
@@ -508,7 +508,7 @@ TEST_SUITE("EventTarget - State Management") {
         press.button = 1;
         press.pressed = true;
 
-        target.process_event(press);
+        target.process_event_impl(press);
 
         // Note: handled returns false if no callback is set, but the event is still processed
         CHECK(target.down_count == 1);  // Event was processed!
@@ -536,14 +536,14 @@ TEST_SUITE("EventTarget - Callbacks") {
         press.y = 25;
         press.button = 1;
         press.pressed = true;
-        target.process_event(press);
+        target.process_event_impl(press);
 
         test_backend::test_mouse_event release;
         release.x = 50;
         release.y = 25;
         release.button = 1;
         release.pressed = false;
-        target.process_event(release);
+        target.process_event_impl(release);
 
         CHECK(callback_count == 1);  // ✅ Callback invoked!
     }
@@ -570,7 +570,7 @@ TEST_SUITE("EventTarget - Callbacks") {
         inside.y = 25;
         inside.button = 0;
         inside.pressed = false;
-        target.process_event(inside);
+        target.process_event_impl(inside);
 
         CHECK(enter_callback_count == 1);
 
@@ -580,7 +580,7 @@ TEST_SUITE("EventTarget - Callbacks") {
         outside.y = 25;
         outside.button = 0;
         outside.pressed = false;
-        target.process_event(outside);
+        target.process_event_impl(outside);
 
         CHECK(leave_callback_count == 1);
     }
@@ -601,14 +601,14 @@ TEST_SUITE("EventTarget - Edge Cases") {
             press.y = 25;
             press.button = 1;
             press.pressed = true;
-            target.process_event(press);
+            target.process_event_impl(press);
 
             test_backend::test_mouse_event release;
             release.x = 50;
             release.y = 25;
             release.button = 1;
             release.pressed = false;
-            target.process_event(release);
+            target.process_event_impl(release);
         }
 
         CHECK(target.click_count == 10);
@@ -623,7 +623,7 @@ TEST_SUITE("EventTarget - Edge Cases") {
         press.button = 1;
         press.pressed = true;
 
-        target.process_event(press);
+        target.process_event_impl(press);
         CHECK(target.is_pressed());
 
         // Never release - state should persist
@@ -643,7 +643,7 @@ TEST_SUITE("EventTarget - Edge Cases") {
             evt.y = 0;
             evt.button = 1;
             evt.pressed = true;
-            target.process_event(evt);
+            target.process_event_impl(evt);
 
             CHECK(target.down_count == 1);  // Inside bounds
         }
@@ -654,7 +654,7 @@ TEST_SUITE("EventTarget - Edge Cases") {
             evt.y = 25;
             evt.button = 1;
             evt.pressed = true;
-            target.process_event(evt);
+            target.process_event_impl(evt);
 
             CHECK(target.down_count == 0);  // Outside bounds
         }
@@ -665,7 +665,7 @@ TEST_SUITE("EventTarget - Edge Cases") {
             evt.y = 25;
             evt.button = 1;
             evt.pressed = true;
-            target.process_event(evt);
+            target.process_event_impl(evt);
 
             CHECK(target.down_count == 1);  // Inside bounds
         }

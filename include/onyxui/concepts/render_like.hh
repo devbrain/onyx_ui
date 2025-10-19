@@ -20,7 +20,7 @@ namespace onyxui {
      * A renderer must provide:
      * - **Type definitions**: box_style, font, icon_style, size_type
      * - **Drawing methods**: draw_box, draw_text, draw_icon
-     * - **Text measurement**: measure_text (returns size_type with width/height)
+     * - **Static measurement methods**: measure_text, get_icon_size (no instance needed)
      * - **Clipping methods**: push_clip, pop_clip, get_clip_rect
      * - **Viewport management**: get_viewport (returns drawable area bounds)
      * - **Presentation**: present (display rendered content)
@@ -41,6 +41,19 @@ namespace onyxui {
      * - Counts bytes, not visual characters (wrong for UTF-8: "→" = 3 bytes, 1 char)
      * - Ignores kerning, ligatures, and font metrics
      *
+     * ## get_icon_size() Rationale
+     *
+     * Icon size measurement allows widgets to layout icons correctly:
+     * - **Menu items**: Icon + text + shortcut alignment
+     * - **Buttons**: Icon + text combinations
+     * - **Toolbar items**: Icon-based buttons
+     * - **Status indicators**: Fixed-size icon placement
+     *
+     * Icon size is backend-specific:
+     * - **TUI**: Typically 1x1 characters (single emoji/glyph)
+     * - **GUI**: Typically 16x16, 24x24, or 32x32 pixels
+     * - **Theme-dependent**: May vary based on current theme/DPI
+     *
      * ## get_viewport() Rationale
      *
      * The viewport defines the drawable area for the renderer:
@@ -51,10 +64,17 @@ namespace onyxui {
      *
      * @example Proper text measurement
      * @code
-     * auto size = renderer.measure_text("Hello", font);
+     * auto size = Renderer::measure_text("Hello", font);  // Static method
      * rect text_bounds{x, y, size.width, size.height};
      * renderer.draw_text(text_bounds, "Hello", font);
      * x += size.width;  // Correct advance
+     * @endcode
+     *
+     * @example Icon size query
+     * @code
+     * auto icon_size = Renderer::get_icon_size(icon_style);  // Static method
+     * rect icon_bounds{x, y, icon_size.width, icon_size.height};
+     * renderer.draw_icon(icon_bounds, icon_style);
      * @endcode
      *
      * @example Viewport usage
@@ -82,6 +102,9 @@ namespace onyxui {
         { renderer.draw_text(rect, "text", f) } -> std::same_as<void>;
         { renderer.draw_icon(rect, i) } -> std::same_as<void>;
 
+        // Clearing method (for dirty rectangle support)
+        { renderer.clear_region(rect) } -> std::same_as<void>;
+
         // Clipping methods
         { renderer.push_clip(rect) } -> std::same_as<void>;
         { renderer.pop_clip() } -> std::same_as<void>;
@@ -95,5 +118,9 @@ namespace onyxui {
 
         // Resize handling
         { renderer.on_resize() } -> std::same_as<void>;
+
+        // Static measurement methods (no instance needed)
+        { T::measure_text(std::string_view{}, f) } -> SizeLike;
+        { T::get_icon_size(i) } -> SizeLike;
     };
 }

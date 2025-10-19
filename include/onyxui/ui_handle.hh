@@ -140,9 +140,10 @@ namespace onyxui {
          * @details
          * Performs the complete layout and rendering pipeline:
          * 1. Gets viewport bounds from renderer
-         * 2. Measures the UI tree
-         * 3. Arranges widgets within bounds
-         * 4. Renders to the back buffer
+         * 2. Clears any dirty regions from previous frame
+         * 3. Measures the UI tree
+         * 4. Arranges widgets within bounds
+         * 5. Renders to the back buffer
          *
          * Does not present the frame - call present() for that.
          */
@@ -151,6 +152,12 @@ namespace onyxui {
 
             // Get viewport from renderer (renderer knows its size)
             auto bounds = m_renderer.get_viewport();
+
+            // Clear dirty regions from previous frame
+            auto dirty_regions = m_root->get_and_clear_dirty_regions();
+            for (const auto& region : dirty_regions) {
+                m_renderer.clear_region(region);
+            }
 
             // Two-pass layout for base UI
             m_root->measure(rect_utils::get_width(bounds),
@@ -175,6 +182,12 @@ namespace onyxui {
          */
         void display(const rect_type& bounds) {
             if (!m_root) return;
+
+            // Clear dirty regions from previous frame
+            auto dirty_regions = m_root->get_and_clear_dirty_regions();
+            for (const auto& region : dirty_regions) {
+                m_renderer.clear_region(region);
+            }
 
             // Two-pass layout for base UI
             [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
@@ -483,6 +496,35 @@ namespace onyxui {
          */
         [[nodiscard]] const layer_manager<Backend>& layers() const noexcept {
             return m_layer_manager;
+        }
+
+        /**
+         * @brief Mark a region as dirty (needs redrawing)
+         * @param region The region that needs redrawing
+         *
+         * @details
+         * Widgets should call this when their visual state changes.
+         * The region will be collected by the root element and
+         * cleared before the next render.
+         */
+        void mark_dirty(const rect_type& region) {
+            if (m_root) {
+                m_root->mark_dirty_region(region);
+            }
+        }
+
+        /**
+         * @brief Mark the entire viewport as dirty
+         *
+         * @details
+         * Use this when the entire UI needs to be redrawn,
+         * such as after a major state change or theme switch.
+         */
+        void mark_all_dirty() {
+            auto viewport = m_renderer.get_viewport();
+            if (m_root) {
+                m_root->mark_dirty_region(viewport);
+            }
         }
     };
 

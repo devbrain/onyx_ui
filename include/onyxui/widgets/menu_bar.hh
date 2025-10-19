@@ -381,7 +381,7 @@ namespace onyxui {
     // Implementation of methods that use ui_handle
     template<UIBackend Backend>
     void menu_bar<Backend>::open_menu(std::size_t index) {
-        if (index >= m_menus.size() || !m_ui_handle) return;
+        if (index >= m_menus.size()) return;
 
         // Close current menu if different
         if (m_open_menu_index && *m_open_menu_index != index) {
@@ -389,6 +389,10 @@ namespace onyxui {
         }
 
         m_open_menu_index = index;
+
+        // If no ui_handle, we're in test mode - just track the index
+        if (!m_ui_handle) return;
+
         auto& entry = m_menus[index];
 
         // Get button bounds for positioning popup
@@ -410,7 +414,13 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void menu_bar<Backend>::close_menu() {
-        if (!m_open_menu_index || !m_ui_handle) {
+        if (!m_open_menu_index) {
+            return;
+        }
+
+        // If no ui_handle, we're in test mode - just clear the index
+        if (!m_ui_handle) {
+            m_open_menu_index = std::nullopt;
             return;
         }
 

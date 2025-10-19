@@ -128,6 +128,16 @@ namespace onyxui::conio {
          */
         void draw_icon(const rect& r, icon_style style);
 
+        /**
+         * @brief Clear a rectangular region (fill with spaces)
+         * @param r Rectangle to clear
+         *
+         * @details
+         * Fills the region with space characters using current background color.
+         * This is used by the dirty rectangle system to clear old content.
+         */
+        void clear_region(const rect& r);
+
         // ===================================================================
         // Required Clipping Methods (RenderLike Concept)
         // ===================================================================
@@ -197,6 +207,28 @@ namespace onyxui::conio {
          * without needing a renderer instance.
          */
         static size measure_text(std::string_view text, const font& f);
+
+        /**
+         * @brief Get icon size for TUI rendering (static - no instance needed)
+         * @param icon The icon style (unused in TUI - all icons are 1x1)
+         * @return Size with width = 1, height = 1 (single character)
+         *
+         * @details In TUI/console rendering, icons are represented as single
+         * Unicode characters (emoji, box-drawing chars, etc.). This method
+         * returns the fixed size of 1x1 characters.
+         *
+         * This is a static method so widgets can calculate sizing during layout
+         * without needing a renderer instance.
+         *
+         * @example
+         * @code
+         * auto icon_size = conio_renderer::get_icon_size(icon);
+         * int total_width = icon_size.w + padding + text_width;
+         * @endcode
+         */
+        [[nodiscard]] static size get_icon_size([[maybe_unused]] const icon_style& icon) noexcept {
+            return size{1, 1};  // Icons are 1x1 characters in TUI
+        }
 
         /**
          * @brief Get border thickness for a box style (static - no instance needed)

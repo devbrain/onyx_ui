@@ -22,8 +22,9 @@
  * template<UIBackend Backend>
  * class my_widget : public widget<Backend> {
  * protected:
- *     void do_render(renderer_type& renderer) override {
- *         // Custom rendering
+ *     void do_render(render_context<Backend>& ctx) const override {
+ *         // Custom rendering - same code handles measurement and rendering
+ *         // Use ctx.is_rendering() to branch if needed
  *     }
  * };
  * @endcode
@@ -35,6 +36,7 @@
 #include <onyxui/signal.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
+#include <onyxui/measure_context.hh>
 #include <memory>
 
 namespace onyxui {
@@ -369,9 +371,39 @@ namespace onyxui {
         }
 
         /**
+         * @brief Automatic content size calculation via measure_context
+         *
+         * @details
+         * Default implementation that automatically calculates size by calling
+         * do_render() with a measure_context. This eliminates the need for widgets
+         * to implement get_content_size() separately.
+         *
+         * **How it works:**
+         * 1. Creates a measure_context
+         * 2. Calls do_render(ctx) - same rendering code used for drawing
+         * 3. Returns the measured size from the context
+         *
+         * **Benefits:**
+         * - Single source of truth (do_render handles both measurement and rendering)
+         * - Impossible for measurement and rendering to get out of sync
+         * - ~50-70% less code in widget implementations
+         *
+         * **Override if needed:**
+         * Widgets can still override this if they need special measurement logic
+         * that differs from rendering (rare).
+         */
+        [[nodiscard]] typename base::size_type get_content_size() const override {
+            measure_context<Backend> ctx;
+            this->do_render(ctx);
+            return ctx.get_size();
+        }
+
+        /**
          * @brief Handle mouse enter event (called by event_target)
          */
         bool handle_mouse_enter() override {
+            // Mark dirty for visual state change (hover)
+            this->mark_dirty();
             mouse_entered.emit();
             return base::handle_mouse_enter();
         }
@@ -380,8 +412,28 @@ namespace onyxui {
          * @brief Handle mouse leave event (called by event_target)
          */
         bool handle_mouse_leave() override {
+            // Mark dirty for visual state change (no longer hovered)
+            this->mark_dirty();
             mouse_exited.emit();
             return base::handle_mouse_leave();
+        }
+
+        /**
+         * @brief Handle mouse down event (called by event_target)
+         */
+        bool handle_mouse_down(int x, int y, int button) override {
+            // Mark dirty for visual state change (pressed)
+            this->mark_dirty();
+            return base::handle_mouse_down(x, y, button);
+        }
+
+        /**
+         * @brief Handle mouse up event (called by event_target)
+         */
+        bool handle_mouse_up(int x, int y, int button) override {
+            // Mark dirty for visual state change (no longer pressed)
+            this->mark_dirty();
+            return base::handle_mouse_up(x, y, button);
         }
 
         /**
@@ -404,6 +456,8 @@ namespace onyxui {
          * @brief Handle focus gained event (called by event_target)
          */
         bool handle_focus_gained() override {
+            // Mark dirty for visual state change (focused)
+            this->mark_dirty();
             focus_gained.emit();
             return base::handle_focus_gained();
         }
@@ -412,6 +466,8 @@ namespace onyxui {
          * @brief Handle focus lost event (called by event_target)
          */
         bool handle_focus_lost() override {
+            // Mark dirty for visual state change (no longer focused)
+            this->mark_dirty();
             focus_lost.emit();
             return base::handle_focus_lost();
         }

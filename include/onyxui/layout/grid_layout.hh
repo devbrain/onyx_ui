@@ -121,9 +121,13 @@ namespace onyxui {
      * - **Immutable configuration**: All grid parameters are const after construction
      * - **Mutable state**: Column widths, row heights, and cell mappings are mutable
      *   for lazy calculation during const measure operations
-     * - **Not thread-safe**: Multiple threads should not call measure/arrange concurrently
-     *   on the same grid instance
+     * - **Not thread-safe**: Do not access the same grid_layout instance from multiple
+     *   threads concurrently. Layout operations (measure/arrange) and cell modifications
+     *   (set_cell) must be performed on a single thread (typically the UI thread).
      * - **Parent hierarchy**: Follows same thread safety model as ui_element tree
+     *
+     * @thread_safety Not thread-safe. Single-threaded access only (typically UI thread).
+     *                ONYXUI_THREAD_SAFE flag does not affect grid_layout thread safety.
      *
      * @tparam Backend The backend traits type providing rect and size types
      *

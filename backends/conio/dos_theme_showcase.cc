@@ -171,7 +171,8 @@ private:
         // Theme switching actions
         for (size_t i = 0; i < m_themes.size() && i < 4; ++i) {
             auto theme_action = std::make_shared<onyxui::action<conio_backend>>();
-            theme_action->set_text("Theme " + std::to_string(i + 1) + " - " + m_theme_names[i]);
+            theme_action->set_text(m_theme_names[i]);
+            // Set numeric shortcuts for themes (1-4)
             theme_action->set_shortcut(static_cast<char>('1' + i));
             theme_action->triggered.connect([this, i]() {
                 switch_theme(i);
@@ -180,13 +181,45 @@ private:
             m_theme_actions.push_back(theme_action);  // Keep action alive!
         }
 
-        // Quit action
+        // File menu actions
+        auto new_action = std::make_shared<onyxui::action<conio_backend>>();
+        new_action->set_text("New");
+        new_action->set_shortcut('n', key_modifier::ctrl);  // Ctrl+N
+        new_action->triggered.connect([]() {
+            // Placeholder - in real app would create new document
+            std::cerr << "New action triggered via menu/hotkey!" << std::endl;
+        });
+        m_new_action = new_action;
+        this->hotkeys().register_action(new_action);
+
+        auto open_action = std::make_shared<onyxui::action<conio_backend>>();
+        open_action->set_text("Open");
+        open_action->set_shortcut('o', key_modifier::ctrl);  // Ctrl+O
+        open_action->triggered.connect([]() {
+            // Placeholder - in real app would open file dialog
+            std::cerr << "Open action triggered!" << std::endl;
+        });
+        m_open_action = open_action;
+        this->hotkeys().register_action(open_action);
+
+        // Quit action with Alt+F4 shortcut
         auto quit_action = std::make_shared<onyxui::action<conio_backend>>();
         quit_action->set_text("Quit");
+        quit_action->set_shortcut_f(4, key_modifier::alt);  // Alt+F4
         quit_action->triggered.connect([this]() {
+            std::cerr << "Quit action triggered - exiting application!" << std::endl;
             quit();
         });
         m_quit_action = quit_action;
+        this->hotkeys().register_action(quit_action);
+
+        // Help menu actions
+        auto about_action = std::make_shared<onyxui::action<conio_backend>>();
+        about_action->set_text("About");
+        about_action->triggered.connect([]() {
+            std::cerr << "About: DOS Theme Showcase v1.0" << std::endl;
+        });
+        m_about_action = about_action;
     }
 
     void build_menu_bar() {
@@ -196,25 +229,21 @@ private:
         // File menu
         auto file_menu = std::make_unique<menu<conio_backend>>();
 
+        // New item with action
         auto new_item = std::make_unique<menu_item<conio_backend>>("New");
-        new_item->clicked.connect([]() {
-            std::cerr << "DEBUG: New item clicked!" << std::endl;
-        });
+        new_item->set_action(m_new_action);
         file_menu->add_item(std::move(new_item));
 
+        // Open item with action
         auto open_item = std::make_unique<menu_item<conio_backend>>("Open");
-        open_item->clicked.connect([]() {
-            std::cerr << "DEBUG: Open item clicked!" << std::endl;
-        });
+        open_item->set_action(m_open_action);
         file_menu->add_item(std::move(open_item));
 
         file_menu->add_separator();
 
+        // Quit item with action
         auto quit_item = std::make_unique<menu_item<conio_backend>>("Quit");
         quit_item->set_action(m_quit_action);
-        quit_item->clicked.connect([]() {
-            std::cerr << "DEBUG: Quit item clicked!" << std::endl;
-        });
         file_menu->add_item(std::move(quit_item));
 
         // Apply theme to file menu BEFORE adding to menu_bar
@@ -225,7 +254,8 @@ private:
         // Theme menu
         auto theme_menu = std::make_unique<menu<conio_backend>>();
 
-        for (size_t i = 0; i < m_themes.size(); ++i) {
+        for (size_t i = 0; i < m_theme_actions.size(); ++i) {
+            // Initialize with theme name as placeholder text
             auto theme_item = std::make_unique<menu_item<conio_backend>>(m_theme_names[i]);
             theme_item->set_action(m_theme_actions[i]);
             theme_menu->add_item(std::move(theme_item));
@@ -240,6 +270,7 @@ private:
         auto help_menu = std::make_unique<menu<conio_backend>>();
 
         auto about_item = std::make_unique<menu_item<conio_backend>>("About");
+        about_item->set_action(m_about_action);
         help_menu->add_item(std::move(about_item));
 
         // Apply theme to help menu BEFORE adding to menu_bar
@@ -257,6 +288,7 @@ private:
     void switch_theme(size_t theme_index) {
         if (theme_index >= m_themes.size()) return;
 
+        std::cerr << "Switching to theme " << theme_index << ": " << m_theme_names[theme_index] << std::endl;
         m_current_theme = theme_index;
         m_theme_label->set_text(m_theme_names[m_current_theme]);
         apply_theme(m_themes[m_current_theme]);
@@ -272,7 +304,11 @@ private:
     menu_bar<conio_backend>* m_menu_bar = nullptr;
     ui_handle<conio_backend>* m_ui_handle = nullptr;
 
+    // Actions - kept alive as shared_ptrs
+    std::shared_ptr<onyxui::action<conio_backend>> m_new_action;
+    std::shared_ptr<onyxui::action<conio_backend>> m_open_action;
     std::shared_ptr<onyxui::action<conio_backend>> m_quit_action;
+    std::shared_ptr<onyxui::action<conio_backend>> m_about_action;
     std::vector<std::shared_ptr<onyxui::action<conio_backend>>> m_theme_actions;  // Keep actions alive!
 };
 

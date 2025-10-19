@@ -138,15 +138,15 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Render the label
+         * @brief Render the label using render context
+         *
+         * @details
+         * Uses the visitor pattern via render_context. This single method
+         * handles BOTH rendering (draw_context) and measurement (measure_context),
+         * eliminating the need for a separate get_content_size() implementation.
          */
-        void do_render(renderer_type& renderer) override {
+        void do_render(render_context<Backend>& ctx) const override {
             auto* theme = this->m_theme;
-            if (!theme) return;
-
-            // Set colors from theme
-            renderer.set_foreground(theme->label.text);
-            renderer.set_background(theme->label.background);
 
             const auto& bounds = this->bounds();
 
@@ -156,41 +156,23 @@ namespace onyxui {
                 int y = rect_utils::get_y(bounds);
 
                 for (const auto& segment : m_mnemonic_info.text) {
-                    auto text_size = renderer_type::measure_text(segment.text, segment.font);
-                    typename Backend::rect_type text_rect;
-                    rect_utils::set_bounds(text_rect, x, y,
-                                          size_utils::get_width(text_size),
-                                          size_utils::get_height(text_size));
-                    renderer.draw_text(text_rect, segment.text, segment.font);
+                    typename Backend::point_type pos{x, y};
+                    // Use segment font, or default if no theme
+                    typename Backend::color_type color = theme ? theme->label.text : typename Backend::color_type{};
+                    auto text_size = ctx.draw_text(segment.text, pos, segment.font, color);
                     x += size_utils::get_width(text_size);
                 }
             } else {
                 // Render plain text
-                renderer.draw_text(bounds, m_text, theme->label.font);
+                typename Backend::point_type pos{rect_utils::get_x(bounds), rect_utils::get_y(bounds)};
+                typename renderer_type::font default_font{};
+                typename Backend::color_type color = theme ? theme->label.text : typename Backend::color_type{};
+                ctx.draw_text(m_text, pos, theme ? theme->label.font : default_font, color);
             }
         }
 
-        /**
-         * @brief Calculate content size based on text
-         *
-         * @details
-         * Uses renderer's static measure_text() method to correctly measure text
-         * without requiring a renderer instance. This handles:
-         * - ✅ UTF-8 multi-byte characters correctly (→, ═, Cyrillic, emoji)
-         * - ✅ Proportional fonts (when backend implements real font metrics)
-         * - ✅ Accurate width calculation for layout
-         *
-         * The renderer is the correct abstraction level for text measurement
-         * since it's the component that actually draws text!
-         *
-         * @note Uses default font type. Real implementations may want to
-         *       store font preference or get from theme.
-         */
-        size_type get_content_size() const override {
-            // Use static renderer::measure_text() - no renderer instance needed!
-            typename renderer_type::font default_font{};
-            return renderer_type::measure_text(m_text, default_font);
-        }
+        // Note: get_content_size() is automatically handled by base widget class
+        // via measure_context, eliminating ~50 lines of duplicated code!
 
         /**
          * @brief Apply theme to label

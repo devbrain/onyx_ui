@@ -251,98 +251,90 @@ namespace onyxui {
     protected:
         /**
          * @brief Render the menu item
+         *
+         * @details
+         * Uses render_context for both measurement and rendering.
+         * During measurement: calculates text + shortcut width
+         * During rendering: draws background, text, and shortcut with state colors
          */
-        void do_render(renderer_type& renderer) override {
-            if (!this->m_theme) return;
+        void do_render(render_context<Backend>& ctx) const override {
+            auto* theme = this->m_theme;
+            if (!theme) return;
 
-            const auto& theme = *this->m_theme;
-            const auto& item_bounds = this->bounds();
+            // Calculate sizes (needed for both measurement and rendering)
+            typename renderer_type::font text_font = theme->button.font;
+            auto text_size = renderer_type::measure_text(m_text, text_font);
+            int text_width = size_utils::get_width(text_size);
+            int text_height = size_utils::get_height(text_size);
 
-            // Separator rendering
+            std::string shortcut = get_shortcut_text();
+            int shortcut_width = 0;
+            if (!shortcut.empty()) {
+                typename renderer_type::font shortcut_font{};
+                auto shortcut_size = renderer_type::measure_text(shortcut, shortcut_font);
+                shortcut_width = size_utils::get_width(shortcut_size);
+            }
+
+            // Separator has fixed size
             if (is_separator()) {
-                // Use label theme for separator color
-                renderer.set_foreground(theme.label.text);
-                renderer.set_background(theme.label.background);
-
-                // Draw horizontal line across the menu item width
-                typename renderer_type::font sep_font{};
-                int width = rect_utils::get_width(item_bounds);
-                std::string sep_line(static_cast<size_t>(width), '-');
-                renderer.draw_text(item_bounds, sep_line, sep_font);
+                if (ctx.is_rendering()) {
+                    const auto& item_bounds = this->bounds();
+                    int width = rect_utils::get_width(item_bounds);
+                    std::string sep_line(static_cast<size_t>(width), '-');
+                    typename Backend::point_type pos{rect_utils::get_x(item_bounds),
+                                                     rect_utils::get_y(item_bounds)};
+                    ctx.draw_text(sep_line, pos, typename renderer_type::font{},
+                                 theme->label.text);
+                } else {
+                    // MEASUREMENT: Separator is fixed 20x1
+                    typename Backend::rect_type sep_rect;
+                    rect_utils::set_bounds(sep_rect, 0, 0, 20, 1);
+                    ctx.draw_rect(sep_rect, typename renderer_type::box_style{});
+                }
                 return;
             }
 
-            // Normal item rendering
-            bool is_focused = this->has_focus();
-            bool is_hovered = this->is_hovered();
-            bool is_highlighted = is_focused || is_hovered;
+            // Calculate total width: padding + text + gap + shortcut + padding
+            int total_width = 2 + text_width + (shortcut_width > 0 ? 4 + shortcut_width : 0) + 2;
+            int total_height = text_height;
 
-            // Set colors based on state
-            if (!this->is_enabled()) {
-                // Disabled state
-                renderer.set_foreground(theme.button.fg_disabled);
-                renderer.set_background(theme.button.bg_disabled);
-            } else if (is_highlighted) {
-                // Focused/hovered state
-                renderer.set_foreground(theme.button.fg_hover);
-                renderer.set_background(theme.button.bg_hover);
-            } else {
-                // Normal state
-                renderer.set_foreground(theme.button.fg_normal);
-                renderer.set_background(theme.button.bg_normal);
-            }
+            if (ctx.is_rendering()) {
+                // RENDERING PATH: Draw with state colors
+                const auto& item_bounds = this->bounds();
 
-            // Draw background fill
-            int width = rect_utils::get_width(item_bounds);
-            std::string background_fill(static_cast<size_t>(width), ' ');
-            typename renderer_type::font bg_font{};
-            renderer.draw_text(item_bounds, background_fill, bg_font);
+                bool is_focused = this->has_focus();
+                bool is_hovered = this->is_hovered();
+                bool is_highlighted = is_focused || is_hovered;
 
-            // Draw item text (left side)
-            typename renderer_type::font text_font = theme.button.font;
-            int text_x = rect_utils::get_x(item_bounds) + 1;  // 1 char padding
-            int text_y = rect_utils::get_y(item_bounds);
-            rect_type text_bounds;
-            rect_utils::set_bounds(text_bounds, text_x, text_y, width - 2, 1);
-            renderer.draw_text(text_bounds, m_text, text_font);
-
-            // Draw shortcut (right side)
-            std::string shortcut = get_shortcut_text();
-            if (!shortcut.empty()) {
-                int shortcut_width = static_cast<int>(shortcut.length());
-                int shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 1;
-                rect_type shortcut_bounds;
-                rect_utils::set_bounds(shortcut_bounds, shortcut_x, text_y, shortcut_width, 1);
-
-                typename renderer_type::font shortcut_font{};
-                renderer.draw_text(shortcut_bounds, shortcut, shortcut_font);
-            }
-        }
-
-        /**
-         * @brief Calculate content size
-         */
-        size_type get_content_size() const override {
-            size_type size{};
-
-            if (is_separator()) {
-                // Separator is thin horizontal line
-                size_utils::set_size(size, 20, 1);
-            } else {
-                // Text + padding + shortcut
-                int width = static_cast<int>(m_text.length()) + 10;  // +10 for padding
-
-                // Add shortcut width if present
-                std::string shortcut = get_shortcut_text();
-                if (!shortcut.empty()) {
-                    width += static_cast<int>(shortcut.length()) + 4;
+                // Select colors based on state
+                typename Backend::color_type fg;
+                if (!this->is_enabled()) {
+                    fg = theme->button.fg_disabled;
+                } else if (is_highlighted) {
+                    fg = theme->button.fg_hover;
+                } else {
+                    fg = theme->button.fg_normal;
                 }
 
-                int height = 1;  // Single line of text
-                size_utils::set_size(size, width, height);
-            }
+                // Draw item text (left side, with padding)
+                int text_x = rect_utils::get_x(item_bounds) + 2;  // 2 char padding
+                int text_y = rect_utils::get_y(item_bounds);
+                typename Backend::point_type text_pos{text_x, text_y};
+                ctx.draw_text(m_text, text_pos, text_font, fg);
 
-            return size;
+                // Draw shortcut (right side)
+                if (!shortcut.empty()) {
+                    int width = rect_utils::get_width(item_bounds);
+                    int shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 2;
+                    typename Backend::point_type shortcut_pos{shortcut_x, text_y};
+                    ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
+                }
+            } else {
+                // MEASUREMENT PATH: Track the size
+                typename Backend::rect_type item_rect;
+                rect_utils::set_bounds(item_rect, 0, 0, total_width, total_height);
+                ctx.draw_rect(item_rect, typename renderer_type::box_style{});
+            }
         }
 
         /**

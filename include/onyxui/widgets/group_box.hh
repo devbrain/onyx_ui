@@ -281,23 +281,16 @@ namespace onyxui {
          * 2. Title inset into top border (if present)
          * 3. Children (rendered by base class)
          *
-         * @note Rendering implementation depends on backend.
+         * @note Rendering implementation stub - currently empty.
          * Override in backend-specific subclass if needed.
          */
-        void do_render([[maybe_unused]] typename Backend::renderer_type& renderer) override {
+        void do_render([[maybe_unused]] render_context<Backend>& ctx) const override {
             // Rendering implementation would go here
             //
             // Pseudocode:
-            // 1. Draw border box
-            //    renderer.draw_box(bounds, border_color, bg_color, m_border_style);
-            //
-            // 2. If title is present, draw it breaking the top border:
-            //    int title_x = bounds.x + m_title_position;
-            //    int title_y = bounds.y;
-            //    renderer.draw_text(title_x, title_y, " " + m_title + " ", title_color, bg_color);
-            //
+            // 1. Draw border box using ctx.draw_rect()
+            // 2. If title is present, draw it breaking the top border using ctx.draw_text()
             // 3. Let base class render children inside the bordered area
-            //    (children are already positioned with border offset by base panel class)
         }
 
         /**

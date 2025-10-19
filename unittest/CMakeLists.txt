@@ -52,6 +52,7 @@ add_executable(ui_unittest
         core/test_dirty_tracking.cc
         core/test_exception_safety.cc
         core/test_layer_manager.cc
+        core/test_render_context.cc
         events/test_events.cc
         events/test_event_target.cc
         focus/test_focus_manager.cc

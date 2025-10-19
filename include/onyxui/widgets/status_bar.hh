@@ -179,22 +179,16 @@ namespace onyxui {
          * Renders left text on the left side and right text on the right side.
          * Background fills the entire width.
          *
-         * @note Rendering implementation depends on backend.
+         * @note Rendering implementation stub - currently empty.
          * Override in backend-specific subclass if needed.
          */
-        void do_render([[maybe_unused]] typename Backend::renderer_type& renderer) override {
+        void do_render([[maybe_unused]] render_context<Backend>& ctx) const override {
             // Rendering implementation would go here
             //
             // Pseudocode:
             // 1. Fill background with status bar color
-            // 2. Draw left text at left edge
+            // 2. Draw left text at left edge using ctx.draw_text()
             // 3. Draw right text at right edge (right-aligned)
-            //
-            // Example:
-            // renderer.fill_rect(bounds, theme->status_bar.bg);
-            // renderer.draw_text(bounds.x, bounds.y, m_left_text, theme->status_bar.text_fg);
-            // int right_x = bounds.x + bounds.w - m_right_text.length();
-            // renderer.draw_text(right_x, bounds.y, m_right_text, theme->status_bar.text_fg);
         }
 
         /**

@@ -15,6 +15,7 @@
 using namespace onyxui;
 
 // Type aliases for test backend types
+using Backend = test_backend;
 using TestEvent = test_backend::event_type;
 using TestRenderer = test_backend::renderer_type;
 using TestMouseEvent = test_backend::mouse_button_event_type;
@@ -68,10 +69,12 @@ public:
     }
 
     // Override rendering
-    void do_render(TestRenderer& renderer) override {
+    void do_render(render_context<Backend>& ctx) const override {
         render_called = true;
-        TestElement::do_render(renderer);
+        TestElement::do_render(ctx);
     }
+
+    mutable bool render_called = false;  // Made mutable for const do_render
 
     // Override hit testing for event routing
     bool is_inside(int x, int y) const override {
@@ -108,7 +111,7 @@ protected:
 public:
     // Test configuration
     bool event_handled;       // What to return from process_event
-    bool render_called;        // Track if render was called
+    // render_called is now mutable (declared with do_render override)
     bool process_called;       // Track if process_event was called
     bool last_event_received;  // Track if event was received
 

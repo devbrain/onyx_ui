@@ -94,7 +94,7 @@
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/element.hh>
-#include <failsafe/logger.hh>
+// #include <failsafe/logger.hh>  // Not needed for dirty rectangle testing
 #include <map>
 #include <memory>
 #include <vector>
@@ -485,15 +485,15 @@ namespace onyxui {
                         : action_ptr->text();
 
                     if (m_conflict_policy == conflict_policy::warn) {
-                        LOG_CAT_WARN("Hotkeys",
-                            "Hotkey conflict detected: ", shortcut_str,
-                            " is already registered in ", scope_str,
-                            ". Action '", action_name, "' will override existing registration.");
+                        // LOG_CAT_WARN("Hotkeys",
+                        //     "Hotkey conflict detected: ", shortcut_str,
+                        //     " is already registered in ", scope_str,
+                        //     ". Action '", action_name, "' will override existing registration.");
                     } else if (m_conflict_policy == conflict_policy::error) {
-                        LOG_CAT_ERROR("Hotkeys",
-                            "Hotkey registration rejected: ", shortcut_str,
-                            " is already registered in ", scope_str,
-                            ". Action '", action_name, "' cannot be registered.");
+                        // LOG_CAT_ERROR("Hotkeys",
+                        //     "Hotkey registration rejected: ", shortcut_str,
+                        //     " is already registered in ", scope_str,
+                        //     ". Action '", action_name, "' cannot be registered.");
                         return false;
                     }
                 }

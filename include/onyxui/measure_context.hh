@@ -182,30 +182,28 @@ namespace onyxui {
          * @brief "Draw" an icon and return its size (measurement only)
          *
          * @details
-         * Calculates icon size and updates tracked bounds. No actual rendering occurs.
-         *
-         * **Note**: Icon size calculation is backend-specific. For now, we assume
-         * a default size of 16x16 (typical icon size in TUI/GUI).
+         * Calculates icon size from renderer and updates tracked bounds.
+         * No actual rendering occurs. Icon size is queried from the renderer's
+         * static get_icon_size() method, allowing backend-specific sizing.
          */
         [[nodiscard]] size_type draw_icon(
-            const icon_type& /*icon*/,
+            const icon_type& icon,
             const point_type& position
         ) override {
-            // TODO: Icon size should come from renderer or theme
-            // For now, use typical icon size
-            constexpr int default_icon_size = 16;
+            // Get icon size from renderer (static method - no instance needed)
+            size_type icon_size = renderer_type::get_icon_size(icon);
 
-            size_type icon_size;
-            size_utils::set_size(icon_size, default_icon_size, default_icon_size);
+            int icon_width = size_utils::get_width(icon_size);
+            int icon_height = size_utils::get_height(icon_size);
 
             // Calculate extents: position + icon_size
             int right = safe_math::add_clamped(
                 point_utils::get_x(position),
-                default_icon_size
+                icon_width
             );
             int bottom = safe_math::add_clamped(
                 point_utils::get_y(position),
-                default_icon_size
+                icon_height
             );
 
             // Update tracked bounds

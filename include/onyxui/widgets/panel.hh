@@ -113,23 +113,24 @@ namespace onyxui {
     protected:
         /**
          * @brief Render the panel background and border
+         *
+         * @details
+         * Uses render_context for both measurement and rendering.
+         * During measurement: tracks border size if enabled
+         * During rendering: draws the border box with theme colors
          */
-        void do_render(renderer_type& renderer) override {
+        void do_render(render_context<Backend>& ctx) const override {
             auto* theme = this->m_theme;
             if (!theme) return;
 
             const auto& bounds = this->bounds();
 
-            // Set colors from theme
-            renderer.set_foreground(theme->panel.border_color);
-            renderer.set_background(theme->panel.background);
-
             // Draw border if enabled
             if (m_has_border) {
-                renderer.draw_box(bounds, theme->panel.box_style);
+                ctx.draw_rect(bounds, theme->panel.box_style);
             }
 
-            // Note: Background is implicitly set via renderer.set_background()
+            // Note: Background color is handled by the renderer when drawing the border
             // Children will be drawn on top with proper clipping
         }
 
