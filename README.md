@@ -2,7 +2,7 @@
 
 A lightweight, header-only UI framework featuring smart layout caching, thread-safe signals, and backend-agnostic rendering.
 
-[![Tests](https://img.shields.io/badge/tests-431%20passed-success)](unittest/)
+[![Tests](https://img.shields.io/badge/tests-440%20passed-success)](unittest/)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -20,12 +20,13 @@ A lightweight, header-only UI framework featuring smart layout caching, thread-s
 
 ### 🚀 Latest Improvements (2025-10 Refactoring)
 
+- ✅ **Render Context Pattern**: Visitor pattern unifies measurement and rendering (~50% code reduction)
 - ✅ **Exception Safety**: Strong guarantees for `add_child()`, proper cleanup on errors
 - ✅ **Thread Safety**: Optional thread-safe signals (enabled by default)
 - ✅ **Safe Arithmetic**: Overflow-safe math operations for layout calculations
 - ✅ **Float Comparison**: Epsilon-based comparison fixes rounding errors
 - ✅ **Comprehensive Documentation**: 4 new guides covering thread safety, performance, and best practices
-- ✅ **431 Tests**: 100% pass rate with 2224 assertions
+- ✅ **440 Tests**: 100% pass rate with 2257 assertions
 
 ## Quick Start
 
@@ -48,8 +49,8 @@ cmake --build build -j8
 ./build/bin/ui_unittest
 
 # Expected output:
-# [doctest] test cases:  431 |  431 passed
-# [doctest] assertions: 2224 | 2224 passed
+# [doctest] test cases:  440 |  440 passed
+# [doctest] assertions: 2257 | 2257 passed
 # [doctest] Status: SUCCESS!
 ```
 
@@ -329,8 +330,8 @@ See [PERFORMANCE.md](docs/PERFORMANCE.md) for detailed optimization strategies.
 
 ### Test Coverage
 
-- **431 test cases** across 22 test files
-- **2224 assertions** covering all major functionality
+- **440 test cases** across 22 test files
+- **2257 assertions** covering all major functionality
 - **100% pass rate**
 
 Test categories:
@@ -379,7 +380,7 @@ docs/
   ├── BEST_PRACTICES.md      # Best practices and patterns
   └── MIGRATION.md           # Migration guide
 
-unittest/                    # 431 tests in 22 files
+unittest/                    # 440 tests in 22 files
   ├── core/                  # Element, signals, exception safety
   ├── layout/                # Layout algorithm tests
   ├── widgets/               # Widget functionality tests
@@ -478,4 +479,4 @@ See [BEST_PRACTICES.md](docs/BEST_PRACTICES.md) for complete style guide.
 
 ---
 
-**Status**: Production-ready | **Tests**: 431/431 passing | **Assertions**: 2224/2224 passing | **Version**: 2025-10 Refactoring
+**Status**: Production-ready | **Tests**: 440/440 passing | **Assertions**: 2257/2257 passing | **Version**: 2025-10 Refactoring

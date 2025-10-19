@@ -45,7 +45,7 @@ cmake --build build --target conio -j8
 
 ### Running Tests
 ```bash
-# Run all 364 unit tests
+# Run all 440 unit tests
 ./build/bin/ui_unittest
 
 # List all test cases
@@ -63,7 +63,7 @@ cmake --build build --target conio -j8
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
 
-# All 364 tests should pass with zero warnings
+# All 440 tests should pass with zero warnings
 ```
 
 ## Code Architecture
@@ -119,6 +119,78 @@ Utility namespaces provide generic operations:
    - Element receives final bounds from parent
    - Positions children within content area
    - `arrange(final_bounds)`
+
+### Render Context Pattern (Visitor Pattern)
+
+The framework uses the **visitor pattern** to unify measurement and rendering through a single `do_render()` method.
+
+**Architecture:**
+
+- **Abstract base**: `render_context<Backend>` defines drawing operations
+- **draw_context**: Concrete visitor that renders to a backend renderer
+- **measure_context**: Concrete visitor that tracks bounding boxes without rendering
+
+**Unified Interface:**
+
+```cpp
+template<UIBackend Backend>
+class my_widget : public widget<Backend> {
+    void do_render(render_context<Backend>& ctx) const override {
+        // Same code handles both measurement AND rendering!
+        auto text_size = ctx.draw_text(m_text, position, font, color);
+        ctx.draw_rect(bounds, box_style);
+        ctx.draw_icon(icon, icon_position);
+
+        // Branch if needed (rare)
+        if (ctx.is_rendering()) {
+            // Render-only code
+        }
+    }
+};
+```
+
+**Benefits:**
+
+1. **Single Source of Truth**: Measurement and rendering can never get out of sync
+2. **Code Reduction**: ~50-70% less code - no separate `get_content_size()` needed
+3. **Maintainability**: Changes to rendering automatically update measurement
+4. **Type Safety**: Compile-time guarantee of correct visitor usage
+
+**Automatic Measurement:**
+
+The base `widget` class provides automatic content sizing via `measure_context`:
+
+```cpp
+// Base widget implementation (you don't need to write this!)
+size_type get_content_size() const override {
+    measure_context<Backend> ctx;
+    this->do_render(ctx);  // Reuse rendering code for measurement
+    return ctx.get_size();
+}
+```
+
+**Drawing Operations:**
+
+Both contexts support the same operations:
+- `draw_text(text, position, font, color) -> size_type`
+- `draw_rect(bounds, box_style)`
+- `draw_line(from, to, color, width)`
+- `draw_icon(icon, position) -> size_type`
+
+**Context Queries:**
+
+- `ctx.is_measuring()` - Returns `true` for `measure_context`
+- `ctx.is_rendering()` - Returns `true` for `draw_context`
+- `ctx.renderer()` - Returns renderer pointer (nullptr for `measure_context`)
+
+**Renderer Methods:**
+
+Renderers provide static methods for measurement without instantiation:
+- `Renderer::measure_text(text, font) -> size_type` - Get text dimensions
+- `Renderer::get_icon_size(icon) -> size_type` - Get icon dimensions (backend-specific)
+- `Renderer::get_border_thickness(box_style) -> int` - Get border width
+
+See `include/onyxui/render_context.hh`, `measure_context.hh`, and `draw_context.hh` for implementation.
 
 ### Smart Invalidation
 
@@ -292,6 +364,9 @@ include/onyxui/
   signal.hh              # Signal/slot implementation
   focus_manager.hh       # Focus navigation
   layout_strategy.hh     # Layout base class + enums
+  render_context.hh      # Abstract visitor base for rendering/measurement
+  measure_context.hh     # Concrete visitor for measurement
+  draw_context.hh        # Concrete visitor for rendering
 
   layout/
     linear_layout.hh     # Vertical/horizontal stacking
@@ -356,26 +431,35 @@ backends/
 ### Adding New Widgets
 
 1. Inherit from `widget<Backend>` (which inherits from `ui_element`)
-2. Implement `do_measure()` for custom sizing
-3. Implement `do_render()` for custom drawing
-4. Override theme accessors if needed (`get_theme_background_color`, etc.)
-5. Add to `include/onyxui/widgets/`
-6. Write comprehensive tests in `unittest/widgets/`
+2. Implement `do_render(render_context<Backend>&)` for unified measurement and rendering
+3. Override theme accessors if needed (`get_theme_background_color`, etc.)
+4. Add to `include/onyxui/widgets/`
+5. Write comprehensive tests in `unittest/widgets/`
 
 Example:
 ```cpp
 template<UIBackend Backend>
 class my_widget : public widget<Backend> {
     using base = widget<Backend>;
+    using render_context_type = render_context<Backend>;
 
-    size_type do_measure(int available_width, int available_height) override {
-        // Calculate size
-        return size_utils::make<size_type>(width, height);
+    void do_render(render_context_type& ctx) const override {
+        // Same code handles BOTH measurement and rendering!
+        auto bounds = this->bounds();
+
+        // Draw operations automatically track size for measurement
+        ctx.draw_rect(bounds, m_box_style);
+        auto text_size = ctx.draw_text(m_text, {x, y}, m_font, m_color);
+
+        // Measurement happens automatically via widget<Backend>::get_content_size()
+        // which calls this method with measure_context
     }
 
-    void do_render(renderer_type& renderer) override {
-        // Draw widget
-    }
+private:
+    std::string m_text;
+    typename Backend::renderer_type::box_style m_box_style;
+    typename Backend::renderer_type::font m_font;
+    typename Backend::color_type m_color;
 };
 ```
 
@@ -424,8 +508,8 @@ See `.clang-tidy` for full configuration.
 The project uses **doctest** (fetched via CMake FetchContent).
 
 **Test organization:**
-- 364 test cases across 22 test files
-- 1815 assertions total
+- 440 test cases across 22 test files
+- 2257 assertions total
 - All tests must pass with zero warnings
 
 **Writing tests:**
@@ -474,6 +558,9 @@ TEST_CASE("Widget - Basic functionality") {
 ## Key Files for Reference
 
 - `include/onyxui/element.hh` - Core layout algorithm (800+ lines, well-documented)
+- `include/onyxui/render_context.hh` - Abstract visitor base for measurement/rendering
+- `include/onyxui/measure_context.hh` - Concrete visitor for size measurement
+- `include/onyxui/draw_context.hh` - Concrete visitor for rendering
 - `include/onyxui/layout_strategy.hh` - Layout documentation (600+ lines of design docs)
 - `include/onyxui/signal.hh` - Signal/slot pattern implementation
 - `include/onyxui/themeable.hh` - CSS-style inheritance system
@@ -487,12 +574,13 @@ TEST_CASE("Widget - Basic functionality") {
 - Added const-correctness to 27 variables
 - Added [[nodiscard]] to 17 accessor functions
 - Optimized 5 enums from int to uint8_t (75% memory savings)
-- All 364 tests passing, zero warnings
+- All 440 tests passing, zero warnings
 
 **Key features:**
 - Complete widget library (12+ widgets)
 - CSS-style theming with inheritance
+- Render context pattern (visitor) for unified measurement/rendering
 - Comprehensive hotkey system
 - Signal/slot for event handling
 - Mnemonic support (Alt+key shortcuts)
-- 364 tests with 1815 assertions
+- 440 tests with 2257 assertions
