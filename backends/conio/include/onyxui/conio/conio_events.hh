@@ -1,0 +1,170 @@
+//
+// Created by igor on 20/10/2025.
+//
+
+#pragma once
+
+#include <termbox2.h>
+#include <onyxui/concepts/event_like.hh>
+// ======================================================================
+// Event Traits Specializations (must be in onyxui namespace)
+// ======================================================================
+
+namespace onyxui {
+    /**
+     * @brief Event traits for termbox2 keyboard events
+     */
+    template<>
+    struct event_traits<tb_event> {
+        // Event type constants (from termbox2)
+        static constexpr uint8_t EVENT_KEY = TB_EVENT_KEY;
+        static constexpr uint8_t EVENT_RESIZE = TB_EVENT_RESIZE;
+        static constexpr uint8_t EVENT_MOUSE = TB_EVENT_MOUSE;
+
+        // Key code constants (from termbox2)
+        static constexpr uint16_t KEY_TAB = TB_KEY_TAB;
+        static constexpr uint16_t KEY_ENTER = TB_KEY_ENTER;
+        static constexpr uint16_t KEY_SPACE = TB_KEY_SPACE;
+        static constexpr uint16_t KEY_ESCAPE = TB_KEY_ESC;
+
+        // Arrow keys
+        static constexpr uint16_t KEY_ARROW_UP = TB_KEY_ARROW_UP;
+        static constexpr uint16_t KEY_ARROW_DOWN = TB_KEY_ARROW_DOWN;
+        static constexpr uint16_t KEY_ARROW_LEFT = TB_KEY_ARROW_LEFT;
+        static constexpr uint16_t KEY_ARROW_RIGHT = TB_KEY_ARROW_RIGHT;
+
+        // F-key constants
+        static constexpr uint16_t KEY_F1 = TB_KEY_F1;
+        static constexpr uint16_t KEY_F2 = TB_KEY_F2;
+        static constexpr uint16_t KEY_F3 = TB_KEY_F3;
+        static constexpr uint16_t KEY_F4 = TB_KEY_F4;
+        static constexpr uint16_t KEY_F5 = TB_KEY_F5;
+        static constexpr uint16_t KEY_F6 = TB_KEY_F6;
+        static constexpr uint16_t KEY_F7 = TB_KEY_F7;
+        static constexpr uint16_t KEY_F8 = TB_KEY_F8;
+        static constexpr uint16_t KEY_F9 = TB_KEY_F9;
+        static constexpr uint16_t KEY_F10 = TB_KEY_F10;
+        static constexpr uint16_t KEY_F11 = TB_KEY_F11;
+        static constexpr uint16_t KEY_F12 = TB_KEY_F12;
+
+        // Modifier constants
+        static constexpr uint8_t MOD_SHIFT = TB_MOD_SHIFT;
+        static constexpr uint8_t MOD_CTRL = TB_MOD_CTRL;
+        static constexpr uint8_t MOD_ALT = TB_MOD_ALT;
+
+        // Keyboard event methods
+        [[nodiscard]] static int key_code(const tb_event& e) noexcept {
+            return (e.key != 0) ? static_cast<int>(e.key) : static_cast<int>(e.ch);
+        }
+
+        [[nodiscard]] static bool is_key_press(const tb_event& e) noexcept {
+            return e.type == TB_EVENT_KEY;
+        }
+
+        [[nodiscard]] static bool is_repeat(const tb_event&) noexcept {
+            return false;  // termbox2 doesn't provide repeat info
+        }
+
+        [[nodiscard]] static bool shift_pressed(const tb_event& e) noexcept {
+            return (e.mod & TB_MOD_SHIFT) != 0;
+        }
+
+        [[nodiscard]] static bool ctrl_pressed(const tb_event& e) noexcept {
+            return (e.mod & TB_MOD_CTRL) != 0;
+        }
+
+        [[nodiscard]] static bool alt_pressed(const tb_event& e) noexcept {
+            return (e.mod & TB_MOD_ALT) != 0;
+        }
+
+        [[nodiscard]] static bool is_tab_key(const tb_event& e) noexcept {
+            return e.key == TB_KEY_TAB;
+        }
+
+        [[nodiscard]] static bool is_enter_key(const tb_event& e) noexcept {
+            return e.key == TB_KEY_ENTER;
+        }
+
+        [[nodiscard]] static bool is_space_key(const tb_event& e) noexcept {
+            return e.ch == ' ' || e.key == TB_KEY_SPACE;
+        }
+
+        [[nodiscard]] static bool is_escape_key(const tb_event& e) noexcept {
+            return e.key == TB_KEY_ESC;
+        }
+
+        // Mouse event methods
+        [[nodiscard]] static int mouse_x(const tb_event& e) noexcept {
+            return e.x;
+        }
+
+        [[nodiscard]] static int mouse_y(const tb_event& e) noexcept {
+            return e.y;
+        }
+
+        [[nodiscard]] static int mouse_button(const tb_event& e) noexcept {
+            return e.key;  // termbox2 uses 'key' field for mouse buttons
+        }
+
+        [[nodiscard]] static bool is_button_press(const tb_event& e) noexcept {
+            // In termbox2, all mouse events have type TB_EVENT_MOUSE
+            // The 'key' field indicates what kind of mouse event:
+            // - TB_KEY_MOUSE_LEFT/RIGHT/MIDDLE = button press
+            // - TB_KEY_MOUSE_RELEASE = button release
+            if (e.type != TB_EVENT_MOUSE) return false;
+
+            // Check if it's a button press (not a release or wheel event)
+            return e.key == TB_KEY_MOUSE_LEFT ||
+                   e.key == TB_KEY_MOUSE_RIGHT ||
+                   e.key == TB_KEY_MOUSE_MIDDLE;
+        }
+
+        // Hotkey support - convert to ASCII
+        [[nodiscard]] static char to_ascii(const tb_event& e) noexcept {
+            // For character input
+            if (e.ch != 0) {
+                uint32_t ch = e.ch;
+
+                // Lowercase letters
+                if (ch >= 'a' && ch <= 'z') return static_cast<char>(ch);
+
+                // Uppercase letters -> lowercase
+                if (ch >= 'A' && ch <= 'Z') return static_cast<char>(ch - 'A' + 'a');
+
+                // Digits
+                if (ch >= '0' && ch <= '9') return static_cast<char>(ch);
+
+                // Common punctuation (ASCII range)
+                if (ch >= 32 && ch <= 126) return static_cast<char>(ch);
+            }
+
+            return '\0';  // Not an ASCII key
+        }
+
+        // Hotkey support - convert to F-key number
+        [[nodiscard]] static int to_f_key(const tb_event& e) noexcept {
+            if (e.key >= TB_KEY_F1 && e.key <= TB_KEY_F12) {
+                return (e.key - TB_KEY_F1) + 1;  // F1=1, F2=2, ..., F12=12
+            }
+            return 0;  // Not an F-key
+        }
+
+        // Window event methods (for resize)
+        [[nodiscard]] static bool is_resize_event(const tb_event& e) noexcept {
+            return e.type == TB_EVENT_RESIZE;
+        }
+
+        [[nodiscard]] static int window_width([[maybe_unused]] const tb_event& e) noexcept {
+            // termbox2 doesn't store dimensions in the event - query from termbox2
+            return tb_width();
+        }
+
+        [[nodiscard]] static int window_height([[maybe_unused]] const tb_event& e) noexcept {
+            // termbox2 doesn't store dimensions in the event - query from termbox2
+            return tb_height();
+        }
+    };
+} // namespace onyxui
+
+// Compile-time check: does tb_event satisfy WindowEvent?
+static_assert(onyxui::WindowEvent<tb_event>, "tb_event must satisfy WindowEvent concept");

@@ -139,14 +139,13 @@ namespace onyxui {
             box_style /*style*/
         ) override {
             // Calculate extents: x + width, y + height
-            int right = safe_math::add_clamped(
-                rect_utils::get_x(bounds),
-                rect_utils::get_width(bounds)
-            );
-            int bottom = safe_math::add_clamped(
-                rect_utils::get_y(bounds),
-                rect_utils::get_height(bounds)
-            );
+            int x = rect_utils::get_x(bounds);
+            int y = rect_utils::get_y(bounds);
+            int w = rect_utils::get_width(bounds);
+            int h = rect_utils::get_height(bounds);
+
+            int right = safe_math::add_clamped(x, w);
+            int bottom = safe_math::add_clamped(y, h);
 
             // Update tracked bounds
             update_bounds(right, bottom);

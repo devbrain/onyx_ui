@@ -28,8 +28,8 @@ class TestLayer : public TestElement {
 public:
     explicit TestLayer(TestElement* parent = nullptr)
         : TestElement(parent)
+        , render_called(false)      // Must match declaration order
         , event_handled(false)
-        , render_called(false)
         , process_called(false)
         , last_event_received(false) {
         set_focusable(true);
@@ -634,7 +634,6 @@ TEST_SUITE("Layer Manager") {
 
     TEST_CASE("Multiple operations sequence") {
         layer_manager<test_backend> mgr;
-        TestRenderer renderer;
         TestRect viewport{0, 0, 800, 600};
 
         // Create multiple layers
@@ -644,10 +643,10 @@ TEST_SUITE("Layer Manager") {
         auto tooltip = std::make_shared<TestLayer>();
 
         // Add layers in various orders
-        layer_id base_id = mgr.add_layer(layer_type::base, base);
+        (void)mgr.add_layer(layer_type::base, base);  // base_id not needed
         layer_id popup_id = mgr.show_popup(popup.get(), TestRect{100, 100, 50, 30});
         layer_id modal_id = mgr.show_modal_dialog(modal.get());
-        layer_id tooltip_id = mgr.show_tooltip(tooltip.get(), 200, 200);
+        (void)mgr.show_tooltip(tooltip.get(), 200, 200);  // tooltip_id not needed
 
         CHECK(mgr.layer_count() == 4);
         CHECK(mgr.has_modal_layer());

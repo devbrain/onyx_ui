@@ -133,7 +133,7 @@ namespace onyxui {
 
     protected:
         void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // HBox is a layout container, no theme application needed
+            // HBox is a layout container - children inherit via CSS-style inheritance
         }
 
     private:

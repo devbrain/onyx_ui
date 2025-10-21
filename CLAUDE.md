@@ -45,7 +45,7 @@ cmake --build build --target conio -j8
 
 ### Running Tests
 ```bash
-# Run all 440 unit tests
+# Run all 569 unit tests
 ./build/bin/ui_unittest
 
 # List all test cases
@@ -63,7 +63,7 @@ cmake --build build --target conio -j8
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
 
-# All 440 tests should pass with zero warnings
+# All 569 tests should pass with zero warnings
 ```
 
 ## Code Architecture
@@ -90,8 +90,50 @@ The Backend must satisfy the `UIBackend` concept and provide:
 - `color_type` (ColorLike)
 - `event_type` (EventLike)
 - `renderer_type` (RenderLike with box_style, font, icon_style)
+- `static void register_themes(theme_registry<Backend>&)` - Called automatically on first context creation
 
 See `include/onyxui/concepts/backend.hh` for the full concept definition.
+
+### Automatic Theme Registration
+
+Backends automatically register their built-in themes when the first `ui_context` is created:
+
+```cpp
+// Backend provides register_themes() method
+struct conio_backend {
+    static void register_themes(theme_registry<conio_backend>& registry) {
+        // Register themes in order (first is default)
+        registry.register_theme(create_norton_blue());     // Default
+        registry.register_theme(create_borland_turbo());
+        registry.register_theme(create_midnight_commander());
+        registry.register_theme(create_dos_edit());
+    }
+};
+
+// Application code - NO manual registration needed!
+scoped_ui_context<conio_backend> ctx;
+// Themes already registered automatically
+
+// Access themes immediately
+auto* theme = ctx.themes().get_theme("Norton Blue");  // Available!
+ctx.themes().apply_theme("Borland Turbo");
+```
+
+**Default Theme Convention:**
+- The **first theme registered** is considered the default theme
+- Backends should register their primary/recommended theme first
+- No explicit "default" flag needed - order matters
+
+**When register_themes() is called:**
+- Automatically on first `scoped_ui_context` creation
+- Only once per application (shared singleton)
+- Before any user code accesses the theme registry
+
+**Benefits:**
+- No manual registration code needed in applications
+- Consistent default theme across all uses of a backend
+- Themes available immediately after context creation
+- Backend authors control the theme selection and defaults
 
 ### Core Concepts
 
@@ -508,8 +550,8 @@ See `.clang-tidy` for full configuration.
 The project uses **doctest** (fetched via CMake FetchContent).
 
 **Test organization:**
-- 440 test cases across 22 test files
-- 2257 assertions total
+- 569 test cases across 27 test files
+- 2771 assertions total
 - All tests must pass with zero warnings
 
 **Writing tests:**
@@ -569,12 +611,12 @@ TEST_CASE("Widget - Basic functionality") {
 
 ## Recent Major Changes
 
-**Latest commit:** Fix all high and medium priority linter issues
-- Fixed critical use-after-move bug in move constructors
-- Added const-correctness to 27 variables
-- Added [[nodiscard]] to 17 accessor functions
-- Optimized 5 enums from int to uint8_t (75% memory savings)
-- All 440 tests passing, zero warnings
+**Latest work:** Comprehensive layout testing implementation
+- Implemented 57 new layout tests across all priority levels
+- Fixed critical y=65541 overflow bug in element.hh
+- Created visual testing framework with canvas-based validation
+- Added edge case, robustness, and complex scenario coverage
+- All 569 tests passing, zero warnings
 
 **Key features:**
 - Complete widget library (12+ widgets)
@@ -583,4 +625,5 @@ TEST_CASE("Widget - Basic functionality") {
 - Comprehensive hotkey system
 - Signal/slot for event handling
 - Mnemonic support (Alt+key shortcuts)
-- 440 tests with 2257 assertions
+- 569 tests with 2771 assertions
+- Visual testing framework for layout validation

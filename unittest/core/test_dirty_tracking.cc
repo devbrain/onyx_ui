@@ -56,7 +56,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
             // arrange() marks old bounds dirty (initial bounds are 0,0,0,0)
             // Clear that first
-            root->get_and_clear_dirty_regions();
+            (void)root->get_and_clear_dirty_regions();
 
             // Now mark current bounds as dirty
             root->mark_dirty();
@@ -99,7 +99,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Child dirty marks propagate to root") {
             // Clear any initial dirty regions
-            root->get_and_clear_dirty_regions();
+            (void)root->get_and_clear_dirty_regions();
 
             child1_ptr->mark_dirty();
 
@@ -124,7 +124,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Multiple children mark dirty") {
             // Clear any initial dirty regions
-            root->get_and_clear_dirty_regions();
+            (void)root->get_and_clear_dirty_regions();
 
             child1_ptr->mark_dirty();
             child2_ptr->mark_dirty();
@@ -151,7 +151,7 @@ TEST_SUITE("Dirty Region Tracking") {
             child1_ptr->add_test_child(std::move(grandchild));
 
             // Clear any initial dirty regions
-            root->get_and_clear_dirty_regions();
+            (void)root->get_and_clear_dirty_regions();
 
             // Mark grandchild dirty
             grandchild_ptr->mark_dirty();
@@ -173,7 +173,7 @@ TEST_SUITE("Dirty Region Tracking") {
         root->add_test_child(std::move(child));
 
         SUBCASE("Hiding marks dirty") {
-            root->get_and_clear_dirty_regions(); // Clear initial
+            (void)root->get_and_clear_dirty_regions(); // Clear initial
 
             child_ptr->set_visible(false);
 
@@ -186,7 +186,7 @@ TEST_SUITE("Dirty Region Tracking") {
         SUBCASE("Showing marks dirty") {
             // Start hidden
             child_ptr->set_visible(false);
-            root->get_and_clear_dirty_regions();
+            (void)root->get_and_clear_dirty_regions();
 
             // Show again
             child_ptr->set_visible(true);
@@ -198,7 +198,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("No change doesn't mark dirty") {
-            root->get_and_clear_dirty_regions(); // Clear initial
+            (void)root->get_and_clear_dirty_regions(); // Clear initial
 
             // Already visible, setting to visible again
             child_ptr->set_visible(true);
@@ -217,7 +217,7 @@ TEST_SUITE("Dirty Region Tracking") {
         root->add_test_child(std::move(child));
 
         // Clear any initial dirty regions
-        root->get_and_clear_dirty_regions();
+        (void)root->get_and_clear_dirty_regions();
 
         SUBCASE("Moving element marks old bounds dirty") {
             // Move to new position
@@ -325,7 +325,7 @@ TEST_SUITE("Dirty Region Tracking") {
         root->add_test_child(std::move(panel2));
 
         // Clear any setup dirty regions
-        root->get_and_clear_dirty_regions();
+        (void)root->get_and_clear_dirty_regions();
 
         SUBCASE("Multiple widgets change") {
             // Simulate hover on button1
@@ -386,7 +386,7 @@ TEST_SUITE("Dirty Region Tracking") {
         root->add_test_child(std::move(child));
 
         // Clear setup dirty regions
-        root->get_and_clear_dirty_regions();
+        (void)root->get_and_clear_dirty_regions();
 
         SUBCASE("Hidden element bounds change doesn't mark dirty") {
             // Element is hidden

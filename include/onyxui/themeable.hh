@@ -86,7 +86,7 @@ namespace onyxui {
 
             void apply_theme(const theme_type& theme) {
                 before_apply_theme(theme);
-                m_theme = &theme;
+                set_theme_internal(&theme);
                 this->do_apply_theme(theme);
                 after_apply_theme(theme);
             }
@@ -125,8 +125,8 @@ namespace onyxui {
                     return p->get_effective_background_color();
                 }
 
-                if (m_theme) {
-                    return get_theme_background_color(*m_theme);
+                if (auto* theme = get_theme()) {
+                    return get_theme_background_color(*theme);
                 }
 
                 return color_type{};  // Fallback: default-constructed color
@@ -155,8 +155,8 @@ namespace onyxui {
                     return p->get_effective_foreground_color();
                 }
 
-                if (m_theme) {
-                    return get_theme_foreground_color(*m_theme);
+                if (auto* theme = get_theme()) {
+                    return get_theme_foreground_color(*theme);
                 }
 
                 return color_type{};
@@ -191,8 +191,8 @@ namespace onyxui {
                     return p->get_effective_box_style();
                 }
 
-                if (m_theme) {
-                    return get_theme_box_style(*m_theme);
+                if (auto* theme = get_theme()) {
+                    return get_theme_box_style(*theme);
                 }
 
                 return box_style_type{};
@@ -227,8 +227,8 @@ namespace onyxui {
                     return p->get_effective_font();
                 }
 
-                if (m_theme) {
-                    return get_theme_font(*m_theme);
+                if (auto* theme = get_theme()) {
+                    return get_theme_font(*theme);
                 }
 
                 return font_type{};
@@ -262,8 +262,8 @@ namespace onyxui {
                     return p->get_effective_icon_style();
                 }
 
-                if (m_theme) {
-                    return get_theme_icon_style(*m_theme);
+                if (auto* theme = get_theme()) {
+                    return get_theme_icon_style(*theme);
                 }
 
                 return icon_style_type{};
@@ -303,8 +303,48 @@ namespace onyxui {
                 return opacity;
             }
 
+            // ===================================================================
+            // Theme Access (Public API)
+            // ===================================================================
+
+            /**
+             * @brief Get the effective theme for this element
+             *
+             * @details Implements CSS-style inheritance by walking up the parent
+             *          chain to find the nearest theme. This ensures widgets without
+             *          an explicitly set theme can still access theme data.
+             *
+             * @return Pointer to theme, or nullptr if no theme in hierarchy
+             */
+            [[nodiscard]] const theme_type* get_theme() const {
+                // First check if we have a theme directly set
+                if (m_theme) {
+                    return m_theme;
+                }
+
+                // Walk up the parent chain to find a theme
+                if (auto* parent = get_themeable_parent()) {
+                    return parent->get_theme();
+                }
+
+                // No theme found in hierarchy
+                return nullptr;
+            }
+
+            /**
+             * @brief Check if this element has a theme (either direct or inherited)
+             */
+            [[nodiscard]] bool has_theme() const {
+                return get_theme() != nullptr;
+            }
+
         protected:
             themeable() = default;
+
+            // Internal theme setter (for apply_theme only)
+            void set_theme_internal(const theme_type* theme) {
+                m_theme = theme;
+            }
 
             // Theme application hooks
             virtual void do_apply_theme(const theme_type& theme) = 0;
@@ -363,8 +403,11 @@ namespace onyxui {
             // Note: Protected members are intentional for this base class design.
             // Derived classes (ui_element) need direct access for CSS-style inheritance.
 
-            // Theme reference
+        private:
+            // Theme reference (access via get_theme() for proper inheritance)
             const theme_type* m_theme = nullptr;
+
+        protected:
 
             // Property overrides (optional = use inheritance)
             std::optional<color_type> m_background_override;

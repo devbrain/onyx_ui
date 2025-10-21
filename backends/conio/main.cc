@@ -4,10 +4,10 @@
 // Norton Utilities 8-style UI demo using drawing_utils abstraction
 
 #include "vram.hh"
-#include "drawing_utils.hh"
-#include "colors.hh"
+#include "src/drawing_utils.hh"
+#include "include/onyxui/conio/colors.hh"
 #include "rect.hh"
-#include "dos_chars.h"
+#include "src/dos_chars.h"
 #include <time.h>
 #include <unistd.h>
 #include <string>

@@ -517,7 +517,9 @@ namespace onyxui {
        * when only small portions of the UI change.
        */
             void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
-                if (!m_visible) return;
+                if (!m_visible) {
+                    return;
+                }
 
                 // Create draw context with dirty regions for optimization
                 draw_context<Backend> ctx(renderer, dirty_regions);
@@ -634,10 +636,25 @@ namespace onyxui {
             }
 
         protected:
+            /**
+             * @brief Get parent for CSS-style theme inheritance
+             *
+             * @details Enables get_theme() to walk up the parent chain to find
+             *          the nearest theme. This allows children to inherit themes
+             *          without having apply_theme() called directly on them.
+             */
+            [[nodiscard]] const themeable<Backend>* get_themeable_parent() const override {
+                return m_parent;
+            }
+
             void after_apply_theme([[maybe_unused]] const theme_type& theme) override {
+                // Propagate theme to all children
                 for (auto& child : m_children) {
                     child->apply_theme(theme);
                 }
+                // Invalidate arrangement to ensure visual update with new theme
+                // Theme changes can affect colors, borders, fonts, etc.
+                invalidate_arrange();
             }
 
             /**
@@ -655,12 +672,12 @@ namespace onyxui {
                 // Base: nothing to render
             }
 
-        private:
             /**
              * @brief Calculate the content area (bounds minus margin and padding)
              * @note noexcept - uses only safe arithmetic operations
+             * @note virtual - subclasses can override to account for borders
              */
-            rect_type get_content_area() const noexcept {
+            virtual rect_type get_content_area() const noexcept {
                 // Calculate position with safe addition
                 const int x = safe_math::add_clamped(rect_utils::get_x(m_bounds),
                                                 safe_math::add_clamped(m_margin.left, m_padding.left));
@@ -682,6 +699,8 @@ namespace onyxui {
                 rect_utils::set_bounds(content_area, x, y, w, h);
                 return content_area;
             }
+
+        private:
 
             // Parent element (non-owning)
             ui_element* m_parent = nullptr;
@@ -1023,16 +1042,33 @@ namespace onyxui {
     typename ui_element <Backend>::size_type
     ui_element <Backend>::do_measure(int available_width, int available_height) {
         if (m_layout_strategy) {
-            return m_layout_strategy->measure_children(
-                static_cast <const ui_element*>(this), available_width, available_height);
+            // Subtract padding from available space before passing to layout strategy
+            // (margin is already subtracted by measure())
+            const int content_width = safe_math::subtract_clamped(available_width, m_padding.horizontal());
+            const int content_height = safe_math::subtract_clamped(available_height, m_padding.vertical());
+
+            size_type content_size = m_layout_strategy->measure_children(
+                static_cast <const ui_element*>(this),
+                std::max(0, content_width),
+                std::max(0, content_height));
+
+            // Add padding back to the measured size
+            int w = safe_math::add_clamped(size_utils::get_width(content_size), m_padding.horizontal());
+            int h = safe_math::add_clamped(size_utils::get_height(content_size), m_padding.vertical());
+
+            size_type result{};
+            size_utils::set_size(result, w, h);
+            return result;
         }
         return get_content_size();
     }
 
     template<UIBackend Backend>
     void ui_element <Backend>::do_arrange(const rect_type& final_bounds) {
+        (void)final_bounds;  // Mark as used (bounds already set in arrange())
         if (m_layout_strategy) {
-            m_layout_strategy->arrange_children(this, final_bounds);
+            // Use content area instead of full bounds to account for borders/padding
+            m_layout_strategy->arrange_children(this, get_content_area());
         }
     }
 

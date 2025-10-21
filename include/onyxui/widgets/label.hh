@@ -8,6 +8,7 @@
 #pragma once
 
 #include <string>
+#include <iostream>
 #include <onyxui/widgets/widget.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 
@@ -105,7 +106,7 @@ namespace onyxui {
             m_text = strip_mnemonic(mnemonic_text);
 
             // Parse mnemonic if theme is available
-            if (auto* theme = this->m_theme) {
+            if (auto* theme = this->get_theme()) {
                 m_mnemonic_info = parse_mnemonic<Backend>(
                     mnemonic_text,
                     theme->label.font,
@@ -146,15 +147,20 @@ namespace onyxui {
          * eliminating the need for a separate get_content_size() implementation.
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->m_theme;
+            auto* theme = this->get_theme();
 
-            const auto& bounds = this->bounds();
+            // During rendering, use actual bounds; during measurement, use origin
+            int x = 0;
+            int y = 0;
+            if (ctx.is_rendering()) {
+                const auto& bounds = this->bounds();
+                x = rect_utils::get_x(bounds);
+                y = rect_utils::get_y(bounds);
+            }
+            // else: use origin {0, 0} for measurement
 
             if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
                 // Render styled text with mnemonic (multi-segment)
-                int x = rect_utils::get_x(bounds);
-                int y = rect_utils::get_y(bounds);
-
                 for (const auto& segment : m_mnemonic_info.text) {
                     typename Backend::point_type pos{x, y};
                     // Use segment font, or default if no theme
@@ -164,7 +170,7 @@ namespace onyxui {
                 }
             } else {
                 // Render plain text
-                typename Backend::point_type pos{rect_utils::get_x(bounds), rect_utils::get_y(bounds)};
+                typename Backend::point_type pos{x, y};
                 typename renderer_type::font default_font{};
                 typename Backend::color_type color = theme ? theme->label.text : typename Backend::color_type{};
                 ctx.draw_text(m_text, pos, theme ? theme->label.font : default_font, color);

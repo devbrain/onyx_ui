@@ -88,7 +88,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
 
-            layer_id id = mgr.add_layer(layer_type::popup, elem);  // New safe API
+            (void)mgr.add_layer(layer_type::popup, elem);  // New safe API
             CHECK(mgr.layer_count() == 1);
 
             // Destroy element while layer exists
@@ -106,7 +106,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
 
-            layer_id id = mgr.add_layer(layer_type::popup, elem);  // New safe API
+            (void)mgr.add_layer(layer_type::popup, elem);  // New safe API
             elem.reset();  // Destroy element
 
             TestRenderer renderer;
@@ -169,10 +169,6 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             auto elem2 = std::make_shared<EventCountingElement>();
             auto elem3 = std::make_shared<EventCountingElement>();
 
-            auto* ptr1 = elem1.get();
-            auto* ptr2 = elem2.get();
-            auto* ptr3 = elem3.get();
-
             mgr.add_layer(layer_type::base, elem1, 0);
             mgr.add_layer(layer_type::popup, elem2, 100);
             mgr.add_layer(layer_type::tooltip, elem3, 200);
@@ -234,7 +230,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             auto elem = std::make_shared<TestElement>();
 
             TestRect anchor{10, 10, 50, 20};
-            layer_id id = mgr.show_popup(elem.get(), anchor, popup_placement::below);
+            (void)mgr.show_popup(elem.get(), anchor, popup_placement::below);
 
             elem.reset();
 
@@ -250,7 +246,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto dialog = std::make_shared<TestElement>();
 
-            layer_id id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+            (void)mgr.show_modal_dialog(dialog.get(), dialog_position::center);
             dialog.reset();
 
             TestRenderer renderer;
@@ -477,11 +473,9 @@ TEST_SUITE("Layer Manager - Self-Removal") {
         layer_manager<Backend> mgr;
 
         auto self_removing = std::make_shared<SelfRemovingElement>(&mgr);
-        auto* ptr = self_removing.get();
 
         layer_id id = mgr.add_layer(layer_type::popup, self_removing);
         self_removing->set_layer_id(id);
-
         CHECK(mgr.layer_count() == 1);
 
         TestEvent event;

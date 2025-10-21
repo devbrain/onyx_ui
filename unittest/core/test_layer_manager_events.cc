@@ -435,9 +435,6 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         auto layer2 = std::make_shared<TrackingElement>(false);
         auto layer3 = std::make_shared<TrackingElement>(false);
 
-        auto* ptr1 = layer1.get();
-        auto* ptr2 = layer2.get();
-        auto* ptr3 = layer3.get();
 
         // All same z-index
         mgr.add_layer(layer_type::popup, layer1, 100);
@@ -479,7 +476,6 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         auto layer1 = std::make_shared<TrackingElement>(false);
         auto layer2 = std::make_shared<TrackingElement>(false);
 
-        auto* ptr1 = layer1.get();
         auto* ptr2 = layer2.get();
 
         mgr.add_layer(layer_type::popup, layer1, 0);

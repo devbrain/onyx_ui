@@ -181,7 +181,7 @@ namespace onyxui {
         void set_mnemonic_text(std::string_view mnemonic_text) {
             m_text = strip_mnemonic(mnemonic_text);
 
-            if (auto* theme = this->m_theme) {
+            if (auto* theme = this->get_theme()) {
                 m_mnemonic_info = parse_mnemonic<Backend>(
                     mnemonic_text,
                     theme->button.font,  // Use button fonts as fallback for menu items
@@ -258,7 +258,7 @@ namespace onyxui {
          * During rendering: draws background, text, and shortcut with state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->m_theme;
+            auto* theme = this->get_theme();
             if (!theme) return;
 
             // Calculate sizes (needed for both measurement and rendering)

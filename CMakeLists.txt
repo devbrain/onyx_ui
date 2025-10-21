@@ -210,8 +210,86 @@ else()
 endif()
 
 # ===========================================================================
+# fkYAML Dependency (header-only YAML library)
+# ===========================================================================
+# Used for YAML theme support - allows loading/saving themes from YAML files
 
-add_library(onyx_ui INTERFACE
+if(TARGET thirdparty::fkYAML)
+    message(STATUS "Found thirdparty::fkYAML target from parent project")
+elseif(TARGET fkYAML::fkYAML)
+    message(STATUS "Found fkYAML::fkYAML target - using directly")
+    # fkYAML::fkYAML already exists, use it directly
+else()
+    # Try to find fkYAML locally
+    find_package(fkYAML QUIET)
+
+    if(NOT fkYAML_FOUND)
+        message(STATUS "fkYAML not found - fetching from GitHub...")
+
+        fetchcontent_declare(
+            fkYAML
+            GIT_REPOSITORY "https://github.com/fktn-k/fkYAML.git"
+            GIT_TAG v0.3.12
+            GIT_PROGRESS TRUE
+            UPDATE_COMMAND ""
+        )
+        fetchcontent_makeavailable(fkYAML)
+
+        # fkYAML provides fkYAML::fkYAML target
+        if(NOT TARGET fkYAML::fkYAML)
+            message(FATAL_ERROR "fkYAML::fkYAML target not found after FetchContent")
+        endif()
+    else()
+        message(STATUS "Found fkYAML locally")
+    endif()
+endif()
+
+# ===========================================================================
+# reflect-cpp Dependency (header-only reflection library)
+# ===========================================================================
+# Used for automatic C++ struct serialization/deserialization to/from YAML
+# Provides JSON Schema generation for IDE autocomplete support
+
+#if(TARGET reflectcpp)
+#    message(STATUS "Found reflectcpp target from parent project")
+#    if(NOT TARGET thirdparty::reflectcpp)
+#        add_library(thirdparty::reflectcpp ALIAS reflectcpp)
+#    endif()
+#elseif(TARGET thirdparty::reflectcpp)
+#    message(STATUS "Found thirdparty::reflectcpp target from parent project")
+#else()
+#    # Try to find reflect-cpp locally
+#    find_package(reflectcpp QUIET)
+#
+#    if(NOT reflectcpp_FOUND)
+#        message(STATUS "reflect-cpp not found - fetching from GitHub...")
+#
+#        fetchcontent_declare(
+#            reflectcpp
+#            GIT_REPOSITORY "https://github.com/getml/reflect-cpp.git"
+#            GIT_TAG v0.10.0
+#            GIT_PROGRESS TRUE
+#            UPDATE_COMMAND ""
+#        )
+#        fetchcontent_makeavailable(reflectcpp)
+#
+#        # reflect-cpp provides reflectcpp target
+#        if(TARGET reflectcpp)
+#            add_library(thirdparty::reflectcpp ALIAS reflectcpp)
+#        else()
+#            message(FATAL_ERROR "reflectcpp target not found after FetchContent")
+#        endif()
+#    else()
+#        message(STATUS "Found reflect-cpp locally")
+#        if(NOT TARGET thirdparty::reflectcpp)
+#            add_library(thirdparty::reflectcpp ALIAS reflectcpp::reflectcpp)
+#        endif()
+#    endif()
+#endif()
+
+# ===========================================================================
+
+add_library(onyxui INTERFACE
         include/onyxui/element.hh
         include/onyxui/utils/safe_math.hh
         include/onyxui/layout_strategy.hh
@@ -239,17 +317,23 @@ add_library(onyx_ui INTERFACE
         include/onyxui/widgets/spring.hh
         include/onyxui/widgets/status_bar.hh
         include/onyxui/widgets/group_box.hh
+        examples/demo.cc
+        examples/demo.hh
 )
 
-target_include_directories(onyx_ui INTERFACE
+target_include_directories(onyxui INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(onyx_ui INTERFACE thirdparty::failsafe)
+target_link_libraries(onyxui INTERFACE
+    thirdparty::failsafe
+ #   fkYAML::fkYAML          # YAML parsing for theme support
+ #   thirdparty::reflectcpp  # Automatic C++ reflection for YAML serialization
+)
 
 # Thread safety configuration
 if(ONYXUI_THREAD_SAFE)
-    target_compile_definitions(onyx_ui INTERFACE ONYXUI_THREAD_SAFE=1)
+    target_compile_definitions(onyxui INTERFACE ONYXUI_THREAD_SAFE=1)
     message(STATUS "Thread-safe signal/slot system enabled (ONYXUI_THREAD_SAFE=1)")
 else()
     message(STATUS "Thread-safe signal/slot system disabled (maximum performance, single-threaded only)")
@@ -259,10 +343,10 @@ endif()
 # Debug builds: Enable verbose logging for development and debugging
 # Release builds: Only log errors to minimize performance impact
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(onyx_ui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_DEBUG)
+    target_compile_definitions(onyxui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_DEBUG)
     message(STATUS "Failsafe logging: DEBUG level enabled")
 else()
-    target_compile_definitions(onyx_ui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_ERROR)
+    target_compile_definitions(onyxui INTERFACE FAILSAFE_LOG_LEVEL=FAILSAFE_LOG_ERROR)
     message(STATUS "Failsafe logging: ERROR level only")
 endif()
 
@@ -272,3 +356,5 @@ endif()
 
 
 add_subdirectory(backends/conio)
+
+add_subdirectory(examples)

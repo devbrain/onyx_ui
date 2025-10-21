@@ -66,7 +66,7 @@ TEST_CASE("measure_context - Text measurement") {
         Backend::color_type color;
 
         // Draw text "Hi" (2 chars) at (10, 5)
-        ctx.draw_text("Hi", pos, font, color);
+        (void)ctx.draw_text("Hi", pos, font, color);
 
         // Should track to position + size = (10+2, 5+1) = (12, 6)
         auto measured = ctx.get_size();
@@ -115,7 +115,7 @@ TEST_CASE("measure_context - Reset functionality") {
         Backend::point_type pos{0, 0};
         Backend::renderer_type::font font;
         Backend::color_type color;
-        ctx.draw_text("Hello", pos, font, color);
+        (void)ctx.draw_text("Hello", pos, font, color);
 
         // Verify size is tracked
         auto measured1 = ctx.get_size();
@@ -209,7 +209,7 @@ TEST_CASE("Context lifetimes") {
         Backend::point_type pos{0, 0};
         Backend::renderer_type::font font;
         Backend::color_type color;
-        ctx1.draw_text("Hello", pos, font, color);
+        (void)ctx1.draw_text("Hello", pos, font, color);
 
         // Move
         measure_context<Backend> ctx2 = std::move(ctx1);

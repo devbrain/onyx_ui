@@ -380,10 +380,13 @@ TEST_SUITE("scoped_layer - Edge Cases") {
         auto elem = std::make_shared<TestElement>();
 
         auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
-        layer_id id = layer.get();
+        [[maybe_unused]] layer_id id = layer.get();
 
-        // Self move assignment should be safe
+        // Self move assignment should be safe (intentional test)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
         layer = std::move(layer);
+#pragma GCC diagnostic pop
 
         // Behavior after self-move is implementation-defined
         // but should not crash

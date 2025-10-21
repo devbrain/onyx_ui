@@ -3,27 +3,29 @@
 //
 // DOS theme showcase using the onyx_ui widget system
 //
-// This demo demonstrates the full widget rendering pipeline:
+// This demo demonstrates the full widget rendering pipeline with the new theme system:
+// - Theme registry via ui_services (service locator pattern)
+// - Backend-provided themes (conio_themes)
+// - Theme discovery (list_theme_names)
+// - Theme switching by name
 // - Proper widget tree with panel, label, button widgets
 // - Layout system (vbox for vertical stacking)
 // - Two-pass layout (measure then arrange)
 // - Rendering via conio_renderer with text attribute support
 // - Action and hotkey system for theme switching
-// - Backend-agnostic UI creation with templated function
 // - Clean, ergonomic widget creation API
 // - Terminal resize support
 //
 // Hotkeys:
-//   1 - Switch to DOS Blue theme (Classic)
-//   2 - Switch to DOS Dark theme (Norton Commander)
-//   3 - Switch to DOS Monochrome theme (Hercules)
-//   4 - Switch to Norton Utilities theme (Amber)
-//   ESC / Ctrl+C - Quit
+//   1-4 - Switch between available themes
+//   ESC / Ctrl+C / Alt+F4 - Quit
+//
 
-#include "dos_theme.hh"
-#include "vram.hh"
-#include "conio_backend.hh"
+#include <thread>
+
+#include "include/onyxui/conio/conio_backend.hh"
 #include <onyxui/ui_handle.hh>
+#include <onyxui/ui_context.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/button.hh>
@@ -41,39 +43,47 @@
 using namespace onyxui;
 using namespace onyxui::conio;
 
-// Compile-time check: does tb_event satisfy WindowEvent?
-static_assert(WindowEvent<tb_event>, "tb_event must satisfy WindowEvent concept");
-
 /**
  * @brief Main widget for DOS theme showcase
  *
  * @details
  * This widget encapsulates the entire theme showcase application:
  * - UI structure (panels, labels, buttons)
- * - Theme management and switching
+ * - Theme management via ui_services (service locator)
+ * - Theme discovery and switching
  * - Actions and hotkey bindings
  * - Quit functionality
  *
- * This demonstrates the pattern of encapsulating application logic
- * in a widget class rather than in main().
+ * Demonstrates the new theme system:
+ * - Themes accessed via ui_services<Backend>::themes()
+ * - Theme discovery via list_theme_names()
+ * - Theme application by name
  */
 class main_widget : public panel<conio_backend> {
 public:
     /**
-     * @brief Construct the main widget with themes
-     * @param themes Available themes
-     * @param theme_names Human-readable theme names
-     * @param initial_theme Index of initial theme to apply
+     * @brief Construct the main widget
+     *
+     * @details
+     * Discovers available themes from ui_services theme registry.
+     * Sets up UI structure, actions, and hotkeys.
      */
-    main_widget(std::vector<ui_theme<conio_backend>> themes,
-                std::vector<std::string> theme_names,
-                size_t initial_theme = 0)
+    main_widget()
         : panel<conio_backend>(nullptr)
-        , m_themes(std::move(themes))
-        , m_theme_names(std::move(theme_names))
-        , m_current_theme(initial_theme)
+        , m_current_theme_index(0)
         , m_should_quit(false)
     {
+        // Get available themes from service locator
+        auto* themes = ui_services<conio_backend>::themes();
+        if (themes) {
+            m_theme_names = themes->list_theme_names();
+        }
+
+        // Ensure we have at least one theme
+        if (m_theme_names.empty()) {
+            throw std::runtime_error("No themes registered! Call conio_themes::register_default_themes() first.");
+        }
+
         // Set up layout
         set_vbox_layout(0);  // Vertical layout with no spacing for compact DOS look
         set_padding(thickness::all(0));  // No internal padding for compact DOS look
@@ -84,8 +94,8 @@ public:
         // Build UI structure (including menu bar)
         build_ui();
 
-        // Apply initial theme
-        apply_theme(m_themes[m_current_theme]);
+        // Apply initial theme by name
+        apply_theme_by_name(m_theme_names[m_current_theme_index]);
     }
 
     /**
@@ -102,29 +112,16 @@ public:
         m_should_quit = true;
     }
 
-    /**
-     * @brief Set UI handle reference for menu bar
-     * @param ui Pointer to UI handle
-     *
-     * @details
-     * Must be called after ui_handle is created to enable menu popups.
-     */
-    void set_ui_handle(ui_handle<conio_backend>* ui) {
-        m_ui_handle = ui;
-
-        // No longer needed - menu_bar uses ui_services automatically
-    }
-
 private:
     void build_ui() {
         // Menu bar (at the top)
         build_menu_bar();
 
         // Title
-        add_label(*this, "DOS Theme Showcase");
+        add_label(*this, "DOS Theme Showcase - New Theme System");
 
         // Theme label (keep pointer for updates)
-        m_theme_label = add_label(*this, m_theme_names[m_current_theme]);
+        m_theme_label = add_label(*this, get_current_theme_display());
 
         // Spacer
         add_label(*this, "");
@@ -136,7 +133,7 @@ private:
         demo_panel->set_vbox_layout(1);
 
         add_label(*demo_panel, "Panel with Border");
-        add_label(*demo_panel, "This is a panel example");
+        add_label(*demo_panel, "Themes via service locator");
 
         // Spacer
         add_label(*this, "");
@@ -161,20 +158,27 @@ private:
 
         // Spacer and instructions
         add_label(*this, "");
-        add_label(*this, "Press 1-4 to switch themes | ESC, Ctrl+C, or click Quit");
+        add_label(*this, "Press 1-4 to switch themes | ESC, Ctrl+C, or Alt+F4 to quit");
     }
 
     void setup_actions() {
-        // Theme switching actions
-        for (size_t i = 0; i < m_themes.size() && i < 4; ++i) {
+        // Get global hotkey manager from service locator
+        auto* hotkeys = ui_services<conio_backend>::hotkeys();
+        if (!hotkeys) {
+            std::cerr << "Error: No hotkey manager available!" << std::endl;
+            return;
+        }
+
+        // Theme switching actions (1-4 keys for first 4 themes)
+        const size_t max_hotkey_themes = std::min(m_theme_names.size(), size_t(4));
+        for (size_t i = 0; i < max_hotkey_themes; ++i) {
             auto theme_action = std::make_shared<onyxui::action<conio_backend>>();
             theme_action->set_text(m_theme_names[i]);
-            // Set numeric shortcuts for themes (1-4)
-            theme_action->set_shortcut(static_cast<char>('1' + i));
+            theme_action->set_shortcut(static_cast<char>('1' + i));  // 1-4 keys
             theme_action->triggered.connect([this, i]() {
-                switch_theme(i);
+                switch_to_theme_index(i);
             });
-            this->hotkeys().register_action(theme_action);
+            hotkeys->register_action(theme_action);
             m_theme_actions.push_back(theme_action);  // Keep action alive!
         }
 
@@ -183,21 +187,19 @@ private:
         new_action->set_text("New");
         new_action->set_shortcut('n', key_modifier::ctrl);  // Ctrl+N
         new_action->triggered.connect([]() {
-            // Placeholder - in real app would create new document
             std::cerr << "New action triggered via menu/hotkey!" << std::endl;
         });
         m_new_action = new_action;
-        this->hotkeys().register_action(new_action);
+        hotkeys->register_action(new_action);
 
         auto open_action = std::make_shared<onyxui::action<conio_backend>>();
         open_action->set_text("Open");
         open_action->set_shortcut('o', key_modifier::ctrl);  // Ctrl+O
         open_action->triggered.connect([]() {
-            // Placeholder - in real app would open file dialog
             std::cerr << "Open action triggered!" << std::endl;
         });
         m_open_action = open_action;
-        this->hotkeys().register_action(open_action);
+        hotkeys->register_action(open_action);
 
         // Quit action with Alt+F4 shortcut
         auto quit_action = std::make_shared<onyxui::action<conio_backend>>();
@@ -208,13 +210,13 @@ private:
             quit();
         });
         m_quit_action = quit_action;
-        this->hotkeys().register_action(quit_action);
+        hotkeys->register_action(quit_action);
 
         // Help menu actions
         auto about_action = std::make_shared<onyxui::action<conio_backend>>();
         about_action->set_text("About");
         about_action->triggered.connect([]() {
-            std::cerr << "About: DOS Theme Showcase v1.0" << std::endl;
+            std::cerr << "About: DOS Theme Showcase v2.0 - Theme System Edition" << std::endl;
         });
         m_about_action = about_action;
     }
@@ -226,40 +228,30 @@ private:
         // File menu
         auto file_menu = std::make_unique<menu<conio_backend>>();
 
-        // New item with action
         auto new_item = std::make_unique<menu_item<conio_backend>>("New");
         new_item->set_action(m_new_action);
         file_menu->add_item(std::move(new_item));
 
-        // Open item with action
         auto open_item = std::make_unique<menu_item<conio_backend>>("Open");
         open_item->set_action(m_open_action);
         file_menu->add_item(std::move(open_item));
 
         file_menu->add_separator();
 
-        // Quit item with action
         auto quit_item = std::make_unique<menu_item<conio_backend>>("Quit");
         quit_item->set_action(m_quit_action);
         file_menu->add_item(std::move(quit_item));
 
-        // Apply theme to file menu BEFORE adding to menu_bar
-        file_menu->apply_theme(m_themes[m_current_theme]);
-
         menu_bar_ptr->add_menu("&File", std::move(file_menu));
 
-        // Theme menu
+        // Theme menu - dynamically built from theme registry
         auto theme_menu = std::make_unique<menu<conio_backend>>();
 
         for (size_t i = 0; i < m_theme_actions.size(); ++i) {
-            // Initialize with theme name as placeholder text
             auto theme_item = std::make_unique<menu_item<conio_backend>>(m_theme_names[i]);
             theme_item->set_action(m_theme_actions[i]);
             theme_menu->add_item(std::move(theme_item));
         }
-
-        // Apply theme to theme menu BEFORE adding to menu_bar
-        theme_menu->apply_theme(m_themes[m_current_theme]);
 
         menu_bar_ptr->add_menu("&Theme", std::move(theme_menu));
 
@@ -270,9 +262,6 @@ private:
         about_item->set_action(m_about_action);
         help_menu->add_item(std::move(about_item));
 
-        // Apply theme to help menu BEFORE adding to menu_bar
-        help_menu->apply_theme(m_themes[m_current_theme]);
-
         menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
         // Store pointer before moving
@@ -282,24 +271,74 @@ private:
         this->add_child(std::move(menu_bar_ptr));
     }
 
-    void switch_theme(size_t theme_index) {
-        if (theme_index >= m_themes.size()) return;
+    /**
+     * @brief Switch to theme by index
+     * @param index Theme index in sorted theme list
+     */
+    void switch_to_theme_index(size_t index) {
+        if (index >= m_theme_names.size()) return;
 
-        std::cerr << "Switching to theme " << theme_index << ": " << m_theme_names[theme_index] << std::endl;
-        m_current_theme = theme_index;
-        m_theme_label->set_text(m_theme_names[m_current_theme]);
-        apply_theme(m_themes[m_current_theme]);
+        m_current_theme_index = index;
+        apply_theme_by_name(m_theme_names[index]);
+        update_theme_display();
+    }
+
+    /**
+     * @brief Apply theme by name using theme registry
+     * @param theme_name Name of theme to apply
+     */
+    void apply_theme_by_name(const std::string& theme_name) {
+        auto* themes = ui_services<conio_backend>::themes();
+        if (!themes) {
+            std::cerr << "Error: Theme registry not available!" << std::endl;
+            return;
+        }
+
+        // Use get_theme() which returns a stable pointer to the stored theme
+        if (auto* theme = themes->get_theme(theme_name)) {
+            this->apply_theme(*theme);
+
+            // Log theme switch with description
+            std::cerr << "Switched to: " << theme->name;
+            if (!theme->description.empty()) {
+                std::cerr << " - " << theme->description;
+            }
+            std::cerr << std::endl;
+        } else {
+            std::cerr << "Error: Theme '" << theme_name << "' not found!" << std::endl;
+        }
+    }
+
+    /**
+     * @brief Update the theme display label
+     */
+    void update_theme_display() {
+        if (m_theme_label) {
+            m_theme_label->set_text(get_current_theme_display());
+        }
+    }
+
+    /**
+     * @brief Get current theme display text
+     * @return Formatted string showing current theme
+     */
+    std::string get_current_theme_display() const {
+        if (m_current_theme_index >= m_theme_names.size()) {
+            return "No theme selected";
+        }
+
+        return "Current: " + m_theme_names[m_current_theme_index] +
+               " (" + std::to_string(m_current_theme_index + 1) +
+               "/" + std::to_string(m_theme_names.size()) + ")";
     }
 
 private:
-    std::vector<ui_theme<conio_backend>> m_themes;
-    std::vector<std::string> m_theme_names;
-    size_t m_current_theme;
+    std::vector<std::string> m_theme_names;  // Discovered from theme registry
+    size_t m_current_theme_index;
     bool m_should_quit;
 
     label<conio_backend>* m_theme_label = nullptr;
     menu_bar<conio_backend>* m_menu_bar = nullptr;
-    ui_handle<conio_backend>* m_ui_handle = nullptr;
 
     // Actions - kept alive as shared_ptrs
     std::shared_ptr<onyxui::action<conio_backend>> m_new_action;
@@ -309,70 +348,58 @@ private:
     std::vector<std::shared_ptr<onyxui::action<conio_backend>>> m_theme_actions;  // Keep actions alive!
 };
 
+static void wait_for_debug() {
+    volatile bool flag = false;
+    while (!flag) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
 int main() {
     try {
-        // Create vram instance (handles termbox2 initialization)
-        auto vram_ptr = std::make_shared<vram>();
+        // 1. Create UI context (provides layer manager, focus manager, theme registry)
+        //    Themes are automatically registered by conio_backend::register_themes()
+        scoped_ui_context<conio_backend> ui_ctx;
 
-        // Create renderer
-        conio_renderer renderer(vram_ptr);
+        // 2. Display available themes (auto-registered by backend)
+        std::cerr << "Available themes:" << std::endl;
+        for (const auto& name : ui_ctx.themes().list_theme_names()) {
+            if (const auto* theme = ui_ctx.themes().get_theme(name)) {
+                std::cerr << "  - " << theme->name;
+                if (!theme->description.empty()) {
+                    std::cerr << " (" << theme->description << ")";
+                }
+                std::cerr << std::endl;
+            }
+        }
+        std::cerr << std::endl;
 
-        // Initialize themes
-        std::vector<ui_theme<conio_backend>> themes;
-        std::vector<std::string> theme_names;
+        // 3. Create vram instance (handles termbox2 initialization)
 
-        themes.push_back(create_dos_blue_theme());
-        theme_names.push_back("DOS Blue (Classic)");
 
-        themes.push_back(create_dos_dark_theme());
-        theme_names.push_back("DOS Dark (Norton Commander)");
 
-        themes.push_back(create_dos_monochrome_theme());
-        theme_names.push_back("DOS Monochrome (Hercules)");
-
-        themes.push_back(create_norton_utilities_theme());
-        theme_names.push_back("Norton Utilities (Amber)");
-
-        // Create main widget with all themes and logic
-        auto widget = std::make_unique<main_widget>(
-            std::move(themes),
-            std::move(theme_names),
-            0  // Initial theme index
-        );
+        // 5. Create main widget (discovers themes from ui_services)
+        auto widget = std::make_unique<main_widget>();
 
         // Keep reference to widget for event handling before moving it
         auto* widget_ptr = widget.get();
 
-        // Create UI handle with main widget and renderer
-        ui_handle<conio_backend> ui(std::move(widget), renderer);
+        // 6. Create UI handle with main widget and renderer
+        ui_handle<conio_backend> ui(std::move(widget));
 
-        // Give widget access to UI handle for menu popups
-        widget_ptr->set_ui_handle(&ui);
+       // wait_for_debug();
 
-        // Initial render - display UI once before entering event loop
-        // (otherwise screen is blank until first event arrives)
-        {
-            const int width = vram_ptr->get_width();
-            const int height = vram_ptr->get_height();
-            conio_backend::rect_type bounds;
-            rect_utils::set_bounds(bounds, 0, 0, width, height);
-            ui.display(bounds);
-            ui.present();
-        }
-
-        // Main loop - event-driven design
-        // Poll events, handle them (including resize), then render
+        // 8. Main loop - event-driven design
         while (!widget_ptr->should_quit()) {
+            ui.display();
+            ui.present();
             // Wait for event (blocking)
             tb_event ev;
             int poll_result = tb_poll_event(&ev);
 
             // Handle polling errors gracefully
-            // Note: On terminal resize, termbox2 may return an error on the first poll,
-            // then return TB_EVENT_RESIZE on the second poll. We must continue to get
-            // the actual resize event.
             if (poll_result != TB_OK) {
-                continue;  // Don't break - next poll will have the actual event
+                continue;  // Next poll will have the actual event
             }
 
             // Handle Ctrl+C specially (always quit)
@@ -382,8 +409,6 @@ int main() {
             }
 
             // Route all events through ui_handle's event system
-            // (including resize events - ui_handle will call renderer.on_resize())
-            // menu_bar now handles its own popups, focus, and click-outside behavior
             bool handled = ui.handle_event(ev);
 
             // If ESC wasn't handled by UI (no menu open), quit
@@ -391,25 +416,15 @@ int main() {
                 widget_ptr->quit();
                 continue;
             }
-
-            // NOW safe to render - vram buffer has been resized if needed
-            // Get terminal size
-            const int width = vram_ptr->get_width();
-            const int height = vram_ptr->get_height();
-
-            // Display UI within terminal bounds
-            conio_backend::rect_type bounds;
-            rect_utils::set_bounds(bounds, 0, 0, width, height);
-            ui.display(bounds);
-
-            // Present the frame
-            ui.present();
         }
 
+        // Context automatically cleaned up on scope exit
         return 0;
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
+
+        // Context automatically cleaned up on scope exit
         return 1;
     }
 }

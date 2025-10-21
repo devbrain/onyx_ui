@@ -367,11 +367,14 @@ namespace onyxui {
 
         if (m_layout_direction == direction::vertical) {
             // Vertical layout: stack children vertically
+            int child_num = 0;
             for (auto& child : children) {
                 if (!child->is_visible()) continue;
 
+                child_num++;
                 // Measure child with full width, remaining height
                 int remaining_height = std::max(0, available_height - total_height);
+
                 size_type child_size = child->measure(available_width, remaining_height);
 
                 int child_w = size_utils::get_width(child_size);

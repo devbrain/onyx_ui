@@ -41,6 +41,7 @@
 #pragma once
 
 #include <memory>
+#include <iostream>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/concepts/event_like.hh>
@@ -103,8 +104,6 @@ namespace onyxui {
     private:
         std::unique_ptr<widget_type> m_root;
         renderer_type m_renderer;
-        hierarchical_focus_manager<Backend, widget_type> m_focus_manager;
-        layer_manager<Backend> m_layer_manager;  ///< Layer manager for overlays
         widget_type* m_hovered_widget = nullptr;  ///< Widget currently under mouse
 
     public:
@@ -114,16 +113,13 @@ namespace onyxui {
          *
          * @details
          * The ui_handle takes ownership of the root widget and
-         * creates its own renderer instance. Automatically registers
-         * layer and focus managers with ui_services for global access.
+         * creates its own renderer instance. Services (layer manager,
+         * focus manager) are accessed from the current ui_context
+         * via ui_services.
          */
         explicit ui_handle(std::unique_ptr<widget_type> root)
             : m_root(std::move(root))
             , m_renderer() {
-
-            // Register services globally
-            ui_services<Backend>::set_layer_manager(&m_layer_manager);
-            ui_services<Backend>::set_focus_manager(&m_focus_manager);
         }
 
         /**
@@ -134,27 +130,22 @@ namespace onyxui {
          * @details
          * This constructor allows passing a pre-configured renderer,
          * useful when the renderer needs special initialization.
-         * Automatically registers layer and focus managers with ui_services.
+         * Services (layer manager, focus manager) are accessed from
+         * the current ui_context via ui_services.
          */
         ui_handle(std::unique_ptr<widget_type> root, renderer_type renderer)
             : m_root(std::move(root))
             , m_renderer(std::move(renderer)) {
-
-            // Register services globally
-            ui_services<Backend>::set_layer_manager(&m_layer_manager);
-            ui_services<Backend>::set_focus_manager(&m_focus_manager);
         }
 
         /**
-         * @brief Destructor - clears service registry
+         * @brief Destructor
          *
          * @details
-         * Unregisters layer and focus managers from ui_services.
-         * After destruction, widgets will receive nullptr from service lookups.
+         * Destroys the UI handle and releases the root widget.
+         * Services remain in the ui_context managed by scoped_ui_context.
          */
-        ~ui_handle() {
-            ui_services<Backend>::clear();
-        }
+        ~ui_handle() = default;
 
         /**
          * @brief Display the UI (measure, arrange, render)
@@ -175,6 +166,20 @@ namespace onyxui {
             // Get viewport from renderer (renderer knows its size)
             auto bounds = m_renderer.get_viewport();
 
+            // DEBUG: Check what bounds renderer is returning
+            int bounds_x = rect_utils::get_x(bounds);
+            int bounds_y = rect_utils::get_y(bounds);
+            int bounds_w = rect_utils::get_width(bounds);
+            int bounds_h = rect_utils::get_height(bounds);
+            auto y_unsigned = static_cast<unsigned int>(bounds_y);
+            if (bounds_y < 0 || bounds_y > 10000 || y_unsigned > 10000) {
+                std::cerr << "UI_HANDLE::display(): Renderer returned bad viewport!"
+                          << " x=" << bounds_x << " y=" << bounds_y
+                          << " (unsigned: " << y_unsigned << ")"
+                          << " w=" << bounds_w << " h=" << bounds_h << std::endl;
+                std::cerr.flush();
+            }
+
             // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
 
@@ -184,7 +189,7 @@ namespace onyxui {
             }
 
             // Two-pass layout for base UI
-            m_root->measure(rect_utils::get_width(bounds),
+            [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
@@ -192,8 +197,10 @@ namespace onyxui {
             // Only renders widgets that intersect with dirty regions
             m_root->render(m_renderer, dirty_regions);
 
-            // Render all overlay layers
-            m_layer_manager.render_all_layers(m_renderer, bounds);
+            // Render all overlay layers from current context
+            if (auto* layers = ui_services<Backend>::layers()) {
+                layers->render_all_layers(m_renderer, bounds);
+            }
         }
 
         /**
@@ -225,8 +232,10 @@ namespace onyxui {
             // Only renders widgets that intersect with dirty regions
             m_root->render(m_renderer, dirty_regions);
 
-            // Render all overlay layers
-            m_layer_manager.render_all_layers(m_renderer, bounds);
+            // Render all overlay layers from current context
+            if (auto* layers = ui_services<Backend>::layers()) {
+                layers->render_all_layers(m_renderer, bounds);
+            }
         }
 
         /**
@@ -296,8 +305,10 @@ namespace onyxui {
             // ============================================================
             // Route event through layers first (top to bottom).
             // If a layer handles the event or a modal blocks it, don't route to base UI.
-            if (m_layer_manager.route_event(event)) {
-                return true;  // Layer handled the event
+            if (auto* layers = ui_services<Backend>::layers()) {
+                if (layers->route_event(event)) {
+                    return true;  // Layer handled the event
+                }
             }
 
             // ============================================================
@@ -332,19 +343,26 @@ namespace onyxui {
             // ============================================================
             if constexpr (KeyboardEvent<event_type>) {
                 // 1. Handle Tab navigation (focus_manager traverses tree automatically)
-                if (m_focus_manager.handle_tab_navigation_in_tree(event, m_root.get())) {
-                    return true;  // Tab was handled, focus changed
+                if (auto* focus = ui_services<Backend>::focus()) {
+                    if (focus->handle_tab_navigation_in_tree(event, m_root.get())) {
+                        return true;  // Tab was handled, focus changed
+                    }
                 }
 
-                // 2. Try global hotkeys on root widget (if it's a widget type)
-                // Pass nullptr to indicate global hotkeys (should work regardless of focus)
-                auto* root_widget = dynamic_cast<widget<Backend>*>(m_root.get());
-                if (root_widget && root_widget->hotkeys().handle_key_event(event, nullptr)) {
-                    return true;  // Global hotkey handled
+                // 2. Try global hotkeys from service locator
+                // Global hotkeys work regardless of focus
+                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                    if (hotkeys->handle_key_event(event, nullptr)) {
+                        return true;  // Global hotkey handled
+                    }
                 }
 
                 // 3. Get focused widget for forwarding
-                auto* focused = m_focus_manager.get_focused();
+                widget_type* focused = nullptr;
+                if (auto* focus = ui_services<Backend>::focus()) {
+                    auto* focused_target = focus->get_focused();
+                    focused = static_cast<widget_type*>(focused_target);
+                }
 
                 // 4. Forward keyboard event to focused widget
                 if (focused) {
@@ -383,7 +401,9 @@ namespace onyxui {
                         if (bool is_press = event_traits<event_type>::is_button_press(event)) {
                             // Mouse button down - set focus to clicked widget
                             if (hit_widget->is_focusable() && hit_widget->is_enabled()) {
-                                m_focus_manager.set_focus(hit_widget);
+                                if (auto* focus = ui_services<Backend>::focus()) {
+                                    focus->set_focus(hit_widget);
+                                }
                             }
                         }
                     }
@@ -444,87 +464,8 @@ namespace onyxui {
             return m_root != nullptr;
         }
 
-        /**
-         * @brief Get the focus manager
-         * @return Reference to the hierarchical focus manager
-         *
-         * @details
-         * The focus manager tracks which widget currently has keyboard focus
-         * and can automatically traverse the widget tree to find focusable
-         * widgets. Use this to:
-         * - Set focus to a specific widget
-         * - Get the currently focused widget
-         * - Navigate focus programmatically
-         * - Clear focus
-         *
-         * **Tab Navigation:** The focus manager automatically handles Tab/Shift+Tab
-         * in handle_event(), traversing the widget tree to find focusable widgets.
-         *
-         * @example
-         * @code
-         * // Set focus to a specific widget
-         * ui.focus().set_focus(my_button);
-         *
-         * // Get the focused widget
-         * auto* focused = ui.focus().get_focused();
-         *
-         * // Programmatically move focus (same as Tab key)
-         * ui.focus().focus_next_in_tree(ui.root());
-         *
-         * // Clear focus
-         * ui.focus().clear_focus();
-         * @endcode
-         */
-        [[nodiscard]] hierarchical_focus_manager<Backend, widget_type>& focus() noexcept {
-            return m_focus_manager;
-        }
-
-        /**
-         * @brief Get the focus manager (const)
-         * @return Const reference to the hierarchical focus manager
-         */
-        [[nodiscard]] const hierarchical_focus_manager<Backend, widget_type>& focus() const noexcept {
-            return m_focus_manager;
-        }
-
-        /**
-         * @brief Get the layer manager
-         * @return Reference to the layer manager
-         *
-         * @details
-         * The layer manager handles UI overlays, popups, and dialogs.
-         * Use this to show dropdown menus, tooltips, modal dialogs, etc.
-         *
-         * @example
-         * @code
-         * // Show dropdown menu
-         * layer_id menu_id = ui.layers().show_popup(
-         *     std::move(menu_content),
-         *     anchor_bounds,
-         *     popup_placement::below
-         * );
-         *
-         * // Show modal dialog
-         * layer_id dialog_id = ui.layers().show_modal_dialog(
-         *     std::move(dialog_content),
-         *     dialog_position::center
-         * );
-         *
-         * // Remove layer
-         * ui.layers().remove_layer(menu_id);
-         * @endcode
-         */
-        [[nodiscard]] layer_manager<Backend>& layers() noexcept {
-            return m_layer_manager;
-        }
-
-        /**
-         * @brief Get the layer manager (const)
-         * @return Const reference to the layer manager
-         */
-        [[nodiscard]] const layer_manager<Backend>& layers() const noexcept {
-            return m_layer_manager;
-        }
+        // NOTE: focus() and layers() accessors removed
+        // Use ui_services<Backend>::focus() and ui_services<Backend>::layers() instead
 
         /**
          * @brief Mark a region as dirty (needs redrawing)

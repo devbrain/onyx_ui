@@ -70,6 +70,7 @@
 #include <onyxui/layer_manager.hh>
 #include <onyxui/scoped_layer.hh>
 #include <onyxui/ui_services.hh>
+#include <onyxui/focus_manager.hh>
 
 namespace onyxui {
 
@@ -345,6 +346,21 @@ namespace onyxui {
          */
         // Note: Keyboard handling would be implemented in derived classes
         // that know the specific event type from Backend
+
+        /**
+         * @brief Apply theme to menu bar and all owned menus
+         */
+        void do_apply_theme(const typename base::theme_type& theme) override {
+            // Apply to base (hbox) which propagates to title buttons
+            base::do_apply_theme(theme);
+
+            // Also apply to all owned menus (not part of normal child tree)
+            for (auto& menu_ptr : m_owned_menus) {
+                if (menu_ptr) {
+                    menu_ptr->apply_theme(theme);
+                }
+            }
+        }
 
     private:
         std::vector<menu_entry<Backend>> m_menus;                    ///< Menu entries

@@ -144,7 +144,6 @@ TEST_SUITE("Safe Math") {
         }
 
         SUBCASE("Negative overflow (neg * pos)") {
-            constexpr int max = std::numeric_limits<int>::max();
             constexpr int min = std::numeric_limits<int>::min();
             CHECK(multiply_clamped(min, 2) == min);
             CHECK(multiply_clamped(min / 2, 3) == min);

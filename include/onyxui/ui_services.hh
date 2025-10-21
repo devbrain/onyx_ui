@@ -1,47 +1,62 @@
 /**
  * @file ui_services.hh
- * @brief Global service registry for UI operations
+ * @brief Global service registry with push/pop context stack pattern
  * @author Assistant
- * @date 2025-10-19
+ * @date 2025-10-20
  *
  * @details
- * Provides centralized access to UI services like layer management and focus management.
- * Services are registered once by ui_handle and accessible everywhere through static methods.
+ * Provides centralized access to UI services using a push/pop context stack.
+ * Contexts can be nested, allowing multiple independent UI instances.
  *
  * ## Design Rationale
  *
- * The service locator pattern is used here because:
- * 1. UI frameworks inherently have global state (event loops, windows, etc.)
- * 2. It avoids complex dependency injection through widget hierarchies
- * 3. It's the standard pattern in all major UI frameworks (Qt, ImGui, etc.)
- * 4. It makes testing easier (mock services globally)
+ * Uses a stack-based approach with thread-local storage:
+ * 1. **Zero Boilerplate**: Just create scoped_ui_context
+ * 2. **Multiple UIs**: Each context is independent
+ * 3. **Nested Contexts**: Modal dialogs, popups, etc.
+ * 4. **Thread Safe**: Each thread has its own stack
+ * 5. **RAII Cleanup**: Automatic push/pop via scoped_ui_context
  *
  * ## Thread Safety
  *
- * Not thread-safe. All access must be on UI thread. If thread-local storage is needed,
- * change `static inline` to `static inline thread_local`.
+ * Context stacks are thread_local, so each thread maintains its own stack.
+ * This allows multi-threaded rendering with independent UI contexts per thread.
  *
  * ## Usage Example
  *
  * @code
- * // Registration (done by ui_handle)
- * ui_services<Backend>::set_layer_manager(&layer_mgr);
- * ui_services<Backend>::set_focus_manager(&focus_mgr);
+ * // Single UI context (most common)
+ * int main() {
+ *     scoped_ui_context<Backend> ctx;
  *
- * // Access (done by widgets)
- * auto* layers = ui_services<Backend>::layers();
- * if (layers) {
- *     layers->show_popup(...);
+ *     // Register themes
+ *     ctx.themes().register_theme(my_theme);
+ *
+ *     // Create UI
+ *     auto ui = ui_handle<Backend>(...);
+ *     ui.display();
+ *
+ *     // Context auto-cleaned up
  * }
  *
- * // Cleanup (done by ui_handle destructor)
- * ui_services<Backend>::clear();
+ * // Multiple contexts
+ * scoped_ui_context<Backend> hud_ctx;
+ * auto hud = create_hud();
+ *
+ * {
+ *     scoped_ui_context<Backend> menu_ctx;
+ *     auto menu = create_menu();
+ *     // Each UI uses its own context
+ * }
  * @endcode
  */
 
 #pragma once
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/ui_context.hh>
+#include <vector>
+#include <cassert>
 
 namespace onyxui {
 
@@ -49,157 +64,255 @@ namespace onyxui {
     template<UIBackend Backend> class layer_manager;
     template<UIBackend Backend> class ui_element;
     template<UIBackend Backend, typename ElementType> class hierarchical_focus_manager;
+    template<UIBackend Backend> class theme_registry;
 
     /**
      * @class ui_services
-     * @brief Global service registry for UI operations
+     * @brief Global service registry with push/pop context stack
      *
      * @tparam Backend The UI backend type
      *
      * @details
-     * Provides static access to commonly-needed UI services without requiring
-     * dependency injection through the widget hierarchy. Services are registered
-     * once by ui_handle and accessible everywhere.
+     * Manages a thread-local stack of ui_context instances. The top of the stack
+     * is the "current" context, which provides access to services.
      *
-     * ## Services Provided
+     * ## Stack Operations
      *
-     * - **layer_manager**: Overlay management (popups, tooltips, dialogs)
-     * - **focus_manager**: Focus navigation and management
+     * - **push_context(ctx)**: Push a context onto the stack (makes it current)
+     * - **pop_context()**: Pop the current context (restores previous)
+     * - **current()**: Get the current context (top of stack)
      *
-     * ## Lifetime Management
+     * ## Service Access
      *
-     * Services are registered when ui_handle is created and cleared when it's destroyed.
-     * Accessing services after ui_handle destruction returns nullptr (safe).
+     * - **layers()**: Get layer manager from current context
+     * - **focus()**: Get focus manager from current context
+     * - **themes()**: Get theme registry from current context
      *
-     * ## Why Service Locator?
+     * All accessors return nullptr if no context is active (safe).
      *
-     * Alternative approaches were considered:
-     * - Context propagation through hierarchy: Complex, lots of boilerplate
-     * - Dependency injection: Over-engineered for this use case
-     * - Mixin traits: Multiple inheritance complexity
+     * ## Best Practice
      *
-     * Service locator provides the best balance of simplicity and usability for UI code.
+     * Use scoped_ui_context for RAII management:
      *
-     * @example Basic Usage
      * @code
-     * // In widget code
-     * void button::show_help_tooltip() {
-     *     auto* layers = ui_services<Backend>::layers();
-     *     if (layers) {
-     *         layers->show_tooltip(create_help_content(), this->bounds());
-     *     }
+     * {
+     *     scoped_ui_context<Backend> ctx;
+     *     // Use ui services...
+     * }  // Context automatically popped
+     * @endcode
+     *
+     * @example Multiple Independent UIs
+     * @code
+     * // Game with HUD + pause menu
+     * scoped_ui_context<Backend> hud_ctx;
+     * ui_handle<Backend> hud(...);
+     *
+     * // Later, show pause menu
+     * {
+     *     scoped_ui_context<Backend> menu_ctx;
+     *     ui_handle<Backend> menu(...);
+     *     // menu uses menu_ctx, hud uses hud_ctx
      * }
      * @endcode
      *
-     * @example Testing
+     * @example Nested Modal Dialog
      * @code
-     * TEST_CASE("Widget with tooltip") {
-     *     mock_layer_manager<Backend> mock;
-     *     ui_services<Backend>::set_layer_manager(&mock);
+     * // Main UI active
+     * scoped_ui_context<Backend> main_ctx;
+     * ui_handle<Backend> main_ui(...);
      *
-     *     widget->show_tooltip("Test");
-     *
-     *     CHECK(mock.tooltip_shown);
-     *
-     *     ui_services<Backend>::clear();
+     * // Show modal dialog
+     * {
+     *     scoped_ui_context<Backend> dialog_ctx;
+     *     ui_handle<Backend> dialog(...);
+     *     // Dialog loop...
      * }
+     * // Back to main UI
      * @endcode
      */
     template<UIBackend Backend>
     class ui_services {
     private:
-        // Service storage (inline static = one instance per template instantiation)
-        static inline layer_manager<Backend>* s_layer_manager = nullptr;
-        static inline hierarchical_focus_manager<Backend, ui_element<Backend>>* s_focus_manager = nullptr;
+        // Thread-local context stack
+        // Each thread maintains its own independent stack
+        static inline thread_local std::vector<ui_context<Backend>*> s_context_stack;
 
     public:
         // ================================================================
-        // Service Registration (called by ui_handle)
+        // Stack Management
         // ================================================================
 
         /**
-         * @brief Register the layer manager service
-         * @param mgr Pointer to layer manager (non-owning)
+         * @brief Push a context onto the stack
+         * @param ctx Pointer to context (non-owning)
          *
          * @details
-         * Called by ui_handle constructor. The pointer is non-owning - ui_handle
-         * retains ownership of the layer manager.
+         * Makes the given context the "current" context for this thread.
+         * The context must remain alive until pop_context() is called.
+         *
+         * @note Use scoped_ui_context for automatic push/pop management
          */
-        static void set_layer_manager(layer_manager<Backend>* mgr) noexcept {
-            s_layer_manager = mgr;
+        static void push_context(ui_context<Backend>* ctx) noexcept {
+            assert(ctx != nullptr && "Cannot push null context");
+            s_context_stack.push_back(ctx);
         }
 
         /**
-         * @brief Register the focus manager service
-         * @param mgr Pointer to focus manager (non-owning)
+         * @brief Pop the current context from the stack
          *
          * @details
-         * Called by ui_handle constructor. The pointer is non-owning - ui_handle
-         * retains ownership of the focus manager.
+         * Removes the top context, restoring the previous context (if any).
+         * Does nothing if the stack is empty.
+         *
+         * @note Use scoped_ui_context for automatic push/pop management
          */
-        static void set_focus_manager(hierarchical_focus_manager<Backend, ui_element<Backend>>* mgr) noexcept {
-            s_focus_manager = mgr;
+        static void pop_context() noexcept {
+            if (!s_context_stack.empty()) {
+                s_context_stack.pop_back();
+            }
+        }
+
+        /**
+         * @brief Get the current context
+         * @return Pointer to current context, or nullptr if stack is empty
+         *
+         * @details
+         * Returns the top of the context stack (most recently pushed context).
+         * Returns nullptr if no context has been pushed.
+         */
+        [[nodiscard]] static ui_context<Backend>* current() noexcept {
+            return s_context_stack.empty() ? nullptr : s_context_stack.back();
         }
 
         // ================================================================
-        // Service Access (used by widgets)
+        // Service Access (Convenience Methods)
         // ================================================================
 
         /**
-         * @brief Get the layer manager
-         * @return Pointer to layer manager, or nullptr if not registered
+         * @brief Get the layer manager from current context
+         * @return Pointer to layer manager, or nullptr if no context
          *
          * @details
-         * Returns nullptr if ui_handle hasn't been created yet or has been destroyed.
-         * Widgets should check for nullptr before using.
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
          *
-         * @example
+         * Always check for nullptr before using:
          * @code
-         * auto* layers = ui_services<Backend>::layers();
-         * if (layers) {
-         *     layers->show_popup(content, bounds);
+         * if (auto* layers = ui_services<Backend>::layers()) {
+         *     layers->show_popup(...);
          * }
          * @endcode
          */
         [[nodiscard]] static layer_manager<Backend>* layers() noexcept {
-            return s_layer_manager;
+            auto* ctx = current();
+            return ctx ? &ctx->layers() : nullptr;
         }
 
         /**
-         * @brief Get the focus manager
-         * @return Pointer to focus manager, or nullptr if not registered
+         * @brief Get the focus manager from current context
+         * @return Pointer to focus manager, or nullptr if no context
          *
          * @details
-         * Returns nullptr if ui_handle hasn't been created yet or has been destroyed.
-         * Widgets should check for nullptr before using.
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
          *
-         * @example
+         * Always check for nullptr before using:
          * @code
-         * auto* focus = ui_services<Backend>::focus();
-         * if (focus) {
-         *     focus->set_focus(this);
+         * if (auto* focus = ui_services<Backend>::focus()) {
+         *     focus->set_focus(widget);
          * }
          * @endcode
          */
         [[nodiscard]] static hierarchical_focus_manager<Backend, ui_element<Backend>>* focus() noexcept {
-            return s_focus_manager;
+            auto* ctx = current();
+            return ctx ? &ctx->focus() : nullptr;
+        }
+
+        /**
+         * @brief Get the theme registry from current context
+         * @return Pointer to theme registry, or nullptr if no context
+         *
+         * @details
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* themes = ui_services<Backend>::themes()) {
+         *     if (auto theme = themes->get_theme("Dark")) {
+         *         widget->apply_theme(*theme);
+         *     }
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static theme_registry<Backend>* themes() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->themes() : nullptr;
+        }
+
+        /**
+         * @brief Get the hotkey manager from current context
+         * @return Pointer to hotkey manager, or nullptr if no context
+         *
+         * @details
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+         *     hotkeys->register_action(quit_action);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static hotkey_manager<Backend>* hotkeys() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->hotkeys() : nullptr;
         }
 
         // ================================================================
-        // Cleanup (called by ui_handle destructor)
+        // Introspection / Debugging
         // ================================================================
 
         /**
-         * @brief Clear all registered services
+         * @brief Get the current context stack depth
+         * @return Number of contexts on the stack
          *
          * @details
-         * Called by ui_handle destructor. Sets all service pointers to nullptr.
-         * After this call, all service access will return nullptr (safe).
+         * Useful for debugging nested contexts:
+         * - depth() == 0: No context active
+         * - depth() == 1: Single context
+         * - depth() > 1: Nested contexts
          */
-        static void clear() noexcept {
-            s_layer_manager = nullptr;
-            s_focus_manager = nullptr;
+        [[nodiscard]] static size_t depth() noexcept {
+            return s_context_stack.size();
+        }
+
+        /**
+         * @brief Check if any context is active
+         * @return true if at least one context is on the stack
+         */
+        [[nodiscard]] static bool has_context() noexcept {
+            return !s_context_stack.empty();
         }
     };
+
+    // ================================================================
+    // scoped_ui_context Implementation
+    // ================================================================
+
+    template<UIBackend Backend>
+    scoped_ui_context<Backend>::scoped_ui_context() {
+        ui_services<Backend>::push_context(&m_context);
+    }
+
+    template<UIBackend Backend>
+    scoped_ui_context<Backend>::~scoped_ui_context() {
+        ui_services<Backend>::pop_context();
+    }
 
 } // namespace onyxui

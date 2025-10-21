@@ -120,13 +120,13 @@ namespace onyxui {
          * During rendering: draws the border box with theme colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->m_theme;
+            auto* theme = this->get_theme();
             if (!theme) return;
 
-            const auto& bounds = this->bounds();
-
-            // Draw border if enabled
-            if (m_has_border) {
+            // Only draw border during rendering, not during measurement
+            // (Measurement of border size is handled by get_content_size() which adds +2)
+            if (m_has_border && ctx.is_rendering()) {
+                const auto& bounds = this->bounds();
                 ctx.draw_rect(bounds, theme->panel.box_style);
             }
 
@@ -155,11 +155,62 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get content area for children
+         *
+         * @details
+         * Overrides base implementation to account for border.
+         * The border is drawn around the edges, so we need to shrink
+         * the content area by 1 pixel on each side if border is enabled.
+         */
+        typename Backend::rect_type get_content_area() const noexcept override {
+            // Start with base implementation (handles margin and padding)
+            auto content_area = base::get_content_area();
+
+            // Adjust for border if present (1px on each side)
+            if (m_has_border) {
+                int x = rect_utils::get_x(content_area) + 1;
+                int y = rect_utils::get_y(content_area) + 1;
+                int w = std::max(0, rect_utils::get_width(content_area) - 2);
+                int h = std::max(0, rect_utils::get_height(content_area) - 2);
+                rect_utils::set_bounds(content_area, x, y, w, h);
+            }
+
+            return content_area;
+        }
+
+        /**
+         * @brief Measure panel including border space
+         */
+        typename Backend::size_type do_measure(int available_width, int available_height) override {
+            // Subtract border from available space before calling base
+            // (base will subtract padding, and call layout strategy)
+            int content_width = available_width;
+            int content_height = available_height;
+
+            if (m_has_border) {
+                content_width = std::max(0, content_width - 2);   // 1px on each side
+                content_height = std::max(0, content_height - 2);
+            }
+
+            // Call base to handle padding and layout strategy
+            auto measured = base::do_measure(content_width, content_height);
+
+            // Add border back to measured size
+            if (m_has_border) {
+                int w = size_utils::get_width(measured) + 2;
+                int h = size_utils::get_height(measured) + 2;
+                size_utils::set_size(measured, w, h);
+            }
+
+            return measured;
+        }
+
+        /**
          * @brief Apply theme to panel
          */
         void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
             // Would cache theme panel style here
-            this->invalidate_arrange();  // Redraw with new theme
+            // Note: Children without explicit theme will inherit via CSS-style inheritance
         }
 
     private:

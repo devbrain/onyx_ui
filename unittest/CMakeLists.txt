@@ -56,6 +56,7 @@ add_executable(ui_unittest
         core/test_layer_manager_events.cc
         core/test_scoped_layer.cc
         core/test_render_context.cc
+        core/test_content_area.cc
         events/test_events.cc
         events/test_event_target.cc
         focus/test_focus_manager.cc
@@ -68,6 +69,9 @@ add_executable(ui_unittest
         main.cc
         utils/test_backend.hh
         utils/test_helpers.hh
+        utils/test_canvas.hh
+        utils/test_canvas_backend.hh
+        utils/layout_assertions.hh
         utils/test_safe_math.cc
         widgets/test_widgets.cc
         widgets/widgets.hh
@@ -87,15 +91,22 @@ add_executable(ui_unittest
         widgets/test_actions.cc
         widgets/test_mnemonics.cc
         widgets/test_menus.cc
+        widgets/test_theme_switching.cc
         widgets/test_status_bar.cc
         widgets/test_group_box.cc
+        widgets/test_panel_layout.cc
+        widgets/test_group_box_layout.cc
+        widgets/test_layout_edge_cases.cc
+        widgets/test_complex_layouts.cc
+        widgets/test_theme_layout_integration.cc
+        widgets/test_dos_showcase_regression.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ui_unittest
-    onyx_ui
+    onyxui
     doctest::doctest
     thirdparty::utf8cpp  # Required by test_backend.hh for measure_text()
 )

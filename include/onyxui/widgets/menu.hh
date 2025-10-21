@@ -61,6 +61,7 @@
 #include <iostream>  // For debug output
 #include <onyxui/widgets/vbox.hh>
 #include <onyxui/widgets/menu_item.hh>
+#include <onyxui/ui_services.hh>
 #include <onyxui/focus_manager.hh>
 
 namespace onyxui {
@@ -101,8 +102,7 @@ namespace onyxui {
          * @param parent Parent element
          */
         explicit menu(ui_element<Backend>* parent = nullptr)
-            : base(0, horizontal_alignment::left, vertical_alignment::top, parent)
-            , m_focus_mgr() {
+            : base(0, horizontal_alignment::left, vertical_alignment::top, parent) {
             this->set_focusable(true);
         }
 
@@ -230,11 +230,14 @@ namespace onyxui {
          * Called automatically when menu is opened.
          */
         void focus_first() {
-            // Focus first focusable item using focus manager
+            // Focus first focusable item using global focus manager
+            auto* focus_mgr = ui_services<Backend>::focus();
+            if (!focus_mgr) return;
+
             for (auto& child : this->children()) {
                 if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
                     if (!item->is_separator() && item->is_enabled() && item->is_focusable()) {
-                        m_focus_mgr.set_focus(item);
+                        focus_mgr->set_focus(item);
                         return;
                     }
                 }
@@ -249,6 +252,9 @@ namespace onyxui {
          * Skips separators and disabled items.
          */
         void focus_next() {
+            auto* focus_mgr = ui_services<Backend>::focus();
+            if (!focus_mgr) return;
+
             auto menu_items = items();
             if (menu_items.empty()) return;
 
@@ -267,7 +273,7 @@ namespace onyxui {
                 }
 
                 if (!(*it)->is_separator() && (*it)->is_enabled() && (*it)->is_focusable()) {
-                    m_focus_mgr.set_focus(*it);
+                    focus_mgr->set_focus(*it);
                     return;
                 }
             }
@@ -281,6 +287,9 @@ namespace onyxui {
          * Skips separators and disabled items.
          */
         void focus_previous() {
+            auto* focus_mgr = ui_services<Backend>::focus();
+            if (!focus_mgr) return;
+
             auto menu_items = items();
             if (menu_items.empty()) return;
 
@@ -299,7 +308,7 @@ namespace onyxui {
                 }
 
                 if (!(*it)->is_separator() && (*it)->is_enabled() && (*it)->is_focusable()) {
-                    m_focus_mgr.set_focus(*it);
+                    focus_mgr->set_focus(*it);
                     return;
                 }
             }
@@ -373,9 +382,6 @@ namespace onyxui {
         virtual void on_item_activated() {
             closing.emit();
         }
-
-    private:
-        focus_manager<Backend> m_focus_mgr;  ///< Focus manager for menu items
     };
 
 } // namespace onyxui

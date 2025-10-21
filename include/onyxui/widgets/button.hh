@@ -115,7 +115,7 @@ namespace onyxui {
             m_text = strip_mnemonic(mnemonic_text);
 
             // Parse mnemonic if theme is available
-            if (auto* theme = this->m_theme) {
+            if (auto* theme = this->get_theme()) {
                 m_mnemonic_info = parse_mnemonic<Backend>(
                     mnemonic_text,
                     theme->button.font,
@@ -162,7 +162,7 @@ namespace onyxui {
          * During rendering: Actually draws the button box and text with proper state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->m_theme;
+            auto* theme = this->get_theme();
 
             // Use default values if no theme (for measurement without theme)
             int padding_horizontal = theme ? theme->button.padding_horizontal : 2;

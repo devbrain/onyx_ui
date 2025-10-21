@@ -6,8 +6,8 @@
 
 #include <memory>
 #include <cstdint>
-#include "colors.hh"
-#include "rect.hh"
+#include <onyxui/conio/colors.hh>
+#include <onyxui/conio/geometry.hh>
 
 namespace onyxui::conio {
 
@@ -17,7 +17,7 @@ namespace onyxui::conio {
      * These flags can be combined with bitwise OR.
      * Maps to termbox2 attributes (TB_BOLD, TB_UNDERLINE, etc.)
      */
-    enum class text_attribute : uint32_t {
+    enum class text_attribute : uint8_t {
         none      = 0,
         bold      = 1 << 0,  ///< Bold/bright text
         underline = 1 << 1,  ///< Underlined text
@@ -57,7 +57,7 @@ namespace onyxui::conio {
             ~vram();
 
             void set_clip(const rect& r);
-            rect get_clip() const noexcept;
+            [[nodiscard]] rect get_clip() const noexcept;
 
             /**
              * @brief Put a character at position with colors and attributes

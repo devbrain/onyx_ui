@@ -6,6 +6,7 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <cstdint>  // For uint8_t
+#include <string>
 
 namespace onyxui {
     // Forward declaration to avoid circular dependency
@@ -16,6 +17,10 @@ namespace onyxui {
         using color_type = typename Backend::color_type;
         using box_style_type = typename Backend::renderer_type::box_style;
         using font_type = typename Backend::renderer_type::font;
+
+        // Theme metadata
+        std::string name;         ///< Theme name (e.g., "Norton Blue", "Dark Mode")
+        std::string description;  ///< Optional description (e.g., "Classic Norton Utilities style")
 
         struct button_style {
             // Visual properties (colors)
@@ -29,9 +34,9 @@ namespace onyxui {
             color_type bg_disabled;
 
             // Style references (not rendering resources!)
-            box_style_type box_style;      // "Which box style to use"
-            font_type font;                 // "Which font to use for normal text"
-            font_type mnemonic_font;        // "Which font to use for mnemonic character (typically underlined)"
+            box_style_type box_style{};      // "Which box style to use" - Use {} to trigger default member initializers
+            font_type font{};                 // "Which font to use for normal text"
+            font_type mnemonic_font{};        // "Which font to use for mnemonic character (typically underlined)"
 
             // Layout preferences
             int padding_horizontal = 4;  // Horizontal padding (left/right) in renderer units
@@ -43,21 +48,21 @@ namespace onyxui {
         struct panel_style {
             color_type background;
             color_type border_color;
-            box_style_type box_style;
+            box_style_type box_style{};  // Use {} to trigger default member initializers
             bool has_border = true;
         };
 
         struct label_style {
             color_type text;
             color_type background;
-            font_type font;              // Font for normal text
-            font_type mnemonic_font;     // Font for mnemonic character (typically underlined)
+            font_type font{};              // Font for normal text - Use {} to trigger default member initializers
+            font_type mnemonic_font{};     // Font for mnemonic character (typically underlined)
         };
 
         // Widget-specific styles
-        button_style button;
-        label_style label;
-        panel_style panel;
+        button_style button{};  // Use {} to trigger default member initializers
+        label_style label{};
+        panel_style panel{};
 
         // Global palette
         color_type window_bg;

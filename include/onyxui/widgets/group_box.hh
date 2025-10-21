@@ -126,6 +126,9 @@ namespace onyxui {
             , m_title()
             , m_border(group_box_border::single)
             , m_title_position(2) {  // 2 characters from left
+            // Group box always has a border - use panel's border mechanism
+            this->set_has_border(true);
+
             // Set default vertical layout for children
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(direction::vertical, 0)
@@ -256,21 +259,6 @@ namespace onyxui {
          *
          * @note This is only used when there's no layout strategy.
          */
-        size_type get_content_size() const override {
-            // Get base panel content size
-            size_type content = base::get_content_size();
-
-            int width = size_utils::get_width(content);
-            int height = size_utils::get_height(content);
-
-            // Add border space (1 char on each side)
-            width += 2;
-            height += 2;
-
-            size_type result{};
-            size_utils::set_size(result, width, height);
-            return result;
-        }
 
         /**
          * @brief Render the group box
@@ -284,13 +272,13 @@ namespace onyxui {
          * @note Rendering implementation stub - currently empty.
          * Override in backend-specific subclass if needed.
          */
-        void do_render([[maybe_unused]] render_context<Backend>& ctx) const override {
-            // Rendering implementation would go here
-            //
-            // Pseudocode:
-            // 1. Draw border box using ctx.draw_rect()
-            // 2. If title is present, draw it breaking the top border using ctx.draw_text()
-            // 3. Let base class render children inside the bordered area
+        void do_render(render_context<Backend>& ctx) const override {
+            // Call base panel to draw the border
+            base::do_render(ctx);
+
+            // TODO: Draw title inset into top border (if present)
+            // This would require drawing the title text and breaking the top border
+            // For now, title is just set but not rendered visually
         }
 
         /**

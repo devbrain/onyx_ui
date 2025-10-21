@@ -526,6 +526,7 @@ TEST_SUITE("EventTarget - Callbacks") {
 
         int callback_count = 0;
         target.set_on_click([&](int x, int y) {
+            (void)x; (void)y;  // Parameters not used in this test
             callback_count++;
             return true;
         });

@@ -6,7 +6,7 @@
 
 #include <onyxui/theme.hh>
 #include <onyxui/layout_strategy.hh>  // For horizontal_alignment enum values
-#include "conio_backend.hh"
+#include "include/onyxui/conio/conio_backend.hh"
 
 namespace onyxui::conio {
     /**

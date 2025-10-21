@@ -122,7 +122,9 @@ namespace onyxui {
         };
 
         struct renderer {
-            struct box_style {};
+            struct box_style {
+                bool draw_border = false;  // Required for panel/group_box rendering
+            };
             struct icon_style {};
             struct font {};
             using size_type = size;  // Required by RenderLike concept

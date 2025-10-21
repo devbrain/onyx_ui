@@ -254,7 +254,7 @@ TEST_SUITE("Exception Safety") {
             auto parent = std::make_unique<TestElement>();
 
             // Do an initial measure
-            parent->measure(100, 100);
+            (void)parent->measure(100, 100);
 
             // Add a child - should invalidate measure
             auto child = std::make_unique<TestElement>();
@@ -270,7 +270,7 @@ TEST_SUITE("Exception Safety") {
             auto* child_ptr = child.get();
 
             parent->add_child(std::move(child));
-            parent->measure(100, 100);
+            (void)parent->measure(100, 100);
 
             // Remove child - should invalidate measure
             auto removed = parent->remove_child(child_ptr);
