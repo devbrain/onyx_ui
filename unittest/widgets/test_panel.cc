@@ -8,6 +8,7 @@
 #include <onyxui/widgets/panel.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 using namespace onyxui;
 
 TEST_CASE("Panel - Container widget") {
@@ -42,51 +43,9 @@ TEST_CASE("Panel - Container widget") {
         CHECK(p.children().size() == 2);
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<panel<test_backend>>,
-                      "panel should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<panel<test_backend>>,
-                      "panel should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        panel<test_backend> p1;
-        p1.set_has_border(true);
-
-        // Move construct
-        panel<test_backend> p2(std::move(p1));
-
-        CHECK(p2.has_border());
-        CHECK_NOTHROW(p1.set_has_border(false));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        panel<test_backend> p1;
-        panel<test_backend> p2;
-
-        p1.set_has_border(true);
-
-        // Move assign
-        p2 = std::move(p1);
-
-        CHECK(p2.has_border());
-        CHECK_NOTHROW(p1.set_has_border(false));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<panel<test_backend>> panels;
-
-        panels.push_back(panel<test_backend>());
-        panels.emplace_back();
-
-        CHECK(panels.size() == 2);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        panel<test_backend> p;
-SUPPRESS_SELF_MOVE_BEGIN
-        p = std::move(p);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(p.set_has_border(true));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<panel<test_backend>>(
+        [](auto& p) { p.set_has_border(true); },
+        [](const auto& p) { return p.has_border(); }
+    );
 }

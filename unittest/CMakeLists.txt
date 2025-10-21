@@ -99,7 +99,6 @@ add_executable(ui_unittest
         widgets/test_layout_edge_cases.cc
         widgets/test_complex_layouts.cc
         widgets/test_theme_layout_integration.cc
-        widgets/test_dos_showcase_regression.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
 )

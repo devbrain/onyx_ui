@@ -10,6 +10,7 @@
 #include <onyxui/widgets/vbox.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 
 using namespace onyxui;
 
@@ -136,52 +137,8 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
         CHECK_FALSE(s.is_focusable());
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<spacer<test_backend>>,
-                      "spacer should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<spacer<test_backend>>,
-                      "spacer should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        spacer<test_backend> s1(40, 30);
-
-        spacer<test_backend> s2(std::move(s1));
-
-        CHECK(s2.width() == 40);
-        CHECK(s2.height() == 30);
-        CHECK_NOTHROW(s1.set_width(10));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        spacer<test_backend> s1(25, 15);
-        spacer<test_backend> s2(50, 60);
-
-        s2 = std::move(s1);
-
-        CHECK(s2.width() == 25);
-        CHECK(s2.height() == 15);
-        CHECK_NOTHROW(s1.set_height(20));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<spacer<test_backend>> spacers;
-
-        spacers.push_back(spacer<test_backend>(10, 10));
-        spacers.emplace_back(20, 20);
-
-        CHECK(spacers.size() == 2);
-        CHECK(spacers[0].width() == 10);
-        CHECK(spacers[1].width() == 20);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        spacer<test_backend> s(30, 40);
-SUPPRESS_SELF_MOVE_BEGIN
-        s = std::move(s);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(s.set_width(35));
-    }
+    // Rule of Five tests - using generic framework for sized widgets
+    onyxui::testing::test_rule_of_five_sized_widget<spacer<test_backend>>(40, 30);
 }
 
 

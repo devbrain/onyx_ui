@@ -11,6 +11,7 @@
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 using namespace onyxui;
 
 TEST_CASE("Grid - Grid layout widget") {
@@ -140,63 +141,14 @@ TEST_CASE("Grid - Grid layout widget") {
         CHECK_FALSE(g.set_cell(item_ptr, 2, 2, 1, 2));  // Would span to column 4
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<grid<test_backend>>,
-                      "grid should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<grid<test_backend>>,
-                      "grid should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        grid<test_backend> g1(3);
-
-        // Add children to g1
-        g1.add_child(std::make_unique<button<test_backend>>("1"));
-        g1.add_child(std::make_unique<button<test_backend>>("2"));
-
-        // Move construct
-        grid<test_backend> g2(std::move(g1));
-
-        // g2 should have the children
-        CHECK(g2.children().size() == 2);
-        CHECK(g2.num_columns() == 3);
-
-        // g1 should be in valid state (can add children)
-        CHECK_NOTHROW(g1.add_child(std::make_unique<button<test_backend>>("3")));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        grid<test_backend> g1(2);
-        grid<test_backend> g2(4);
-
-        g1.add_child(std::make_unique<label<test_backend>>("A"));
-
-        // Move assign
-        g2 = std::move(g1);
-
-        CHECK(g2.num_columns() == 2);
-        CHECK(g2.children().size() == 1);
-        CHECK_NOTHROW(g1.add_child(std::make_unique<label<test_backend>>("B")));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<grid<test_backend>> grids;
-
-        grids.push_back(grid<test_backend>(2));
-        grids.emplace_back(3);
-
-        CHECK(grids.size() == 2);
-        CHECK(grids[0].num_columns() == 2);
-        CHECK(grids[1].num_columns() == 3);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        grid<test_backend> g(3);
-SUPPRESS_SELF_MOVE_BEGIN
-        g = std::move(g);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(g.add_child(std::make_unique<label<test_backend>>("Test")));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<grid<test_backend>>(
+        [](auto& g) {
+            g.add_child(std::make_unique<button<test_backend>>("1"));
+            g.add_child(std::make_unique<button<test_backend>>("2"));
+        },
+        [](const auto& g) { return g.children().size() == 2; }
+    );
 
     SUBCASE("Rule of Five - Dangling pointer fix verification") {
         // This test specifically verifies that the dangling pointer bug is fixed

@@ -10,6 +10,7 @@
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 using namespace onyxui;
 
 TEST_CASE("VBox - Vertical layout widget") {
@@ -69,51 +70,9 @@ TEST_CASE("VBox - Vertical layout widget") {
         CHECK(box.child_v_align() == vertical_alignment::bottom);
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<vbox<test_backend>>,
-                      "vbox should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<vbox<test_backend>>,
-                      "vbox should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        vbox<test_backend> box1(12);
-        box1.set_spacing(25);
-
-        // Move construct
-        vbox<test_backend> box2(std::move(box1));
-
-        CHECK(box2.spacing() == 25);
-        CHECK_NOTHROW(box1.set_spacing(5));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        vbox<test_backend> box1(10);
-        vbox<test_backend> box2(20);
-
-        // Move assign
-        box2 = std::move(box1);
-
-        CHECK(box2.spacing() == 10);
-        CHECK_NOTHROW(box1.set_spacing(15));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<vbox<test_backend>> boxes;
-
-        boxes.push_back(vbox<test_backend>(8));
-        boxes.emplace_back(16);
-
-        CHECK(boxes.size() == 2);
-        CHECK(boxes[0].spacing() == 8);
-        CHECK(boxes[1].spacing() == 16);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        vbox<test_backend> box(10);
-SUPPRESS_SELF_MOVE_BEGIN
-        box = std::move(box);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(box.set_spacing(20));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<vbox<test_backend>>(
+        [](auto& box) { box.set_spacing(25); },
+        [](const auto& box) { return box.spacing() == 25; }
+    );
 }

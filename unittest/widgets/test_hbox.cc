@@ -8,6 +8,7 @@
 #include <onyxui/widgets/hbox.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 
 
 using namespace onyxui;
@@ -54,51 +55,9 @@ TEST_CASE("HBox - Horizontal layout widget") {
         CHECK(box.child_v_align() == vertical_alignment::bottom);
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<hbox<test_backend>>,
-                      "hbox should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<hbox<test_backend>>,
-                      "hbox should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        hbox<test_backend> box1(15);
-        box1.set_spacing(20);
-
-        // Move construct
-        hbox<test_backend> box2(std::move(box1));
-
-        CHECK(box2.spacing() == 20);
-        CHECK_NOTHROW(box1.set_spacing(5));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        hbox<test_backend> box1(10);
-        hbox<test_backend> box2(20);
-
-        // Move assign
-        box2 = std::move(box1);
-
-        CHECK(box2.spacing() == 10);
-        CHECK_NOTHROW(box1.set_spacing(30));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<hbox<test_backend>> boxes;
-
-        boxes.emplace_back(5);
-        boxes.emplace_back(10);
-
-        CHECK(boxes.size() == 2);
-        CHECK(boxes[0].spacing() == 5);
-        CHECK(boxes[1].spacing() == 10);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        hbox<test_backend> box(10);
-SUPPRESS_SELF_MOVE_BEGIN
-        box = std::move(box);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(box.set_spacing(20));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<hbox<test_backend>>(
+        [](auto& box) { box.set_spacing(20); },
+        [](const auto& box) { return box.spacing() == 20; }
+    );
 }

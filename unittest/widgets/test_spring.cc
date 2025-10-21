@@ -9,6 +9,7 @@
 #include <onyxui/widgets/vbox.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 
 using namespace onyxui;
 
@@ -127,53 +128,9 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
         CHECK_FALSE(s.is_focusable());
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<spring<test_backend>>,
-                      "spring should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<spring<test_backend>>,
-                      "spring should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        spring<test_backend> s1(2.5f);
-        s1.set_min_size(20);
-
-        spring<test_backend> s2(std::move(s1));
-
-        CHECK(s2.weight() == 2.5f);
-        CHECK(s2.min_size() == 20);
-        CHECK_NOTHROW(s1.set_weight(1.5f));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        spring<test_backend> s1(3.0f);
-        spring<test_backend> s2(1.0f);
-
-        s1.set_max_size(200);
-
-        s2 = std::move(s1);
-
-        CHECK(s2.weight() == 3.0f);
-        CHECK(s2.max_size() == 200);
-        CHECK_NOTHROW(s1.set_weight(2.0f));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<spring<test_backend>> springs;
-
-        springs.emplace_back(1.0f);
-        springs.emplace_back(2.0f);
-
-        CHECK(springs.size() == 2);
-        CHECK(springs[0].weight() == 1.0f);
-        CHECK(springs[1].weight() == 2.0f);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        spring<test_backend> s(2.0f);
-SUPPRESS_SELF_MOVE_BEGIN
-        s = std::move(s);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(s.set_weight(1.0f));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<spring<test_backend>>(
+        [](auto& s) { s.set_weight(2.5f); s.set_min_size(20); },
+        [](const auto& s) { return s.weight() == 2.5f && s.min_size() == 20; }
+    );
 }

@@ -12,6 +12,7 @@
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/warnings.hh"
+#include "../utils/rule_of_five_tests.hh"
 using namespace onyxui;
 
 TEST_CASE("AnchorPanel - Anchor-based layout widget") {
@@ -238,59 +239,13 @@ TEST_CASE("AnchorPanel - Anchor-based layout widget") {
         CHECK_NOTHROW((void)overlay.measure(500, 500));
     }
 
-    SUBCASE("Rule of Five - Copy operations deleted") {
-        static_assert(!std::is_copy_constructible_v<anchor_panel<test_backend>>,
-                      "anchor_panel should not be copy constructible");
-        static_assert(!std::is_copy_assignable_v<anchor_panel<test_backend>>,
-                      "anchor_panel should not be copy assignable");
-    }
-
-    SUBCASE("Rule of Five - Move constructor") {
-        anchor_panel<test_backend> panel1;
-
-        // Add child with anchor
-        auto btn = std::make_unique<button<test_backend>>("Test");
-        auto* btn_ptr = btn.get();
-        panel1.add_child(std::move(btn));
-        panel1.set_anchor(btn_ptr, anchor_point::center);
-
-        // Move construct
-        anchor_panel<test_backend> panel2(std::move(panel1));
-
-        CHECK(panel2.children().size() == 1);
-        CHECK_NOTHROW(panel1.add_child(std::make_unique<button<test_backend>>("New")));
-    }
-
-    SUBCASE("Rule of Five - Move assignment") {
-        anchor_panel<test_backend> panel1;
-        anchor_panel<test_backend> panel2;
-
-        auto lbl = std::make_unique<label<test_backend>>("Label");
-        panel1.add_child(std::move(lbl));
-
-        // Move assign
-        panel2 = std::move(panel1);
-
-        CHECK(panel2.children().size() == 1);
-        CHECK_NOTHROW(panel1.add_child(std::make_unique<label<test_backend>>("New")));
-    }
-
-    SUBCASE("Rule of Five - Move semantics with containers") {
-        std::vector<anchor_panel<test_backend>> panels;
-
-        panels.emplace_back();
-        panels.emplace_back();
-
-        CHECK(panels.size() == 2);
-    }
-
-    SUBCASE("Rule of Five - Self-assignment safety") {
-        anchor_panel<test_backend> panel;
-SUPPRESS_SELF_MOVE_BEGIN
-        panel = std::move(panel);
-SUPPRESS_SELF_MOVE_END
-        CHECK_NOTHROW(panel.add_child(std::make_unique<label<test_backend>>("Test")));
-    }
+    // Rule of Five tests - using generic framework
+    onyxui::testing::test_rule_of_five<anchor_panel<test_backend>>(
+        [](auto& panel) {
+            panel.add_child(std::make_unique<button<test_backend>>("Test"));
+        },
+        [](const auto& panel) { return panel.children().size() == 1; }
+    );
 
     SUBCASE("Rule of Five - Dangling pointer fix verification") {
         // This test specifically verifies that the dangling pointer bug is fixed
