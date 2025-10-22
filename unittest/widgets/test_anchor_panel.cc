@@ -4,20 +4,21 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/anchor_panel.hh>
 #include <onyxui/widgets/label.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/rect_like.hh"
+#include "onyxui/layout/anchor_layout.hh"
 using namespace onyxui;
 
 TEST_CASE("AnchorPanel - Anchor-based layout widget") {
     SUBCASE("Construction") {
-        anchor_panel<test_backend> panel;
+        anchor_panel<test_backend> const panel;
 
         CHECK_FALSE(panel.is_focusable());
     }

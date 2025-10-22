@@ -132,7 +132,7 @@ namespace onyxui {
          * @note Updates raw layout pointer to maintain validity
          */
         absolute_panel(absolute_panel&& other) noexcept
-            : base(std::move(other))
+            : base(std::move(static_cast<base&>(other)))
             , m_absolute_layout(std::exchange(other.m_absolute_layout, nullptr)) {}
 
         /**
@@ -141,7 +141,7 @@ namespace onyxui {
          */
         absolute_panel& operator=(absolute_panel&& other) noexcept {
             if (this != &other) {
-                base::operator=(std::move(other));
+                base::operator=(std::move(static_cast<base&>(other)));
                 m_absolute_layout = std::exchange(other.m_absolute_layout, nullptr);
             }
             return *this;

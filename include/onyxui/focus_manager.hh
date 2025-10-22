@@ -236,8 +236,8 @@ namespace onyxui {
             // Sort by tab index with stable tiebreaker
             std::stable_sort(focusables.begin(), focusables.end(),
                      [](target_ptr a, target_ptr b) {
-                         int a_idx = a->tab_index();
-                         int b_idx = b->tab_index();
+                         int const a_idx = a->tab_index();
+                         int const b_idx = b->tab_index();
 
                          // Both have explicit tab indices
                          if (a_idx >= 0 && b_idx >= 0) {
@@ -291,8 +291,8 @@ namespace onyxui {
             // Sort by tab index with stable tiebreaker (same as focus_next)
             std::stable_sort(focusables.begin(), focusables.end(),
                      [](target_ptr a, target_ptr b) {
-                         int a_idx = a->tab_index();
-                         int b_idx = b->tab_index();
+                         int const a_idx = a->tab_index();
+                         int const b_idx = b->tab_index();
 
                          // Both have explicit tab indices
                          if (a_idx >= 0 && b_idx >= 0) {

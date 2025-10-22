@@ -55,8 +55,8 @@ TEST_SUITE("Safe Math") {
     TEST_CASE("add_clamped - unsigned overflow") {
         SUBCASE("Overflow to UINT_MAX") {
             constexpr unsigned max = std::numeric_limits<unsigned>::max();
-            CHECK(add_clamped(max, 1u) == max);
-            CHECK(add_clamped(max, 100u) == max);
+            CHECK(add_clamped(max, 1U) == max);
+            CHECK(add_clamped(max, 100U) == max);
             CHECK(add_clamped(max / 2 + 1, max / 2 + 1) == max);
         }
     }
@@ -95,8 +95,8 @@ TEST_SUITE("Safe Math") {
 
     TEST_CASE("subtract_clamped - unsigned underflow") {
         SUBCASE("Underflow to 0") {
-            CHECK(subtract_clamped(5u, 10u) == 0u);
-            CHECK(subtract_clamped(0u, 1u) == 0u);
+            CHECK(subtract_clamped(5U, 10U) == 0U);
+            CHECK(subtract_clamped(0U, 1U) == 0U);
         }
     }
 
@@ -153,8 +153,8 @@ TEST_SUITE("Safe Math") {
     TEST_CASE("multiply_clamped - unsigned overflow") {
         SUBCASE("Overflow to UINT_MAX") {
             constexpr unsigned max = std::numeric_limits<unsigned>::max();
-            CHECK(multiply_clamped(max, 2u) == max);
-            CHECK(multiply_clamped(max / 2 + 1, 3u) == max);
+            CHECK(multiply_clamped(max, 2U) == max);
+            CHECK(multiply_clamped(max / 2 + 1, 3U) == max);
         }
     }
 
@@ -240,9 +240,9 @@ TEST_SUITE("Safe Math") {
 
         SUBCASE("UINT_MAX boundary") {
             constexpr unsigned max = std::numeric_limits<unsigned>::max();
-            CHECK(add_clamped(max, 0u) == max);
-            CHECK(add_clamped(max, 1u) == max);
-            CHECK(subtract_clamped(max, 1u) == max - 1);
+            CHECK(add_clamped(max, 0U) == max);
+            CHECK(add_clamped(max, 1U) == max);
+            CHECK(subtract_clamped(max, 1U) == max - 1);
         }
     }
 }

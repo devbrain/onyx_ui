@@ -8,8 +8,10 @@
 #include <doctest/doctest.h>
 #include <onyxui/layer_manager.hh>
 #include "../utils/test_helpers.hh"
+#include "utils/test_backend.hh"
+#include "onyxui/render_context.hh"
+#include "onyxui/layout_strategy.hh"
 #include <memory>
-#include <vector>
 #include <limits>
 
 using namespace onyxui;
@@ -139,7 +141,7 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Add a layer") {
             auto layer = std::make_shared<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer);
+            layer_id const id = mgr.add_layer(layer_type::popup, layer);
 
             CHECK(id.is_valid());
             CHECK(mgr.layer_count() == 1);
@@ -147,7 +149,7 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Remove a layer") {
             auto layer = std::make_shared<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer);
+            layer_id const id = mgr.add_layer(layer_type::popup, layer);
 
             mgr.remove_layer(id);
             CHECK(mgr.layer_count() == 0);
@@ -229,7 +231,7 @@ TEST_SUITE("Layer Manager") {
         layer_manager<test_backend> mgr;
 
         auto layer = std::make_shared<TestLayer>();
-        layer_id id = mgr.add_layer(layer_type::popup, layer);
+        layer_id const id = mgr.add_layer(layer_type::popup, layer);
 
         SUBCASE("Layers are visible by default") {
             CHECK(mgr.is_layer_visible(id));
@@ -268,7 +270,7 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Hidden modal not counted") {
             auto modal = std::make_shared<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::modal, modal);
+            layer_id const id = mgr.add_layer(layer_type::modal, modal);
 
             mgr.hide_layer(id);
             CHECK(!mgr.has_modal_layer());
@@ -352,7 +354,7 @@ TEST_SUITE("Layer Manager") {
             auto layer = std::make_shared<TestLayer>();
             layer->event_handled = true;
 
-            layer_id id = mgr.add_layer(layer_type::popup, layer);
+            layer_id const id = mgr.add_layer(layer_type::popup, layer);
             mgr.hide_layer(id);
 
             CHECK(!mgr.route_event(event));
@@ -397,9 +399,9 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Show popup") {
             auto popup = std::make_shared<TestLayer>();
-            TestRect anchor{10, 20, 100, 30};
+            TestRect const anchor{10, 20, 100, 30};
 
-            layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below);
+            layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below);
 
             CHECK(id.is_valid());
             CHECK(mgr.layer_count() == 1);
@@ -409,7 +411,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Show tooltip") {
             auto tooltip = std::make_shared<TestLayer>();
 
-            layer_id id = mgr.show_tooltip(tooltip.get(), 50, 60);
+            layer_id const id = mgr.show_tooltip(tooltip.get(), 50, 60);
 
             CHECK(id.is_valid());
             CHECK(mgr.layer_count() == 1);
@@ -419,7 +421,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Show modal dialog") {
             auto dialog = std::make_shared<TestLayer>();
 
-            layer_id id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+            layer_id const id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
 
             CHECK(id.is_valid());
             CHECK(mgr.layer_count() == 1);
@@ -430,7 +432,7 @@ TEST_SUITE("Layer Manager") {
     TEST_CASE("Rendering") {
         layer_manager<test_backend> mgr;
         TestRenderer renderer;
-        TestRect viewport{0, 0, 800, 600};
+        TestRect const viewport{0, 0, 800, 600};
 
         SUBCASE("No layers - nothing rendered") {
             mgr.render_all_layers(renderer, viewport);
@@ -448,7 +450,7 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Hidden layers not rendered") {
             auto layer = std::make_shared<TestLayer>();
-            layer_id id = mgr.add_layer(layer_type::popup, layer);
+            layer_id const id = mgr.add_layer(layer_type::popup, layer);
             mgr.hide_layer(id);
 
             mgr.render_all_layers(renderer, viewport);
@@ -474,7 +476,7 @@ TEST_SUITE("Layer Manager") {
 
         SUBCASE("Layer positioning for popup") {
             auto popup = std::make_shared<TestLayer>();
-            TestRect anchor{100, 50, 80, 30};
+            TestRect const anchor{100, 50, 80, 30};
 
             // Set a size for the popup
             popup->set_preferred_size(120, 60);
@@ -508,8 +510,8 @@ TEST_SUITE("Layer Manager") {
     TEST_CASE("Popup placement") {
         layer_manager<test_backend> mgr;
         TestRenderer renderer;
-        TestRect viewport{0, 0, 800, 600};
-        TestRect anchor{400, 300, 100, 50};
+        TestRect const viewport{0, 0, 800, 600};
+        TestRect const anchor{400, 300, 100, 50};
 
         // Create popup with fixed size
         auto create_popup = []() {
@@ -588,7 +590,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Auto placement when below doesn't fit") {
-            TestRect bottom_anchor{400, 550, 100, 30}; // Near bottom
+            TestRect const bottom_anchor{400, 550, 100, 30}; // Near bottom
             auto popup = create_popup();
             mgr.show_popup(popup.get(), bottom_anchor, popup_placement::auto_best);
             mgr.render_all_layers(renderer, viewport);
@@ -598,7 +600,7 @@ TEST_SUITE("Layer Manager") {
         }
 
         SUBCASE("Clamping to viewport") {
-            TestRect edge_anchor{750, 100, 100, 50}; // Near right edge
+            TestRect const edge_anchor{750, 100, 100, 50}; // Near right edge
             auto popup = create_popup();
             mgr.show_popup(popup.get(), edge_anchor, popup_placement::below);
             mgr.render_all_layers(renderer, viewport);
@@ -611,19 +613,19 @@ TEST_SUITE("Layer Manager") {
 
     TEST_CASE("Layer ID") {
         SUBCASE("Invalid ID") {
-            layer_id invalid = layer_id::invalid();
+            layer_id const invalid = layer_id::invalid();
             CHECK(!invalid.is_valid());
             CHECK(invalid.value == 0);
         }
 
         SUBCASE("Valid ID") {
-            layer_id valid(42);
+            layer_id const valid(42);
             CHECK(valid.is_valid());
             CHECK(valid.value == 42);
         }
 
         SUBCASE("ID comparison") {
-            layer_id id1(1);
+            layer_id const id1(1);
             layer_id id2(2);
             layer_id id1_copy(1);
 
@@ -634,7 +636,7 @@ TEST_SUITE("Layer Manager") {
 
     TEST_CASE("Multiple operations sequence") {
         layer_manager<test_backend> mgr;
-        TestRect viewport{0, 0, 800, 600};
+        TestRect const viewport{0, 0, 800, 600};
 
         // Create multiple layers
         auto base = std::make_shared<TestLayer>();
@@ -644,8 +646,8 @@ TEST_SUITE("Layer Manager") {
 
         // Add layers in various orders
         (void)mgr.add_layer(layer_type::base, base);  // base_id not needed
-        layer_id popup_id = mgr.show_popup(popup.get(), TestRect{100, 100, 50, 30});
-        layer_id modal_id = mgr.show_modal_dialog(modal.get());
+        layer_id const popup_id = mgr.show_popup(popup.get(), TestRect{100, 100, 50, 30});
+        layer_id const modal_id = mgr.show_modal_dialog(modal.get());
         (void)mgr.show_tooltip(tooltip.get(), 200, 200);  // tooltip_id not needed
 
         CHECK(mgr.layer_count() == 4);
@@ -668,7 +670,7 @@ TEST_SUITE("Layer Manager") {
         CHECK(mgr.layer_count() == 2);
 
         // Test event routing with remaining layers
-        TestEvent event;
+        TestEvent const event;
         base->event_handled = true;
         modal->event_handled = false;
 

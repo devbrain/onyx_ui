@@ -3,8 +3,12 @@
  * @brief Unit tests for anchor_layout
  */
 
+#include "onyxui/layout_strategy.hh"
 #include "utils/test_helpers.hh"
+#include <memory>
 #include <onyxui/layout/anchor_layout.hh>
+#include <utility>
+#include <vector>
 
 using TestAnchorLayout = anchor_layout<TestBackend>;
 

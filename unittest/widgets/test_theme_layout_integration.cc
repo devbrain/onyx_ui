@@ -8,16 +8,17 @@
 // - Inherited properties work with layout
 //
 
+#include <cstddef>
 #include <doctest/doctest.h>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/group_box.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/vbox.hh>
 #include <onyxui/ui_context.hh>
-#include <onyxui/theme.hh>
+#include <vector>
 #include "../utils/test_canvas_backend.hh"
-#include "../utils/test_helpers.hh"
-#include "../utils/layout_assertions.hh"
+#include "onyxui/concepts/rect_like.hh"
+#include "onyxui/element.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -164,8 +165,8 @@ TEST_SUITE("Theme - Layout Integration") {
             auto prev = children[i - 1]->bounds();
             auto curr = children[i]->bounds();
 
-            int prev_bottom = rect_utils::get_y(prev) + rect_utils::get_height(prev);
-            int curr_top = rect_utils::get_y(curr);
+            int const prev_bottom = rect_utils::get_y(prev) + rect_utils::get_height(prev);
+            int const curr_top = rect_utils::get_y(curr);
 
             // Spacing should be preserved
             CHECK(curr_top - prev_bottom == 3);

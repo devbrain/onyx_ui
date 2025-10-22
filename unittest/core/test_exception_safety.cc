@@ -4,10 +4,12 @@
  * @details Tests for Phase 1.1 of the refactoring plan
  */
 
+#include <cstddef>
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
+#include <memory>
+#include <utility>
 #include <vector>
-#include <stdexcept>
 
 // Custom allocator that throws after N allocations for testing exception safety
 template<typename T>

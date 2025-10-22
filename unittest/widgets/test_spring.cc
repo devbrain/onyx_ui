@@ -3,33 +3,35 @@
 //
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/spring.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/vbox.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
 
 TEST_CASE("Spring - Flexible expanding spacing widget") {
     SUBCASE("Construction with default weight") {
-        spring<test_backend> s;
+        spring<test_backend> const s;
 
-        CHECK(s.weight() == 1.0f);
+        CHECK(s.weight() == 1.0F);
         CHECK(s.is_horizontal());
         CHECK_FALSE(s.is_focusable());
     }
 
     SUBCASE("Construction with custom weight") {
-        spring<test_backend> s(2.5f);
+        spring<test_backend> const s(2.5F);
 
-        CHECK(s.weight() == 2.5f);
+        CHECK(s.weight() == 2.5F);
     }
 
     SUBCASE("Construction with vertical orientation") {
-        spring<test_backend> s(1.0f, false);
+        spring<test_backend> const s(1.0F, false);
 
         CHECK_FALSE(s.is_horizontal());
     }
@@ -37,8 +39,8 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     SUBCASE("Set weight") {
         spring<test_backend> s;
 
-        s.set_weight(3.0f);
-        CHECK(s.weight() == 3.0f);
+        s.set_weight(3.0F);
+        CHECK(s.weight() == 3.0F);
     }
 
     SUBCASE("Set min/max size") {
@@ -56,7 +58,7 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
         s.set_min_size(50);
 
         auto size = s.measure(100, 100);
-        int width = size_utils::get_width(size);
+        int const width = size_utils::get_width(size);
 
         // Should respect min size
         CHECK(width >= 50);
@@ -96,9 +98,9 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
         vbox<test_backend> layout;
 
         auto header = std::make_unique<button<test_backend>>("Header");
-        auto spring1 = std::make_unique<spring<test_backend>>(3.0f, false); // 3x weight vertical
+        auto spring1 = std::make_unique<spring<test_backend>>(3.0F, false); // 3x weight vertical
         auto content = std::make_unique<button<test_backend>>("Content");
-        auto spring2 = std::make_unique<spring<test_backend>>(1.0f, false); // 1x weight vertical
+        auto spring2 = std::make_unique<spring<test_backend>>(1.0F, false); // 1x weight vertical
         auto footer = std::make_unique<button<test_backend>>("Footer");
 
         layout.add_child(std::move(header));
@@ -114,23 +116,23 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     SUBCASE("Multiple springs with different weights") {
         hbox<test_backend> box;
 
-        box.add_child(std::make_unique<spring<test_backend>>(2.0f));
+        box.add_child(std::make_unique<spring<test_backend>>(2.0F));
         box.add_child(std::make_unique<button<test_backend>>("Button"));
-        box.add_child(std::make_unique<spring<test_backend>>(1.0f));
+        box.add_child(std::make_unique<spring<test_backend>>(1.0F));
 
         CHECK(box.children().size() == 3);
         CHECK_NOTHROW((void)box.measure(400, 50));
     }
 
     SUBCASE("Spring is not focusable") {
-        spring<test_backend> s;
+        spring<test_backend> const s;
 
         CHECK_FALSE(s.is_focusable());
     }
 
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<spring<test_backend>>(
-        [](auto& s) { s.set_weight(2.5f); s.set_min_size(20); },
-        [](const auto& s) { return s.weight() == 2.5f && s.min_size() == 20; }
+        [](auto& s) { s.set_weight(2.5F); s.set_min_size(20); },
+        [](const auto& s) { return s.weight() == 2.5F && s.min_size() == 20; }
     );
 }

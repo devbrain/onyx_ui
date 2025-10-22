@@ -4,18 +4,20 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/hbox.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/layout_strategy.hh"
 
 
 using namespace onyxui;
 
 TEST_CASE("HBox - Horizontal layout widget") {
     SUBCASE("Construction") {
-        hbox<test_backend> box(10);  // 10px spacing
+        hbox<test_backend> const box(10);  // 10px spacing
 
         CHECK_FALSE(box.is_focusable());
     }

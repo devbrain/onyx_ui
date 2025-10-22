@@ -5,6 +5,7 @@
 // and caused the border layout bug.
 //
 
+#include <climits>
 #include <doctest/doctest.h>
 #include <onyxui/element.hh>
 #include <onyxui/widgets/panel.hh>
@@ -12,6 +13,7 @@
 #include <onyxui/ui_context.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"
+#include "onyxui/concepts/rect_like.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;

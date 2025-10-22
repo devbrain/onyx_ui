@@ -12,6 +12,9 @@
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
+#include "onyxui/concepts/rect_like.hh"
+#include "onyxui/element.hh"
+#include "onyxui/widgets/panel.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -153,12 +156,12 @@ TEST_SUITE("Group Box - Layout Integration") {
         CHECK(rect_utils::get_x(child3->bounds()) == 3);
 
         // Y positions should account for spacing
-        int y1 = rect_utils::get_y(child1->bounds());
-        int y2 = rect_utils::get_y(child2->bounds());
-        int y3 = rect_utils::get_y(child3->bounds());
+        int const y1 = rect_utils::get_y(child1->bounds());
+        int const y2 = rect_utils::get_y(child2->bounds());
+        int const y3 = rect_utils::get_y(child3->bounds());
 
-        int h1 = rect_utils::get_height(child1->bounds());
-        int h2 = rect_utils::get_height(child2->bounds());
+        int const h1 = rect_utils::get_height(child1->bounds());
+        int const h2 = rect_utils::get_height(child2->bounds());
 
         CHECK(y1 == 3);  // border + padding
         CHECK(y2 == y1 + h1 + 1);  // child1 + spacing
@@ -291,8 +294,8 @@ TEST_SUITE("Group Box - Layout Integration") {
 
         // Group box adds its own border(1)
         auto child_bounds = child->bounds();
-        int child_x_rel = rect_utils::get_x(child_bounds) - rect_utils::get_x(gb_bounds);
-        int child_y_rel = rect_utils::get_y(child_bounds) - rect_utils::get_y(gb_bounds);
+        int const child_x_rel = rect_utils::get_x(child_bounds) - rect_utils::get_x(gb_bounds);
+        int const child_y_rel = rect_utils::get_y(child_bounds) - rect_utils::get_y(gb_bounds);
 
         CHECK(child_x_rel == 1);  // Group box border
         CHECK(child_y_rel == 1);

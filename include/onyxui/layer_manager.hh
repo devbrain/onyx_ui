@@ -257,7 +257,7 @@ namespace onyxui {
                           int custom_z_index = -1) {
             layer_id id(m_next_id++);
 
-            int z_index = (custom_z_index >= 0) ? custom_z_index : get_default_z_index(type);
+            int const z_index = (custom_z_index >= 0) ? custom_z_index : get_default_z_index(type);
 
             m_layers.push_back(layer_data{
                 id,
@@ -498,7 +498,7 @@ namespace onyxui {
 
             // Phase 1.3: Generic click-outside detection
             // We need to defer the callback to avoid modifying m_layers while iterating
-            std::function<void()> deferred_callback;
+            std::function<void()> const deferred_callback;
 
             // Check if this is a mouse click event
             if constexpr (requires { event_traits<event_type>::is_button_press(event); }) {
@@ -595,8 +595,8 @@ namespace onyxui {
                 // Measure, arrange, and render - Phase 1.2: Use safe access
                 layer.with_root([&](element_type* root_ptr) {
                     // Measure and arrange
-                    int width = rect_utils::get_width(layer.bounds);
-                    int height = rect_utils::get_height(layer.bounds);
+                    int const width = rect_utils::get_width(layer.bounds);
+                    int const height = rect_utils::get_height(layer.bounds);
                     [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
                     root_ptr->arrange(layer.bounds);
 
@@ -665,13 +665,13 @@ namespace onyxui {
         // Layer data structure
         struct layer_data {
             layer_id id;
-            layer_type type;
-            int z_index;
+            layer_type type = layer_type::base;
+            int z_index = 0;
             std::weak_ptr<element_type> root;  // Safe lifetime tracking (Phase 1.2)
             std::shared_ptr<element_type> owner;  // Keeps root alive (may be non-owning for show_popup/etc)
-            bool visible;
-            bool modal;
-            bool blocks_events;
+            bool visible = true;
+            bool modal = false;
+            bool blocks_events = true;
 
             // Positioning info
             rect_type bounds;
@@ -794,17 +794,17 @@ namespace onyxui {
             // Phase 1.2: Use safe access for positioning
             layer.with_root([&](element_type* root_ptr) {
                 // Measure to get desired size
-                int vp_width = rect_utils::get_width(viewport);
-                int vp_height = rect_utils::get_height(viewport);
+                int const vp_width = rect_utils::get_width(viewport);
+                int const vp_height = rect_utils::get_height(viewport);
 
                 auto size = root_ptr->measure(vp_width, vp_height);
 
-                int width = size_utils::get_width(size);
-                int height = size_utils::get_height(size);
+                int const width = size_utils::get_width(size);
+                int const height = size_utils::get_height(size);
 
                 // Center in viewport
-                int x = rect_utils::get_x(viewport) + (vp_width - width) / 2;
-                int y = rect_utils::get_y(viewport) + (vp_height - height) / 2;
+                int const x = rect_utils::get_x(viewport) + (vp_width - width) / 2;
+                int const y = rect_utils::get_y(viewport) + (vp_height - height) / 2;
 
                 rect_utils::set_bounds(layer.bounds, x, y, width, height);
             });
@@ -814,19 +814,19 @@ namespace onyxui {
             // Phase 1.2: Use safe access for positioning
             layer.with_root([&](element_type* root_ptr) {
                 // Measure to get desired size
-                int vp_width = rect_utils::get_width(viewport);
-                int vp_height = rect_utils::get_height(viewport);
+                int const vp_width = rect_utils::get_width(viewport);
+                int const vp_height = rect_utils::get_height(viewport);
 
                 auto size = root_ptr->measure(vp_width, vp_height);
 
-                int width = size_utils::get_width(size);
-                int height = size_utils::get_height(size);
+                int const width = size_utils::get_width(size);
+                int const height = size_utils::get_height(size);
 
                 // Get anchor position
-                int anchor_x = rect_utils::get_x(layer.anchor_bounds);
-                int anchor_y = rect_utils::get_y(layer.anchor_bounds);
-                int anchor_w = rect_utils::get_width(layer.anchor_bounds);
-                int anchor_h = rect_utils::get_height(layer.anchor_bounds);
+                int const anchor_x = rect_utils::get_x(layer.anchor_bounds);
+                int const anchor_y = rect_utils::get_y(layer.anchor_bounds);
+                int const anchor_w = rect_utils::get_width(layer.anchor_bounds);
+                int const anchor_h = rect_utils::get_height(layer.anchor_bounds);
 
                 // Calculate position based on placement
                 int x = anchor_x;
@@ -876,8 +876,8 @@ namespace onyxui {
                 }
 
                 // Clamp to viewport
-                int vp_x = rect_utils::get_x(viewport);
-                int vp_y = rect_utils::get_y(viewport);
+                int const vp_x = rect_utils::get_x(viewport);
+                int const vp_y = rect_utils::get_y(viewport);
                 x = std::max(vp_x, std::min(x, vp_x + vp_width - width));
                 y = std::max(vp_y, std::min(y, vp_y + vp_height - height));
 

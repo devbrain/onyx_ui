@@ -10,8 +10,8 @@
 #include <onyxui/draw_context.hh>
 #include <onyxui/measure_context.hh>
 #include <onyxui/concepts/size_like.hh>
-#include <onyxui/concepts/point_like.hh>
 #include <onyxui/concepts/rect_like.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
 
 using namespace onyxui;
@@ -19,14 +19,14 @@ using Backend = test_backend;
 
 TEST_CASE("measure_context - Basic functionality") {
     SUBCASE("Initial state is zero size") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> const ctx;
         auto size = ctx.get_size();
         CHECK(size_utils::get_width(size) == 0);
         CHECK(size_utils::get_height(size) == 0);
     }
 
     SUBCASE("is_measuring returns true") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> const ctx;
         CHECK(ctx.is_measuring() == true);
         CHECK(ctx.is_rendering() == false);
     }
@@ -41,9 +41,9 @@ TEST_CASE("measure_context - Text measurement") {
     SUBCASE("Single text at origin") {
         measure_context<Backend> ctx;
 
-        Backend::point_type pos{0, 0};
-        Backend::renderer_type::font font;
-        Backend::color_type color;
+        Backend::point_type const pos{0, 0};
+        Backend::renderer_type::font const font;
+        Backend::color_type const color;
 
         // Draw text "Hello" (5 chars, 1 line height)
         auto text_size = ctx.draw_text("Hello", pos, font, color);
@@ -61,9 +61,9 @@ TEST_CASE("measure_context - Text measurement") {
     SUBCASE("Text at offset position") {
         measure_context<Backend> ctx;
 
-        Backend::point_type pos{10, 5};
-        Backend::renderer_type::font font;
-        Backend::color_type color;
+        Backend::point_type const pos{10, 5};
+        Backend::renderer_type::font const font;
+        Backend::color_type const color;
 
         // Draw text "Hi" (2 chars) at (10, 5)
         (void)ctx.draw_text("Hi", pos, font, color);
@@ -81,7 +81,7 @@ TEST_CASE("measure_context - Rectangle measurement") {
 
         Backend::rect_type rect;
         rect_utils::set_bounds(rect, 0, 0, 10, 5);
-        Backend::renderer_type::box_style style{};
+        Backend::renderer_type::box_style const style{};
 
         ctx.draw_rect(rect, style);
 
@@ -96,7 +96,7 @@ TEST_CASE("measure_context - Rectangle measurement") {
 
         Backend::rect_type rect;
         rect_utils::set_bounds(rect, 5, 3, 8, 4);  // (x, y, w, h)
-        Backend::renderer_type::box_style style{};
+        Backend::renderer_type::box_style const style{};
 
         ctx.draw_rect(rect, style);
 
@@ -112,9 +112,9 @@ TEST_CASE("measure_context - Reset functionality") {
         measure_context<Backend> ctx;
 
         // Measure some text
-        Backend::point_type pos{0, 0};
-        Backend::renderer_type::font font;
-        Backend::color_type color;
+        Backend::point_type const pos{0, 0};
+        Backend::renderer_type::font const font;
+        Backend::color_type const color;
         (void)ctx.draw_text("Hello", pos, font, color);
 
         // Verify size is tracked
@@ -134,7 +134,7 @@ TEST_CASE("measure_context - Reset functionality") {
 TEST_CASE("draw_context - Basic functionality") {
     SUBCASE("is_rendering returns true") {
         Backend::renderer_type renderer;
-        draw_context<Backend> ctx(renderer);
+        draw_context<Backend> const ctx(renderer);
 
         CHECK(ctx.is_measuring() == false);
         CHECK(ctx.is_rendering() == true);
@@ -154,9 +154,9 @@ TEST_CASE("draw_context - Text rendering") {
         Backend::renderer_type renderer;
         draw_context<Backend> ctx(renderer);
 
-        Backend::point_type pos{10, 5};
-        Backend::renderer_type::font font;
-        Backend::color_type color;
+        Backend::point_type const pos{10, 5};
+        Backend::renderer_type::font const font;
+        Backend::color_type const color;
 
         // Draw text
         auto text_size = ctx.draw_text("Hello", pos, font, color);
@@ -174,7 +174,7 @@ TEST_CASE("draw_context - Rectangle rendering") {
 
         Backend::rect_type rect;
         rect_utils::set_bounds(rect, 0, 0, 10, 5);
-        Backend::renderer_type::box_style style{};
+        Backend::renderer_type::box_style const style{};
 
         // Should not throw
         CHECK_NOTHROW(ctx.draw_rect(rect, style));
@@ -206,13 +206,13 @@ TEST_CASE("Context lifetimes") {
     SUBCASE("measure_context is moveable") {
         measure_context<Backend> ctx1;
 
-        Backend::point_type pos{0, 0};
-        Backend::renderer_type::font font;
-        Backend::color_type color;
+        Backend::point_type const pos{0, 0};
+        Backend::renderer_type::font const font;
+        Backend::color_type const color;
         (void)ctx1.draw_text("Hello", pos, font, color);
 
         // Move
-        measure_context<Backend> ctx2 = std::move(ctx1);
+        measure_context<Backend> const ctx2 = std::move(ctx1);
 
         // Moved context retains state
         auto measured = ctx2.get_size();
@@ -224,7 +224,7 @@ TEST_CASE("Context lifetimes") {
         draw_context<Backend> ctx1(renderer);
 
         // Move
-        draw_context<Backend> ctx2 = std::move(ctx1);
+        draw_context<Backend> const ctx2 = std::move(ctx1);
 
         // Moved context works
         CHECK(ctx2.is_rendering() == true);

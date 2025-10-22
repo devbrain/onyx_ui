@@ -162,17 +162,17 @@ namespace onyxui {
             if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
                 // Render styled text with mnemonic (multi-segment)
                 for (const auto& segment : m_mnemonic_info.text) {
-                    typename Backend::point_type pos{x, y};
+                    typename Backend::point_type const pos{x, y};
                     // Use segment font, or default if no theme
-                    typename Backend::color_type color = theme ? theme->label.text : typename Backend::color_type{};
+                    typename Backend::color_type const color = theme ? theme->label.text : typename Backend::color_type{};
                     auto text_size = ctx.draw_text(segment.text, pos, segment.font, color);
                     x += size_utils::get_width(text_size);
                 }
             } else {
                 // Render plain text
-                typename Backend::point_type pos{x, y};
-                typename renderer_type::font default_font{};
-                typename Backend::color_type color = theme ? theme->label.text : typename Backend::color_type{};
+                typename Backend::point_type const pos{x, y};
+                typename renderer_type::font const default_font{};
+                typename Backend::color_type const color = theme ? theme->label.text : typename Backend::color_type{};
                 ctx.draw_text(m_text, pos, theme ? theme->label.font : default_font, color);
             }
         }

@@ -136,7 +136,7 @@ namespace onyxui {
          * @note Updates raw layout pointer to maintain validity
          */
         grid(grid&& other) noexcept
-            : base(std::move(other))
+            : base(std::move(static_cast<base&>(other)))
             , m_grid_layout(std::exchange(other.m_grid_layout, nullptr)) {}
 
         /**
@@ -145,7 +145,7 @@ namespace onyxui {
          */
         grid& operator=(grid&& other) noexcept {
             if (this != &other) {
-                base::operator=(std::move(other));
+                base::operator=(std::move(static_cast<base&>(other)));
                 m_grid_layout = std::exchange(other.m_grid_layout, nullptr);
             }
             return *this;

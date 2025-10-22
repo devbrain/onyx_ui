@@ -3,8 +3,12 @@
  * @brief Unit tests for linear_layout
  */
 
+#include "onyxui/layout_strategy.hh"
 #include "utils/test_helpers.hh"
+#include <memory>
+#include <limits>
 #include <onyxui/layout/linear_layout.hh>
+#include <utility>
 
 using TestLinearLayout = linear_layout<TestBackend>;
 
@@ -26,7 +30,7 @@ TEST_SUITE("linear_layout") {
         }
 
         // Measure and arrange
-        TestSize measured = parent->measure(1000, 1000);
+        TestSize const measured = parent->measure(1000, 1000);
         CHECK(measured.w == 320); // 3*100 + 2*10
         CHECK(measured.h == 50);
 
@@ -52,12 +56,12 @@ TEST_SUITE("linear_layout") {
         for (int i = 0; i < 2; i++) {
             auto child = std::make_unique<TestElement>();
             child->set_width_constraint({size_policy::fill_parent});
-            child->set_height_constraint({size_policy::expand, 0, 0, std::numeric_limits<int>::max(), 1.0f});
+            child->set_height_constraint({size_policy::expand, 0, 0, std::numeric_limits<int>::max(), 1.0F});
             parent->add_test_child(std::move(child));
         }
 
         // Measure and arrange
-        TestSize measured = parent->measure(200, 300);
+        TestSize const measured = parent->measure(200, 300);
         // For vertical layout with no fixed-width children, width should be max of child widths
         // Since children have fill_parent policy, they should measure to 0 initially
         CHECK(measured.w == 0);    // Children with fill_parent don't contribute to measure
@@ -81,15 +85,15 @@ TEST_SUITE("linear_layout") {
 
         // Add children with weights 1:2:1
         auto child1 = std::make_unique<TestElement>();
-        child1->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 1.0f});
+        child1->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 1.0F});
         parent->add_test_child(std::move(child1));
 
         auto child2 = std::make_unique<TestElement>();
-        child2->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 2.0f});
+        child2->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 2.0F});
         parent->add_test_child(std::move(child2));
 
         auto child3 = std::make_unique<TestElement>();
-        child3->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 1.0f});
+        child3->set_width_constraint({size_policy::weighted, 0, 0, std::numeric_limits<int>::max(), 1.0F});
         parent->add_test_child(std::move(child3));
 
         // Measure: weighted children report minimal size during measure
@@ -148,7 +152,7 @@ TEST_SUITE("linear_layout") {
         parent->set_layout_strategy(std::move(layout));
 
         auto child = std::make_unique<TestElement>();
-        child->set_width_constraint({size_policy::expand, 100, 50, 150, 1.0f}); // min=50, max=150
+        child->set_width_constraint({size_policy::expand, 100, 50, 150, 1.0F}); // min=50, max=150
         parent->add_test_child(std::move(child));
 
         // Test minimum constraint
@@ -186,7 +190,7 @@ TEST_SUITE("linear_layout") {
         // Hide middle child
         parent->child_at(1)->set_visible(false);
 
-        TestSize measured = parent->measure(1000, 100);
+        TestSize const measured = parent->measure(1000, 100);
         CHECK(measured.w == 210); // 2*100 + 1*10 (only one spacing)
 
         parent->arrange({0, 0, 210, 100});
@@ -228,7 +232,7 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::make_unique<ContentElement>(150, 20));
         parent->add_test_child(std::make_unique<ContentElement>(100, 30));
 
-        TestSize measured = parent->measure(1000, 1000);
+        TestSize const measured = parent->measure(1000, 1000);
         CHECK(measured.w == 150);  // Max of child widths
         CHECK(measured.h == 55);  // 20 + 30 + 5
     }

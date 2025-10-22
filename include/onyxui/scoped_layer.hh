@@ -218,7 +218,7 @@ scoped_layer<Backend> layer_manager<Backend>::add_scoped_layer(
     std::shared_ptr<element_type> root,
     int custom_z_index)
 {
-    layer_id id = add_layer(type, std::move(root), custom_z_index);
+    layer_id const id = add_layer(type, std::move(root), custom_z_index);
     return scoped_layer<Backend>(this, id);
 }
 

@@ -5,9 +5,11 @@
  * @date 16/10/2025
  */
 
+#include <cstddef>
 #include <doctest/doctest.h>
 #include <onyxui/signal.hh>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace onyxui;
@@ -98,8 +100,8 @@ TEST_CASE("Signal - With arguments") {
         data_signal.emit(5, "test");
         CHECK(received_ints.size() == 2);
         // Check that both values are present (order is undefined)
-        bool has_5 = (received_ints[0] == 5 || received_ints[1] == 5);
-        bool has_10 = (received_ints[0] == 10 || received_ints[1] == 10);
+        bool const has_5 = (received_ints[0] == 5 || received_ints[1] == 5);
+        bool const has_10 = (received_ints[0] == 10 || received_ints[1] == 10);
         CHECK(has_5);
         CHECK(has_10);
     }
@@ -107,7 +109,7 @@ TEST_CASE("Signal - With arguments") {
 
 TEST_CASE("Signal - Complex argument types") {
     struct ComplexData {
-        int id;
+        int id = 0;
         std::string name;
         std::vector<int> values;
     };
@@ -119,7 +121,7 @@ TEST_CASE("Signal - Complex argument types") {
         received = data;
     });
 
-    ComplexData sent{42, "test", {1, 2, 3}};
+    ComplexData const sent{42, "test", {1, 2, 3}};
     complex_signal.emit(sent);
 
     CHECK(received.id == 42);
@@ -211,7 +213,7 @@ TEST_CASE("Scoped connection - Basic RAII") {
     int call_count = 0;
 
     {
-        scoped_connection conn(int_signal, [&](int value) {
+        scoped_connection const conn(int_signal, [&](int value) {
             call_count += value;
         });
 
@@ -305,9 +307,9 @@ TEST_CASE("Scoped connection - Multiple in same scope") {
     int count_a = 0, count_b = 0, count_c = 0;
 
     {
-        scoped_connection conn_a(sig, [&]() { count_a++; });
-        scoped_connection conn_b(sig, [&]() { count_b++; });
-        scoped_connection conn_c(sig, [&]() { count_c++; });
+        scoped_connection const conn_a(sig, [&]() { count_a++; });
+        scoped_connection const conn_b(sig, [&]() { count_b++; });
+        scoped_connection const conn_c(sig, [&]() { count_c++; });
 
         sig.emit();
         CHECK(count_a == 1);

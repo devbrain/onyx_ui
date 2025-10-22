@@ -11,10 +11,9 @@
 
 #include <doctest/doctest.h>
 #include <onyxui/layer_manager.hh>
-#include <onyxui/widgets/menu.hh>
 #include "../utils/test_helpers.hh"
+#include "utils/test_backend.hh"
 #include <memory>
-#include <vector>
 
 using namespace onyxui;
 
@@ -77,8 +76,8 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::dialog, dialog, 100);
         mgr.add_layer(layer_type::modal, modal, 200);
 
-        TestEvent event;
-        bool handled = mgr.route_event(event);
+        TestEvent const event;
+        bool const handled = mgr.route_event(event);
 
         // Modal should receive event
         CHECK(modal_ptr->events_received == 1);
@@ -106,7 +105,7 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::modal, modal1, 100);
         mgr.add_layer(layer_type::modal, modal2, 200);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Only topmost modal should receive event
@@ -127,12 +126,12 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         auto* modal_ptr = modal.get();
 
         mgr.add_layer(layer_type::base, base, 0);
-        layer_id modal_id = mgr.add_layer(layer_type::modal, modal, 100);
+        layer_id const modal_id = mgr.add_layer(layer_type::modal, modal, 100);
 
         // Hide the modal
         mgr.hide_layer(modal_id);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Base should receive event (modal is hidden)
@@ -155,8 +154,8 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::modal, modal, 100);
         mgr.add_layer(layer_type::popup, popup, 200);
 
-        TestEvent event;
-        bool handled = mgr.route_event(event);
+        TestEvent const event;
+        bool const handled = mgr.route_event(event);
 
         // Popup handles event
         CHECK(popup_ptr->events_received == 1);
@@ -191,7 +190,7 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::tooltip, layer3, 200);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // All should receive event (none handle it)
@@ -215,8 +214,8 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::tooltip, layer3, 200);
 
-        TestEvent event;
-        bool handled = mgr.route_event(event);
+        TestEvent const event;
+        bool const handled = mgr.route_event(event);
 
         CHECK(handled);
 
@@ -243,13 +242,13 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         auto* ptr3 = layer3.get();
 
         mgr.add_layer(layer_type::base, layer1, 0);
-        layer_id id2 = mgr.add_layer(layer_type::popup, layer2, 100);
+        layer_id const id2 = mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::tooltip, layer3, 200);
 
         // Hide middle layer
         mgr.hide_layer(id2);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Visible layers receive event
@@ -276,7 +275,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
         layer_manager<Backend> mgr;
 
         auto popup = std::make_shared<TestElement>();
-        TestRect anchor{100, 100, 50, 20};
+        TestRect const anchor{100, 100, 50, 20};
 
         // Callback invocation tracking
         bool callback_invoked = false;
@@ -285,7 +284,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
         };
 
         // Phase 1.3: show_popup() now accepts generic callback
-        layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below, callback);
+        layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below, callback);
 
         // Verify layer was added
         CHECK(id.is_valid());
@@ -300,17 +299,17 @@ TEST_SUITE("Layer Manager - Click Outside") {
         layer_manager<Backend> mgr;
 
         auto popup = std::make_shared<TestElement>();
-        TestRect anchor{100, 100, 50, 20};
+        TestRect const anchor{100, 100, 50, 20};
 
         // No callback provided (nullptr)
-        layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below, nullptr);
+        layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below, nullptr);
 
         // Verify layer was added with null callback
         CHECK(id.is_valid());
         CHECK(mgr.layer_count() == 1);
 
         // Send regular event (not mouse event with coordinates)
-        TestEvent event;
+        TestEvent const event;
         CHECK_NOTHROW(mgr.route_event(event));
     }
 
@@ -319,7 +318,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
 
         auto popup1 = std::make_shared<TestElement>();
         auto popup2 = std::make_shared<TestElement>();
-        TestRect anchor{100, 100, 50, 20};
+        TestRect const anchor{100, 100, 50, 20};
 
         bool callback1_invoked = false;
         bool callback2_invoked = false;
@@ -328,8 +327,8 @@ TEST_SUITE("Layer Manager - Click Outside") {
         auto callback2 = [&callback2_invoked]() { callback2_invoked = true; };
 
         // Add two popups with different callbacks
-        layer_id id1 = mgr.show_popup(popup1.get(), anchor, popup_placement::below, callback1);
-        layer_id id2 = mgr.show_popup(popup2.get(), anchor, popup_placement::below, callback2);
+        layer_id const id1 = mgr.show_popup(popup1.get(), anchor, popup_placement::below, callback1);
+        layer_id const id2 = mgr.show_popup(popup2.get(), anchor, popup_placement::below, callback2);
 
         // Verify both layers added
         CHECK(id1.is_valid());
@@ -347,10 +346,10 @@ TEST_SUITE("Layer Manager - Click Outside") {
 
         layer_manager<Backend> mgr;
         auto popup = std::make_shared<TestElement>();
-        TestRect anchor{100, 100, 50, 20};
+        TestRect const anchor{100, 100, 50, 20};
 
         // Verify callback can be passed through
-        layer_id id = mgr.show_popup(popup.get(), anchor, popup_placement::below,
+        layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below,
             []() {
                 // Generic callback that would close the popup
             });
@@ -369,8 +368,8 @@ TEST_SUITE("Layer Manager - Event Propagation") {
     TEST_CASE("No layers - event not handled") {
         layer_manager<Backend> mgr;
 
-        TestEvent event;
-        bool handled = mgr.route_event(event);
+        TestEvent const event;
+        bool const handled = mgr.route_event(event);
 
         CHECK_FALSE(handled);
     }
@@ -381,14 +380,14 @@ TEST_SUITE("Layer Manager - Event Propagation") {
         auto layer1 = std::make_shared<TrackingElement>(false);
         auto layer2 = std::make_shared<TrackingElement>(false);
 
-        layer_id id1 = mgr.add_layer(layer_type::base, layer1);
-        layer_id id2 = mgr.add_layer(layer_type::popup, layer2);
+        layer_id const id1 = mgr.add_layer(layer_type::base, layer1);
+        layer_id const id2 = mgr.add_layer(layer_type::popup, layer2);
 
         mgr.hide_layer(id1);
         mgr.hide_layer(id2);
 
-        TestEvent event;
-        bool handled = mgr.route_event(event);
+        TestEvent const event;
+        bool const handled = mgr.route_event(event);
 
         CHECK_FALSE(handled);
     }
@@ -400,7 +399,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
         mgr.add_layer(layer_type::popup, layer);
 
         // Default-constructed event
-        TestEvent event{};
+        TestEvent const event{};
         CHECK_NOTHROW(mgr.route_event(event));
     }
 
@@ -414,7 +413,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
 
         // Send 100 events rapidly
         for (int i = 0; i < 100; ++i) {
-            TestEvent event;
+            TestEvent const event;
             mgr.route_event(event);
         }
 
@@ -441,7 +440,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::popup, layer3, 100);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Behavior depends on implementation
@@ -461,7 +460,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer1, -100);
         mgr.add_layer(layer_type::popup, layer2, 100);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Higher z-index should receive first
@@ -481,7 +480,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer1, 0);
         mgr.add_layer(layer_type::popup, layer2, 999999);
 
-        TestEvent event;
+        TestEvent const event;
         mgr.route_event(event);
 
         // Very high z-index should work correctly
@@ -517,7 +516,7 @@ TEST_SUITE("Layer Manager - Modal Query") {
         layer_manager<Backend> mgr;
 
         auto modal = std::make_shared<TestElement>();
-        layer_id id = mgr.add_layer(layer_type::modal, modal);
+        layer_id const id = mgr.add_layer(layer_type::modal, modal);
 
         mgr.hide_layer(id);
 

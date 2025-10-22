@@ -3,7 +3,10 @@
  * @brief Comprehensive tests for focus_manager keyboard navigation
  */
 
+#include <cstddef>
+#include <algorithm>
 #include <doctest/doctest.h>
+#include <functional>
 #include <onyxui/focus_manager.hh>
 #include <onyxui/event_target.hh>
 #include <utils/test_backend.hh>
@@ -351,7 +354,7 @@ TEST_SUITE("FocusManager") {
 
             manager.set_focus(target_ptrs[1]);
 
-            bool handled = manager.handle_tab_navigation(evt, target_ptrs);
+            bool const handled = manager.handle_tab_navigation(evt, target_ptrs);
             CHECK(handled);
             CHECK(manager.get_focused() == target_ptrs[0]);
         }
@@ -362,7 +365,7 @@ TEST_SUITE("FocusManager") {
             evt.pressed = true;
             evt.shift = false;
 
-            bool handled = manager.handle_tab_navigation(evt, target_ptrs);
+            bool const handled = manager.handle_tab_navigation(evt, target_ptrs);
             CHECK_FALSE(handled);
             CHECK(manager.get_focused() == nullptr);
         }
@@ -373,7 +376,7 @@ TEST_SUITE("FocusManager") {
             evt.pressed = false;
             evt.shift = false;
 
-            bool handled = manager.handle_tab_navigation(evt, target_ptrs);
+            bool const handled = manager.handle_tab_navigation(evt, target_ptrs);
             CHECK_FALSE(handled);
         }
     }
@@ -462,7 +465,7 @@ TEST_SUITE("FocusManager") {
 
             // Now implicit ones follow
             manager.focus_next(target_ptrs);
-            bool is_implicit = (manager.get_focused() == target_ptrs[1] ||
+            bool const is_implicit = (manager.get_focused() == target_ptrs[1] ||
                                 manager.get_focused() == target_ptrs[3]);
             CHECK(is_implicit);
         }
@@ -476,13 +479,13 @@ TEST_SUITE("FocusManager") {
         focus_manager <test_backend> manager;
 
         SUBCASE("focus_next with empty targets") {
-            std::vector <event_target <test_backend>*> empty;
+            std::vector <event_target <test_backend>*> const empty;
             manager.focus_next(empty); // Should not crash
             CHECK(manager.get_focused() == nullptr);
         }
 
         SUBCASE("focus_previous with empty targets") {
-            std::vector <event_target <test_backend>*> empty;
+            std::vector <event_target <test_backend>*> const empty;
             manager.focus_previous(empty); // Should not crash
             CHECK(manager.get_focused() == nullptr);
         }
@@ -503,7 +506,7 @@ TEST_SUITE("FocusManager") {
 
         SUBCASE("focus_next with single target") {
             auto target = std::make_unique <TestTarget>();
-            std::vector <event_target <test_backend>*> single = {target.get()};
+            std::vector <event_target <test_backend>*> const single = {target.get()};
 
             manager.focus_next(single);
             CHECK(manager.get_focused() == target.get());
@@ -516,7 +519,7 @@ TEST_SUITE("FocusManager") {
         SUBCASE("setting focus on target not in list") {
             auto target1 = std::make_unique <TestTarget>();
             auto target2 = std::make_unique <TestTarget>();
-            std::vector <event_target <test_backend>*> targets = {target1.get()};
+            std::vector <event_target <test_backend>*> const targets = {target1.get()};
 
             manager.set_focus(target2.get());
             CHECK(manager.get_focused() == target2.get());

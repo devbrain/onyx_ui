@@ -4,19 +4,22 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/grid.hh>
 #include <onyxui/widgets/label.hh>
+#include <utility>
+#include <vector>
+#include <string>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/size_like.hh"
+#include "onyxui/concepts/rect_like.hh"
 using namespace onyxui;
 
 TEST_CASE("Grid - Grid layout widget") {
     SUBCASE("Construction") {
-        grid<test_backend> g(3);  // 3 columns
+        grid<test_backend> const g(3);  // 3 columns
 
         CHECK_FALSE(g.is_focusable());
         CHECK(g.num_columns() == 3);
@@ -50,7 +53,7 @@ TEST_CASE("Grid - Grid layout widget") {
         g.add_child(std::move(header));
 
         // Assign header to span entire top row
-        bool result = g.set_cell(header_ptr, 0, 0, 1, 3);  // row 0, col 0, span 1x3
+        bool const result = g.set_cell(header_ptr, 0, 0, 1, 3);  // row 0, col 0, span 1x3
         CHECK(result);
 
         // Measure should not crash
@@ -58,8 +61,8 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     SUBCASE("Fixed-size grid") {
-        std::vector<int> col_widths = {100, 150, 100};
-        std::vector<int> row_heights = {50, 50};
+        std::vector<int> const col_widths = {100, 150, 100};
+        std::vector<int> const row_heights = {50, 50};
 
         grid<test_backend> g(
             3,              // 3 columns
@@ -77,8 +80,8 @@ TEST_CASE("Grid - Grid layout widget") {
         }
 
         auto size = g.measure(500, 500);
-        int width = size_utils::get_width(size);
-        int height = size_utils::get_height(size);
+        int const width = size_utils::get_width(size);
+        int const height = size_utils::get_height(size);
 
         // Width = 100 + 150 + 100 + 2*5 (spacing) = 360
         CHECK(width == 360);

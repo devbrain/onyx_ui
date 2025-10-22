@@ -144,7 +144,7 @@ namespace onyxui {
          * event_target::set_enabled() to also emit a signal.
          */
         void set_enabled(bool enabled) {
-            bool was_enabled = this->base::is_enabled();
+            bool const was_enabled = this->base::is_enabled();
             this->base::set_enabled(enabled);
             if (was_enabled != enabled) {
                 enabled_changed.emit(enabled);
@@ -162,7 +162,7 @@ namespace onyxui {
          * This overrides ui_element::set_visible() to also emit a signal.
          */
         void set_visible(bool visible) {
-            bool was_visible = this->is_visible();
+            bool const was_visible = this->is_visible();
             base::set_visible(visible);
             if (was_visible != visible) {
                 visible_changed.emit(visible);

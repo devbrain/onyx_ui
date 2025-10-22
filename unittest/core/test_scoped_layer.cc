@@ -18,7 +18,10 @@
 #include <onyxui/layer_manager.hh>
 #include <onyxui/scoped_layer.hh>  // Phase 1.4: Now implemented!
 #include "../utils/test_helpers.hh"
+#include "utils/test_backend.hh"
 #include <memory>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 using namespace onyxui;
@@ -130,6 +133,8 @@ TEST_SUITE("scoped_layer - Move Semantics") {
         auto layer2(std::move(layer1));
 
         // layer1 should be invalid after move
+        // Intentionally checking moved-from object state (RAII validity check)
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         CHECK_FALSE(layer1.is_valid());
 
         // layer2 should own the layer
@@ -160,6 +165,8 @@ TEST_SUITE("scoped_layer - Move Semantics") {
         // layer1's new state should be invalid
         // layer2 should now own id1
 
+        // Intentionally checking moved-from object state (RAII validity check)
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         CHECK_FALSE(layer1.is_valid());
         CHECK(layer2.is_valid());
         CHECK(layer2.get() == id1);
@@ -237,7 +244,7 @@ TEST_SUITE("scoped_layer - Manual Control") {
         CHECK(mgr.layer_count() == 1);
 
         // Release ownership
-        layer_id released_id = layer.release();
+        layer_id const released_id = layer.release();
 
         CHECK(released_id == id);
         CHECK_FALSE(layer.is_valid());
@@ -252,7 +259,7 @@ TEST_SUITE("scoped_layer - Manual Control") {
         auto elem = std::make_shared<TestElement>();
 
         auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
-        layer_id id = layer.get();
+        layer_id const id = layer.get();
 
         CHECK(id.is_valid());
         CHECK(mgr.is_layer_visible(id));
@@ -269,13 +276,13 @@ TEST_SUITE("scoped_layer - Integration") {
         layer_manager<Backend> mgr;
         auto elem = std::make_shared<TestElement>();
 
-        TestRect anchor{100, 100, 50, 20};
+        TestRect const anchor{100, 100, 50, 20};
 
         {
             // Note: Will need to add show_popup overload that returns scoped_layer
             // Or create manually:
-            layer_id id = mgr.show_popup(elem.get(), anchor, popup_placement::below);
-            scoped_layer<Backend> layer(&mgr, id);
+            layer_id const id = mgr.show_popup(elem.get(), anchor, popup_placement::below);
+            scoped_layer<Backend> const layer(&mgr, id);
 
             CHECK(mgr.layer_count() == 1);
         }
@@ -288,8 +295,8 @@ TEST_SUITE("scoped_layer - Integration") {
         auto dialog = std::make_shared<TestElement>();
 
         {
-            layer_id id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
-            scoped_layer<Backend> layer(&mgr, id);
+            layer_id const id = mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+            scoped_layer<Backend> const layer(&mgr, id);
 
             CHECK(mgr.has_modal_layer());
         }
@@ -302,7 +309,7 @@ TEST_SUITE("scoped_layer - Integration") {
         auto elem = std::make_shared<TestElement>();
 
         auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
-        layer_id id = layer.get();
+        layer_id const id = layer.get();
 
         CHECK(mgr.is_layer_visible(id));
 
@@ -321,14 +328,14 @@ TEST_SUITE("scoped_layer - Integration") {
             auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
 
             TestRenderer renderer;
-            TestRect viewport{0, 0, 800, 600};
+            TestRect const viewport{0, 0, 800, 600};
 
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
         }
 
         // Layer removed, rendering should still work
         TestRenderer renderer;
-        TestRect viewport{0, 0, 800, 600};
+        TestRect const viewport{0, 0, 800, 600};
         CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
     }
 }
@@ -371,7 +378,7 @@ TEST_SUITE("scoped_layer - Edge Cases") {
         CHECK_NOTHROW(layer.reset());
 
         // Also test release() on invalid handle
-        layer_id released = layer.release();
+        layer_id const released = layer.release();
         CHECK_FALSE(released.is_valid());
     }
 
@@ -380,7 +387,7 @@ TEST_SUITE("scoped_layer - Edge Cases") {
         auto elem = std::make_shared<TestElement>();
 
         auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
-        [[maybe_unused]] layer_id id = layer.get();
+        [[maybe_unused]] layer_id const id = layer.get();
 
         // Self move assignment should be safe (intentional test)
 #pragma GCC diagnostic push

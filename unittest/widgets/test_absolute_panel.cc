@@ -4,20 +4,22 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/absolute_panel.hh>
 #include <onyxui/widgets/label.hh>
+#include <utility>
+#include <string>
+#include <vector>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/rect_like.hh"
 using namespace onyxui;
 
 TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
     SUBCASE("Construction") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_backend> const panel;
 
         CHECK_FALSE(panel.is_focusable());
     }
@@ -119,8 +121,8 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         absolute_panel<test_backend> overlay;
 
         // Position tooltip at specific location
-        int mouse_x = 150;
-        int mouse_y = 200;
+        int const mouse_x = 150;
+        int const mouse_y = 200;
 
         auto tooltip = std::make_unique<label<test_backend>>("Click to continue");
         auto* tooltip_ptr = tooltip.get();
@@ -177,7 +179,7 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
             std::string name;
         };
 
-        std::vector<Node> nodes = {
+        std::vector<Node> const nodes = {
             {50, 50, "Input"},
             {200, 100, "Process"},
             {350, 150, "Output"}

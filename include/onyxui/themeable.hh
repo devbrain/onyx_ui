@@ -293,7 +293,7 @@ namespace onyxui {
              * @brief Get effective opacity (multiplies with parent's)
              */
             [[nodiscard]] float get_effective_opacity() const {
-                float opacity = m_opacity_override.value_or(1.0f);
+                float opacity = m_opacity_override.value_or(1.0F);
 
                 // Multiply with parent's opacity (CSS-style)
                 if (auto* p = get_themeable_parent()) {

@@ -165,19 +165,19 @@ namespace onyxui {
             auto* theme = this->get_theme();
 
             // Use default values if no theme (for measurement without theme)
-            int padding_horizontal = theme ? theme->button.padding_horizontal : 2;
-            int padding_vertical = theme ? theme->button.padding_vertical : 1;
-            int border = theme ? renderer_type::get_border_thickness(theme->button.box_style) : 1;
+            int const padding_horizontal = theme ? theme->button.padding_horizontal : 2;
+            int const padding_vertical = theme ? theme->button.padding_vertical : 1;
+            int const border = theme ? renderer_type::get_border_thickness(theme->button.box_style) : 1;
 
             // Measure text first (needed for both measurement and rendering)
-            typename renderer_type::font default_font{};
+            typename renderer_type::font const default_font{};
             auto text_size = renderer_type::measure_text(m_text, default_font);
-            int text_width = size_utils::get_width(text_size);
-            int text_height = size_utils::get_height(text_size);
+            int const text_width = size_utils::get_width(text_size);
+            int const text_height = size_utils::get_height(text_size);
 
             // Calculate total button size
-            int total_width = text_width + (padding_horizontal * 2) + (border * 2);
-            int total_height = text_height + (padding_vertical * 2) + (border * 2);
+            int const total_width = text_width + (padding_horizontal * 2) + (border * 2);
+            int const total_height = text_height + (padding_vertical * 2) + (border * 2);
 
             if (ctx.is_rendering()) {
                 // RENDERING PATH: Requires theme
@@ -205,7 +205,7 @@ namespace onyxui {
                 ctx.draw_rect(bounds, theme->button.box_style);
 
                 // Calculate available space for text
-                int available_width = rect_utils::get_width(bounds) - ((border + padding_horizontal) * 2);
+                int const available_width = rect_utils::get_width(bounds) - ((border + padding_horizontal) * 2);
 
                 // Calculate horizontal alignment offset
                 int align_offset = 0;
@@ -225,20 +225,20 @@ namespace onyxui {
                 }
 
                 // Calculate text position (offset by border + padding + alignment)
-                int text_x = rect_utils::get_x(bounds) + border + padding_horizontal + align_offset;
-                int text_y = rect_utils::get_y(bounds) + border + padding_vertical;
+                int const text_x = rect_utils::get_x(bounds) + border + padding_horizontal + align_offset;
+                int const text_y = rect_utils::get_y(bounds) + border + padding_vertical;
 
                 if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
                     // Render styled text with multiple fonts (multi-segment)
                     int x = text_x;
                     for (const auto& segment : m_mnemonic_info.text) {
-                        typename Backend::point_type pos{x, text_y};
+                        typename Backend::point_type const pos{x, text_y};
                         auto seg_size = ctx.draw_text(segment.text, pos, segment.font, fg);
                         x += size_utils::get_width(seg_size);
                     }
                 } else {
                     // Render plain text
-                    typename Backend::point_type pos{text_x, text_y};
+                    typename Backend::point_type const pos{text_x, text_y};
                     ctx.draw_text(m_text, pos, theme->button.font, fg);
                 }
             } else {
@@ -246,7 +246,7 @@ namespace onyxui {
                 // Draw a rectangle representing the button's full size
                 typename Backend::rect_type button_rect;
                 rect_utils::set_bounds(button_rect, 0, 0, total_width, total_height);
-                typename renderer_type::box_style default_style{};
+                typename renderer_type::box_style const default_style{};
                 ctx.draw_rect(button_rect, theme ? theme->button.box_style : default_style);
             }
         }

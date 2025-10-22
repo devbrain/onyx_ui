@@ -5,12 +5,11 @@
 #pragma once
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/layout_strategy.hh>  // For horizontal_alignment
 #include <cstdint>  // For uint8_t
 #include <string>
 
 namespace onyxui {
-    // Forward declaration to avoid circular dependency
-    enum class horizontal_alignment : std::uint8_t;
 
     template<UIBackend Backend>
     struct ui_theme {
@@ -41,7 +40,7 @@ namespace onyxui {
             // Layout preferences
             int padding_horizontal = 4;  // Horizontal padding (left/right) in renderer units
             int padding_vertical = 4;    // Vertical padding (top/bottom) in renderer units
-            horizontal_alignment text_align;  // Text alignment within button (no default - set in theme creation)
+            horizontal_alignment text_align = horizontal_alignment::center;  // Text alignment within button
             int corner_radius = 0;  // Hint for renderer, if supported
         };
 

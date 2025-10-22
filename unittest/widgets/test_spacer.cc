@@ -4,19 +4,21 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/spacer.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/vbox.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
 
 TEST_CASE("Spacer - Fixed-size spacing widget") {
     SUBCASE("Construction with zero size") {
-        spacer<test_backend> s;
+        spacer<test_backend> const s;
 
         CHECK(s.width() == 0);
         CHECK(s.height() == 0);
@@ -132,7 +134,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Spacer is not focusable") {
-        spacer<test_backend> s(10, 10);
+        spacer<test_backend> const s(10, 10);
 
         CHECK_FALSE(s.is_focusable());
     }

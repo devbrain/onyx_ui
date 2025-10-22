@@ -3,8 +3,10 @@
 //
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/widgets/status_bar.hh>
 #include "../utils/test_backend.hh"
+#include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
 

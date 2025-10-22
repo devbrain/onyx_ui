@@ -235,7 +235,7 @@ namespace onyxui {
          */
         size_type do_measure(int available_width, int available_height) override {
             // Measure children using base class (which uses layout strategy)
-            size_type content = base::do_measure(available_width, available_height);
+            size_type const content = base::do_measure(available_width, available_height);
 
             int width = size_utils::get_width(content);
             int height = size_utils::get_height(content);

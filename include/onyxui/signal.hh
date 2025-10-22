@@ -216,8 +216,8 @@ namespace onyxui {
              */
             connection_id connect(slot_type slot) {
 #ifdef ONYXUI_THREAD_SAFE
-                std::unique_lock lock(m_mutex);
-                connection_id id = m_next_id.fetch_add(1, std::memory_order_relaxed);
+                std::unique_lock const lock(m_mutex);
+                connection_id const id = m_next_id.fetch_add(1, std::memory_order_relaxed);
                 m_slots[id] = std::move(slot);
                 return id;
 #else
@@ -247,7 +247,7 @@ namespace onyxui {
              */
             void disconnect(connection_id id) {
 #ifdef ONYXUI_THREAD_SAFE
-                std::unique_lock lock(m_mutex);
+                std::unique_lock const lock(m_mutex);
 #endif
                 m_slots.erase(id);
             }
@@ -263,7 +263,7 @@ namespace onyxui {
              */
             void disconnect_all() {
 #ifdef ONYXUI_THREAD_SAFE
-                std::unique_lock lock(m_mutex);
+                std::unique_lock const lock(m_mutex);
 #endif
                 m_slots.clear();
             }
@@ -315,7 +315,7 @@ namespace onyxui {
                 // Copy slots under shared lock
                 std::unordered_map<connection_id, slot_type> slots_copy;
                 {
-                    std::shared_lock lock(m_mutex);
+                    std::shared_lock const lock(m_mutex);
                     if (m_slots.empty()) {
                         return;  // Early return if no slots
                     }
@@ -324,14 +324,14 @@ namespace onyxui {
                 // Lock released here - callbacks can safely connect/disconnect
 
                 // Set re-entrancy guard
-                bool was_emitting = m_emitting;
+                bool const was_emitting = m_emitting;
                 m_emitting = true;
 
                 try {
                     for (auto& [id, slot] : slots_copy) {
                         // Check if still connected (might have been disconnected concurrently)
                         {
-                            std::shared_lock lock(m_mutex);
+                            std::shared_lock const lock(m_mutex);
                             if (m_slots.find(id) == m_slots.end()) {
                                 continue;  // Skip if disconnected
                             }
@@ -415,7 +415,7 @@ namespace onyxui {
              */
             [[nodiscard]] bool has_connections() const noexcept {
 #ifdef ONYXUI_THREAD_SAFE
-                std::shared_lock lock(m_mutex);
+                std::shared_lock const lock(m_mutex);
 #endif
                 return !m_slots.empty();
             }
@@ -429,7 +429,7 @@ namespace onyxui {
              */
             [[nodiscard]] size_t connection_count() const noexcept {
 #ifdef ONYXUI_THREAD_SAFE
-                std::shared_lock lock(m_mutex);
+                std::shared_lock const lock(m_mutex);
 #endif
                 return m_slots.size();
             }
@@ -575,7 +575,7 @@ namespace onyxui {
              */
             void disconnect() {
 #ifdef ONYXUI_THREAD_SAFE
-                std::lock_guard lock(m_mutex);
+                std::lock_guard const lock(m_mutex);
 #endif
                 if (m_disconnect) {
                     m_disconnect();
@@ -592,7 +592,7 @@ namespace onyxui {
              */
             [[nodiscard]] bool is_connected() const noexcept {
 #ifdef ONYXUI_THREAD_SAFE
-                std::lock_guard lock(m_mutex);
+                std::lock_guard const lock(m_mutex);
 #endif
                 return m_disconnect != nullptr;
             }

@@ -165,7 +165,7 @@ namespace onyxui {
             auto title_button = std::make_unique<button<Backend>>("", this);
 
             // Parse mnemonic from title
-            mnemonic_info<Backend> mnemonic = parse_mnemonic<Backend>(
+            mnemonic_info<Backend> const mnemonic = parse_mnemonic<Backend>(
                 title,
                 typename Backend::renderer_type::font{},  // Would use theme fonts
                 typename Backend::renderer_type::font{}
@@ -180,13 +180,13 @@ namespace onyxui {
             this->add_child(std::move(title_button));
 
             // Store menu entry
-            menu_entry<Backend> entry{
+            menu_entry<Backend> const entry{
                 button_ptr,
                 menu_ptr.get(),
                 mnemonic.mnemonic_char
             };
 
-            std::size_t index = m_menus.size();
+            std::size_t const index = m_menus.size();
             m_menus.push_back(entry);
             m_owned_menus.push_back(std::move(menu_ptr));
 
@@ -303,7 +303,7 @@ namespace onyxui {
             if (m_menus.empty()) return;
 
             if (m_open_menu_index) {
-                std::size_t next_index = (*m_open_menu_index + 1) % m_menus.size();
+                std::size_t const next_index = (*m_open_menu_index + 1) % m_menus.size();
                 open_menu(next_index);
             } else {
                 // Focus next title button
@@ -322,7 +322,7 @@ namespace onyxui {
             if (m_menus.empty()) return;
 
             if (m_open_menu_index) {
-                std::size_t prev_index = *m_open_menu_index == 0
+                std::size_t const prev_index = *m_open_menu_index == 0
                     ? m_menus.size() - 1
                     : *m_open_menu_index - 1;
                 open_menu(prev_index);

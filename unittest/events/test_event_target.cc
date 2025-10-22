@@ -10,6 +10,7 @@
  * - Event handler callbacks
  */
 
+#include "onyxui/concepts/event_like.hh"
 #include <doctest/doctest.h>
 #include <onyxui/event_target.hh>
 #include <utils/test_backend.hh>
@@ -489,7 +490,7 @@ TEST_SUITE("EventTarget - State Management") {
         press.button = 1;
         press.pressed = true;
 
-        bool handled = target.process_event_impl(press);
+        bool const handled = target.process_event_impl(press);
 
         CHECK_FALSE(handled);
         CHECK(target.down_count == 0);  // Not called!

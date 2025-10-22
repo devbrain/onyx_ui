@@ -117,10 +117,10 @@ namespace onyxui {
             auto text_size = renderer_type::measure_text(std::string(text), font);
 
             // Calculate extents: position + size
-            int x = point_utils::get_x(position);
-            int y = point_utils::get_y(position);
-            int right = safe_math::add_clamped(x, size_utils::get_width(text_size));
-            int bottom = safe_math::add_clamped(y, size_utils::get_height(text_size));
+            int const x = point_utils::get_x(position);
+            int const y = point_utils::get_y(position);
+            int const right = safe_math::add_clamped(x, size_utils::get_width(text_size));
+            int const bottom = safe_math::add_clamped(y, size_utils::get_height(text_size));
 
             // Update tracked bounds
             update_bounds(right, bottom);
@@ -139,13 +139,13 @@ namespace onyxui {
             box_style /*style*/
         ) override {
             // Calculate extents: x + width, y + height
-            int x = rect_utils::get_x(bounds);
-            int y = rect_utils::get_y(bounds);
-            int w = rect_utils::get_width(bounds);
-            int h = rect_utils::get_height(bounds);
+            int const x = rect_utils::get_x(bounds);
+            int const y = rect_utils::get_y(bounds);
+            int const w = rect_utils::get_width(bounds);
+            int const h = rect_utils::get_height(bounds);
 
-            int right = safe_math::add_clamped(x, w);
-            int bottom = safe_math::add_clamped(y, h);
+            int const right = safe_math::add_clamped(x, w);
+            int const bottom = safe_math::add_clamped(y, h);
 
             // Update tracked bounds
             update_bounds(right, bottom);
@@ -164,14 +164,14 @@ namespace onyxui {
             int width = 1
         ) override {
             // Track both endpoints
-            int x1 = point_utils::get_x(from);
-            int y1 = point_utils::get_y(from);
-            int x2 = point_utils::get_x(to);
-            int y2 = point_utils::get_y(to);
+            int const x1 = point_utils::get_x(from);
+            int const y1 = point_utils::get_y(from);
+            int const x2 = point_utils::get_x(to);
+            int const y2 = point_utils::get_y(to);
 
             // Calculate bounds including line width
-            int right = std::max(x1, x2) + width;
-            int bottom = std::max(y1, y2) + width;
+            int const right = std::max(x1, x2) + width;
+            int const bottom = std::max(y1, y2) + width;
 
             // Update tracked bounds
             update_bounds(right, bottom);
@@ -192,15 +192,15 @@ namespace onyxui {
             // Get icon size from renderer (static method - no instance needed)
             size_type icon_size = renderer_type::get_icon_size(icon);
 
-            int icon_width = size_utils::get_width(icon_size);
-            int icon_height = size_utils::get_height(icon_size);
+            int const icon_width = size_utils::get_width(icon_size);
+            int const icon_height = size_utils::get_height(icon_size);
 
             // Calculate extents: position + icon_size
-            int right = safe_math::add_clamped(
+            int const right = safe_math::add_clamped(
                 point_utils::get_x(position),
                 icon_width
             );
-            int bottom = safe_math::add_clamped(
+            int const bottom = safe_math::add_clamped(
                 point_utils::get_y(position),
                 icon_height
             );
@@ -271,12 +271,12 @@ namespace onyxui {
          * of current and new values.
          */
         void update_bounds(int right, int bottom) noexcept {
-            int current_width = size_utils::get_width(m_measured_size);
-            int current_height = size_utils::get_height(m_measured_size);
+            int const current_width = size_utils::get_width(m_measured_size);
+            int const current_height = size_utils::get_height(m_measured_size);
 
             // Expand to maximum extents
-            int new_width = std::max(current_width, right);
-            int new_height = std::max(current_height, bottom);
+            int const new_width = std::max(current_width, right);
+            int const new_height = std::max(current_height, bottom);
 
             size_utils::set_size(m_measured_size, new_width, new_height);
         }

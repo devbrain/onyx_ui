@@ -8,6 +8,7 @@
 // - Multi-level border/padding interactions
 //
 
+#include <cstddef>
 #include <doctest/doctest.h>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/group_box.hh>
@@ -18,6 +19,8 @@
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
+#include "onyxui/element.hh"
+#include "onyxui/concepts/rect_like.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -61,8 +64,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
 
         // Group box relative position should account for its border + padding
         auto vbox_bounds = inner_vbox->bounds();
-        int vbox_x_rel = rect_utils::get_x(vbox_bounds) - rect_utils::get_x(gb_bounds);
-        int vbox_y_rel = rect_utils::get_y(vbox_bounds) - rect_utils::get_y(gb_bounds);
+        int const vbox_x_rel = rect_utils::get_x(vbox_bounds) - rect_utils::get_x(gb_bounds);
+        int const vbox_y_rel = rect_utils::get_y(vbox_bounds) - rect_utils::get_y(gb_bounds);
 
         // Group box border(1) + padding(1) = 2
         CHECK(vbox_x_rel == 2);
@@ -105,8 +108,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto p1_bounds = panel1->bounds();
         auto p2_bounds = panel2->bounds();
 
-        int p1_right = rect_utils::get_x(p1_bounds) + rect_utils::get_width(p1_bounds);
-        int p2_left = rect_utils::get_x(p2_bounds);
+        int const p1_right = rect_utils::get_x(p1_bounds) + rect_utils::get_width(p1_bounds);
+        int const p2_left = rect_utils::get_x(p2_bounds);
 
         // Spacing between panels should be 5px
         CHECK(p2_left - p1_right == 5);
@@ -149,8 +152,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto header_bounds = children[0]->bounds();
         auto hbox_bounds = children[1]->bounds();
 
-        int header_bottom = rect_utils::get_y(header_bounds) + rect_utils::get_height(header_bounds);
-        int hbox_top = rect_utils::get_y(hbox_bounds);
+        int const header_bottom = rect_utils::get_y(header_bounds) + rect_utils::get_height(header_bounds);
+        int const hbox_top = rect_utils::get_y(hbox_bounds);
 
         CHECK(hbox_top - header_bottom == 2);  // Vertical spacing
 
@@ -184,8 +187,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
 
         // Inner panel relative to its own bounds
         auto label_bounds = text_label->bounds();
-        int label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(inner_bounds);
-        int label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(inner_bounds);
+        int const label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(inner_bounds);
+        int const label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(inner_bounds);
 
         CHECK(label_x_rel == 4);  // inner_border(1) + inner_left_padding(3)
         CHECK(label_y_rel == 8);  // inner_border(1) + inner_top_padding(7)
@@ -230,8 +233,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
         CHECK(rect_utils::get_y(bottom_row_bounds) > rect_utils::get_y(top_row_bounds));
 
         // Verify spacing between rows
-        int top_row_bottom = rect_utils::get_y(top_row_bounds) + rect_utils::get_height(top_row_bounds);
-        int bottom_row_top = rect_utils::get_y(bottom_row_bounds);
+        int const top_row_bottom = rect_utils::get_y(top_row_bounds) + rect_utils::get_height(top_row_bounds);
+        int const bottom_row_top = rect_utils::get_y(bottom_row_bounds);
         CHECK(bottom_row_top - top_row_bottom == 5);
 
         // Visual verification - 2x2 grid of group boxes
@@ -326,8 +329,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
         outer.arrange({0, 0, 100, 100});
 
         auto new_label_bounds = text_label->bounds();
-        int new_x = rect_utils::get_x(new_label_bounds);
-        int new_y = rect_utils::get_y(new_label_bounds);
+        int const new_x = rect_utils::get_x(new_label_bounds);
+        int const new_y = rect_utils::get_y(new_label_bounds);
 
         // Label should move closer to origin (border removed = -1 per side)
         CHECK(new_x < initial_x);
@@ -352,8 +355,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
             auto prev_bounds = children[i - 1]->bounds();
             auto curr_bounds = children[i]->bounds();
 
-            int prev_bottom = rect_utils::get_y(prev_bounds) + rect_utils::get_height(prev_bounds);
-            int curr_top = rect_utils::get_y(curr_bounds);
+            int const prev_bottom = rect_utils::get_y(prev_bounds) + rect_utils::get_height(prev_bounds);
+            int const curr_top = rect_utils::get_y(curr_bounds);
 
             CHECK(curr_top - prev_bottom == 2);
         }
@@ -382,8 +385,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
 
         // L2 positions label at relative (5, 15)
         auto label_bounds = text_label->bounds();
-        int label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(l2_bounds);
-        int label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(l2_bounds);
+        int const label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(l2_bounds);
+        int const label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(l2_bounds);
 
         CHECK(label_x_rel == 5);
         CHECK(label_y_rel == 15);

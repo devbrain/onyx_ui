@@ -243,7 +243,7 @@ namespace onyxui {
         bool found_mnemonic = false;
 
         for (std::size_t i = 0; i < input.length(); ++i) {
-            char c = input[i];
+            char const c = input[i];
 
             if (c == '&') {
                 // Check if this is an escape sequence "&&"
@@ -253,7 +253,7 @@ namespace onyxui {
                     ++i;  // Skip the second '&'
                 } else if (!found_mnemonic && i + 1 < input.length()) {
                     // First mnemonic: "&X" → X is the mnemonic
-                    char mnemonic = input[i + 1];
+                    char const mnemonic = input[i + 1];
 
                     // Flush current segment with normal font
                     if (!current_segment.empty()) {
@@ -385,7 +385,7 @@ namespace onyxui {
         bool found_mnemonic = false;
 
         for (std::size_t i = 0; i < text.length(); ++i) {
-            char c = text[i];
+            char const c = text[i];
 
             if (c == '&') {
                 // Check for escape sequence "&&"

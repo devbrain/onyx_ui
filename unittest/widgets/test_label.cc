@@ -4,16 +4,15 @@
 
 #include <doctest/doctest.h>
 
-#include <onyxui/widgets/vbox.hh>
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/size_like.hh"
 using namespace onyxui;
 
 TEST_CASE("Label - Text display widget") {
     SUBCASE("Construction with text") {
-        label<test_backend> lbl("Hello World");
+        label<test_backend> const lbl("Hello World");
 
         CHECK(lbl.text() == "Hello World");
         CHECK_FALSE(lbl.is_focusable());  // Labels aren't focusable
@@ -33,7 +32,7 @@ TEST_CASE("Label - Text display widget") {
         label<test_backend> lbl("Test");
 
         auto size = lbl.measure(100, 100);
-        int width = size_utils::get_width(size);
+        int const width = size_utils::get_width(size);
 
         CHECK(width >= 4);  // At least as wide as text length
     }

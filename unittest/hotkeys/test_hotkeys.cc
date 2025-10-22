@@ -12,9 +12,11 @@
  */
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/hotkeys/key_sequence.hh>
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/widgets/action.hh>
+#include <optional>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -86,7 +88,7 @@ TEST_SUITE("key_modifier") {
 
 TEST_SUITE("key_sequence::construction") {
     TEST_CASE("Default constructor creates empty sequence") {
-        key_sequence seq;
+        key_sequence const seq;
         CHECK(seq.empty());
         CHECK(seq.key == '\0');
         CHECK(seq.f_key == 0);
@@ -94,7 +96,7 @@ TEST_SUITE("key_sequence::construction") {
     }
 
     TEST_CASE("ASCII key constructor normalizes to lowercase") {
-        key_sequence upper{'S', key_modifier::ctrl};
+        key_sequence const upper{'S', key_modifier::ctrl};
         key_sequence lower{'s', key_modifier::ctrl};
         CHECK(upper.key == 's');
         CHECK(lower.key == 's');
@@ -102,7 +104,7 @@ TEST_SUITE("key_sequence::construction") {
     }
 
     TEST_CASE("ASCII key constructor with modifiers") {
-        key_sequence seq{'a', key_modifier::ctrl | key_modifier::shift};
+        key_sequence const seq{'a', key_modifier::ctrl | key_modifier::shift};
         CHECK(seq.key == 'a');
         CHECK(seq.f_key == 0);
         CHECK((seq.modifiers & key_modifier::ctrl) != key_modifier::none);
@@ -111,14 +113,14 @@ TEST_SUITE("key_sequence::construction") {
     }
 
     TEST_CASE("ASCII key constructor default modifiers") {
-        key_sequence seq{'x'};
+        key_sequence const seq{'x'};
         CHECK(seq.key == 'x');
         CHECK(seq.modifiers == key_modifier::none);
         CHECK(!seq.empty());
     }
 
     TEST_CASE("F-key constructor") {
-        key_sequence seq{9, key_modifier::alt};
+        key_sequence const seq{9, key_modifier::alt};
         CHECK(seq.key == '\0');
         CHECK(seq.f_key == 9);
         CHECK((seq.modifiers & key_modifier::alt) != key_modifier::none);
@@ -126,7 +128,7 @@ TEST_SUITE("key_sequence::construction") {
     }
 
     TEST_CASE("F-key constructor default modifiers") {
-        key_sequence seq{1};
+        key_sequence const seq{1};
         CHECK(seq.key == '\0');
         CHECK(seq.f_key == 1);
         CHECK(seq.modifiers == key_modifier::none);
@@ -149,17 +151,17 @@ TEST_SUITE("key_sequence::construction") {
 
 TEST_SUITE("key_sequence::queries") {
     TEST_CASE("empty() returns true for default-constructed sequence") {
-        key_sequence seq;
+        key_sequence const seq;
         CHECK(seq.empty());
     }
 
     TEST_CASE("empty() returns false for ASCII key") {
-        key_sequence seq{'a'};
+        key_sequence const seq{'a'};
         CHECK(!seq.empty());
     }
 
     TEST_CASE("empty() returns false for F-key") {
-        key_sequence seq{1};
+        key_sequence const seq{1};
         CHECK(!seq.empty());
     }
 
@@ -197,7 +199,7 @@ TEST_SUITE("key_sequence::queries") {
     }
 
     TEST_CASE("Multiple modifiers detected correctly") {
-        key_sequence seq{'s', key_modifier::ctrl | key_modifier::shift};
+        key_sequence const seq{'s', key_modifier::ctrl | key_modifier::shift};
         CHECK(seq.has_ctrl());
         CHECK(seq.has_shift());
         CHECK(!seq.has_alt());
@@ -210,7 +212,7 @@ TEST_SUITE("key_sequence::queries") {
 
 TEST_SUITE("key_sequence::comparison") {
     TEST_CASE("Equality comparison") {
-        key_sequence seq1{'s', key_modifier::ctrl};
+        key_sequence const seq1{'s', key_modifier::ctrl};
         key_sequence seq2{'s', key_modifier::ctrl};
         key_sequence seq3{'s', key_modifier::alt};
         key_sequence seq4{'a', key_modifier::ctrl};
@@ -221,13 +223,13 @@ TEST_SUITE("key_sequence::comparison") {
     }
 
     TEST_CASE("Case-insensitive equality") {
-        key_sequence upper{'S', key_modifier::ctrl};
+        key_sequence const upper{'S', key_modifier::ctrl};
         key_sequence lower{'s', key_modifier::ctrl};
         CHECK(upper == lower);
     }
 
     TEST_CASE("F-key equality") {
-        key_sequence f1a{1, key_modifier::none};
+        key_sequence const f1a{1, key_modifier::none};
         key_sequence f1b{1, key_modifier::none};
         key_sequence f2{2, key_modifier::none};
 
@@ -236,7 +238,7 @@ TEST_SUITE("key_sequence::comparison") {
     }
 
     TEST_CASE("Ordering for std::map") {
-        key_sequence a{'a', key_modifier::ctrl};
+        key_sequence const a{'a', key_modifier::ctrl};
         key_sequence b{'b', key_modifier::ctrl};
         key_sequence c{'a', key_modifier::alt};
 
@@ -245,7 +247,7 @@ TEST_SUITE("key_sequence::comparison") {
     }
 
     TEST_CASE("Empty sequences are equal") {
-        key_sequence empty1;
+        key_sequence const empty1;
         key_sequence empty2;
         CHECK(empty1 == empty2);
     }
@@ -514,7 +516,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut(seq);
 
         REQUIRE(act->has_shortcut());
-        CHECK(act->shortcut().value() == seq);
+        CHECK((*act->shortcut()) == seq);
     }
 
     TEST_CASE("set_shortcut with char and modifiers") {
@@ -523,7 +525,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut('q', key_modifier::alt);
 
         REQUIRE(act->has_shortcut());
-        auto shortcut = act->shortcut().value();
+        auto shortcut = (*act->shortcut());
         CHECK(shortcut.key == 'q');
         CHECK(shortcut.has_alt());
     }
@@ -534,7 +536,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut('h');
 
         REQUIRE(act->has_shortcut());
-        auto shortcut = act->shortcut().value();
+        auto shortcut = (*act->shortcut());
         CHECK(shortcut.key == 'h');
         CHECK(shortcut.modifiers == key_modifier::none);
     }
@@ -545,7 +547,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut_f(9);
 
         REQUIRE(act->has_shortcut());
-        auto shortcut = act->shortcut().value();
+        auto shortcut = (*act->shortcut());
         CHECK(shortcut.f_key == 9);
         CHECK(shortcut.is_f_key());
     }
@@ -556,7 +558,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut_f(4, key_modifier::alt);
 
         REQUIRE(act->has_shortcut());
-        auto shortcut = act->shortcut().value();
+        auto shortcut = (*act->shortcut());
         CHECK(shortcut.f_key == 4);
         CHECK(shortcut.has_alt());
     }
@@ -580,7 +582,7 @@ TEST_SUITE("action::shortcuts::basic") {
         act->set_shortcut('q', key_modifier::alt);
 
         REQUIRE(act->has_shortcut());
-        auto shortcut = act->shortcut().value();
+        auto shortcut = (*act->shortcut());
         CHECK(shortcut.key == 'q');
         CHECK(shortcut.has_alt());
         CHECK(!shortcut.has_ctrl());
@@ -687,9 +689,9 @@ TEST_SUITE("action::shortcuts::scenarios") {
         REQUIRE(save_as_action->has_shortcut());
         REQUIRE(quit_action->has_shortcut());
 
-        CHECK(save_action->shortcut().value().key == 's');
-        CHECK(save_as_action->shortcut().value().has_shift());
-        CHECK(quit_action->shortcut().value().has_alt());
+        CHECK((*save_action->shortcut()).key == 's');
+        CHECK((*save_as_action->shortcut()).has_shift());
+        CHECK((*quit_action->shortcut()).has_alt());
     }
 
     TEST_CASE("Function key shortcuts (Norton Commander style)") {
@@ -705,9 +707,9 @@ TEST_SUITE("action::shortcuts::scenarios") {
         menu_action->set_text("Menu");
         menu_action->set_shortcut_f(9);  // F9
 
-        CHECK(help_action->shortcut().value().f_key == 1);
-        CHECK(rename_action->shortcut().value().f_key == 6);
-        CHECK(menu_action->shortcut().value().f_key == 9);
+        CHECK((*help_action->shortcut()).f_key == 1);
+        CHECK((*rename_action->shortcut()).f_key == 6);
+        CHECK((*menu_action->shortcut()).f_key == 9);
     }
 
     TEST_CASE("Shortcuts can be dynamically changed") {
@@ -715,11 +717,11 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         // Initial shortcut
         act->set_shortcut('n', key_modifier::ctrl);
-        CHECK(act->shortcut().value().key == 'n');
+        CHECK((*act->shortcut()).key == 'n');
 
         // User changes shortcut preference
         act->set_shortcut('m', key_modifier::ctrl);
-        CHECK(act->shortcut().value().key == 'm');
+        CHECK((*act->shortcut()).key == 'm');
 
         // User disables shortcut
         act->clear_shortcut();
@@ -733,8 +735,8 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         CHECK(copy_action->text() == "Copy");
         REQUIRE(copy_action->has_shortcut());
-        CHECK(copy_action->shortcut().value().key == 'c');
-        CHECK(copy_action->shortcut().value().has_ctrl());
+        CHECK((*copy_action->shortcut()).key == 'c');
+        CHECK((*copy_action->shortcut()).has_ctrl());
     }
 
     TEST_CASE("Disabled action retains shortcut") {
@@ -744,7 +746,7 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         CHECK(!act->is_enabled());
         CHECK(act->has_shortcut());
-        CHECK(act->shortcut().value().key == 'p');
+        CHECK((*act->shortcut()).key == 'p');
     }
 }
 

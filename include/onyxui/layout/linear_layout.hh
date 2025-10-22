@@ -373,12 +373,12 @@ namespace onyxui {
 
                 child_num++;
                 // Measure child with full width, remaining height
-                int remaining_height = std::max(0, available_height - total_height);
+                int const remaining_height = std::max(0, available_height - total_height);
 
-                size_type child_size = child->measure(available_width, remaining_height);
+                size_type const child_size = child->measure(available_width, remaining_height);
 
-                int child_w = size_utils::get_width(child_size);
-                int child_h = size_utils::get_height(child_size);
+                int const child_w = size_utils::get_width(child_size);
+                int const child_h = size_utils::get_height(child_size);
 
                 total_width = std::max(total_width, child_w);
                 safe_math::accumulate_safe(total_height, child_h);
@@ -391,11 +391,11 @@ namespace onyxui {
                 if (!child->is_visible()) continue;
 
                 // Measure child with remaining width, full height
-                int remaining_width = std::max(0, available_width - total_width);
-                size_type child_size = child->measure(remaining_width, available_height);
+                int const remaining_width = std::max(0, available_width - total_width);
+                size_type const child_size = child->measure(remaining_width, available_height);
 
-                int child_w = size_utils::get_width(child_size);
-                int child_h = size_utils::get_height(child_size);
+                int const child_w = size_utils::get_width(child_size);
+                int const child_h = size_utils::get_height(child_size);
 
                 safe_math::accumulate_safe(total_width, child_w);
                 total_height = std::max(total_height, child_h);
@@ -450,7 +450,7 @@ namespace onyxui {
 
             visible_count++;
             const size_type& measured = this->get_last_measured_size(child.get());
-            int meas_h = size_utils::get_height(measured);
+            int const meas_h = size_utils::get_height(measured);
 
             if (child->h_constraint().policy == size_policy::expand) {
                 num_expanding++;
@@ -466,7 +466,7 @@ namespace onyxui {
 
         // Calculate spacing
         const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
-        int available_height = content_h - total_fixed_height - total_spacing;
+        int const available_height = content_h - total_fixed_height - total_spacing;
 
         // Distribute space for expanding children
         const int expand_height = (num_expanding > 0 && available_height > 0)
@@ -491,8 +491,8 @@ namespace onyxui {
 
         // Position children
         int current_y = rect_utils::get_y(content_area);
-        int content_x = rect_utils::get_x(content_area);
-        int content_w = rect_utils::get_width(content_area);
+        int const content_x = rect_utils::get_x(content_area);
+        int const content_w = rect_utils::get_width(content_area);
         size_t weighted_index = 0;
         int expand_child_count = 0;
 
@@ -500,8 +500,8 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             const size_type& measured = this->get_last_measured_size(child.get());
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            int const meas_w = size_utils::get_width(measured);
+            int const meas_h = size_utils::get_height(measured);
 
             // Determine child height
             int child_height = meas_h;
@@ -568,7 +568,7 @@ namespace onyxui {
 
             visible_count++;
             const size_type& measured = this->get_last_measured_size(child.get());
-            int meas_w = size_utils::get_width(measured);
+            int const meas_w = size_utils::get_width(measured);
 
             if (child->w_constraint().policy == size_policy::expand) {
                 num_expanding++;
@@ -584,7 +584,7 @@ namespace onyxui {
 
         // Calculate spacing
         const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
-        int available_width = content_w - total_fixed_width - total_spacing;
+        int const available_width = content_w - total_fixed_width - total_spacing;
 
         // Distribute space for expanding children
         const int expand_width = (num_expanding > 0 && available_width > 0)
@@ -609,8 +609,8 @@ namespace onyxui {
 
         // Position children
         int current_x = rect_utils::get_x(content_area);
-        int content_y = rect_utils::get_y(content_area);
-        int content_h = rect_utils::get_height(content_area);
+        int const content_y = rect_utils::get_y(content_area);
+        int const content_h = rect_utils::get_height(content_area);
         size_t weighted_index = 0;
         int expand_child_count = 0;
 
@@ -618,8 +618,8 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             const size_type& measured = this->get_last_measured_size(child.get());
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            int const meas_w = size_utils::get_width(measured);
+            int const meas_h = size_utils::get_height(measured);
 
             // Determine child width
             int child_width = meas_w;
@@ -690,20 +690,21 @@ namespace onyxui {
 
         // Initialize child info
         std::vector <ChildInfo> children_info;
-        float total_weight = 0.0f;
+        float total_weight = 0.0F;
 
         for (auto* child : weighted_children) {
             const auto& constraint = is_vertical
                                          ? child->h_constraint()
                                          : child->w_constraint();
 
-            ChildInfo info;
-            info.child = child;
-            info.weight = constraint.weight;
-            info.min_size = constraint.min_size;
-            info.max_size = constraint.max_size;
-            info.assigned_size = 0;
-            info.satisfied = false;
+            ChildInfo const info{
+                child,
+                constraint.weight,
+                constraint.min_size,
+                constraint.max_size,
+                0,      // assigned_size
+                false   // satisfied
+            };
 
             children_info.push_back(info);
             total_weight += info.weight;
@@ -717,14 +718,14 @@ namespace onyxui {
             changed = false;
 
             // Calculate active weight (only unsatisfied children)
-            float active_weight = 0.0f;
+            float active_weight = 0.0F;
             for (const auto& info : children_info) {
                 if (!info.satisfied) {
                     active_weight += info.weight;
                 }
             }
 
-            if (active_weight == 0.0f) {
+            if (active_weight == 0.0F) {
                 break; // All children satisfied or no weights
             }
 
@@ -733,12 +734,12 @@ namespace onyxui {
                 if (info.satisfied) continue;
 
                 // Calculate ideal size based on weight
-                int ideal_size = static_cast <int>(
+                int const ideal_size = static_cast <int>(
                     static_cast<float>(remaining_space) * (info.weight / active_weight)
                 );
 
                 // Apply constraints
-                int constrained_size = std::max(info.min_size,
+                int const constrained_size = std::max(info.min_size,
                                                 std::min(ideal_size, info.max_size));
 
                 // Check if child hit a constraint
@@ -778,7 +779,7 @@ namespace onyxui {
                 // Distribute remainder to children that haven't hit max
                 for (auto& info : children_info) {
                     if (remainder > 0 && info.assigned_size < info.max_size) {
-                        int extra = std::min(remainder, info.max_size - info.assigned_size);
+                        int const extra = std::min(remainder, info.max_size - info.assigned_size);
                         info.assigned_size += extra;
                         remainder -= extra;
                     }

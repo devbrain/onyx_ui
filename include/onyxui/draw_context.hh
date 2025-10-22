@@ -262,15 +262,15 @@ namespace onyxui {
          * @return true if rectangles overlap
          */
         [[nodiscard]] static bool rects_intersect(const rect_type& a, const rect_type& b) {
-            int a_left = rect_utils::get_x(a);
-            int a_top = rect_utils::get_y(a);
-            int a_right = a_left + rect_utils::get_width(a);
-            int a_bottom = a_top + rect_utils::get_height(a);
+            int const a_left = rect_utils::get_x(a);
+            int const a_top = rect_utils::get_y(a);
+            int const a_right = a_left + rect_utils::get_width(a);
+            int const a_bottom = a_top + rect_utils::get_height(a);
 
-            int b_left = rect_utils::get_x(b);
-            int b_top = rect_utils::get_y(b);
-            int b_right = b_left + rect_utils::get_width(b);
-            int b_bottom = b_top + rect_utils::get_height(b);
+            int const b_left = rect_utils::get_x(b);
+            int const b_top = rect_utils::get_y(b);
+            int const b_right = b_left + rect_utils::get_width(b);
+            int const b_bottom = b_top + rect_utils::get_height(b);
 
             // Check for non-intersection (easier to reason about)
             // Rectangles DON'T intersect if one is completely to the side of the other

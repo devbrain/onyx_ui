@@ -17,8 +17,8 @@
 #include <onyxui/ui_context.hh>
 #include <limits>
 #include "../utils/test_canvas_backend.hh"
-#include "../utils/test_helpers.hh"
-#include "../utils/layout_assertions.hh"
+#include "onyxui/concepts/rect_like.hh"
+#include "onyxui/element.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;

@@ -4,11 +4,10 @@
 #include <doctest/doctest.h>
 
 
-#include <onyxui/widgets/label.hh>
 
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/widgets/button.hh"
 #include "widgets.hh"
 using namespace onyxui;
 
@@ -17,7 +16,7 @@ using namespace onyxui;
 
 TEST_CASE("Button - Clickable widget") {
     SUBCASE("Construction with text") {
-        button<test_backend> btn("Click Me");
+        button<test_backend> const btn("Click Me");
 
         CHECK(btn.text() == "Click Me");
         CHECK(btn.is_focusable());  // Buttons are focusable

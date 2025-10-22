@@ -19,6 +19,7 @@ Checks: >
   -cppcoreguidelines-special-member-functions,
   misc-*,
   -misc-non-private-member-variables-in-classes,
+  -misc-use-anonymous-namespace,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-avoid-c-arrays,

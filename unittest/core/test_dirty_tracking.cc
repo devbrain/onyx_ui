@@ -6,7 +6,11 @@
  */
 
 #include "../utils/test_helpers.hh"
+#include "onyxui/element.hh"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 /**
  * @class DirtyTrackingElement
@@ -70,7 +74,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Mark specific region dirty") {
-            TestRect custom_region{5, 15, 25, 35};
+            TestRect const custom_region{5, 15, 25, 35};
             root->mark_dirty_region(custom_region);
 
             auto regions = root->get_and_clear_dirty_regions();
@@ -415,7 +419,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Negative coordinates") {
-            TestRect negative_region{-10, -20, 30, 40};
+            TestRect const negative_region{-10, -20, 30, 40};
             root->mark_dirty_region(negative_region);
 
             auto regions = root->get_and_clear_dirty_regions();
@@ -425,7 +429,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Very large regions") {
-            TestRect large_region{0, 0, 10000, 10000};
+            TestRect const large_region{0, 0, 10000, 10000};
             root->mark_dirty_region(large_region);
 
             auto regions = root->get_and_clear_dirty_regions();

@@ -534,7 +534,7 @@ namespace onyxui {
                 do_render(ctx);
 
                 // Set clip rect for children (content area only)
-                rect_type content_area = get_content_area();
+                rect_type const content_area = get_content_area();
 
                 // Push clip rect before rendering children
                 renderer.push_clip(content_area);
@@ -786,9 +786,9 @@ namespace onyxui {
         std::is_nothrow_move_assignable_v<event_target<Backend>> &&
         std::is_nothrow_move_assignable_v<themeable<Backend>>) {
         if (this != &other) {
-            // Move base classes
-            event_target<Backend>::operator=(std::move(other));
-            themeable<Backend>::operator=(std::move(other));
+            // Move base classes (only move base parts, not entire derived object)
+            event_target<Backend>::operator=(std::move(static_cast<event_target<Backend>&>(other)));
+            themeable<Backend>::operator=(std::move(static_cast<themeable<Backend>&>(other)));
 
             // Move members
             m_parent = std::exchange(other.m_parent, nullptr);
@@ -1047,14 +1047,14 @@ namespace onyxui {
             const int content_width = safe_math::subtract_clamped(available_width, m_padding.horizontal());
             const int content_height = safe_math::subtract_clamped(available_height, m_padding.vertical());
 
-            size_type content_size = m_layout_strategy->measure_children(
+            size_type const content_size = m_layout_strategy->measure_children(
                 static_cast <const ui_element*>(this),
                 std::max(0, content_width),
                 std::max(0, content_height));
 
             // Add padding back to the measured size
-            int w = safe_math::add_clamped(size_utils::get_width(content_size), m_padding.horizontal());
-            int h = safe_math::add_clamped(size_utils::get_height(content_size), m_padding.vertical());
+            int const w = safe_math::add_clamped(size_utils::get_width(content_size), m_padding.horizontal());
+            int const h = safe_math::add_clamped(size_utils::get_height(content_size), m_padding.vertical());
 
             size_type result{};
             size_utils::set_size(result, w, h);

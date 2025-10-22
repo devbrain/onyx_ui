@@ -476,8 +476,8 @@ namespace onyxui {
         int max_size = std::numeric_limits <int>::max(); ///< Maximum allowed size (pixels), always enforced
 
         // Policy-specific parameters
-        float weight = 1.0f; ///< Weight for 'weighted' policy (like CSS flex-grow)
-        float percentage = 1.0f; ///< Percentage for 'percentage' policy (0.0 to 1.0)
+        float weight = 1.0F; ///< Weight for 'weighted' policy (like CSS flex-grow)
+        float percentage = 1.0F; ///< Percentage for 'percentage' policy (0.0 to 1.0)
 
         /**
          * @brief Check if the constraint is in a valid state

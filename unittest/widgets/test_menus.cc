@@ -13,12 +13,15 @@
  */
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/widgets/menu_item.hh>
 #include <onyxui/widgets/menu.hh>
 #include <onyxui/widgets/menu_bar.hh>
 #include <onyxui/widgets/action.hh>
-#include <onyxui/ui_services.hh>
 #include <onyxui/ui_context.hh>
+#include "onyxui/hotkeys/key_sequence.hh"
+#include <utility>
+#include "onyxui/layer_manager.hh"
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -84,7 +87,7 @@ TEST_SUITE("menu_item") {
         item->set_action(act);
 
         // Item should show shortcut from action
-        std::string shortcut = item->get_shortcut_text();
+        std::string const shortcut = item->get_shortcut_text();
         CHECK(shortcut == "Ctrl+S");
     }
 
@@ -190,7 +193,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus first item") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -208,7 +211,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus first skips separators") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -225,7 +228,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus next navigates forward") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -244,7 +247,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus next wraps to start") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -263,7 +266,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus previous navigates backward") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -284,7 +287,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus previous wraps to end") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -302,7 +305,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Activate focused item triggers action") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -585,7 +588,7 @@ TEST_SUITE("menu_integration") {
 
     TEST_CASE("Menu navigation workflow") {
         // Setup focus manager
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> const ctx;
 
         auto bar = std::make_unique<menu_bar<Backend>>();
 
@@ -635,10 +638,10 @@ TEST_SUITE("menu_integration") {
         CHECK(ctx.layers().layer_count() == 1);
 
         // Trigger outside click on the topmost layer
-        layer_id top_layer = ctx.layers().get_topmost_layer();
+        layer_id const top_layer = ctx.layers().get_topmost_layer();
         CHECK(top_layer.is_valid());
 
-        bool callback_triggered = ctx.layers().trigger_outside_click(top_layer);
+        bool const callback_triggered = ctx.layers().trigger_outside_click(top_layer);
         CHECK(callback_triggered);
 
         // Menu should be closed
@@ -688,7 +691,7 @@ TEST_SUITE("menu_integration") {
         bar->open_menu(0);
         CHECK(bar->open_menu_index() == 0);
         CHECK(ctx.layers().layer_count() == 1);
-        layer_id first_layer = ctx.layers().get_topmost_layer();
+        layer_id const first_layer = ctx.layers().get_topmost_layer();
 
         // Open second menu - should auto-close first menu via scoped_layer reassignment
         bar->open_menu(1);
@@ -720,7 +723,7 @@ TEST_SUITE("menu_integration") {
         // Measure and arrange so buttons have bounds
         using size_type = Backend::size_type;
         using rect_type = Backend::rect_type;
-        size_type size = bar->measure(800, 600);
+        size_type const size = bar->measure(800, 600);
         bar->arrange(rect_type{0, 0, size.w, size.h});
 
         // Open File menu
@@ -745,7 +748,7 @@ TEST_SUITE("menu_integration") {
         // Theme menu should be open
         CHECK(bar->open_menu_index() == 1);
         CHECK(ctx.layers().layer_count() == 1);
-        layer_id theme_layer = ctx.layers().get_topmost_layer();
+        layer_id const theme_layer = ctx.layers().get_topmost_layer();
         CHECK(theme_layer != file_layer);
         CHECK(ctx.layers().is_layer_visible(theme_layer));
     }

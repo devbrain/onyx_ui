@@ -230,9 +230,10 @@ namespace onyxui {
          */
         [[nodiscard]] std::string get_shortcut_text() const {
             if (auto action_ptr = this->get_action()) {
-                if (action_ptr->has_shortcut()) {
+                const auto& shortcut_opt = action_ptr->shortcut();
+                if (shortcut_opt.has_value()) {
                     // Format shortcut for display
-                    const auto& seq = action_ptr->shortcut().value();
+                    const auto& seq = *shortcut_opt;
                     std::string result;
                     if ((seq.modifiers & key_modifier::ctrl) != key_modifier::none) result += "Ctrl+";
                     if ((seq.modifiers & key_modifier::alt) != key_modifier::none) result += "Alt+";
@@ -262,15 +263,15 @@ namespace onyxui {
             if (!theme) return;
 
             // Calculate sizes (needed for both measurement and rendering)
-            typename renderer_type::font text_font = theme->button.font;
+            typename renderer_type::font const text_font = theme->button.font;
             auto text_size = renderer_type::measure_text(m_text, text_font);
-            int text_width = size_utils::get_width(text_size);
-            int text_height = size_utils::get_height(text_size);
+            int const text_width = size_utils::get_width(text_size);
+            int const text_height = size_utils::get_height(text_size);
 
-            std::string shortcut = get_shortcut_text();
+            std::string const shortcut = get_shortcut_text();
             int shortcut_width = 0;
             if (!shortcut.empty()) {
-                typename renderer_type::font shortcut_font{};
+                typename renderer_type::font const shortcut_font{};
                 auto shortcut_size = renderer_type::measure_text(shortcut, shortcut_font);
                 shortcut_width = size_utils::get_width(shortcut_size);
             }
@@ -279,9 +280,9 @@ namespace onyxui {
             if (is_separator()) {
                 if (ctx.is_rendering()) {
                     const auto& item_bounds = this->bounds();
-                    int width = rect_utils::get_width(item_bounds);
-                    std::string sep_line(static_cast<size_t>(width), '-');
-                    typename Backend::point_type pos{rect_utils::get_x(item_bounds),
+                    int const width = rect_utils::get_width(item_bounds);
+                    std::string const sep_line(static_cast<size_t>(width), '-');
+                    typename Backend::point_type const pos{rect_utils::get_x(item_bounds),
                                                      rect_utils::get_y(item_bounds)};
                     ctx.draw_text(sep_line, pos, typename renderer_type::font{},
                                  theme->label.text);
@@ -295,16 +296,16 @@ namespace onyxui {
             }
 
             // Calculate total width: padding + text + gap + shortcut + padding
-            int total_width = 2 + text_width + (shortcut_width > 0 ? 4 + shortcut_width : 0) + 2;
-            int total_height = text_height;
+            int const total_width = 2 + text_width + (shortcut_width > 0 ? 4 + shortcut_width : 0) + 2;
+            int const total_height = text_height;
 
             if (ctx.is_rendering()) {
                 // RENDERING PATH: Draw with state colors
                 const auto& item_bounds = this->bounds();
 
-                bool is_focused = this->has_focus();
-                bool is_hovered = this->is_hovered();
-                bool is_highlighted = is_focused || is_hovered;
+                bool const is_focused = this->has_focus();
+                bool const is_hovered = this->is_hovered();
+                bool const is_highlighted = is_focused || is_hovered;
 
                 // Select colors based on state
                 typename Backend::color_type fg;
@@ -317,16 +318,16 @@ namespace onyxui {
                 }
 
                 // Draw item text (left side, with padding)
-                int text_x = rect_utils::get_x(item_bounds) + 2;  // 2 char padding
-                int text_y = rect_utils::get_y(item_bounds);
-                typename Backend::point_type text_pos{text_x, text_y};
+                int const text_x = rect_utils::get_x(item_bounds) + 2;  // 2 char padding
+                int const text_y = rect_utils::get_y(item_bounds);
+                typename Backend::point_type const text_pos{text_x, text_y};
                 ctx.draw_text(m_text, text_pos, text_font, fg);
 
                 // Draw shortcut (right side)
                 if (!shortcut.empty()) {
-                    int width = rect_utils::get_width(item_bounds);
-                    int shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 2;
-                    typename Backend::point_type shortcut_pos{shortcut_x, text_y};
+                    int const width = rect_utils::get_width(item_bounds);
+                    int const shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 2;
+                    typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
                     ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
                 }
             } else {

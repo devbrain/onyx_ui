@@ -3,9 +3,12 @@
 //
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/widgets/group_box.hh>
 #include <onyxui/widgets/label.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
+#include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
 
@@ -105,8 +108,8 @@ TEST_SUITE("group_box") {
         auto size = group->measure(80, 25);
 
         // Size should include border space (+2 for width, +2 for height)
-        int width = size_utils::get_width(size);
-        int height = size_utils::get_height(size);
+        int const width = size_utils::get_width(size);
+        int const height = size_utils::get_height(size);
 
         // Width should be at least label width + borders
         CHECK(width >= 6);  // 4 chars + 2 borders

@@ -3,11 +3,13 @@
 //
 
 #include <doctest/doctest.h>
-#include "../utils/test_helpers.hh"
+#include "utils/test_backend.hh"
+#include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/theme.hh>
+#include <utility>
 
 using namespace onyxui;
 using Backend = test_backend;
@@ -102,7 +104,7 @@ TEST_SUITE("Theme Switching") {
             auto bg_red = btn->get_effective_background_color();
 
             // Colors MUST be different
-            bool colors_changed = (bg_blue.r != bg_red.r) ||
+            bool const colors_changed = (bg_blue.r != bg_red.r) ||
                                  (bg_blue.g != bg_red.g) ||
                                  (bg_blue.b != bg_red.b);
 
@@ -145,7 +147,7 @@ TEST_SUITE("Theme Switching") {
             auto btn_bg_red = btn->get_effective_background_color();
 
             // Child's colors MUST change
-            bool child_colors_changed = (btn_bg_blue.r != btn_bg_red.r) ||
+            bool const child_colors_changed = (btn_bg_blue.r != btn_bg_red.r) ||
                                        (btn_bg_blue.g != btn_bg_red.g) ||
                                        (btn_bg_blue.b != btn_bg_red.b);
 
@@ -389,7 +391,7 @@ TEST_SUITE("Theme Switching") {
             auto fg_red = btn->get_effective_foreground_color();
 
             // Foreground colors should change between themes
-            bool fg_changed = (fg_blue.r != fg_red.r) ||
+            bool const fg_changed = (fg_blue.r != fg_red.r) ||
                              (fg_blue.g != fg_red.g) ||
                              (fg_blue.b != fg_red.b);
             CHECK(fg_changed);
@@ -451,7 +453,7 @@ TEST_SUITE("Theme Switching") {
             auto btn = std::make_unique<button<Backend>>("Test");
 
             // Set explicit override
-            color_type green{0, 255, 0};
+            color_type const green{0, 255, 0};
             btn->set_background_color(green);
 
             // Apply theme - should NOT override explicit color
@@ -467,7 +469,7 @@ TEST_SUITE("Theme Switching") {
             auto btn = std::make_unique<button<Backend>>("Test");
 
             // Set explicit override
-            color_type green{0, 255, 0};
+            color_type const green{0, 255, 0};
             btn->set_background_color(green);
             btn->apply_theme(blue_theme);
 

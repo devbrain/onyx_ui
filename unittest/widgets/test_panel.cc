@@ -3,17 +3,19 @@
 //
 #include <doctest/doctest.h>
 
-#include <onyxui/widgets/vbox.hh>
+#include <memory>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/panel.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/layout/linear_layout.hh"
+#include "onyxui/layout_strategy.hh"
 using namespace onyxui;
 
 TEST_CASE("Panel - Container widget") {
     SUBCASE("Construction") {
-        panel<test_backend> p;
+        panel<test_backend> const p;
 
         CHECK_FALSE(p.has_border());
         CHECK_FALSE(p.is_focusable());  // Panels aren't focusable

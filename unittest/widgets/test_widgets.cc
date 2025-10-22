@@ -6,9 +6,8 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/widget.hh>
-#include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
+#include "onyxui/signal.hh"
 #include "widgets.hh"
 
 using namespace onyxui;
@@ -18,7 +17,7 @@ using namespace onyxui;
 
 TEST_CASE("Widget - Base widget functionality") {
     SUBCASE("Construction and enabled state") {
-        test_widget<test_backend> w;
+        test_widget<test_backend> const w;
 
         CHECK(w.is_enabled());
         CHECK_FALSE(w.is_hovered());
@@ -130,7 +129,7 @@ TEST_CASE("Widgets - Signal composition") {
         int click_count = 0;
 
         {
-            scoped_connection conn(btn.clicked, [&]() { click_count++; });
+            scoped_connection const conn(btn.clicked, [&]() { click_count++; });
 
             btn.simulate_click();
 

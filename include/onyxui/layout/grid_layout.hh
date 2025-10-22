@@ -515,7 +515,7 @@ namespace onyxui {
 
         // Calculate total grid size with overflow protection
         int total_width = 0;
-        for (int w : m_column_widths) {
+        for (int const w : m_column_widths) {
             safe_math::accumulate_safe(total_width, w);
         }
         int column_spacing_total = 0;
@@ -525,7 +525,7 @@ namespace onyxui {
         safe_math::accumulate_safe(total_width, column_spacing_total);
 
         int total_height = 0;
-        for (int h : m_row_heights) {
+        for (int const h : m_row_heights) {
             safe_math::accumulate_safe(total_height, h);
         }
         int row_spacing_total = 0;
@@ -550,8 +550,8 @@ namespace onyxui {
         std::vector <int> column_positions(static_cast<size_t>(m_num_columns));
         std::vector <int> row_positions(static_cast<size_t>(actual_rows));
 
-        int content_x = rect_utils::get_x(content_area);
-        int content_y = rect_utils::get_y(content_area);
+        int const content_x = rect_utils::get_x(content_area);
+        int const content_y = rect_utils::get_y(content_area);
 
         column_positions[0] = content_x;
         for (int i = 1; i < m_num_columns; ++i) {
@@ -575,8 +575,8 @@ namespace onyxui {
             const grid_cell_info& cell = it->second;
 
             // Calculate cell bounds
-            int cell_x = column_positions[static_cast<size_t>(cell.column)];
-            int cell_y = row_positions[static_cast<size_t>(cell.row)];
+            int const cell_x = column_positions[static_cast<size_t>(cell.column)];
+            int const cell_y = row_positions[static_cast<size_t>(cell.row)];
 
             int cell_width = 0;
             for (int i = 0; i < cell.column_span; ++i) {
@@ -599,9 +599,9 @@ namespace onyxui {
             }
 
             // Apply alignment within cell
-            size_type measured = this->get_last_measured_size(child.get());
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            size_type const measured = this->get_last_measured_size(child.get());
+            int const meas_w = size_utils::get_width(measured);
+            int const meas_h = size_utils::get_height(measured);
 
             int child_width = meas_w;
             int child_height = meas_h;
@@ -685,7 +685,7 @@ namespace onyxui {
 
             auto it = m_cell_mapping.find(child.get());
             if (it != m_cell_mapping.end()) {
-                int end_row = it->second.row + it->second.row_span;
+                int const end_row = it->second.row + it->second.row_span;
                 max_row = std::max(max_row, end_row);
             }
         }
@@ -713,9 +713,9 @@ namespace onyxui {
             // Only process single-span cells in first pass
             if (cell.column_span == 1 || cell.row_span == 1) {
                 // Measure child with unconstrained size
-                size_type measured = child->measure(available_width, available_height);
-                int meas_w = size_utils::get_width(measured);
-                int meas_h = size_utils::get_height(measured);
+                size_type const measured = child->measure(available_width, available_height);
+                int const meas_w = size_utils::get_width(measured);
+                int const meas_h = size_utils::get_height(measured);
 
                 // Update column sizes for single-column spans
                 if (cell.column_span == 1) {
@@ -772,8 +772,8 @@ namespace onyxui {
             // Handle cells that span multiple columns
             if (cell.column_span > 1) {
                 // Get the child's measured size
-                size_type measured = this->get_last_measured_size(child.get());
-                int required_width = size_utils::get_width(measured);
+                size_type const measured = this->get_last_measured_size(child.get());
+                int const required_width = size_utils::get_width(measured);
 
                 // Calculate current total width of spanned columns
                 int current_total = 0;
@@ -786,13 +786,13 @@ namespace onyxui {
 
                 // If the spanning cell needs more space, distribute it evenly
                 if (required_width > current_total) {
-                    int extra_needed = required_width - current_total;
-                    int columns_to_expand = std::min(cell.column_span,
+                    int const extra_needed = required_width - current_total;
+                    int const columns_to_expand = std::min(cell.column_span,
                                                      m_num_columns - cell.column);
 
                     if (columns_to_expand > 0) {
-                        int extra_per_column = extra_needed / columns_to_expand;
-                        int remainder = extra_needed % columns_to_expand;
+                        int const extra_per_column = extra_needed / columns_to_expand;
+                        int const remainder = extra_needed % columns_to_expand;
 
                         for (int i = 0; i < columns_to_expand; ++i) {
                             m_column_widths[static_cast<size_t>(cell.column + i)] += extra_per_column;
@@ -818,12 +818,12 @@ namespace onyxui {
             // Handle cells that span multiple rows
             if (cell.row_span > 1) {
                 // Get the child's measured size
-                size_type measured = this->get_last_measured_size(child.get());
-                int required_height = size_utils::get_height(measured);
+                size_type const measured = this->get_last_measured_size(child.get());
+                int const required_height = size_utils::get_height(measured);
 
                 // Calculate current total height of spanned rows
                 int current_total = 0;
-                int actual_rows = static_cast<int>(m_row_heights.size());
+                int const actual_rows = static_cast<int>(m_row_heights.size());
                 for (int i = 0; i < cell.row_span && (cell.row + i) < actual_rows; ++i) {
                     current_total += m_row_heights[static_cast<size_t>(cell.row + i)];
                     if (i > 0) {
@@ -833,13 +833,13 @@ namespace onyxui {
 
                 // If the spanning cell needs more space, distribute it evenly
                 if (required_height > current_total) {
-                    int extra_needed = required_height - current_total;
-                    int rows_to_expand = std::min(cell.row_span,
+                    int const extra_needed = required_height - current_total;
+                    int const rows_to_expand = std::min(cell.row_span,
                                                   actual_rows - cell.row);
 
                     if (rows_to_expand > 0) {
-                        int extra_per_row = extra_needed / rows_to_expand;
-                        int remainder = extra_needed % rows_to_expand;
+                        int const extra_per_row = extra_needed / rows_to_expand;
+                        int const remainder = extra_needed % rows_to_expand;
 
                         for (int i = 0; i < rows_to_expand; ++i) {
                             m_row_heights[static_cast<size_t>(cell.row + i)] += extra_per_row;

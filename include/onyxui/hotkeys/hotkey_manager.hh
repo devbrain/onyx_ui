@@ -147,8 +147,8 @@ namespace onyxui {
     struct hotkey_registration {
         std::weak_ptr<action<Backend>> action_ptr;  ///< Action to trigger
         key_sequence sequence;                       ///< Key combination
-        hotkey_scope scope;                          ///< Activation scope
-        ui_element<Backend>* scope_target;           ///< Target element/window (null for global)
+        hotkey_scope scope = hotkey_scope::global;   ///< Activation scope
+        ui_element<Backend>* scope_target = nullptr; ///< Target element/window (null for global)
 
         /**
          * @brief Check if registration is still valid
@@ -468,19 +468,24 @@ namespace onyxui {
             hotkey_scope scope,
             ui_element<Backend>* scope_target
         ) {
-            if (!action_ptr || !action_ptr->has_shortcut()) {
+            if (!action_ptr) {
                 return false;
             }
 
-            const auto& seq = action_ptr->shortcut().value();
+            const auto& shortcut_opt = action_ptr->shortcut();
+            if (!shortcut_opt.has_value()) {
+                return false;
+            }
+
+            const auto& seq = *shortcut_opt;
 
             // Check for conflicts
             if (m_conflict_policy != conflict_policy::allow) {
                 if (is_registered(seq, scope_target)) {
                     // Build conflict message
-                    std::string shortcut_str = format_key_sequence(seq);
-                    std::string scope_str = format_scope(scope, scope_target);
-                    std::string action_name = action_ptr->text().empty()
+                    std::string const shortcut_str = format_key_sequence(seq);
+                    std::string const scope_str = format_scope(scope, scope_target);
+                    std::string const action_name = action_ptr->text().empty()
                         ? "<unnamed>"
                         : action_ptr->text();
 
@@ -518,7 +523,7 @@ namespace onyxui {
             using traits = event_traits<KeyEvent>;
 
             // Try ASCII key
-            char ascii = traits::to_ascii(event);
+            char const ascii = traits::to_ascii(event);
             if (ascii != '\0') {
                 key_modifier mods = key_modifier::none;
                 if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
@@ -529,7 +534,7 @@ namespace onyxui {
             }
 
             // Try F-key
-            int f_key = traits::to_f_key(event);
+            int const f_key = traits::to_f_key(event);
             if (f_key != 0) {
                 key_modifier mods = key_modifier::none;
                 if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;

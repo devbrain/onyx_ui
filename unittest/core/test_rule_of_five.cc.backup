@@ -7,18 +7,14 @@
  * deleted where appropriate.
  */
 
-#include "onyxui/theme.hh"
-#include "onyxui/layout_strategy.hh"
 #include <doctest/doctest.h>
 #include <onyxui/element.hh>
 #include <onyxui/event_target.hh>
 #include <onyxui/focus_manager.hh>
 #include <onyxui/layout/linear_layout.hh>
-#include <type_traits>
 #include <utils/test_backend.hh>
 #include <memory>
 #include <utility>
-#include <vector>
 
 using namespace onyxui;
 
@@ -70,7 +66,7 @@ TEST_SUITE("RuleOfFive") {
 
         size_constraint height_c;
         height_c.policy = size_policy::expand;
-        height_c.weight = 2.5F;
+        height_c.weight = 2.5f;
         source.set_height_constraint(height_c);
 
         source.set_horizontal_align(horizontal_alignment::right);
@@ -112,7 +108,7 @@ TEST_SUITE("RuleOfFive") {
             // Check height constraint
             const auto& h = dest.height_constraint();
             CHECK(h.policy == size_policy::expand);
-            CHECK(h.weight == 2.5F);
+            CHECK(h.weight == 2.5f);
 
             CHECK(dest.h_align() == horizontal_alignment::right);
             CHECK(dest.v_align() == vertical_alignment::bottom);
@@ -169,7 +165,7 @@ TEST_SUITE("RuleOfFive") {
 
         size_constraint c;
         c.policy = size_policy::weighted;
-        c.weight = 3.14F;
+        c.weight = 3.14f;
         source.set_width_constraint(c);
 
         source.set_horizontal_align(horizontal_alignment::center);
@@ -191,7 +187,7 @@ TEST_SUITE("RuleOfFive") {
 
             const auto& w = dest.width_constraint();
             CHECK(w.policy == size_policy::weighted);
-            CHECK(w.weight == 3.14F);
+            CHECK(w.weight == 3.14f);
 
             CHECK(dest.h_align() == horizontal_alignment::center);
 

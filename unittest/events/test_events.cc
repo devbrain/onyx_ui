@@ -5,6 +5,7 @@
 
 #include <doctest/doctest.h>
 #include <onyxui/concepts/event_like.hh>
+#include <type_traits>
 #include <utils/test_backend.hh>
 
 using namespace onyxui;
@@ -80,7 +81,7 @@ TEST_SUITE("Events") {
         }
 
         SUBCASE("is_repeat always returns false for test backend") {
-            test_backend::test_keyboard_event evt;
+            test_backend::test_keyboard_event const evt;
             CHECK(traits::is_repeat(evt) == false);
         }
     }
@@ -288,7 +289,7 @@ TEST_SUITE("Events") {
         using mouse_traits = event_traits<test_backend::test_mouse_event>;
 
         SUBCASE("keyboard trait methods are noexcept") {
-            test_backend::test_keyboard_event evt;
+            test_backend::test_keyboard_event const evt;
             CHECK(noexcept(kb_traits::key_code(evt)));
             CHECK(noexcept(kb_traits::is_key_press(evt)));
             CHECK(noexcept(kb_traits::shift_pressed(evt)));
@@ -296,7 +297,7 @@ TEST_SUITE("Events") {
         }
 
         SUBCASE("mouse trait methods are noexcept") {
-            test_backend::test_mouse_event evt;
+            test_backend::test_mouse_event const evt;
             CHECK(noexcept(mouse_traits::mouse_x(evt)));
             CHECK(noexcept(mouse_traits::mouse_y(evt)));
             CHECK(noexcept(mouse_traits::mouse_button(evt)));
@@ -493,19 +494,19 @@ TEST_SUITE("Events") {
         using mouse_traits = event_traits<test_backend::test_mouse_event>;
 
         SUBCASE("keyboard traits return int for key_code") {
-            test_backend::test_keyboard_event evt;
+            test_backend::test_keyboard_event const evt;
             auto code = kb_traits::key_code(evt);
             CHECK(std::is_same_v<decltype(code), int>);
         }
 
         SUBCASE("keyboard traits return bool for modifiers") {
-            test_backend::test_keyboard_event evt;
+            test_backend::test_keyboard_event const evt;
             auto shift = kb_traits::shift_pressed(evt);
             CHECK(std::is_same_v<decltype(shift), bool>);
         }
 
         SUBCASE("mouse traits return int for coordinates") {
-            test_backend::test_mouse_event evt;
+            test_backend::test_mouse_event const evt;
             auto x = mouse_traits::mouse_x(evt);
             auto y = mouse_traits::mouse_y(evt);
             CHECK(std::is_same_v<decltype(x), int>);
@@ -513,7 +514,7 @@ TEST_SUITE("Events") {
         }
 
         SUBCASE("mouse traits return bool for button press") {
-            test_backend::test_mouse_event evt;
+            test_backend::test_mouse_event const evt;
             auto pressed = mouse_traits::is_button_press(evt);
             CHECK(std::is_same_v<decltype(pressed), bool>);
         }
@@ -615,7 +616,7 @@ TEST_SUITE("Events") {
         using traits = event_traits<test_backend::test_window_event>;
 
         SUBCASE("window trait methods are noexcept") {
-            test_backend::test_window_event evt;
+            test_backend::test_window_event const evt;
             CHECK(noexcept(traits::window_width(evt)));
             CHECK(noexcept(traits::window_height(evt)));
             CHECK(noexcept(traits::is_resize_event(evt)));
@@ -626,19 +627,19 @@ TEST_SUITE("Events") {
         using traits = event_traits<test_backend::test_window_event>;
 
         SUBCASE("window_width returns int") {
-            test_backend::test_window_event evt;
+            test_backend::test_window_event const evt;
             auto width = traits::window_width(evt);
             CHECK(std::is_same_v<decltype(width), int>);
         }
 
         SUBCASE("window_height returns int") {
-            test_backend::test_window_event evt;
+            test_backend::test_window_event const evt;
             auto height = traits::window_height(evt);
             CHECK(std::is_same_v<decltype(height), int>);
         }
 
         SUBCASE("is_resize_event returns bool") {
-            test_backend::test_window_event evt;
+            test_backend::test_window_event const evt;
             auto is_resize = traits::is_resize_event(evt);
             CHECK(std::is_same_v<decltype(is_resize), bool>);
         }

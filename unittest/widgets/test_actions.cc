@@ -5,9 +5,11 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/action_group.hh>
 #include <onyxui/widgets/button.hh>
+#include <string_view>
 #include "../utils/test_backend.hh"
 
 using namespace onyxui;

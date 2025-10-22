@@ -146,8 +146,8 @@ namespace onyxui {
 
             // Add space for border if present
             if (m_has_border) {
-                int w = size_utils::get_width(size) + 2;  // 1px each side
-                int h = size_utils::get_height(size) + 2;
+                int const w = size_utils::get_width(size) + 2;  // 1px each side
+                int const h = size_utils::get_height(size) + 2;
                 size_utils::set_size(size, w, h);
             }
 
@@ -168,10 +168,10 @@ namespace onyxui {
 
             // Adjust for border if present (1px on each side)
             if (m_has_border) {
-                int x = rect_utils::get_x(content_area) + 1;
-                int y = rect_utils::get_y(content_area) + 1;
-                int w = std::max(0, rect_utils::get_width(content_area) - 2);
-                int h = std::max(0, rect_utils::get_height(content_area) - 2);
+                int const x = rect_utils::get_x(content_area) + 1;
+                int const y = rect_utils::get_y(content_area) + 1;
+                int const w = std::max(0, rect_utils::get_width(content_area) - 2);
+                int const h = std::max(0, rect_utils::get_height(content_area) - 2);
                 rect_utils::set_bounds(content_area, x, y, w, h);
             }
 
@@ -197,8 +197,8 @@ namespace onyxui {
 
             // Add border back to measured size
             if (m_has_border) {
-                int w = size_utils::get_width(measured) + 2;
-                int h = size_utils::get_height(measured) + 2;
+                int const w = size_utils::get_width(measured) + 2;
+                int const h = size_utils::get_height(measured) + 2;
                 size_utils::set_size(measured, w, h);
             }
 

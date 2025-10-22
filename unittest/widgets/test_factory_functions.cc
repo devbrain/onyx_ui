@@ -5,6 +5,7 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/panel.hh>
@@ -13,6 +14,8 @@
 #include <onyxui/widgets/spacer.hh>
 #include <onyxui/widgets/spring.hh>
 #include "../utils/test_backend.hh"
+#include "onyxui/concepts/size_like.hh"
+#include "onyxui/concepts/rect_like.hh"
 
 using namespace onyxui;
 
@@ -82,15 +85,15 @@ TEST_CASE("Factory Functions - Springs") {
 
         REQUIRE(spr != nullptr);
         CHECK(spr->is_horizontal());
-        CHECK(spr->weight() == 1.0f);
+        CHECK(spr->weight() == 1.0F);
     }
 
     SUBCASE("create_hspring - With custom weight") {
-        auto spr = create_hspring<test_backend>(2.5f);
+        auto spr = create_hspring<test_backend>(2.5F);
 
         REQUIRE(spr != nullptr);
         CHECK(spr->is_horizontal());
-        CHECK(spr->weight() == 2.5f);
+        CHECK(spr->weight() == 2.5F);
     }
 
     SUBCASE("create_vspring - Creates vertical spring") {
@@ -98,15 +101,15 @@ TEST_CASE("Factory Functions - Springs") {
 
         REQUIRE(spr != nullptr);
         CHECK_FALSE(spr->is_horizontal());
-        CHECK(spr->weight() == 1.0f);
+        CHECK(spr->weight() == 1.0F);
     }
 
     SUBCASE("create_vspring - With custom weight") {
-        auto spr = create_vspring<test_backend>(3.0f);
+        auto spr = create_vspring<test_backend>(3.0F);
 
         REQUIRE(spr != nullptr);
         CHECK_FALSE(spr->is_horizontal());
-        CHECK(spr->weight() == 3.0f);
+        CHECK(spr->weight() == 3.0F);
     }
 
     SUBCASE("create_hspring - Push buttons to edges") {
@@ -145,9 +148,9 @@ TEST_CASE("Factory Functions - Springs") {
     SUBCASE("Weighted springs - 2:1 horizontal ratio") {
         hbox<test_backend> box;
 
-        box.add_child(create_hspring<test_backend>(2.0f));
+        box.add_child(create_hspring<test_backend>(2.0F));
         box.add_child(std::make_unique<panel<test_backend>>());
-        box.add_child(create_hspring<test_backend>(1.0f));
+        box.add_child(create_hspring<test_backend>(1.0F));
 
         CHECK(box.children().size() == 3);
         CHECK_NOTHROW((void)box.measure(400, 100));
@@ -157,9 +160,9 @@ TEST_CASE("Factory Functions - Springs") {
         vbox<test_backend> box;
 
         box.add_child(std::make_unique<panel<test_backend>>());
-        box.add_child(create_vspring<test_backend>(3.0f));
+        box.add_child(create_vspring<test_backend>(3.0F));
         box.add_child(std::make_unique<panel<test_backend>>());
-        box.add_child(create_vspring<test_backend>(1.0f));
+        box.add_child(create_vspring<test_backend>(1.0F));
         box.add_child(std::make_unique<panel<test_backend>>());
 
         CHECK(box.children().size() == 5);

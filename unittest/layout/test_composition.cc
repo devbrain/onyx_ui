@@ -7,11 +7,14 @@
  * like dashboards, forms, and application windows.
  */
 
+#include "onyxui/layout_strategy.hh"
 #include "utils/test_helpers.hh"
+#include <memory>
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/layout/grid_layout.hh>
 #include <onyxui/layout/anchor_layout.hh>
 #include <onyxui/layout/absolute_layout.hh>
+#include <utility>
 
 using TestLinearLayout = linear_layout<TestBackend>;
 using TestGridLayout = grid_layout<TestBackend>;
@@ -56,7 +59,7 @@ TEST_SUITE("layout_composition") {
         panel->add_test_child(std::move(row2));
 
         // Measure and arrange
-        TestSize measured = panel->measure(300, 200);
+        TestSize const measured = panel->measure(300, 200);
         CHECK(measured.w == 250);  // 3*80 + 2*5 = 250
         CHECK(measured.h == 70);  // 30 + 10 + 30 = 70
 
@@ -122,7 +125,7 @@ TEST_SUITE("layout_composition") {
         container->add_test_child(std::move(col2));
 
         // Measure and arrange
-        TestSize measured = container->measure(400, 300);
+        TestSize const measured = container->measure(400, 300);
         CHECK(measured.w == 165);  // 150 + 15 (col2 has no measured width yet)
         CHECK(measured.h == 130);  // Max of columns: 3*40 + 2*5
 
@@ -236,7 +239,7 @@ TEST_SUITE("layout_composition") {
         form->add_test_child(std::move(field2));
 
         // Measure and arrange
-        TestSize measured = form->measure(400, 300);
+        TestSize const measured = form->measure(400, 300);
         CHECK(measured.w >= 160);  // At least 2 columns worth
         CHECK(measured.h == 55);  // 20 + 5 + 30
 
@@ -507,7 +510,7 @@ TEST_SUITE("layout_composition") {
         container->add_test_child(std::move(content_panel));
 
         // Measure and arrange
-        TestSize measured = container->measure(500, 200);
+        TestSize const measured = container->measure(500, 200);
         CHECK(measured.w == 320);  // 100 + 10 + 0 (expand) + 10 + 120 + 10
         CHECK(measured.h == 40);
 

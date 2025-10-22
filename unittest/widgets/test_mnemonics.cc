@@ -14,10 +14,12 @@
  */
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/widgets/styled_text.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
+#include "onyxui/theme.hh"
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -31,15 +33,15 @@ TEST_SUITE("styled_text::basic") {
         using Backend = test_backend;
         using Font = Backend::renderer_type::font;
 
-        Font font{};
-        text_segment<Backend> segment{"Hello", font};
+        Font const font{};
+        text_segment<Backend> const segment{"Hello", font};
 
         CHECK(segment.text == "Hello");
     }
 
     TEST_CASE("text_segment default constructor") {
         using Backend = test_backend;
-        text_segment<Backend> segment;
+        text_segment<Backend> const segment;
 
         CHECK(segment.text.empty());
     }
@@ -51,7 +53,7 @@ TEST_SUITE("styled_text::basic") {
         styled_text<Backend> text;
         CHECK(text.empty());
 
-        Font font{};
+        Font const font{};
         text.push_back(text_segment<Backend>{"Hello", font});
         CHECK(text.size() == 1);
     }
@@ -60,7 +62,7 @@ TEST_SUITE("styled_text::basic") {
         using Backend = test_backend;
         using Font = Backend::renderer_type::font;
 
-        Font font{};
+        Font const font{};
         auto text = make_plain_text<Backend>("Hello World", font);
 
         REQUIRE(text.size() == 1);
@@ -71,7 +73,7 @@ TEST_SUITE("styled_text::basic") {
         using Backend = test_backend;
         using Font = Backend::renderer_type::font;
 
-        Font font{};
+        Font const font{};
         auto text = make_plain_text<Backend>("", font);
 
         REQUIRE(text.size() == 1);
@@ -89,7 +91,7 @@ TEST_SUITE("styled_text::helpers") {
 
     TEST_CASE("text_length counts total characters") {
         styled_text<Backend> text;
-        Font font{};
+        Font const font{};
 
         text.push_back({"Hel", font});
         text.push_back({"lo", font});
@@ -99,13 +101,13 @@ TEST_SUITE("styled_text::helpers") {
     }
 
     TEST_CASE("text_length on empty styled_text") {
-        styled_text<Backend> text;
+        styled_text<Backend> const text;
         CHECK(text_length(text) == 0);
     }
 
     TEST_CASE("text_length with empty segments") {
         styled_text<Backend> text;
-        Font font{};
+        Font const font{};
 
         text.push_back({"", font});
         text.push_back({"Hello", font});
@@ -126,18 +128,18 @@ TEST_SUITE("styled_text::helpers") {
     }
 
     TEST_CASE("to_plain_text on empty styled_text") {
-        styled_text<Backend> text;
+        styled_text<Backend> const text;
         CHECK(to_plain_text(text).empty());
     }
 
     TEST_CASE("is_empty detects empty styled_text") {
-        styled_text<Backend> text;
+        styled_text<Backend> const text;
         CHECK(is_empty(text));
     }
 
     TEST_CASE("is_empty detects all-empty segments") {
         styled_text<Backend> text;
-        Font font{};
+        Font const font{};
 
         text.push_back({"", font});
         text.push_back({"", font});
@@ -147,7 +149,7 @@ TEST_SUITE("styled_text::helpers") {
 
     TEST_CASE("is_empty returns false for non-empty text") {
         styled_text<Backend> text;
-        Font font{};
+        Font const font{};
 
         text.push_back({"", font});
         text.push_back({"Hi", font});
@@ -397,7 +399,7 @@ TEST_SUITE("button::mnemonics") {
         auto btn = std::make_unique<button<Backend>>();
 
         // Apply theme first
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         btn->apply_theme(theme);
 
         // Now set mnemonic text
@@ -411,7 +413,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button mnemonic with different positions") {
         auto btn = std::make_unique<button<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         btn->apply_theme(theme);
 
         // Start
@@ -430,7 +432,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button mnemonic with escape sequence") {
         auto btn = std::make_unique<button<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         btn->apply_theme(theme);
 
         btn->set_mnemonic_text("Save && Exit");
@@ -443,7 +445,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button mnemonic cleared on theme change") {
         auto btn = std::make_unique<button<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         btn->apply_theme(theme);
         btn->set_mnemonic_text("&Save");
 
@@ -483,7 +485,7 @@ TEST_SUITE("label::mnemonics") {
     TEST_CASE("Label set_mnemonic_text with theme") {
         auto lbl = std::make_unique<label<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         lbl->apply_theme(theme);
 
         lbl->set_mnemonic_text("&Name:");
@@ -497,7 +499,7 @@ TEST_SUITE("label::mnemonics") {
         auto lbl1 = std::make_unique<label<Backend>>();
         auto lbl2 = std::make_unique<label<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         lbl1->apply_theme(theme);
         lbl2->apply_theme(theme);
 
@@ -511,7 +513,7 @@ TEST_SUITE("label::mnemonics") {
     TEST_CASE("Label mnemonic cleared on theme change") {
         auto lbl = std::make_unique<label<Backend>>();
 
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
         lbl->apply_theme(theme);
         lbl->set_mnemonic_text("&Name:");
 
@@ -531,7 +533,7 @@ TEST_SUITE("mnemonics::scenarios") {
     using Backend = test_backend;
 
     TEST_CASE("File menu with mnemonics") {
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
 
         auto file_btn = std::make_unique<button<Backend>>();
         auto new_btn = std::make_unique<button<Backend>>();
@@ -559,7 +561,7 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Form with labeled inputs") {
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
 
         auto name_label = std::make_unique<label<Backend>>();
         auto email_label = std::make_unique<label<Backend>>();
@@ -583,7 +585,7 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Buttons with literal ampersands") {
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
 
         auto btn = std::make_unique<button<Backend>>();
         btn->apply_theme(theme);
@@ -595,7 +597,7 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Mixed plain text and mnemonic text") {
-        ui_theme<Backend> theme{};
+        ui_theme<Backend> const theme{};
 
         auto btn1 = std::make_unique<button<Backend>>();
         auto btn2 = std::make_unique<button<Backend>>();

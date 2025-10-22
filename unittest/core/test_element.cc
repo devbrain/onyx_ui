@@ -3,8 +3,11 @@
  * @brief Unit tests for ui_element core functionality
  */
 
+#include "onyxui/layout_strategy.hh"
+#include "utils/test_backend.hh"
 #include "utils/test_helpers.hh"
-#include <onyxui/layout/linear_layout.hh>
+#include <memory>
+#include <utility>
 
 TEST_SUITE("ui_element") {
     TEST_CASE("Basic construction and hierarchy") {
@@ -41,7 +44,7 @@ TEST_SUITE("ui_element") {
         element->set_width_constraint({size_policy::fixed, 100, 100});
         element->set_height_constraint({size_policy::fixed, 50, 50});
 
-        TestSize measured = element->measure(1000, 1000);
+        TestSize const measured = element->measure(1000, 1000);
         CHECK(measured.w == 100);  // Fixed size is exact
         CHECK(measured.h == 50);  // Fixed size is exact
     }
@@ -138,13 +141,13 @@ TEST_SUITE("ui_element") {
     TEST_CASE("Custom content size") {
         auto element = std::make_unique<ContentElement>(120, 80);
 
-        TestSize measured = element->measure(1000, 1000);
+        TestSize const measured = element->measure(1000, 1000);
         CHECK(measured.w == 120);
         CHECK(measured.h == 80);
     }
 
     TEST_CASE("Thickness operators") {
-        thickness t1 = {10, 20, 30, 40};
+        thickness const t1 = {10, 20, 30, 40};
         thickness t2 = {10, 20, 30, 40};
         thickness t3 = {10, 20, 30, 41};
 

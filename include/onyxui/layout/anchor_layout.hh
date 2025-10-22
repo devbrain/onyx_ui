@@ -363,8 +363,8 @@ namespace onyxui {
             calculate_anchor_position(content_area, measured, info,
                                       child_x, child_y);
 
-            int child_w = size_utils::get_width(measured);
-            int child_h = size_utils::get_height(measured);
+            int const child_w = size_utils::get_width(measured);
+            int const child_h = size_utils::get_height(measured);
 
             rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y, child_w, child_h);

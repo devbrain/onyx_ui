@@ -3,8 +3,11 @@
  * @brief Unit tests for absolute_layout
  */
 
+#include "onyxui/layout_strategy.hh"
 #include "utils/test_helpers.hh"
+#include <memory>
 #include <onyxui/layout/absolute_layout.hh>
+#include <utility>
 
 using TestAbsoluteLayout = absolute_layout<TestBackend>;
 

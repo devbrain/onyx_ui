@@ -18,8 +18,8 @@
 #include <doctest/doctest.h>
 #include <onyxui/layer_manager.hh>
 #include "../utils/test_helpers.hh"
+#include "utils/test_backend.hh"
 #include <memory>
-#include <vector>
 
 using namespace onyxui;
 
@@ -95,7 +95,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             elem.reset();
 
             // Phase 1.2: Automatic cleanup of expired layers
-            TestEvent event;
+            TestEvent const event;
             CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup and not crash
 
             // Verify layer was removed
@@ -110,7 +110,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             elem.reset();  // Destroy element
 
             TestRenderer renderer;
-            TestRect viewport{0, 0, 800, 600};
+            TestRect const viewport{0, 0, 800, 600};
 
             // Phase 1.2: Automatic cleanup of expired layers
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
@@ -123,7 +123,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
 
-            layer_id id = mgr.add_layer(layer_type::popup, elem);  // New safe API
+            layer_id const id = mgr.add_layer(layer_type::popup, elem);  // New safe API
             elem.reset();
 
             // Phase 1.2: Should handle gracefully (expired layer returns false)
@@ -131,7 +131,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             // Query doesn't cleanup, but layer is logically expired
             // Cleanup happens on next route_event() or render_all_layers()
-            TestEvent event;
+            TestEvent const event;
             mgr.route_event(event);
             CHECK(mgr.layer_count() == 0);
         }
@@ -154,7 +154,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         elem1.reset();
         elem3.reset();
 
-        TestEvent event;
+        TestEvent const event;
         // Phase 1.2: Should auto-cleanup expired layers, only route to elem2
         CHECK_NOTHROW(mgr.route_event(event));
 
@@ -175,7 +175,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem1.reset();  // Destroy first (lowest z-index)
 
-            TestEvent event;
+            TestEvent const event;
             CHECK_NOTHROW(mgr.route_event(event));
 
             // After Phase 1.2, only elem2 and elem3 should receive event
@@ -194,7 +194,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem2.reset();  // Destroy middle
 
-            TestEvent event;
+            TestEvent const event;
             CHECK_NOTHROW(mgr.route_event(event));
         }
 
@@ -210,7 +210,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem3.reset();  // Destroy last (highest z-index)
 
-            TestEvent event;
+            TestEvent const event;
             CHECK_NOTHROW(mgr.route_event(event));
         }
     }
@@ -229,13 +229,13 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();
 
-            TestRect anchor{10, 10, 50, 20};
+            TestRect const anchor{10, 10, 50, 20};
             (void)mgr.show_popup(elem.get(), anchor, popup_placement::below);
 
             elem.reset();
 
             TestRenderer renderer;
-            TestRect viewport{0, 0, 800, 600};
+            TestRect const viewport{0, 0, 800, 600};
 
             // Should handle gracefully (skip expired layer)
             // Currently: EXPECTED TO FAIL
@@ -250,7 +250,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             dialog.reset();
 
             TestRenderer renderer;
-            TestRect viewport{0, 0, 800, 600};
+            TestRect const viewport{0, 0, 800, 600};
 
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
         }
@@ -260,17 +260,17 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         layer_manager<Backend> mgr;
         auto tooltip = std::make_shared<TestElement>();
 
-        layer_id id = mgr.show_tooltip(tooltip.get(), 100, 100);
+        layer_id const id = mgr.show_tooltip(tooltip.get(), 100, 100);
         tooltip.reset();
 
         SUBCASE("Route event after tooltip destroyed") {
-            TestEvent event;
+            TestEvent const event;
             CHECK_NOTHROW(mgr.route_event(event));
         }
 
         SUBCASE("Render after tooltip destroyed") {
             TestRenderer renderer;
-            TestRect viewport{0, 0, 800, 600};
+            TestRect const viewport{0, 0, 800, 600};
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
         }
 
@@ -294,7 +294,7 @@ TEST_SUITE("Layer Manager - Multiple Removals") {
         layer_manager<Backend> mgr;
         auto elem = std::make_shared<TestElement>();
 
-        layer_id id = mgr.add_layer(layer_type::popup, elem);
+        layer_id const id = mgr.add_layer(layer_type::popup, elem);
         CHECK(mgr.layer_count() == 1);
 
         mgr.remove_layer(id);
@@ -310,10 +310,10 @@ TEST_SUITE("Layer Manager - Multiple Removals") {
     TEST_CASE("Remove invalid layer ID") {
         layer_manager<Backend> mgr;
 
-        layer_id invalid = layer_id::invalid();
+        layer_id const invalid = layer_id::invalid();
         CHECK_NOTHROW(mgr.remove_layer(invalid));
 
-        layer_id non_existent(999999);
+        layer_id const non_existent(999999);
         CHECK_NOTHROW(mgr.remove_layer(non_existent));
     }
 
@@ -345,23 +345,23 @@ TEST_SUITE("Layer Manager - Multiple Removals") {
 TEST_SUITE("Layer Manager - Invalid ID Handling") {
 
     TEST_CASE("Query visibility of invalid IDs") {
-        layer_manager<Backend> mgr;
+        layer_manager<Backend> const mgr;
 
-        layer_id invalid = layer_id::invalid();
+        layer_id const invalid = layer_id::invalid();
         CHECK_FALSE(mgr.is_layer_visible(invalid));
 
-        layer_id non_existent(888888);
+        layer_id const non_existent(888888);
         CHECK_FALSE(mgr.is_layer_visible(non_existent));
     }
 
     TEST_CASE("Show/hide invalid IDs") {
         layer_manager<Backend> mgr;
 
-        layer_id invalid = layer_id::invalid();
+        layer_id const invalid = layer_id::invalid();
         CHECK_NOTHROW(mgr.show_layer(invalid));
         CHECK_NOTHROW(mgr.hide_layer(invalid));
 
-        layer_id non_existent(777777);
+        layer_id const non_existent(777777);
         CHECK_NOTHROW(mgr.show_layer(non_existent));
         CHECK_NOTHROW(mgr.hide_layer(non_existent));
     }
@@ -370,7 +370,7 @@ TEST_SUITE("Layer Manager - Invalid ID Handling") {
         layer_manager<Backend> mgr;
         auto elem = std::make_shared<TestElement>();
 
-        layer_id id = mgr.add_layer(layer_type::popup, elem);
+        layer_id const id = mgr.add_layer(layer_type::popup, elem);
         mgr.remove_layer(id);
 
         // All operations should handle gracefully
@@ -455,7 +455,7 @@ TEST_SUITE("Layer Manager - Cleanup Safety") {
         }  // Widgets destroyed here (shared_ptr goes out of scope)
 
         // Phase 1.2: Automatic cleanup of expired layers
-        TestEvent event;
+        TestEvent const event;
         CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup expired layers
 
         // Verify layers were cleaned up
@@ -474,11 +474,11 @@ TEST_SUITE("Layer Manager - Self-Removal") {
 
         auto self_removing = std::make_shared<SelfRemovingElement>(&mgr);
 
-        layer_id id = mgr.add_layer(layer_type::popup, self_removing);
+        layer_id const id = mgr.add_layer(layer_type::popup, self_removing);
         self_removing->set_layer_id(id);
         CHECK(mgr.layer_count() == 1);
 
-        TestEvent event;
+        TestEvent const event;
         // Element will remove itself when it processes the event
         // Should not crash from iterator invalidation
         CHECK_NOTHROW(mgr.route_event(event));
@@ -494,9 +494,9 @@ TEST_SUITE("Layer Manager - Self-Removal") {
         auto elem2 = std::make_shared<SelfRemovingElement>(&mgr);
         auto elem3 = std::make_shared<SelfRemovingElement>(&mgr);
 
-        layer_id id1 = mgr.add_layer(layer_type::popup, elem1, 100);
-        layer_id id2 = mgr.add_layer(layer_type::popup, elem2, 200);
-        layer_id id3 = mgr.add_layer(layer_type::popup, elem3, 300);
+        layer_id const id1 = mgr.add_layer(layer_type::popup, elem1, 100);
+        layer_id const id2 = mgr.add_layer(layer_type::popup, elem2, 200);
+        layer_id const id3 = mgr.add_layer(layer_type::popup, elem3, 300);
 
         elem1->set_layer_id(id1);
         elem2->set_layer_id(id2);
@@ -504,7 +504,7 @@ TEST_SUITE("Layer Manager - Self-Removal") {
 
         CHECK(mgr.layer_count() == 3);
 
-        TestEvent event;
+        TestEvent const event;
         // Highest z-index (elem3) will remove itself first
         // Should not crash from concurrent modification
         CHECK_NOTHROW(mgr.route_event(event));

@@ -14,9 +14,12 @@
  */
 
 #include <doctest/doctest.h>
+#include <memory>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/panel.hh>
+#include "onyxui/hotkeys/key_sequence.hh"
+#include <utility>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -54,14 +57,14 @@ TEST_SUITE("hotkey_manager::registration") {
 
         manager.register_action(act);
 
-        key_sequence seq{'s', key_modifier::ctrl};
+        key_sequence const seq{'s', key_modifier::ctrl};
         CHECK(manager.is_registered(seq));
     }
 
     TEST_CASE("is_registered returns false for unregistered hotkeys") {
-        hotkey_manager<Backend> manager;
+        hotkey_manager<Backend> const manager;
 
-        key_sequence seq{'x', key_modifier::ctrl};
+        key_sequence const seq{'x', key_modifier::ctrl};
         CHECK(!manager.is_registered(seq));
     }
 
@@ -74,7 +77,7 @@ TEST_SUITE("hotkey_manager::registration") {
         manager.register_action(act);
         manager.unregister_action(act);
 
-        key_sequence seq{'s', key_modifier::ctrl};
+        key_sequence const seq{'s', key_modifier::ctrl};
         CHECK(!manager.is_registered(seq));
     }
 
@@ -435,14 +438,14 @@ TEST_SUITE("hotkey_manager::cleanup") {
             act->set_shortcut('s', key_modifier::ctrl);
             manager.register_action(act);
 
-            key_sequence seq{'s', key_modifier::ctrl};
+            key_sequence const seq{'s', key_modifier::ctrl};
             CHECK(manager.is_registered(seq));
         } // act goes out of scope
 
         // Cleanup removes expired registrations
         manager.cleanup();
 
-        key_sequence seq{'s', key_modifier::ctrl};
+        key_sequence const seq{'s', key_modifier::ctrl};
         CHECK(!manager.is_registered(seq));
     }
 
@@ -455,7 +458,7 @@ TEST_SUITE("hotkey_manager::cleanup") {
 
         manager.cleanup();
 
-        key_sequence seq{'s', key_modifier::ctrl};
+        key_sequence const seq{'s', key_modifier::ctrl};
         CHECK(manager.is_registered(seq));  // Still there
     }
 
@@ -477,7 +480,7 @@ TEST_SUITE("hotkey_manager::cleanup") {
         CHECK(!manager.handle_key_event(event));  // No longer registered
 
         // Verify cleanup happened
-        key_sequence seq{'s', key_modifier::ctrl};
+        key_sequence const seq{'s', key_modifier::ctrl};
         CHECK(!manager.is_registered(seq));
     }
 }

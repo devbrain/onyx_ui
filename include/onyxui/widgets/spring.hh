@@ -184,7 +184,7 @@ namespace onyxui {
              * // Expands vertically in vbox layouts
              * @endcode
              */
-            explicit spring(float weight = 1.0f, bool horizontal = true)
+            explicit spring(float weight = 1.0F, bool horizontal = true)
                 : widget<Backend>(nullptr)
                   , m_weight(weight)
                   , m_horizontal(horizontal)
@@ -230,7 +230,7 @@ namespace onyxui {
              * **Thread Safety:** Not thread-safe. Must be called from UI thread.
              */
             void set_weight(float weight) {
-                if (m_weight != weight && weight > 0.0f) {
+                if (m_weight != weight && weight > 0.0F) {
                     m_weight = weight;
 
                     // Always use weighted policy for proper proportional distribution
@@ -451,7 +451,7 @@ namespace onyxui {
      * @endcode
      */
     template<UIBackend Backend>
-    inline auto create_hspring(float weight = 1.0f) {
+    inline auto create_hspring(float weight = 1.0F) {
         return std::make_unique<spring<Backend>>(weight, true);
     }
 
@@ -485,7 +485,7 @@ namespace onyxui {
      * @endcode
      */
     template<UIBackend Backend>
-    inline auto create_vspring(float weight = 1.0f) {
+    inline auto create_vspring(float weight = 1.0F) {
         return std::make_unique<spring<Backend>>(weight, false);
     }
 

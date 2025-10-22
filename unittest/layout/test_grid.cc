@@ -3,8 +3,12 @@
  * @brief Unit tests for grid_layout
  */
 
+#include "onyxui/layout_strategy.hh"
 #include "utils/test_helpers.hh"
+#include <memory>
 #include <onyxui/layout/grid_layout.hh>
+#include <utility>
+#include <vector>
 
 using TestGridLayout = grid_layout<TestBackend>;
 
@@ -22,7 +26,7 @@ TEST_SUITE("grid_layout") {
             parent->add_test_child(std::move(child));
         }
 
-        TestSize measured = parent->measure(1000, 1000);
+        TestSize const measured = parent->measure(1000, 1000);
         CHECK(measured.w == 210);  // 2*100 + 1*10
         CHECK(measured.h == 105); // 2*50 + 1*5
 
@@ -129,7 +133,7 @@ TEST_SUITE("grid_layout") {
             parent->add_test_child(std::move(child));
         }
 
-        TestSize measured = parent->measure(1000, 1000);
+        TestSize const measured = parent->measure(1000, 1000);
         CHECK(measured.w == 250);  // 150 + 100
         CHECK(measured.h == 140); // 60 + 80
 

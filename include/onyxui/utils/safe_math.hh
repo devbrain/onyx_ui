@@ -328,7 +328,7 @@ namespace onyxui::safe_math {
             // - pos * neg = neg overflow → min
             // - neg * pos = neg overflow → min
             // Result is positive if signs match, negative if they differ
-            bool result_positive = (a > 0) == (b > 0);
+            bool const result_positive = (a > 0) == (b > 0);
             return result_positive ? std::numeric_limits<T>::max()
                                    : std::numeric_limits<T>::min();
         }

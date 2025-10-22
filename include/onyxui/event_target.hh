@@ -471,22 +471,22 @@ namespace onyxui {
         // Handle mouse button events FIRST (more specific than position events)
         // Note: Remove 'else' to allow fall-through for events that satisfy both concepts
         if constexpr (MouseButtonEvent<E>) {
-            int button = event_traits<E>::mouse_button(event);
-            bool is_press = event_traits<E>::is_button_press(event);
+            int const button = event_traits<E>::mouse_button(event);
+            bool const is_press = event_traits<E>::is_button_press(event);
 
             // Runtime check: only treat as button event if button != 0 or it's a press
             // This handles backends where the same type is used for button and move events
             if (button != 0 || is_press) {
-                int x = event_traits<E>::mouse_x(event);
-                int y = event_traits<E>::mouse_y(event);
+                int const x = event_traits<E>::mouse_x(event);
+                int const y = event_traits<E>::mouse_y(event);
                 return process_mouse_button(x, y, button, is_press);
             }
             // Fall through to position event handling if not a real button event
         }
         // Handle mouse position events (motion)
         if constexpr (MousePositionEvent <E>) {
-            int x = event_traits <E>::mouse_x(event);
-            int y = event_traits <E>::mouse_y(event);
+            int const x = event_traits <E>::mouse_x(event);
+            int const y = event_traits <E>::mouse_y(event);
             return process_mouse_move(x, y);
         }
         // Handle mouse wheel events
@@ -586,8 +586,8 @@ namespace onyxui {
 
     template<UIBackend Backend>
     bool event_target<Backend>::process_mouse_move(int x, int y) {
-        bool in_bounds = is_inside(x, y);
-        bool was_hovered = m_is_hovered;
+        bool const in_bounds = is_inside(x, y);
+        bool const was_hovered = m_is_hovered;
         m_is_hovered = in_bounds;
 
         // Generate enter/leave events
@@ -610,10 +610,10 @@ namespace onyxui {
             }
             m_press_started_inside = false;
         } else {
-            bool was_pressed = m_is_pressed;
+            bool const was_pressed = m_is_pressed;
             m_is_pressed = false;
 
-            bool in_bounds = is_inside(x, y);
+            bool const in_bounds = is_inside(x, y);
             bool handled = false;
 
             // Call mouse up if we're inside or were pressed

@@ -4,18 +4,21 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/vbox.hh>
 #include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/label.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
-#include "../utils/warnings.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "onyxui/concepts/rect_like.hh"
+#include "onyxui/layout_strategy.hh"
 using namespace onyxui;
 
 TEST_CASE("VBox - Vertical layout widget") {
     SUBCASE("Construction") {
-        vbox<test_backend> box(10);  // 10px spacing
+        vbox<test_backend> const box(10);  // 10px spacing
 
         CHECK_FALSE(box.is_focusable());
     }

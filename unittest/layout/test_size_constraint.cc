@@ -13,12 +13,12 @@ using namespace onyxui;
 TEST_CASE("size_constraint - Float comparison with epsilon") {
     SUBCASE("Exact equality works") {
         size_constraint a, b;
-        a.weight = 2.0f;
-        b.weight = 2.0f;
+        a.weight = 2.0F;
+        b.weight = 2.0F;
         CHECK(a == b);
 
-        a.percentage = 0.5f;
-        b.percentage = 0.5f;
+        a.percentage = 0.5F;
+        b.percentage = 0.5F;
         CHECK(a == b);
     }
 
@@ -26,66 +26,66 @@ TEST_CASE("size_constraint - Float comparison with epsilon") {
         size_constraint a, b;
 
         // Classic floating-point issue: 2.0 / 3.0 * 3.0 may not equal 2.0
-        a.weight = 2.0f / 3.0f * 3.0f;
-        b.weight = 2.0f;
+        a.weight = 2.0F / 3.0F * 3.0F;
+        b.weight = 2.0F;
         CHECK(a == b);  // Should be equal within epsilon
 
         // Another rounding error case
-        a.weight = 0.1f + 0.1f + 0.1f;
-        b.weight = 0.3f;
+        a.weight = 0.1F + 0.1F + 0.1F;
+        b.weight = 0.3F;
         CHECK(a == b);  // Should be equal within epsilon
     }
 
     SUBCASE("Clearly different values are not equal") {
         size_constraint a, b;
-        a.weight = 2.0f;
-        b.weight = 2.1f;
+        a.weight = 2.0F;
+        b.weight = 2.1F;
         CHECK(a != b);  // Different beyond epsilon
 
-        a.weight = 2.0f;
-        b.weight = 3.0f;
+        a.weight = 2.0F;
+        b.weight = 3.0F;
         CHECK(a != b);  // Clearly different
     }
 
     SUBCASE("Zero comparison works correctly") {
         size_constraint a, b;
-        a.weight = 0.0f;
-        b.weight = 0.0f;
+        a.weight = 0.0F;
+        b.weight = 0.0F;
         CHECK(a == b);
 
-        a.weight = 0.0f;
-        b.weight = 0.00001f;
+        a.weight = 0.0F;
+        b.weight = 0.00001F;
         CHECK(a == b);  // Within epsilon
 
-        a.weight = 0.0f;
-        b.weight = 0.01f;
+        a.weight = 0.0F;
+        b.weight = 0.01F;
         CHECK(a != b);  // Beyond epsilon
     }
 
     SUBCASE("Large values work correctly") {
         size_constraint a, b;
-        a.weight = 1000.0f;
-        b.weight = 1000.0f;
+        a.weight = 1000.0F;
+        b.weight = 1000.0F;
         CHECK(a == b);
 
-        a.weight = 1000.0f;
-        b.weight = 1000.0001f;
+        a.weight = 1000.0F;
+        b.weight = 1000.0001F;
         CHECK(a == b);  // Within relative epsilon
 
-        a.weight = 1000.0f;
-        b.weight = 1001.0f;
+        a.weight = 1000.0F;
+        b.weight = 1001.0F;
         CHECK(a != b);  // Beyond relative epsilon
     }
 
     SUBCASE("Percentage comparison works") {
         size_constraint a, b;
-        a.percentage = 0.5f;
-        b.percentage = 0.5f;
+        a.percentage = 0.5F;
+        b.percentage = 0.5F;
         CHECK(a == b);
 
         // Rounding error case
-        a.percentage = 1.0f / 3.0f;
-        b.percentage = 0.333333f;
+        a.percentage = 1.0F / 3.0F;
+        b.percentage = 0.333333F;
         CHECK(a == b);  // Within epsilon
     }
 
@@ -105,50 +105,50 @@ TEST_CASE("size_constraint - Float comparison with epsilon") {
 
         // Same everything except weight
         a = b;
-        a.weight = 1.0f;
-        b.weight = 2.0f;
+        a.weight = 1.0F;
+        b.weight = 2.0F;
         CHECK(a != b);
     }
 }
 
 TEST_CASE("approx_equal - Helper function tests") {
     SUBCASE("Basic equality") {
-        CHECK(approx_equal(2.0f, 2.0f));
-        CHECK(approx_equal(0.0f, 0.0f));
-        CHECK(approx_equal(-1.5f, -1.5f));
+        CHECK(approx_equal(2.0F, 2.0F));
+        CHECK(approx_equal(0.0F, 0.0F));
+        CHECK(approx_equal(-1.5F, -1.5F));
     }
 
     SUBCASE("Near-zero values") {
-        CHECK(approx_equal(0.0f, 0.00001f));
-        CHECK(approx_equal(0.00005f, 0.00006f));
-        CHECK_FALSE(approx_equal(0.0f, 0.01f));
+        CHECK(approx_equal(0.0F, 0.00001F));
+        CHECK(approx_equal(0.00005F, 0.00006F));
+        CHECK_FALSE(approx_equal(0.0F, 0.01F));
     }
 
     SUBCASE("Relative epsilon for large values") {
-        CHECK(approx_equal(1000.0f, 1000.0001f));
-        CHECK(approx_equal(10000.0f, 10000.001f));
-        CHECK_FALSE(approx_equal(1000.0f, 1001.0f));
+        CHECK(approx_equal(1000.0F, 1000.0001F));
+        CHECK(approx_equal(10000.0F, 10000.001F));
+        CHECK_FALSE(approx_equal(1000.0F, 1001.0F));
     }
 
     SUBCASE("Negative values") {
-        CHECK(approx_equal(-2.0f, -2.0f));
-        CHECK(approx_equal(-2.0f / 3.0f * 3.0f, -2.0f));
-        CHECK_FALSE(approx_equal(-2.0f, -2.1f));
+        CHECK(approx_equal(-2.0F, -2.0F));
+        CHECK(approx_equal(-2.0F / 3.0F * 3.0F, -2.0F));
+        CHECK_FALSE(approx_equal(-2.0F, -2.1F));
     }
 
     SUBCASE("Mixed signs are not equal") {
-        CHECK_FALSE(approx_equal(1.0f, -1.0f));
-        CHECK_FALSE(approx_equal(-0.5f, 0.5f));
+        CHECK_FALSE(approx_equal(1.0F, -1.0F));
+        CHECK_FALSE(approx_equal(-0.5F, 0.5F));
     }
 
     SUBCASE("Custom epsilon") {
         // Tighter tolerance
-        CHECK(approx_equal(2.0f, 2.00001f, 0.0001f));
-        CHECK_FALSE(approx_equal(2.0f, 2.001f, 0.0001f));
+        CHECK(approx_equal(2.0F, 2.00001F, 0.0001F));
+        CHECK_FALSE(approx_equal(2.0F, 2.001F, 0.0001F));
 
         // Looser tolerance
-        CHECK(approx_equal(2.0f, 2.01f, 0.01f));
-        CHECK(approx_equal(2.0f, 2.1f, 0.1f));
+        CHECK(approx_equal(2.0F, 2.01F, 0.01F));
+        CHECK(approx_equal(2.0F, 2.1F, 0.1F));
     }
 }
 
@@ -190,11 +190,11 @@ TEST_CASE("size_constraint - Real-world scenarios") {
 
         // User sets constraint
         cached.policy = size_policy::weighted;
-        cached.weight = 2.0f;
+        cached.weight = 2.0F;
 
         // Layout system recalculates and gets slightly different value
         current.policy = size_policy::weighted;
-        current.weight = 2.0f / 3.0f * 3.0f;
+        current.weight = 2.0F / 3.0F * 3.0F;
 
         // Should still be considered equal (no unnecessary layout invalidation)
         CHECK(cached == current);
@@ -204,8 +204,8 @@ TEST_CASE("size_constraint - Real-world scenarios") {
         size_constraint a, b;
 
         // One third as percentage
-        a.percentage = 1.0f / 3.0f;
-        b.percentage = 0.333333f;
+        a.percentage = 1.0F / 3.0F;
+        b.percentage = 0.333333F;
 
         CHECK(a == b);
     }
@@ -213,12 +213,12 @@ TEST_CASE("size_constraint - Real-world scenarios") {
     SUBCASE("Weighted distribution") {
         size_constraint c1, c2, c3;
 
-        c1.weight = 1.0f;
-        c2.weight = 2.0f;
-        c3.weight = 1.0f;
+        c1.weight = 1.0F;
+        c2.weight = 2.0F;
+        c3.weight = 1.0F;
 
         // After some computation
-        float total = c1.weight + c2.weight + c3.weight;
+        float const total = c1.weight + c2.weight + c3.weight;
         size_constraint c1_check;
         c1_check.weight = (c1.weight / total) * total;  // May have rounding
 

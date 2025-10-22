@@ -323,16 +323,16 @@ namespace onyxui {
         for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
-            size_type measured = child->measure(available_width, available_height);
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            size_type const measured = child->measure(available_width, available_height);
+            int const meas_w = size_utils::get_width(measured);
+            int const meas_h = size_utils::get_height(measured);
 
             auto it = m_position_mapping.find(child.get());
             if (it != m_position_mapping.end()) {
                 const position_info& pos = it->second;
 
-                int child_width = (pos.width > 0) ? pos.width : meas_w;
-                int child_height = (pos.height > 0) ? pos.height : meas_h;
+                int const child_width = (pos.width > 0) ? pos.width : meas_w;
+                int const child_height = (pos.height > 0) ? pos.height : meas_h;
 
                 max_width = std::max(max_width, pos.x + child_width);
                 max_height = std::max(max_height, pos.y + child_height);
@@ -350,8 +350,8 @@ namespace onyxui {
     // -----------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
     void absolute_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
-        int content_x = rect_utils::get_x(content_area);
-        int content_y = rect_utils::get_y(content_area);
+        int const content_x = rect_utils::get_x(content_area);
+        int const content_y = rect_utils::get_y(content_area);
 
         for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
@@ -362,13 +362,13 @@ namespace onyxui {
                                     : position_info{0, 0, -1, -1};
 
             const size_type& measured = this->get_last_measured_size(child.get());
-            int meas_w = size_utils::get_width(measured);
-            int meas_h = size_utils::get_height(measured);
+            int const meas_w = size_utils::get_width(measured);
+            int const meas_h = size_utils::get_height(measured);
 
-            int child_x = content_x + pos.x;
-            int child_y = content_y + pos.y;
-            int child_width = (pos.width > 0) ? pos.width : meas_w;
-            int child_height = (pos.height > 0) ? pos.height : meas_h;
+            int const child_x = content_x + pos.x;
+            int const child_y = content_y + pos.y;
+            int const child_width = (pos.width > 0) ? pos.width : meas_w;
+            int const child_height = (pos.height > 0) ? pos.height : meas_h;
 
             rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y, child_width, child_height);

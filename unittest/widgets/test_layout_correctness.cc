@@ -5,6 +5,7 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/panel.hh>
@@ -12,7 +13,11 @@
 #include <onyxui/widgets/vbox.hh>
 #include <onyxui/widgets/spacer.hh>
 #include <onyxui/widgets/spring.hh>
+#include <utility>
 #include "../utils/test_backend.hh"
+#include "onyxui/concepts/size_like.hh"
+#include "onyxui/layout_strategy.hh"
+#include "onyxui/concepts/rect_like.hh"
 
 using namespace onyxui;
 
@@ -52,7 +57,7 @@ TEST_CASE("Layout Correctness - Measure Phase") {
         box.add_child(std::move(btn2));
 
         auto size = box.measure(1000, 100);
-        int width = size_utils::get_width(size);
+        int const width = size_utils::get_width(size);
 
         // Width should include spacing between buttons
         CHECK(width > 0);
@@ -85,7 +90,7 @@ TEST_CASE("Layout Correctness - Measure Phase") {
     }
 
     SUBCASE("Spring - Minimal size measurement") {
-        spring<test_backend> spr(1.0f, true);  // Horizontal spring
+        spring<test_backend> spr(1.0F, true);  // Horizontal spring
         spr.set_min_size(20);
 
         auto size = spr.measure(1000, 100);
@@ -345,7 +350,7 @@ TEST_CASE("Layout Correctness - Flexible Springs") {
         hbox<test_backend> box(0);
 
         auto panel1 = std::make_unique<panel<test_backend>>();
-        auto spr = std::make_unique<spring<test_backend>>(1.0f, true);  // Horizontal spring
+        auto spr = std::make_unique<spring<test_backend>>(1.0F, true);  // Horizontal spring
         auto panel2 = std::make_unique<panel<test_backend>>();
 
         // Set fixed widths for panels
@@ -392,9 +397,9 @@ TEST_CASE("Layout Correctness - Flexible Springs") {
     SUBCASE("HBox - Two equal springs split space equally") {
         hbox<test_backend> box(0);
 
-        auto spr1 = std::make_unique<spring<test_backend>>(1.0f, true);
+        auto spr1 = std::make_unique<spring<test_backend>>(1.0F, true);
         auto center_panel = std::make_unique<panel<test_backend>>();
-        auto spr2 = std::make_unique<spring<test_backend>>(1.0f, true);
+        auto spr2 = std::make_unique<spring<test_backend>>(1.0F, true);
 
         // Fixed width panel
         size_constraint fixed_width;
@@ -438,9 +443,9 @@ TEST_CASE("Layout Correctness - Flexible Springs") {
     SUBCASE("HBox - Weighted springs (2:1 ratio)") {
         hbox<test_backend> box(0);
 
-        auto spr1 = std::make_unique<spring<test_backend>>(2.0f, true);  // 2x weight
+        auto spr1 = std::make_unique<spring<test_backend>>(2.0F, true);  // 2x weight
         auto middle_panel = std::make_unique<panel<test_backend>>();
-        auto spr2 = std::make_unique<spring<test_backend>>(1.0f, true);  // 1x weight
+        auto spr2 = std::make_unique<spring<test_backend>>(1.0F, true);  // 1x weight
 
         // Fixed width panel
         size_constraint fixed_width;
@@ -476,7 +481,7 @@ TEST_CASE("Layout Correctness - Flexible Springs") {
         vbox<test_backend> box(0);
 
         auto panel1 = std::make_unique<panel<test_backend>>();
-        auto spr = std::make_unique<spring<test_backend>>(1.0f, false);  // Vertical spring
+        auto spr = std::make_unique<spring<test_backend>>(1.0F, false);  // Vertical spring
         auto panel2 = std::make_unique<panel<test_backend>>();
 
         // Set fixed heights
@@ -637,7 +642,7 @@ TEST_CASE("Layout Correctness - Nested Layouts") {
         hbox<test_backend> toolbar(0);
 
         auto left_btn = std::make_unique<button<test_backend>>("Menu");
-        auto spr = std::make_unique<spring<test_backend>>(1.0f, true);
+        auto spr = std::make_unique<spring<test_backend>>(1.0F, true);
         auto right_btn = std::make_unique<button<test_backend>>("Help");
 
         // Fixed size buttons
@@ -676,9 +681,9 @@ TEST_CASE("Layout Correctness - Nested Layouts") {
     SUBCASE("Centered content with springs") {
         hbox<test_backend> container(0);
 
-        auto left_spring = std::make_unique<spring<test_backend>>(1.0f, true);
+        auto left_spring = std::make_unique<spring<test_backend>>(1.0F, true);
         auto content = std::make_unique<panel<test_backend>>();
-        auto right_spring = std::make_unique<spring<test_backend>>(1.0f, true);
+        auto right_spring = std::make_unique<spring<test_backend>>(1.0F, true);
 
         // Fixed size content
         size_constraint fixed_width;
@@ -776,14 +781,14 @@ TEST_CASE("Layout Correctness - Real-World Scenarios") {
         auto left = std::make_unique<panel<test_backend>>();
         size_constraint left_width;
         left_width.policy = size_policy::weighted;
-        left_width.weight = 1.0f;
+        left_width.weight = 1.0F;
         left->set_width_constraint(left_width);
 
         // Right panel: 2/3 of space
         auto right = std::make_unique<panel<test_backend>>();
         size_constraint right_width;
         right_width.policy = size_policy::weighted;
-        right_width.weight = 2.0f;
+        right_width.weight = 2.0F;
         right->set_width_constraint(right_width);
 
         auto* left_ptr = left.get();
@@ -820,7 +825,7 @@ TEST_CASE("Layout Correctness - Real-World Scenarios") {
         auto content = std::make_unique<panel<test_backend>>();
 
         // Flexible spring
-        auto spring1 = std::make_unique<spring<test_backend>>(1.0f, false);
+        auto spring1 = std::make_unique<spring<test_backend>>(1.0F, false);
 
         // Bottom buttons
         auto buttons = std::make_unique<hbox<test_backend>>(10);

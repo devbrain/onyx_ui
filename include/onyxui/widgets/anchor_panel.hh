@@ -121,7 +121,7 @@ namespace onyxui {
          * @note Updates raw layout pointer to maintain validity
          */
         anchor_panel(anchor_panel&& other) noexcept
-            : base(std::move(other))
+            : base(std::move(static_cast<base&>(other)))
             , m_anchor_layout(std::exchange(other.m_anchor_layout, nullptr)) {}
 
         /**
@@ -130,7 +130,7 @@ namespace onyxui {
          */
         anchor_panel& operator=(anchor_panel&& other) noexcept {
             if (this != &other) {
-                base::operator=(std::move(other));
+                base::operator=(std::move(static_cast<base&>(other)));
                 m_anchor_layout = std::exchange(other.m_anchor_layout, nullptr);
             }
             return *this;
