@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OnyxUI Conio Theme",
+  "description": "YAML theme configuration for OnyxUI conio (terminal) backend",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Theme name"
+    },
+    "author": {
+      "type": "string",
+      "description": "Theme author"
+    },
+    "description": {
+      "type": "string",
+      "description": "Theme description"
+    },
+    "window_bg": {
+      "$ref": "#/definitions/color",
+      "description": "Default window background color"
+    },
+    "text_fg": {
+      "$ref": "#/definitions/color",
+      "description": "Default text foreground color"
+    },
+    "button": {
+      "$ref": "#/definitions/button_style",
+      "description": "Button widget style"
+    },
+    "label": {
+      "$ref": "#/definitions/label_style",
+      "description": "Label widget style"
+    },
+    "panel": {
+      "$ref": "#/definitions/panel_style",
+      "description": "Panel widget style"
+    },
+    "menu_bar": {
+      "$ref": "#/definitions/label_style",
+      "description": "Menu bar style"
+    },
+    "group_box": {
+      "$ref": "#/definitions/panel_style",
+      "description": "Group box style"
+    },
+    "status_bar": {
+      "$ref": "#/definitions/panel_style",
+      "description": "Status bar style"
+    }
+  },
+  "required": ["name"],
+  "definitions": {
+    "color": {
+      "description": "RGB color value",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^#?[0-9A-Fa-f]{6}$",
+          "description": "Hex color format: #RRGGBB or RRGGBB"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "RGB array format: [R, G, B]"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "r": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "Red component (0-255)"
+            },
+            "g": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "Green component (0-255)"
+            },
+            "b": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255,
+              "description": "Blue component (0-255)"
+            }
+          },
+          "required": ["r", "g", "b"],
+          "additionalProperties": false,
+          "description": "RGB object format: {r, g, b}"
+        }
+      ]
+    },
+    "font": {
+      "type": "object",
+      "properties": {
+        "bold": {
+          "type": "boolean",
+          "description": "Enable bold text",
+          "default": false
+        },
+        "reverse": {
+          "type": "boolean",
+          "description": "Enable reverse video (swap foreground/background)",
+          "default": false
+        },
+        "underline": {
+          "type": "boolean",
+          "description": "Enable underline",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "box_style": {
+      "type": "string",
+      "enum": ["none", "single_line", "double_line", "rounded", "heavy"],
+      "description": "Box drawing style for borders"
+    },
+    "horizontal_alignment": {
+      "type": "string",
+      "enum": ["left", "center", "right", "stretch"],
+      "description": "Horizontal text alignment"
+    },
+    "button_style": {
+      "type": "object",
+      "properties": {
+        "fg_normal": {
+          "$ref": "#/definitions/color",
+          "description": "Normal state foreground color"
+        },
+        "bg_normal": {
+          "$ref": "#/definitions/color",
+          "description": "Normal state background color"
+        },
+        "fg_hover": {
+          "$ref": "#/definitions/color",
+          "description": "Hover state foreground color"
+        },
+        "bg_hover": {
+          "$ref": "#/definitions/color",
+          "description": "Hover state background color"
+        },
+        "fg_pressed": {
+          "$ref": "#/definitions/color",
+          "description": "Pressed state foreground color"
+        },
+        "bg_pressed": {
+          "$ref": "#/definitions/color",
+          "description": "Pressed state background color"
+        },
+        "fg_disabled": {
+          "$ref": "#/definitions/color",
+          "description": "Disabled state foreground color"
+        },
+        "bg_disabled": {
+          "$ref": "#/definitions/color",
+          "description": "Disabled state background color"
+        },
+        "border_color": {
+          "$ref": "#/definitions/color",
+          "description": "Border color"
+        },
+        "box_style": {
+          "$ref": "#/definitions/box_style",
+          "description": "Border box style"
+        },
+        "font": {
+          "$ref": "#/definitions/font",
+          "description": "Button text font"
+        },
+        "mnemonic_font": {
+          "$ref": "#/definitions/font",
+          "description": "Mnemonic character font (e.g., underlined shortcut key)"
+        },
+        "padding": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Internal padding in characters",
+          "default": 1
+        },
+        "text_alignment": {
+          "$ref": "#/definitions/horizontal_alignment",
+          "description": "Text alignment within button",
+          "default": "center"
+        },
+        "has_border": {
+          "type": "boolean",
+          "description": "Enable border drawing",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "label_style": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/color",
+          "description": "Text color"
+        },
+        "background": {
+          "$ref": "#/definitions/color",
+          "description": "Background color"
+        },
+        "font": {
+          "$ref": "#/definitions/font",
+          "description": "Text font"
+        },
+        "mnemonic_font": {
+          "$ref": "#/definitions/font",
+          "description": "Mnemonic character font"
+        },
+        "text_alignment": {
+          "$ref": "#/definitions/horizontal_alignment",
+          "description": "Text alignment",
+          "default": "left"
+        }
+      },
+      "additionalProperties": false
+    },
+    "panel_style": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/definitions/color",
+          "description": "Panel background color"
+        },
+        "border_color": {
+          "$ref": "#/definitions/color",
+          "description": "Border color"
+        },
+        "box_style": {
+          "$ref": "#/definitions/box_style",
+          "description": "Border box style"
+        },
+        "has_border": {
+          "type": "boolean",
+          "description": "Enable border drawing",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,6 +1,6 @@
 //
 // Font Reflection Tests
-// Tests conio_renderer::font serialization/deserialization
+// Tests font serialization/deserialization using backend-agnostic test::test_font
 //
 
 #include <doctest/doctest.h>
@@ -8,14 +8,15 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/yaml/fkyaml_adapter.hh>
-#include <onyxui/conio/conio_renderer.hh>
+#include "test_types.hh"
+#include "test_types_yaml.hh"
 
 using namespace onyxui::yaml;
-using namespace onyxui::conio;
+using test::test_font;
 
 TEST_CASE("Font - Serialization all boolean combinations") {
     SUBCASE("All false (default)") {
-        conio_renderer::font f{false, false, false};
+        test_font f{false, false, false};
         auto yaml = to_yaml(f);
         CHECK(yaml.is_mapping());
         CHECK(yaml["bold"].get_value<bool>() == false);
@@ -24,7 +25,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Bold only") {
-        conio_renderer::font f{true, false, false};
+        test_font f{true, false, false};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == true);
         CHECK(yaml["underline"].get_value<bool>() == false);
@@ -32,7 +33,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Underline only") {
-        conio_renderer::font f{false, true, false};
+        test_font f{false, true, false};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == false);
         CHECK(yaml["underline"].get_value<bool>() == true);
@@ -40,7 +41,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Reverse only") {
-        conio_renderer::font f{false, false, true};
+        test_font f{false, false, true};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == false);
         CHECK(yaml["underline"].get_value<bool>() == false);
@@ -48,7 +49,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Bold and underline") {
-        conio_renderer::font f{true, true, false};
+        test_font f{true, true, false};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == true);
         CHECK(yaml["underline"].get_value<bool>() == true);
@@ -56,7 +57,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Bold and reverse") {
-        conio_renderer::font f{true, false, true};
+        test_font f{true, false, true};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == true);
         CHECK(yaml["underline"].get_value<bool>() == false);
@@ -64,7 +65,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("Underline and reverse") {
-        conio_renderer::font f{false, true, true};
+        test_font f{false, true, true};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == false);
         CHECK(yaml["underline"].get_value<bool>() == true);
@@ -72,7 +73,7 @@ TEST_CASE("Font - Serialization all boolean combinations") {
     }
 
     SUBCASE("All true") {
-        conio_renderer::font f{true, true, true};
+        test_font f{true, true, true};
         auto yaml = to_yaml(f);
         CHECK(yaml["bold"].get_value<bool>() == true);
         CHECK(yaml["underline"].get_value<bool>() == true);
@@ -87,7 +88,7 @@ bold: false
 underline: false
 reverse: false
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == false);
         CHECK(f.underline == false);
         CHECK(f.reverse == false);
@@ -99,7 +100,7 @@ bold: true
 underline: true
 reverse: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == true);
         CHECK(f.reverse == true);
@@ -111,7 +112,7 @@ bold: true
 underline: false
 reverse: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);
         CHECK(f.reverse == true);
@@ -123,7 +124,7 @@ reverse: true
 bold: false
 underline: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == false);
         CHECK(f.underline == true);
         CHECK(f.reverse == true);
@@ -133,7 +134,7 @@ underline: true
 TEST_CASE("Font - Default values when fields missing") {
     SUBCASE("Empty YAML uses all defaults") {
         std::string yaml = "{}";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == false);
         CHECK(f.underline == false);
         CHECK(f.reverse == false);
@@ -144,7 +145,7 @@ TEST_CASE("Font - Default values when fields missing") {
 underline: true
 reverse: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == false);  // Default
         CHECK(f.underline == true);
         CHECK(f.reverse == true);
@@ -155,7 +156,7 @@ reverse: true
 bold: true
 reverse: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);  // Default
         CHECK(f.reverse == true);
@@ -166,7 +167,7 @@ reverse: true
 bold: true
 underline: true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == true);
         CHECK(f.reverse == false);  // Default
@@ -174,7 +175,7 @@ underline: true
 
     SUBCASE("Only one field specified") {
         std::string yaml = "bold: true";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);  // Default
         CHECK(f.reverse == false);  // Default
@@ -183,27 +184,27 @@ underline: true
 
 TEST_CASE("Font - Round-trip preservation") {
     SUBCASE("Round-trip all false") {
-        conio_renderer::font original{false, false, false};
+        test_font original{false, false, false};
         auto yaml = to_yaml(original);
-        auto restored = from_yaml<conio_renderer::font>(yaml);
+        auto restored = from_yaml<test_font>(yaml);
         CHECK(restored.bold == original.bold);
         CHECK(restored.underline == original.underline);
         CHECK(restored.reverse == original.reverse);
     }
 
     SUBCASE("Round-trip all true") {
-        conio_renderer::font original{true, true, true};
+        test_font original{true, true, true};
         auto yaml = to_yaml(original);
-        auto restored = from_yaml<conio_renderer::font>(yaml);
+        auto restored = from_yaml<test_font>(yaml);
         CHECK(restored.bold == original.bold);
         CHECK(restored.underline == original.underline);
         CHECK(restored.reverse == original.reverse);
     }
 
     SUBCASE("Round-trip mixed values") {
-        conio_renderer::font original{true, false, true};
+        test_font original{true, false, true};
         auto yaml = to_yaml(original);
-        auto restored = from_yaml<conio_renderer::font>(yaml);
+        auto restored = from_yaml<test_font>(yaml);
         CHECK(restored.bold == original.bold);
         CHECK(restored.underline == original.underline);
         CHECK(restored.reverse == original.reverse);
@@ -213,8 +214,8 @@ TEST_CASE("Font - Round-trip preservation") {
 TEST_CASE("Font - Integration with other types") {
     SUBCASE("Font in struct with color") {
         struct text_style {
-            conio_renderer::font font;
-            color text_color;
+            test_font font;
+            test::test_color text_color;
         };
 
         text_style style{
@@ -231,8 +232,8 @@ TEST_CASE("Font - Integration with other types") {
 
     SUBCASE("Deserialize font from struct") {
         struct text_style {
-            conio_renderer::font font;
-            color text_color;
+            test_font font;
+            test::test_color text_color;
         };
 
         std::string yaml = R"(
@@ -254,14 +255,14 @@ text_color: [100, 150, 200]
 
     SUBCASE("Font with enum and color") {
         struct widget_style {
-            conio_renderer::font font;
-            conio_renderer::box_style border;
-            color background;
+            test_font font;
+            test::test_box_style border;
+            test::test_color background;
         };
 
         widget_style style{
             .font = {true, false, false},
-            .border = conio_renderer::box_style::double_line,
+            .border = test::test_box_style::double_line,
             .background = {50, 100, 150}
         };
 
@@ -275,7 +276,7 @@ text_color: [100, 150, 200]
 TEST_CASE("Font - YAML format variations") {
     SUBCASE("Inline format") {
         std::string yaml = "{ bold: true, underline: false, reverse: true }";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);
         CHECK(f.reverse == true);
@@ -283,7 +284,7 @@ TEST_CASE("Font - YAML format variations") {
 
     SUBCASE("Compact format") {
         std::string yaml = "bold: true\nunderline: false\nreverse: true";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);
         CHECK(f.reverse == true);
@@ -295,7 +296,7 @@ bold:    true
 underline:   false
 reverse:     true
 )";
-        auto f = from_yaml_string<conio_renderer::font>(yaml);
+        auto f = from_yaml_string<test_font>(yaml);
         CHECK(f.bold == true);
         CHECK(f.underline == false);
         CHECK(f.reverse == true);
@@ -304,7 +305,7 @@ reverse:     true
 
 TEST_CASE("Font - to_yaml_string produces valid YAML") {
     SUBCASE("Serialize and verify YAML is valid") {
-        conio_renderer::font f{true, false, true};
+        test_font f{true, false, true};
         std::string yaml_str = to_yaml_string(f);
 
         // Should contain the field names
@@ -313,7 +314,7 @@ TEST_CASE("Font - to_yaml_string produces valid YAML") {
         CHECK(yaml_str.find("reverse") != std::string::npos);
 
         // Should be deserializable
-        auto restored = from_yaml_string<conio_renderer::font>(yaml_str);
+        auto restored = from_yaml_string<test_font>(yaml_str);
         CHECK(restored.bold == true);
         CHECK(restored.underline == false);
         CHECK(restored.reverse == true);

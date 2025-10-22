@@ -1,6 +1,7 @@
 //
 // Nested Struct Serialization Tests
 // Tests multi-level struct nesting with YAML serialization
+// using backend-agnostic test types
 //
 
 #include <doctest/doctest.h>
@@ -8,11 +9,10 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/yaml/fkyaml_adapter.hh>
-#include <onyxui/conio/colors.hh>
-#include <onyxui/conio/enum_reflection.hh>
+#include "test_types.hh"
+#include "test_types_yaml.hh"
 
 using namespace onyxui::yaml;
-using namespace onyxui::conio;
 
 // ===========================================================================
 // Test Structures - 2 Levels of Nesting
@@ -20,21 +20,21 @@ using namespace onyxui::conio;
 
 TEST_CASE("Nested structs - 2 levels deep") {
     struct theme_colors {
-        color foreground;
-        color background;
+        test::test_color foreground;
+        test::test_color background;
     };
 
     struct button_theme {
         theme_colors normal;
         theme_colors hover;
-        conio_renderer::box_style border;
+        test::test_box_style border;
     };
 
     SUBCASE("Serialize nested struct") {
         button_theme theme{
-            .normal = {.foreground = color{255, 255, 255}, .background = color{0, 0, 170}},
-            .hover = {.foreground = color{255, 255, 0}, .background = color{0, 170, 170}},
-            .border = conio_renderer::box_style::single_line
+            .normal = {.foreground = test::test_color{255, 255, 255}, .background = test::test_color{0, 0, 170}},
+            .hover = {.foreground = test::test_color{255, 255, 0}, .background = test::test_color{0, 170, 170}},
+            .border = test::test_box_style::single_line
         };
 
         auto yaml = to_yaml(theme);
@@ -80,14 +80,14 @@ border: single_line
         CHECK(theme.hover.background.g == 170);
         CHECK(theme.hover.background.b == 170);
 
-        CHECK(theme.border == conio_renderer::box_style::single_line);
+        CHECK(theme.border == test::test_box_style::single_line);
     }
 
     SUBCASE("Round-trip nested struct") {
         button_theme original{
-            .normal = {.foreground = color{200, 200, 200}, .background = color{50, 50, 50}},
-            .hover = {.foreground = color{255, 255, 255}, .background = color{100, 100, 255}},
-            .border = conio_renderer::box_style::double_line
+            .normal = {.foreground = test::test_color{200, 200, 200}, .background = test::test_color{50, 50, 50}},
+            .hover = {.foreground = test::test_color{255, 255, 255}, .background = test::test_color{100, 100, 255}},
+            .border = test::test_box_style::double_line
         };
 
         auto yaml = to_yaml(original);
@@ -122,27 +122,27 @@ TEST_CASE("Nested structs - 3 levels deep") {
     };
 
     struct text_style {
-        color text_color;
+        test::test_color text_color;
         font_style font;
     };
 
     struct widget_theme {
         text_style title;
         text_style content;
-        conio_renderer::box_style border;
+        test::test_box_style border;
     };
 
     SUBCASE("Serialize 3-level nested struct") {
         widget_theme theme{
             .title = {
-                .text_color = color{255, 255, 0},
+                .text_color = test::test_color{255, 255, 0},
                 .font = {.bold = true, .underline = false}
             },
             .content = {
-                .text_color = color{255, 255, 255},
+                .text_color = test::test_color{255, 255, 255},
                 .font = {.bold = false, .underline = false}
             },
-            .border = conio_renderer::box_style::rounded
+            .border = test::test_box_style::rounded
         };
 
         auto yaml = to_yaml(theme);
@@ -183,20 +183,20 @@ border: rounded
         CHECK(theme.content.font.bold == false);
         CHECK(theme.content.font.underline == false);
 
-        CHECK(theme.border == conio_renderer::box_style::rounded);
+        CHECK(theme.border == test::test_box_style::rounded);
     }
 
     SUBCASE("Round-trip 3-level nested struct") {
         widget_theme original{
             .title = {
-                .text_color = color{128, 128, 255},
+                .text_color = test::test_color{128, 128, 255},
                 .font = {.bold = true, .underline = true}
             },
             .content = {
-                .text_color = color{200, 200, 200},
+                .text_color = test::test_color{200, 200, 200},
                 .font = {.bold = false, .underline = true}
             },
-            .border = conio_renderer::box_style::heavy
+            .border = test::test_box_style::heavy
         };
 
         auto yaml = to_yaml(original);

@@ -1,6 +1,7 @@
 //
 // Color YAML Reflection Tests
-// Tests conio::color serialization/deserialization with multiple YAML formats
+// Tests color serialization/deserialization with multiple YAML formats
+// using backend-agnostic test::test_color type
 //
 
 #include <doctest/doctest.h>
@@ -8,17 +9,18 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/yaml/fkyaml_adapter.hh>
-#include <onyxui/conio/colors.hh>
+#include "test_types.hh"
+#include "test_types_yaml.hh"
 
 using namespace onyxui::yaml;
-using namespace onyxui::conio;
+using test::test_color;
 
 TEST_CASE("Color YAML - Serialization") {
-    color red{255, 0, 0};
-    color green{0, 255, 0};
-    color blue{0, 0, 255};
-    color white{255, 255, 255};
-    color black{0, 0, 0};
+    test_color red{255, 0, 0};
+    test_color green{0, 255, 0};
+    test_color blue{0, 0, 255};
+    test_color white{255, 255, 255};
+    test_color black{0, 0, 0};
 
     SUBCASE("Serialize red to object") {
         std::string yaml = to_yaml_string(red);
@@ -61,7 +63,7 @@ TEST_CASE("Color YAML - Deserialization from hex string in struct") {
     // However, hex strings work perfectly when used as values in YAML mappings (realistic use case)
 
     struct color_wrapper {
-        color value;
+        test_color value;
     };
 
     SUBCASE("Parse #RRGGBB format") {
@@ -108,7 +110,7 @@ TEST_CASE("Color YAML - Deserialization from hex string in struct") {
 TEST_CASE("Color YAML - Deserialization from array") {
     SUBCASE("Parse [R, G, B] format") {
         std::string yaml = "[255, 128, 64]";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 255);
         CHECK(c.g == 128);
         CHECK(c.b == 64);
@@ -116,7 +118,7 @@ TEST_CASE("Color YAML - Deserialization from array") {
 
     SUBCASE("Parse [0, 0, 0] black") {
         std::string yaml = "[0, 0, 0]";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 0);
         CHECK(c.g == 0);
         CHECK(c.b == 0);
@@ -124,7 +126,7 @@ TEST_CASE("Color YAML - Deserialization from array") {
 
     SUBCASE("Parse [255, 255, 255] white") {
         std::string yaml = "[255, 255, 255]";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 255);
         CHECK(c.g == 255);
         CHECK(c.b == 255);
@@ -134,7 +136,7 @@ TEST_CASE("Color YAML - Deserialization from array") {
 TEST_CASE("Color YAML - Deserialization from object") {
     SUBCASE("Parse {r: R, g: G, b: B} format") {
         std::string yaml = "r: 100\ng: 150\nb: 200";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 100);
         CHECK(c.g == 150);
         CHECK(c.b == 200);
@@ -142,7 +144,7 @@ TEST_CASE("Color YAML - Deserialization from object") {
 
     SUBCASE("Parse object with different order") {
         std::string yaml = "b: 50\ng: 100\nr: 150";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 150);
         CHECK(c.g == 100);
         CHECK(c.b == 50);
@@ -150,11 +152,11 @@ TEST_CASE("Color YAML - Deserialization from object") {
 }
 
 TEST_CASE("Color YAML - Round-trip preservation") {
-    color original{123, 45, 67};
+    test_color original{123, 45, 67};
 
     SUBCASE("Object round-trip via struct") {
         // Test object serialization in realistic scenario (struct with color field)
-        struct theme { color bg; };
+        struct theme { test_color bg; };
         theme t{original};
 
         // Serialize to YAML
@@ -175,7 +177,7 @@ TEST_CASE("Color YAML - Round-trip preservation") {
 
     SUBCASE("Array format preserves values") {
         std::string yaml_array = "[123, 45, 67]";
-        color restored = from_yaml_string<color>(yaml_array);
+        test_color restored =from_yaml_string<test_color>(yaml_array);
 
         CHECK(restored.r == original.r);
         CHECK(restored.g == original.g);
@@ -184,7 +186,7 @@ TEST_CASE("Color YAML - Round-trip preservation") {
 
     SUBCASE("Object format preserves values") {
         std::string yaml_obj = "r: 123\ng: 45\nb: 67";
-        color restored = from_yaml_string<color>(yaml_obj);
+        test_color restored =from_yaml_string<test_color>(yaml_obj);
 
         CHECK(restored.r == original.r);
         CHECK(restored.g == original.g);
@@ -195,22 +197,22 @@ TEST_CASE("Color YAML - Round-trip preservation") {
 TEST_CASE("Color YAML - Error handling") {
     SUBCASE("Reject invalid hex length") {
         std::string yaml = "\"#fff\"";  // Too short
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 
     SUBCASE("Reject invalid hex characters") {
         std::string yaml = "\"#gggggg\"";  // Invalid characters
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 
     SUBCASE("Reject array with wrong size") {
         std::string yaml = "[255, 128]";  // Only 2 elements
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 
     SUBCASE("Accept 4-element RGBA array (ignore alpha for RGB-only colors)") {
         std::string yaml = "[255, 128, 64, 192]";  // 4 elements [R, G, B, A]
-        auto c = from_yaml_string<color>(yaml);
+        auto c = from_yaml_string<test_color>(yaml);
         // RGB-only color ignores alpha, uses first 3 components
         CHECK(c.r == 255);
         CHECK(c.g == 128);
@@ -219,42 +221,42 @@ TEST_CASE("Color YAML - Error handling") {
 
     SUBCASE("Reject object missing r field") {
         std::string yaml = "g: 100\nb: 200";
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 
     SUBCASE("Reject object missing g field") {
         std::string yaml = "r: 100\nb: 200";
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 
     SUBCASE("Reject object missing b field") {
         std::string yaml = "r: 100\ng: 200";
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 }
 
 TEST_CASE("Color YAML - Boundary values") {
     SUBCASE("Minimum values [0, 0, 0]") {
-        color black{0, 0, 0};
+        test_color black{0, 0, 0};
         std::string yaml = to_yaml_string(black);
         CHECK(yaml.find("r: 0") != std::string::npos);
         CHECK(yaml.find("g: 0") != std::string::npos);
         CHECK(yaml.find("b: 0") != std::string::npos);
 
-        auto restored = from_yaml_string<color>("[0, 0, 0]");
+        auto restored = from_yaml_string<test_color>("[0, 0, 0]");
         CHECK(restored.r == 0);
         CHECK(restored.g == 0);
         CHECK(restored.b == 0);
     }
 
     SUBCASE("Maximum values [255, 255, 255]") {
-        color white{255, 255, 255};
+        test_color white{255, 255, 255};
         std::string yaml = to_yaml_string(white);
         CHECK(yaml.find("r: 255") != std::string::npos);
         CHECK(yaml.find("g: 255") != std::string::npos);
         CHECK(yaml.find("b: 255") != std::string::npos);
 
-        auto restored = from_yaml_string<color>("[255, 255, 255]");
+        auto restored = from_yaml_string<test_color>("[255, 255, 255]");
         CHECK(restored.r == 255);
         CHECK(restored.g == 255);
         CHECK(restored.b == 255);
@@ -262,7 +264,7 @@ TEST_CASE("Color YAML - Boundary values") {
 
     SUBCASE("Mid-range values") {
         std::string yaml = "[127, 128, 129]";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 127);
         CHECK(c.g == 128);
         CHECK(c.b == 129);
@@ -270,17 +272,17 @@ TEST_CASE("Color YAML - Boundary values") {
 
     SUBCASE("Single channel variations") {
         // Test each channel at max while others at min
-        auto red_only = from_yaml_string<color>("[255, 0, 0]");
+        auto red_only = from_yaml_string<test_color>("[255, 0, 0]");
         CHECK(red_only.r == 255);
         CHECK(red_only.g == 0);
         CHECK(red_only.b == 0);
 
-        auto green_only = from_yaml_string<color>("[0, 255, 0]");
+        auto green_only = from_yaml_string<test_color>("[0, 255, 0]");
         CHECK(green_only.r == 0);
         CHECK(green_only.g == 255);
         CHECK(green_only.b == 0);
 
-        auto blue_only = from_yaml_string<color>("[0, 0, 255]");
+        auto blue_only = from_yaml_string<test_color>("[0, 0, 255]");
         CHECK(blue_only.r == 0);
         CHECK(blue_only.g == 0);
         CHECK(blue_only.b == 255);
@@ -290,7 +292,7 @@ TEST_CASE("Color YAML - Boundary values") {
 TEST_CASE("Color YAML - Whitespace handling") {
     SUBCASE("Array with extra whitespace") {
         std::string yaml = "[  255  ,  128  ,  64  ]";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 255);
         CHECK(c.g == 128);
         CHECK(c.b == 64);
@@ -298,7 +300,7 @@ TEST_CASE("Color YAML - Whitespace handling") {
 
     SUBCASE("Object with extra whitespace") {
         std::string yaml = "r:   255\ng:   128\nb:   64";
-        color c = from_yaml_string<color>(yaml);
+        test_color c = from_yaml_string<test_color>(yaml);
         CHECK(c.r == 255);
         CHECK(c.g == 128);
         CHECK(c.b == 64);
@@ -308,18 +310,18 @@ TEST_CASE("Color YAML - Whitespace handling") {
         std::string yaml = "\"  #ff8040  \"";
         // Note: fkYAML will preserve the whitespace in the string
         // This will fail parsing, which is correct behavior
-        CHECK_THROWS_AS(from_yaml_string<color>(yaml), std::runtime_error);
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 }
 
 TEST_CASE("Color YAML - Mixed format compatibility") {
-    color original{100, 150, 200};
+    test_color original{100, 150, 200};
 
     SUBCASE("Serialize as hex, deserialize as array") {
         std::string hex_yaml = to_yaml_string(original);
         // Can't directly deserialize hex due to fkYAML quirk, but we can test array
         std::string array_yaml = "[100, 150, 200]";
-        auto restored = from_yaml_string<color>(array_yaml);
+        auto restored = from_yaml_string<test_color>(array_yaml);
         CHECK(restored.r == original.r);
         CHECK(restored.g == original.g);
         CHECK(restored.b == original.b);
@@ -328,15 +330,15 @@ TEST_CASE("Color YAML - Mixed format compatibility") {
     SUBCASE("Serialize as hex, deserialize as object") {
         std::string hex_yaml = to_yaml_string(original);
         std::string obj_yaml = "r: 100\ng: 150\nb: 200";
-        auto restored = from_yaml_string<color>(obj_yaml);
+        auto restored = from_yaml_string<test_color>(obj_yaml);
         CHECK(restored.r == original.r);
         CHECK(restored.g == original.g);
         CHECK(restored.b == original.b);
     }
 
     SUBCASE("All three formats produce equivalent colors") {
-        auto from_array = from_yaml_string<color>("[100, 150, 200]");
-        auto from_object = from_yaml_string<color>("r: 100\ng: 150\nb: 200");
+        auto from_array = from_yaml_string<test_color>("[100, 150, 200]");
+        auto from_object = from_yaml_string<test_color>("r: 100\ng: 150\nb: 200");
 
         CHECK(from_array.r == from_object.r);
         CHECK(from_array.g == from_object.g);

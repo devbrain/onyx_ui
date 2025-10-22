@@ -12,7 +12,7 @@ option(ONYX_UI_ENABLE_YAML_THEMES "Enable YAML theme support (fkYAML + reflect-c
 
 # Backend build options
 option(ONYX_UI_BUILD_BACKEND_CONIO "Build conio (terminal) backend" ON)
-option(ONYX_UI_BUILD_BACKEND_SDL2 "Build SDL2 (graphical) backend" ON)
+option(ONYX_UI_BUILD_BACKEND_SDL2 "Build SDL2 (graphical) backend" OFF)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(ONYX_UI_WARNING_FLAGS
@@ -334,17 +334,51 @@ else()
     message(STATUS "Failsafe logging: ERROR level only")
 endif()
 
+# ===========================================================================
+# Test Support Library (if testing is enabled)
+# ===========================================================================
+# Provides test utilities (test_types, test_config) to test executables and DLLs
+# Must be defined before backends (since backend test DLLs depend on it)
+
 if (ONYX_UI_BUILD_TEST)
-    add_subdirectory(unittest)
+    # Generate test configuration file with absolute paths to test data
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/unittest/test_config.hh.in
+        ${CMAKE_BINARY_DIR}/include/test_config.hh
+        @ONLY
+    )
+
+    # Test support interface library
+    add_library(test_support INTERFACE)
+
+    target_include_directories(test_support INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/unittest  # For test_types.hh, test_types_yaml.hh
+        ${CMAKE_BINARY_DIR}/include           # For generated test_config.hh
+    )
+    target_sources(test_support INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/unittest/test_types.hh
+        ${CMAKE_CURRENT_SOURCE_DIR}/unittest/test_types_yaml.hh
+        ${CMAKE_BINARY_DIR}/include/test_config.hh
+    )
+    message(STATUS "Test support library configured (test_types, test_config)")
 endif()
 
-# Build backends based on configuration
+# ===========================================================================
+# Build Backends
+# ===========================================================================
+# Build backends first (so their test DLLs are available for linking)
+
 if (ONYX_UI_BUILD_BACKEND_CONIO)
     add_subdirectory(backends/conio)
 endif()
 
 if (ONYX_UI_BUILD_BACKEND_SDL2)
     add_subdirectory(backends/sdl2)
+endif()
+
+# Build tests after backends (so they can link to backend test DLLs)
+if (ONYX_UI_BUILD_TEST)
+    add_subdirectory(unittest)
 endif()
 
 add_subdirectory(examples)

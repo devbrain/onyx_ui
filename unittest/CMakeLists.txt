@@ -1,49 +1,16 @@
-find_package(doctest QUIET)
+# Use doctest from ext/ directory (consistent with fkyaml, utf8cpp pattern)
+# The doctest target is provided by the main CMakeLists.txt via ext/doctest
+if(NOT TARGET doctest::doctest)
+    message(STATUS "doctest not available, using ext/doctest")
+    add_subdirectory(${CMAKE_SOURCE_DIR}/ext/doctest ${CMAKE_BINARY_DIR}/ext/doctest)
+endif()
 
-if (NOT doctest_FOUND)
-    message(STATUS "doctest not found, fetching from GitHub...")
-
-    include(FetchContent)
-    set(FETCHCONTENT_QUIET OFF)
-
-    # Allow FetchContent_Populate to be used
-    if (POLICY CMP0169)
-        cmake_policy(SET CMP0169 OLD)
-    endif ()
-
-    set(DOCTEST_WITH_TESTS OFF CACHE INTERNAL "")
-    set(DOCTEST_WITH_MAIN_IN_STATIC_LIB OFF CACHE INTERNAL "")
-    set(DOCTEST_NO_INSTALL ON CACHE INTERNAL "")
-
-    FetchContent_Declare(
-            doctest
-            GIT_REPOSITORY https://github.com/onqtam/doctest.git
-            GIT_TAG v2.4.12
-            GIT_PROGRESS TRUE
-    )
-
-    # Fetch the content first
-    FetchContent_GetProperties(doctest)
-    if(NOT doctest_POPULATED)
-        FetchContent_Populate(doctest)
-
-        # Patch the CMakeLists.txt to fix deprecation warning
-        file(READ ${doctest_SOURCE_DIR}/CMakeLists.txt DOCTEST_CMAKE_CONTENT)
-        # Replace any version less than 3.10 with 3.10
-        string(REGEX REPLACE "cmake_minimum_required\\(VERSION [0-9]+\\.[0-9]+\\)"
-                "cmake_minimum_required(VERSION 3.10)"
-                DOCTEST_CMAKE_CONTENT "${DOCTEST_CMAKE_CONTENT}")
-        file(WRITE ${doctest_SOURCE_DIR}/CMakeLists.txt "${DOCTEST_CMAKE_CONTENT}")
-
-        # Now add the subdirectory
-        add_subdirectory(${doctest_SOURCE_DIR} ${doctest_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
-endif ()
-
-# Export doctest for use in parent project
-if (doctest_FOUND OR TARGET doctest::doctest)
+if(TARGET doctest::doctest)
     message(STATUS "doctest available for testing")
 endif()
+
+# Note: test_support library is defined in main CMakeLists.txt (before backends)
+# This ensures backend test DLLs can depend on it
 
 add_executable(ui_unittest
         core/test_element.cc
@@ -101,28 +68,32 @@ add_executable(ui_unittest
         widgets/test_theme_layout_integration.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
+        # YAML infrastructure tests (backend-agnostic, use test::test_types)
         reflection/test_fkyaml_basic.cc
         reflection/test_color_yaml.cc
         reflection/test_enum_reflection.cc
         reflection/test_nested_structs.cc
         reflection/test_font_reflection.cc
-        reflection/test_widget_style_reflection.cc
-        reflection/test_complete_theme.cc
-        reflection/test_theme_loader.cc
-        reflection/test_json_schema.cc
-        reflection/test_directory_loading.cc
-        reflection/test_coverage_analysis.cc
-        reflection/test_example_themes.cc
+        # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
+
+# No backend-specific includes! All core and infrastructure tests are backend-agnostic
 target_include_directories(ui_unittest PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/backends/conio/include  # For color and enum tests
     ${CMAKE_BINARY_DIR}/include  # For generated export headers
-    ${CMAKE_BINARY_DIR}/_deps/termbox2-src  # For termbox2.h (required by conio_renderer.hh)
 )
-target_link_libraries(ui_unittest
+
+target_link_libraries(ui_unittest PRIVATE
     onyxui
     doctest::doctest
     thirdparty::utf8cpp  # Required by test_backend.hh for measure_text()
+    test_support         # Test utilities and generated config
 )
+
+# Link with backend integration test DLLs
+# Tests are automatically discovered from DLLs via doctest's DLL mechanism
+if(ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
+    target_link_libraries(ui_unittest PRIVATE conio_unittest)
+    target_compile_definitions(ui_unittest PRIVATE ONYX_UI_BUILD_BACKEND_CONIO=1)
+    message(STATUS "ui_unittest: Linked with conio_unittest DLL (doctest auto-discovery)")
+endif()
