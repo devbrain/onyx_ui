@@ -13,37 +13,36 @@ FetchContent_MakeAvailable(termbox2)
 add_library(termbox2_lib INTERFACE)
 target_include_directories(termbox2_lib INTERFACE ${termbox2_SOURCE_DIR})
 
-add_library(onyxui_conio_backend STATIC
+# Create conio backend library using the helper function
+add_backend_library(
+    NAME conio
+    SOURCES
+        src/conio_renderer.cc
+        src/vram.cc
+        src/conio_backend.cc
+    PUBLIC_HEADERS
         include/onyxui/conio/colors.hh
         include/onyxui/conio/conio_backend.hh
         include/onyxui/conio/conio_events.hh
+        include/onyxui/conio/conio_renderer.hh
         include/onyxui/conio/geometry.hh
+    PRIVATE_SOURCES
         src/conio_themes.hh
-        src/conio_renderer.cc
         src/dos_chars.h
-        src/vram.cc
         src/vram.hh
-        src/conio_backend.cc
-)
-
-target_link_libraries(onyxui_conio_backend
-        PUBLIC
+    DEPENDENCIES
         termbox2_lib
-        onyxui
-        PRIVATE
+    PRIVATE_DEPENDENCIES
         thirdparty::utf8cpp  # Required for UTF-8 text measurement in renderer
 )
-target_include_directories(onyxui_conio_backend
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
 
-
+# Demo application
 add_executable(dos_theme_showcase
         dos_theme_showcase.cc
         dos_theme.hh
 )
 
-target_link_libraries(dos_theme_showcase PRIVATE onyxui_conio_backend)
-
-
+target_link_libraries(dos_theme_showcase PRIVATE
+    onyxui_conio_backend
+    termbox2_lib  # Direct termbox2 usage in demo
+)

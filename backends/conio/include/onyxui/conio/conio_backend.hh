@@ -10,6 +10,7 @@
 #include <onyxui/conio/conio_renderer.hh>
 #include <onyxui/conio/conio_events.hh>
 #include <onyxui/theme_registry.hh>
+#include <onyxui/backends/conio/onyxui_conio_export.h>
 
 namespace onyxui::conio {
     // ======================================================================
@@ -77,8 +78,33 @@ namespace onyxui::conio {
          * 3. "Midnight Commander" - MC file manager
          * 4. "DOS Edit" - MS-DOS Edit
          */
-        static void register_themes(onyxui::theme_registry<conio_backend>& registry);
+        ONYXUI_CONIO_EXPORT static void register_themes(onyxui::theme_registry<conio_backend>& registry);
     };
+
+    // ======================================================================
+    // Exported Termbox2 Wrapper Functions
+    // ======================================================================
+    // These wrappers provide properly exported symbols for termbox2 functions
+    // needed by applications using the conio backend as a shared library.
+
+    /**
+     * @brief Get terminal width (wrapper for tb_width)
+     * @return Terminal width in characters
+     */
+    ONYXUI_CONIO_EXPORT int conio_get_width();
+
+    /**
+     * @brief Get terminal height (wrapper for tb_height)
+     * @return Terminal height in characters
+     */
+    ONYXUI_CONIO_EXPORT int conio_get_height();
+
+    /**
+     * @brief Poll for terminal events (wrapper for tb_poll_event)
+     * @param event Pointer to event structure to fill
+     * @return Status code from tb_poll_event
+     */
+    ONYXUI_CONIO_EXPORT int conio_poll_event(tb_event* event);
 
 } // namespace onyxui::conio
 

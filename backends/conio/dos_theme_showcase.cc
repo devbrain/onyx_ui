@@ -395,7 +395,7 @@ int main() {
             ui.present();
             // Wait for event (blocking)
             tb_event ev;
-            int poll_result = tb_poll_event(&ev);
+            int poll_result = conio_poll_event(&ev);
 
             // Handle polling errors gracefully
             if (poll_result != TB_OK) {

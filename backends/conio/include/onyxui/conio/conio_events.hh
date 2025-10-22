@@ -6,6 +6,13 @@
 
 #include <termbox2.h>
 #include <onyxui/concepts/event_like.hh>
+
+// Forward declarations for termbox2 wrapper functions
+namespace onyxui::conio {
+    int conio_get_width();
+    int conio_get_height();
+}
+
 // ======================================================================
 // Event Traits Specializations (must be in onyxui namespace)
 // ======================================================================
@@ -155,13 +162,13 @@ namespace onyxui {
         }
 
         [[nodiscard]] static int window_width([[maybe_unused]] const tb_event& e) noexcept {
-            // termbox2 doesn't store dimensions in the event - query from termbox2
-            return tb_width();
+            // termbox2 doesn't store dimensions in the event - query via wrapper
+            return onyxui::conio::conio_get_width();
         }
 
         [[nodiscard]] static int window_height([[maybe_unused]] const tb_event& e) noexcept {
-            // termbox2 doesn't store dimensions in the event - query from termbox2
-            return tb_height();
+            // termbox2 doesn't store dimensions in the event - query via wrapper
+            return onyxui::conio::conio_get_height();
         }
     };
 } // namespace onyxui

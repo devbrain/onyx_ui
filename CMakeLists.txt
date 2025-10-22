@@ -9,6 +9,10 @@ option(ONYX_UI_ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
 option(ONYX_UI_ENABLE_CPPCHECK "Enable cppcheck static analysis" OFF)
 option(ONYXUI_THREAD_SAFE "Enable thread-safe signal/slot system (adds mutex overhead)" ON)
 
+# Backend build options
+option(ONYX_UI_BUILD_BACKEND_CONIO "Build conio (terminal) backend" ON)
+option(ONYX_UI_BUILD_BACKEND_SDL2 "Build SDL2 (graphical) backend" ON)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(ONYX_UI_WARNING_FLAGS
             -Wall           # All standard warnings
@@ -124,25 +128,22 @@ set(ONYX_UI_PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
 
+# Include dependency helper functions
+include(cmake/FetchDependency.cmake)
+
+# Include backend library helper
+include(cmake/AddBackend.cmake)
+
 # ===========================================================================
 # Failsafe Dependency
 # ===========================================================================
-# Fetch failsafe FIRST because it may provide utf8cpp transitively
+# Note: Failsafe is fetched via FetchContent (not ext/) due to OVERRIDE_FIND_PACKAGE
 
-# First check if failsafe target already exists (from parent project)
-if(TARGET failsafe)
-    message(STATUS "Found failsafe target from parent project")
-    if(NOT TARGET thirdparty::failsafe)
-        add_library(thirdparty::failsafe ALIAS failsafe)
-    endif()
-elseif(TARGET thirdparty::failsafe)
-    message(STATUS "Found thirdparty::failsafe target from parent project")
-else()
-    # Try to find failsafe locally
+if(NOT TARGET failsafe AND NOT TARGET thirdparty::failsafe)
     find_package(failsafe QUIET)
 
     if(NOT failsafe_FOUND)
-        message(STATUS "failsafe not found locally, fetching from GitHub...")
+        message(STATUS "failsafe not found - fetching from GitHub...")
 
         # Disable failsafe tests and examples
         set(FAILSAFE_BUILD_TESTS OFF CACHE INTERNAL "")
@@ -157,92 +158,44 @@ else()
                 OVERRIDE_FIND_PACKAGE
         )
         fetchcontent_makeavailable(FAILSAFE)
-        add_library(thirdparty::failsafe ALIAS failsafe)
-    else()
-        message(STATUS "Found failsafe locally")
-        if(NOT TARGET thirdparty::failsafe)
-            add_library(thirdparty::failsafe ALIAS failsafe::failsafe)
-        endif()
     endif()
+endif()
+
+# Create standardized alias
+if(TARGET failsafe AND NOT TARGET thirdparty::failsafe)
+    add_library(thirdparty::failsafe ALIAS failsafe)
+elseif(TARGET failsafe::failsafe AND NOT TARGET thirdparty::failsafe)
+    add_library(thirdparty::failsafe ALIAS failsafe::failsafe)
 endif()
 
 # ===========================================================================
 # UTF8-CPP Dependency (header-only library)
 # ===========================================================================
 # Used by test backend for correct Unicode code point counting
-# Failsafe provides this transitively, but we create an explicit alias to be robust
+# Note: Failsafe provides this transitively, but we manage it explicitly
 
-if(TARGET utf8cpp)
-    message(STATUS "Found utf8cpp target (likely from failsafe)")
-    if(NOT TARGET thirdparty::utf8cpp)
-        add_library(thirdparty::utf8cpp ALIAS utf8cpp)
-    endif()
-elseif(TARGET thirdparty::utf8cpp)
-    message(STATUS "Found thirdparty::utf8cpp target from parent project")
-else()
-    # Try to find utf8cpp locally
-    find_package(utf8cpp QUIET)
-
-    if(NOT utf8cpp_FOUND)
-        message(STATUS "utf8cpp not found - fetching from GitHub as fallback...")
-
-        fetchcontent_declare(
-            UTF8CPP
-            GIT_REPOSITORY "https://github.com/nemtrif/utfcpp.git"
-            GIT_TAG v4.0.5
-            GIT_PROGRESS TRUE
-            UPDATE_COMMAND ""
-        )
-        fetchcontent_makeavailable(UTF8CPP)
-
-        # utf8cpp uses utf8cpp target name
-        if(TARGET utf8cpp)
-            add_library(thirdparty::utf8cpp ALIAS utf8cpp)
-        else()
-            message(FATAL_ERROR "utf8cpp target not found after FetchContent")
-        endif()
-    else()
-        message(STATUS "Found utf8cpp locally")
-        if(NOT TARGET thirdparty::utf8cpp)
-            add_library(thirdparty::utf8cpp ALIAS utf8cpp::utf8cpp)
-        endif()
-    endif()
-endif()
+fetch_dependency(
+    NAME utf8cpp
+    TARGET utf8cpp
+    ALIAS thirdparty::utf8cpp
+    ALTERNATIVE_TARGETS utf8cpp::utf8cpp
+    FETCH_METHOD SUBDIR
+    FETCH_SOURCE ext/utf8cpp
+)
 
 # ===========================================================================
 # fkYAML Dependency (header-only YAML library)
 # ===========================================================================
 # Used for YAML theme support - allows loading/saving themes from YAML files
 
-if(TARGET thirdparty::fkYAML)
-    message(STATUS "Found thirdparty::fkYAML target from parent project")
-elseif(TARGET fkYAML::fkYAML)
-    message(STATUS "Found fkYAML::fkYAML target - using directly")
-    # fkYAML::fkYAML already exists, use it directly
-else()
-    # Try to find fkYAML locally
-    find_package(fkYAML QUIET)
-
-    if(NOT fkYAML_FOUND)
-        message(STATUS "fkYAML not found - fetching from GitHub...")
-
-        fetchcontent_declare(
-            fkYAML
-            GIT_REPOSITORY "https://github.com/fktn-k/fkYAML.git"
-            GIT_TAG v0.3.12
-            GIT_PROGRESS TRUE
-            UPDATE_COMMAND ""
-        )
-        fetchcontent_makeavailable(fkYAML)
-
-        # fkYAML provides fkYAML::fkYAML target
-        if(NOT TARGET fkYAML::fkYAML)
-            message(FATAL_ERROR "fkYAML::fkYAML target not found after FetchContent")
-        endif()
-    else()
-        message(STATUS "Found fkYAML locally")
-    endif()
-endif()
+fetch_dependency(
+    NAME fkYAML
+    TARGET fkYAML
+    ALIAS thirdparty::fkYAML
+    ALTERNATIVE_TARGETS fkYAML::fkYAML
+    FETCH_METHOD SUBDIR
+    FETCH_SOURCE ext/fkyaml
+)
 
 # ===========================================================================
 # reflect-cpp Dependency (header-only reflection library)
@@ -354,7 +307,13 @@ if (ONYX_UI_BUILD_TEST)
     add_subdirectory(unittest)
 endif()
 
+# Build backends based on configuration
+if (ONYX_UI_BUILD_BACKEND_CONIO)
+    add_subdirectory(backends/conio)
+endif()
 
-add_subdirectory(backends/conio)
+if (ONYX_UI_BUILD_BACKEND_SDL2)
+    add_subdirectory(backends/sdl2)
+endif()
 
 add_subdirectory(examples)
