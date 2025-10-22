@@ -1,0 +1,51 @@
+# Light Modern Theme
+# Modern light theme with soft colors - inspired by VS Code Light+
+# Easy on the eyes with good contrast
+
+name: "Light Modern"
+description: "Modern light theme with soft colors"
+
+# Global colors - light background with dark text
+window_bg: { r: 250, g: 250, b: 250 }    # Very light gray (softer than pure white)
+text_fg: { r: 30, g: 30, b: 30 }         # Very dark gray (softer than pure black)
+border_color: { r: 200, g: 200, b: 200 } # Light gray borders
+
+# Button styling - modern accent colors
+button:
+  # Normal state: dark text on light gray
+  fg_normal: { r: 30, g: 30, b: 30 }
+  bg_normal: { r: 225, g: 225, b: 225 }  # Light gray
+
+  # Hover state: white text with blue accent
+  fg_hover: { r: 255, g: 255, b: 255 }
+  bg_hover: { r: 0, g: 120, b: 215 }     # Modern blue
+
+  # Pressed state: white on darker blue
+  fg_pressed: { r: 255, g: 255, b: 255 }
+  bg_pressed: { r: 0, g: 90, b: 165 }
+
+  # Disabled state: light gray
+  fg_disabled: { r: 160, g: 160, b: 160 }
+  bg_disabled: { r: 240, g: 240, b: 240 }
+
+  box_style: rounded                      # Modern rounded corners
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Label styling
+label:
+  text: { r: 30, g: 30, b: 30 }          # Dark gray text
+  background: { r: 250, g: 250, b: 250 } # Light background
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling - subtle borders
+panel:
+  background: { r: 245, g: 245, b: 245 } # Slightly darker than window
+  border_color: { r: 200, g: 200, b: 200 } # Subtle border
+  box_style: rounded
+  has_border: true

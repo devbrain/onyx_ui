@@ -101,9 +101,26 @@ add_executable(ui_unittest
         widgets/test_theme_layout_integration.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
+        reflection/test_fkyaml_basic.cc
+        reflection/test_color_yaml.cc
+        reflection/test_enum_reflection.cc
+        reflection/test_nested_structs.cc
+        reflection/test_font_reflection.cc
+        reflection/test_widget_style_reflection.cc
+        reflection/test_complete_theme.cc
+        reflection/test_theme_loader.cc
+        reflection/test_json_schema.cc
+        reflection/test_directory_loading.cc
+        reflection/test_coverage_analysis.cc
+        reflection/test_example_themes.cc
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
-target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ui_unittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/backends/conio/include  # For color and enum tests
+    ${CMAKE_BINARY_DIR}/include  # For generated export headers
+    ${CMAKE_BINARY_DIR}/_deps/termbox2-src  # For termbox2.h (required by conio_renderer.hh)
+)
 target_link_libraries(ui_unittest
     onyxui
     doctest::doctest

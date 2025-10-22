@@ -86,7 +86,7 @@ namespace onyxui {
 
     /**
      * @concept ColorLike
-     * @brief Concept for RGBA color types with red, green, blue, and alpha components
+     * @brief Concept for RGB or RGBA color types with red, green, and blue components (alpha optional)
      *
      * Supports multiple access patterns:
      * - Data members: c.r, c.g, c.b, c.a (0-255)
@@ -94,13 +94,13 @@ namespace onyxui {
      * - Getter methods: c.get_r(), c.get_g(), c.get_b(), c.get_a()
      *
      * All components must be convertible to uint8_t (0-255 range).
+     * Alpha component is optional - RGB-only colors are also ColorLike.
     */
     template<typename T>
     concept ColorLike =
         (detail::has_member_r <T> || detail::has_method_r <T> || detail::has_method_get_r <T>) &&
         (detail::has_member_g <T> || detail::has_method_g <T> || detail::has_method_get_g <T>) &&
-        (detail::has_member_b <T> || detail::has_method_b <T> || detail::has_method_get_b <T>) &&
-        (detail::has_member_a <T> || detail::has_method_a <T> || detail::has_method_get_a <T>);
+        (detail::has_member_b <T> || detail::has_method_b <T> || detail::has_method_get_b <T>);
 
     // ======================================================================
     // Improved utility functions that handle both members and methods

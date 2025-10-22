@@ -1,0 +1,51 @@
+# Dark Professional Theme
+# Modern dark theme with muted colors - inspired by VS Code Dark+
+# Professional look with good contrast
+
+name: "Dark Professional"
+description: "Modern dark theme for professional use"
+
+# Global colors - dark gray with light text
+window_bg: { r: 30, g: 30, b: 30 }       # Very dark gray (not pure black)
+text_fg: { r: 220, g: 220, b: 220 }      # Light gray (not pure white)
+border_color: { r: 80, g: 80, b: 80 }    # Medium gray
+
+# Button styling - modern accent colors
+button:
+  # Normal state: light text on dark background
+  fg_normal: { r: 220, g: 220, b: 220 }
+  bg_normal: { r: 45, g: 45, b: 45 }     # Slightly lighter than window
+
+  # Hover state: white text with blue accent
+  fg_hover: { r: 255, g: 255, b: 255 }
+  bg_hover: { r: 0, g: 120, b: 215 }     # Modern blue
+
+  # Pressed state: white on darker blue
+  fg_pressed: { r: 255, g: 255, b: 255 }
+  bg_pressed: { r: 0, g: 90, b: 165 }
+
+  # Disabled state: dark gray
+  fg_disabled: { r: 100, g: 100, b: 100 }
+  bg_disabled: { r: 45, g: 45, b: 45 }
+
+  box_style: rounded                      # Modern rounded corners
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Label styling
+label:
+  text: { r: 220, g: 220, b: 220 }       # Light gray
+  background: { r: 30, g: 30, b: 30 }    # Dark gray
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling - subtle borders
+panel:
+  background: { r: 37, g: 37, b: 37 }    # Slightly lighter than window
+  border_color: { r: 80, g: 80, b: 80 }  # Subtle gray border
+  box_style: rounded
+  has_border: true

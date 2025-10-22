@@ -8,8 +8,8 @@ project(fkYAML
 add_library(fkYAML INTERFACE)
 add_library(fkYAML::fkYAML ALIAS fkYAML)
 
-# Set include directories
-target_include_directories(fkYAML INTERFACE
+# Set include directories (SYSTEM to suppress warnings from external code)
+target_include_directories(fkYAML SYSTEM INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>"
 )

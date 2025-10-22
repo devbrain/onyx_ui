@@ -12,10 +12,10 @@ namespace onyxui::conio {
         static constexpr uint8_t MIN_COMPONENT = 0;
         static constexpr uint8_t MAX_COMPONENT = 255;
 
-        constexpr color(uint8_t r, uint8_t g, uint8_t b)
-            : r(r),
-              g(g),
-              b(b) {
+        constexpr color(uint8_t red, uint8_t green, uint8_t blue)
+            : r(red),
+              g(green),
+              b(blue) {
         }
 
         // Default constructor - black

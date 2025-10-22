@@ -1,0 +1,47 @@
+# Midnight Commander Theme
+# MC file manager color scheme - dark blue with yellow text
+# Classic two-panel file manager aesthetic
+
+name: "Midnight Commander"
+description: "MC file manager color scheme"
+
+# Global colors - dark blue/yellow palette
+window_bg: { r: 0, g: 0, b: 85 }         # Dark blue
+text_fg: { r: 255, g: 255, b: 85 }       # Light yellow
+border_color: { r: 170, g: 170, b: 170 } # Gray
+
+# Button styling
+button:
+  fg_normal: { r: 0, g: 0, b: 0 }
+  bg_normal: { r: 0, g: 170, b: 170 }    # Cyan buttons
+
+  fg_hover: { r: 255, g: 255, b: 255 }
+  bg_hover: { r: 0, g: 85, b: 85 }       # Dark cyan
+
+  fg_pressed: { r: 0, g: 0, b: 0 }
+  bg_pressed: { r: 255, g: 255, b: 0 }   # Yellow when pressed
+
+  fg_disabled: { r: 85, g: 85, b: 85 }
+  bg_disabled: { r: 0, g: 170, b: 170 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Label styling
+label:
+  text: { r: 255, g: 255, b: 85 }         # Yellow text
+  background: { r: 0, g: 0, b: 85 }       # Dark blue background
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling
+panel:
+  background: { r: 0, g: 0, b: 85 }       # Dark blue
+  border_color: { r: 170, g: 170, b: 170 } # Gray borders
+  box_style: single_line
+  has_border: true

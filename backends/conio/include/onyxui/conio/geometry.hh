@@ -6,11 +6,11 @@
 
 namespace onyxui::conio {
     struct rect {
-        rect(int x, int y, int w, int h)
-            : x(x),
-              y(y),
-              w(w),
-              h(h) {
+        rect(int xc, int yc, int width, int height)
+            : x(xc),
+              y(yc),
+              w(width),
+              h(height) {
         }
 
         rect()
@@ -21,8 +21,8 @@ namespace onyxui::conio {
     };
 
     struct size {
-        size(int w, int h)
-            : w(w), h(h) {
+        size(int width, int height)
+            : w(width), h(height) {
         }
 
         size()
@@ -34,8 +34,8 @@ namespace onyxui::conio {
     };
 
     struct point {
-        point(int x, int y)
-            : x(x), y(y) {
+        point(int xc, int yc)
+            : x(xc), y(yc) {
         }
 
         point()

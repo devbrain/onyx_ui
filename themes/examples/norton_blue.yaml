@@ -1,0 +1,73 @@
+# Norton Blue Theme
+# Classic Norton Utilities color scheme - dark blue background with white text
+# Reminiscent of Norton Commander, Norton Utilities, and similar DOS tools
+
+name: "Norton Blue"
+description: "Classic Norton Utilities color scheme"
+
+# Global colors
+window_bg:
+  r: 0
+  g: 0
+  b: 170  # Dark blue
+
+text_fg:
+  r: 255
+  g: 255
+  b: 255  # White
+
+border_color:
+  r: 255
+  g: 255
+  b: 0  # Yellow
+
+# Button styling
+button:
+  fg_normal: { r: 255, g: 255, b: 255 }    # White on dark blue
+  bg_normal: { r: 0, g: 0, b: 170 }
+
+  fg_hover: { r: 255, g: 255, b: 0 }       # Yellow on bright blue
+  bg_hover: { r: 0, g: 0, b: 255 }
+
+  fg_pressed: { r: 0, g: 0, b: 0 }         # Black on light gray
+  bg_pressed: { r: 170, g: 170, b: 170 }
+
+  fg_disabled: { r: 85, g: 85, b: 85 }     # Dark gray on dark blue
+  bg_disabled: { r: 0, g: 0, b: 170 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: false
+    reverse: false
+    underline: true
+
+# Label styling
+label:
+  text: { r: 255, g: 255, b: 255 }         # White
+  background: { r: 0, g: 0, b: 170 }       # Dark blue
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: false
+    reverse: false
+    underline: true
+
+# Panel styling
+panel:
+  background: { r: 0, g: 0, b: 170 }       # Dark blue
+  border_color: { r: 255, g: 255, b: 0 }   # Yellow
+  box_style: single_line
+  has_border: true

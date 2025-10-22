@@ -1,0 +1,47 @@
+# Borland Turbo Theme
+# Classic Turbo Pascal/C++ IDE color scheme - cyan background with black text
+# Reminiscent of Borland's Turbo Vision framework
+
+name: "Borland Turbo"
+description: "Turbo Pascal/C++ IDE color scheme"
+
+# Global colors - cyan/black palette
+window_bg: { r: 0, g: 170, b: 170 }      # Cyan
+text_fg: { r: 0, g: 0, b: 0 }            # Black
+border_color: { r: 255, g: 255, b: 0 }   # Yellow
+
+# Button styling
+button:
+  fg_normal: { r: 0, g: 0, b: 0 }
+  bg_normal: { r: 170, g: 170, b: 170 }  # Light gray
+
+  fg_hover: { r: 255, g: 255, b: 255 }
+  bg_hover: { r: 0, g: 85, b: 85 }       # Dark cyan
+
+  fg_pressed: { r: 255, g: 255, b: 255 }
+  bg_pressed: { r: 0, g: 0, b: 0 }       # Black
+
+  fg_disabled: { r: 85, g: 85, b: 85 }
+  bg_disabled: { r: 170, g: 170, b: 170 }
+
+  box_style: double_line                  # Distinctive double-line borders
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Label styling
+label:
+  text: { r: 0, g: 0, b: 0 }              # Black on cyan
+  background: { r: 0, g: 170, b: 170 }
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling
+panel:
+  background: { r: 0, g: 170, b: 170 }    # Cyan
+  border_color: { r: 0, g: 0, b: 0 }      # Black borders
+  box_style: double_line
+  has_border: true

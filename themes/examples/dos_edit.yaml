@@ -1,0 +1,47 @@
+# DOS Edit Theme
+# MS-DOS Edit text editor color scheme - light gray background with black text
+# Classic MS-DOS 5.0+ text editor look
+
+name: "DOS Edit"
+description: "MS-DOS Edit text editor colors"
+
+# Global colors - light gray/black palette
+window_bg: { r: 170, g: 170, b: 170 }    # Light gray
+text_fg: { r: 0, g: 0, b: 0 }            # Black
+border_color: { r: 85, g: 85, b: 85 }    # Dark gray
+
+# Button styling
+button:
+  fg_normal: { r: 0, g: 0, b: 0 }
+  bg_normal: { r: 170, g: 170, b: 170 }  # Gray
+
+  fg_hover: { r: 255, g: 255, b: 255 }   # White on black
+  bg_hover: { r: 0, g: 0, b: 0 }
+
+  fg_pressed: { r: 0, g: 0, b: 0 }       # Black on white
+  bg_pressed: { r: 255, g: 255, b: 255 }
+
+  fg_disabled: { r: 85, g: 85, b: 85 }   # Dark gray
+  bg_disabled: { r: 170, g: 170, b: 170 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Label styling
+label:
+  text: { r: 0, g: 0, b: 0 }              # Black text
+  background: { r: 170, g: 170, b: 170 }  # Gray background
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling
+panel:
+  background: { r: 170, g: 170, b: 170 }  # Gray
+  border_color: { r: 0, g: 0, b: 0 }      # Black borders
+  box_style: single_line
+  has_border: true

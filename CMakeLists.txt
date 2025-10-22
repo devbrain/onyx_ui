@@ -8,6 +8,7 @@ option(ONYX_UI_BUILD_TEST "Build unittests for onyx_ui" ON)
 option(ONYX_UI_ENABLE_CLANG_TIDY "Enable clang-tidy checks" OFF)
 option(ONYX_UI_ENABLE_CPPCHECK "Enable cppcheck static analysis" OFF)
 option(ONYXUI_THREAD_SAFE "Enable thread-safe signal/slot system (adds mutex overhead)" ON)
+option(ONYX_UI_ENABLE_YAML_THEMES "Enable YAML theme support (fkYAML + reflect-cpp)" ON)
 
 # Backend build options
 option(ONYX_UI_BUILD_BACKEND_CONIO "Build conio (terminal) backend" ON)
@@ -187,58 +188,78 @@ fetch_dependency(
 # fkYAML Dependency (header-only YAML library)
 # ===========================================================================
 # Used for YAML theme support - allows loading/saving themes from YAML files
+# Only fetched if ONYX_UI_ENABLE_YAML_THEMES is ON
 
-fetch_dependency(
-    NAME fkYAML
-    TARGET fkYAML
-    ALIAS thirdparty::fkYAML
-    ALTERNATIVE_TARGETS fkYAML::fkYAML
-    FETCH_METHOD SUBDIR
-    FETCH_SOURCE ext/fkyaml
-)
+if(ONYX_UI_ENABLE_YAML_THEMES)
+    fetch_dependency(
+        NAME fkYAML
+        TARGET fkYAML
+        ALIAS thirdparty::fkYAML
+        ALTERNATIVE_TARGETS fkYAML::fkYAML
+        FETCH_METHOD SUBDIR
+        FETCH_SOURCE ext/fkyaml
+    )
+endif()
 
 # ===========================================================================
-# reflect-cpp Dependency (header-only reflection library)
+# reflect-cpp Dependency (reflection library with JSON support)
 # ===========================================================================
-# Used for automatic C++ struct serialization/deserialization to/from YAML
+# Used for automatic C++ struct serialization/deserialization to/from JSON
 # Provides JSON Schema generation for IDE autocomplete support
+# Only fetched if ONYX_UI_ENABLE_YAML_THEMES is ON
+#
+# Dependencies brought by reflect-cpp:
+# - yyjson.c (bundled, ~345KB) - Fast JSON parser/generator
+# - Optional formats (all disabled): BSON, CBOR, FlexBuffers, MsgPack, TOML, XML, YAML
+#
+# Note: We use JSON support only (via bundled yyjson). YAML parsing uses fkYAML separately.
 
-#if(TARGET reflectcpp)
-#    message(STATUS "Found reflectcpp target from parent project")
-#    if(NOT TARGET thirdparty::reflectcpp)
-#        add_library(thirdparty::reflectcpp ALIAS reflectcpp)
-#    endif()
-#elseif(TARGET thirdparty::reflectcpp)
-#    message(STATUS "Found thirdparty::reflectcpp target from parent project")
-#else()
-#    # Try to find reflect-cpp locally
-#    find_package(reflectcpp QUIET)
-#
-#    if(NOT reflectcpp_FOUND)
-#        message(STATUS "reflect-cpp not found - fetching from GitHub...")
-#
-#        fetchcontent_declare(
-#            reflectcpp
-#            GIT_REPOSITORY "https://github.com/getml/reflect-cpp.git"
-#            GIT_TAG v0.10.0
-#            GIT_PROGRESS TRUE
-#            UPDATE_COMMAND ""
-#        )
-#        fetchcontent_makeavailable(reflectcpp)
-#
-#        # reflect-cpp provides reflectcpp target
-#        if(TARGET reflectcpp)
-#            add_library(thirdparty::reflectcpp ALIAS reflectcpp)
-#        else()
-#            message(FATAL_ERROR "reflectcpp target not found after FetchContent")
-#        endif()
-#    else()
-#        message(STATUS "Found reflect-cpp locally")
-#        if(NOT TARGET thirdparty::reflectcpp)
-#            add_library(thirdparty::reflectcpp ALIAS reflectcpp::reflectcpp)
-#        endif()
-#    endif()
-#endif()
+if(ONYX_UI_ENABLE_YAML_THEMES AND NOT TARGET reflectcpp AND NOT TARGET thirdparty::reflectcpp)
+    find_package(reflectcpp QUIET)
+
+    if(NOT reflectcpp_FOUND)
+        message(STATUS "reflect-cpp not found - fetching from GitHub...")
+
+        # Disable all optional format support (we only need JSON via bundled yyjson)
+        set(REFLECTCPP_BUILD_TESTS OFF CACHE INTERNAL "")
+        set(REFLECTCPP_BSON OFF CACHE INTERNAL "")
+        set(REFLECTCPP_CBOR OFF CACHE INTERNAL "")
+        set(REFLECTCPP_FLEXBUFFERS OFF CACHE INTERNAL "")
+        set(REFLECTCPP_MSGPACK OFF CACHE INTERNAL "")
+        set(REFLECTCPP_XML OFF CACHE INTERNAL "")
+        set(REFLECTCPP_TOML OFF CACHE INTERNAL "")
+        set(REFLECTCPP_YAML OFF CACHE INTERNAL "")  # We use fkYAML instead
+        set(REFLECTCPP_USE_VCPKG OFF CACHE INTERNAL "")
+
+        FetchContent_Declare(
+            reflectcpp
+            GIT_REPOSITORY "https://github.com/getml/reflect-cpp.git"
+            GIT_TAG v0.10.0
+            GIT_PROGRESS TRUE
+            GIT_SUBMODULES ""  # Skip vcpkg submodule (we don't use vcpkg)
+            UPDATE_COMMAND ""
+            OVERRIDE_FIND_PACKAGE
+        )
+        FetchContent_MakeAvailable(reflectcpp)
+    endif()
+endif()
+
+# Create standardized alias (only if YAML themes enabled)
+if(ONYX_UI_ENABLE_YAML_THEMES)
+    if(TARGET reflectcpp AND NOT TARGET thirdparty::reflectcpp)
+        # Mark reflect-cpp headers as SYSTEM to suppress warnings from external code
+        get_target_property(REFLECTCPP_INCLUDES reflectcpp INTERFACE_INCLUDE_DIRECTORIES)
+        set_target_properties(reflectcpp PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${REFLECTCPP_INCLUDES}")
+        # Now create the alias
+        add_library(thirdparty::reflectcpp ALIAS reflectcpp)
+    elseif(TARGET reflectcpp::reflectcpp AND NOT TARGET thirdparty::reflectcpp)
+        # Mark reflect-cpp headers as SYSTEM to suppress warnings from external code
+        get_target_property(REFLECTCPP_INCLUDES reflectcpp::reflectcpp INTERFACE_INCLUDE_DIRECTORIES)
+        set_target_properties(reflectcpp::reflectcpp PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${REFLECTCPP_INCLUDES}")
+        # Now create the alias
+        add_library(thirdparty::reflectcpp ALIAS reflectcpp::reflectcpp)
+    endif()
+endif()
 
 # ===========================================================================
 
@@ -280,9 +301,19 @@ target_include_directories(onyxui INTERFACE
 )
 target_link_libraries(onyxui INTERFACE
     thirdparty::failsafe
- #   fkYAML::fkYAML          # YAML parsing for theme support
- #   thirdparty::reflectcpp  # Automatic C++ reflection for YAML serialization
 )
+
+# Conditionally link YAML theme dependencies
+if(ONYX_UI_ENABLE_YAML_THEMES)
+    target_link_libraries(onyxui INTERFACE
+        thirdparty::fkYAML       # YAML parsing for theme support
+        thirdparty::reflectcpp   # Automatic C++ reflection for JSON serialization
+    )
+    target_compile_definitions(onyxui INTERFACE ONYXUI_ENABLE_YAML_THEMES=1)
+    message(STATUS "YAML theme support enabled (fkYAML + reflect-cpp)")
+else()
+    message(STATUS "YAML theme support disabled")
+endif()
 
 # Thread safety configuration
 if(ONYXUI_THREAD_SAFE)
