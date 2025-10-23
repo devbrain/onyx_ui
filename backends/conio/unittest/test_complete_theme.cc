@@ -18,48 +18,50 @@ using namespace onyxui::conio;
 
 using theme_type = ui_theme<conio_backend>;
 
-// Helper function to create a sample theme
-theme_type create_sample_theme() {
-    theme_type theme;
+namespace {
+    // Helper function to create a sample theme
+    theme_type create_sample_theme() {
+        theme_type theme;
 
-    // Metadata
-    theme.name = "Test Theme";
-    theme.description = "A test theme for validation";
+        // Metadata
+        theme.name = "Test Theme";
+        theme.description = "A test theme for validation";
 
-    // Button style
-    theme.button.fg_normal = color{255, 255, 255};
-    theme.button.bg_normal = color{0, 0, 170};
-    theme.button.fg_hover = color{255, 255, 0};
-    theme.button.bg_hover = color{0, 170, 170};
-    theme.button.fg_pressed = color{0, 0, 0};
-    theme.button.bg_pressed = color{170, 170, 170};
-    theme.button.fg_disabled = color{128, 128, 128};
-    theme.button.bg_disabled = color{64, 64, 64};
-    theme.button.box_style = conio_renderer::box_style::double_line;
-    theme.button.font = {true, false, false};
-    theme.button.mnemonic_font = {true, true, false};
-    theme.button.padding_horizontal = 4;
-    theme.button.padding_vertical = 2;
-    theme.button.text_align = horizontal_alignment::center;
+        // Button style
+        theme.button.fg_normal = color{255, 255, 255};
+        theme.button.bg_normal = color{0, 0, 170};
+        theme.button.fg_hover = color{255, 255, 0};
+        theme.button.bg_hover = color{0, 170, 170};
+        theme.button.fg_pressed = color{0, 0, 0};
+        theme.button.bg_pressed = color{170, 170, 170};
+        theme.button.fg_disabled = color{128, 128, 128};
+        theme.button.bg_disabled = color{64, 64, 64};
+        theme.button.box_style = conio_renderer::box_style::double_line;
+        theme.button.font = {true, false, false};
+        theme.button.mnemonic_font = {true, true, false};
+        theme.button.padding_horizontal = 4;
+        theme.button.padding_vertical = 2;
+        theme.button.text_align = horizontal_alignment::center;
 
-    // Label style
-    theme.label.text = color{255, 255, 255};
-    theme.label.background = color{0, 0, 170};
-    theme.label.font = {false, false, false};
-    theme.label.mnemonic_font = {false, true, false};
+        // Label style
+        theme.label.text = color{255, 255, 255};
+        theme.label.background = color{0, 0, 170};
+        theme.label.font = {false, false, false};
+        theme.label.mnemonic_font = {false, true, false};
 
-    // Panel style
-    theme.panel.background = color{0, 0, 170};
-    theme.panel.border_color = color{255, 255, 255};
-    theme.panel.box_style = conio_renderer::box_style::single_line;
-    theme.panel.has_border = true;
+        // Panel style
+        theme.panel.background = color{0, 0, 170};
+        theme.panel.border_color = color{255, 255, 255};
+        theme.panel.box_style = conio_renderer::box_style::single_line;
+        theme.panel.has_border = true;
 
-    // Global palette
-    theme.window_bg = color{0, 0, 170};
-    theme.text_fg = color{255, 255, 255};
-    theme.border_color = color{170, 170, 170};
+        // Global palette
+        theme.window_bg = color{0, 0, 170};
+        theme.text_fg = color{255, 255, 255};
+        theme.border_color = color{170, 170, 170};
 
-    return theme;
+        return theme;
+    }
 }
 
 TEST_CASE("Complete Theme - Serialization") {
@@ -359,12 +361,12 @@ border_color: [80, 80, 80]
 
 TEST_CASE("Complete Theme - Error handling") {
     SUBCASE("Invalid YAML structure") {
-        std::string invalid_yaml = "this is not: valid: yaml: [";
+        const std::string invalid_yaml = "this is not: valid: yaml: [";
         CHECK_THROWS(from_yaml_string<theme_type>(invalid_yaml));
     }
 
     SUBCASE("Missing required color fields in button") {
-        std::string yaml_str = R"(
+        const std::string yaml_str = R"(
 name: "Incomplete"
 description: "Missing button colors"
 button:

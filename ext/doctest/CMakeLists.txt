@@ -1,9 +1,3 @@
-cmake_minimum_required(VERSION 3.15)
-project(doctest
-        VERSION 2.4.12
-        LANGUAGES CXX
-        DESCRIPTION "The fastest feature-rich C++11/14/17/20 single-header testing framework")
-
 # Fetch doctest if not already available
 find_package(doctest QUIET)
 

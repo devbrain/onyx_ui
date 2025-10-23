@@ -26,6 +26,7 @@ add_backend_library(
         include/onyxui/conio/conio_events.hh
         include/onyxui/conio/conio_renderer.hh
         include/onyxui/conio/geometry.hh
+        include/onyxui/conio/termbox2_wrappers.hh
     PRIVATE_SOURCES
         src/conio_themes.hh
         src/dos_chars.h

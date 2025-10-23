@@ -17,7 +17,7 @@
 
 #define TB_IMPL
 #define TB_OPT_ATTR_W 32
-#include <termbox2.h>
+#include <onyxui/conio/termbox2_wrappers.hh>
 
 namespace onyxui::conio {
 
@@ -62,9 +62,9 @@ namespace onyxui::conio {
             if ((r == g && g == b)) {
                 if (r < 8) return 16;
                 if (r > 248) return 231;
-                return ((r - 8) / 10) + 232;
+                return static_cast<uint32_t>(((r - 8) / 10) + 232);
             }
-            return 16 + 36 * (r / 51) + 6 * (g / 51) + (b / 51);
+            return static_cast<uint32_t>(16 + 36 * (r / 51) + 6 * (g / 51) + (b / 51));
         }
 
         static uint32_t rgb_to_truecolor(uint8_t r, uint8_t g, uint8_t b) {
@@ -176,7 +176,7 @@ namespace onyxui::conio {
         if (h <= 0 || h > 1000) {
             throw std::runtime_error("illegal terminal height");
         }
-        m_cells.resize(w * h);
+        m_cells.resize(static_cast<std::size_t>(w * h));
         m_width = w;
         m_height = h;
         m_clip_rect.x = 0;
@@ -232,7 +232,7 @@ namespace onyxui::conio {
             for (int x=0; x<m_width; x++) {
                 const auto& c = m_cells[idx++];
                 // OR attributes with foreground color for termbox2
-                tb_set_cell(x, y, c.ch, c.fg | c.attr, c.bg);
+                tb_set_cell(x, y, static_cast<uint32_t>(c.ch), c.fg | c.attr, c.bg);
             }
         }
     }
@@ -257,7 +257,7 @@ namespace onyxui::conio {
 
             // Reallocate internal buffer
             m_cells.clear();
-            m_cells.resize(w * h);
+            m_cells.resize(static_cast<std::size_t>(w * h));
             m_width = w;
             m_height = h;
             m_clip_rect.x = 0;

@@ -1,16 +1,4 @@
-# Use doctest from ext/ directory (consistent with fkyaml, utf8cpp pattern)
-# The doctest target is provided by the main CMakeLists.txt via ext/doctest
-if(NOT TARGET doctest::doctest)
-    message(STATUS "doctest not available, using ext/doctest")
-    add_subdirectory(${CMAKE_SOURCE_DIR}/ext/doctest ${CMAKE_BINARY_DIR}/ext/doctest)
-endif()
-
-if(TARGET doctest::doctest)
-    message(STATUS "doctest available for testing")
-endif()
-
-# Note: test_support library is defined in main CMakeLists.txt (before backends)
-# This ensures backend test DLLs can depend on it
+add_subdirectory(test_support)
 
 add_executable(ui_unittest
         core/test_element.cc
@@ -77,12 +65,7 @@ add_executable(ui_unittest
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
-
-# No backend-specific includes! All core and infrastructure tests are backend-agnostic
-target_include_directories(ui_unittest PRIVATE
-    ${CMAKE_BINARY_DIR}/include  # For generated export headers
-)
-
+target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ui_unittest PRIVATE
     onyxui
     doctest::doctest
@@ -97,3 +80,4 @@ if(ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
     target_compile_definitions(ui_unittest PRIVATE ONYX_UI_BUILD_BACKEND_CONIO=1)
     message(STATUS "ui_unittest: Linked with conio_unittest DLL (doctest auto-discovery)")
 endif()
+

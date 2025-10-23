@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <termbox2.h>
+#include <onyxui/conio/termbox2_wrappers.hh>
 #include <onyxui/concepts/event_like.hh>
 
 // Forward declarations for termbox2 wrapper functions

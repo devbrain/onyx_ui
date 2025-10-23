@@ -9,8 +9,8 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/yaml/fkyaml_adapter.hh>
-#include "test_types.hh"
-#include "test_types_yaml.hh"
+#include "../test_support/test_types.hh"
+#include "../test_support/test_types_yaml.hh"
 
 using namespace onyxui::yaml;
 
