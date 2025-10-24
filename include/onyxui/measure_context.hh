@@ -77,11 +77,25 @@ namespace onyxui {
         using icon_type = typename base::icon_type;
 
         /**
-         * @brief Construct measure context
+         * @brief Construct measure context with resolved style
+         * @param style Resolved visual style (for consistency with draw_context)
          *
          * @details
          * Initializes with zero size. The size expands as draw operations
-         * are performed.
+         * are performed. The style is available via base::style() for widgets
+         * that need it during measurement.
+         */
+        explicit measure_context(const resolved_style<Backend>& style)
+            : base(style) {
+            size_utils::set_size(m_measured_size, 0, 0);
+        }
+
+        /**
+         * @brief Construct measure context (default style)
+         *
+         * @details
+         * Initializes with zero size and default-constructed style.
+         * The size expands as draw operations are performed.
          */
         measure_context() {
             size_utils::set_size(m_measured_size, 0, 0);
@@ -114,7 +128,7 @@ namespace onyxui {
             const color_type& /*color*/
         ) override {
             // Measure text size
-            auto text_size = renderer_type::measure_text(std::string(text), font);
+            auto text_size = renderer_type::measure_text(text, font);
 
             // Calculate extents: position + size
             int const x = point_utils::get_x(position);
@@ -232,6 +246,14 @@ namespace onyxui {
          * @return nullptr (no renderer during measurement)
          */
         [[nodiscard]] renderer_type* renderer() noexcept override {
+            return nullptr;
+        }
+
+        /**
+         * @brief Access underlying renderer (const version)
+         * @return nullptr (no renderer during measurement)
+         */
+        [[nodiscard]] const renderer_type* renderer() const noexcept override {
             return nullptr;
         }
 

@@ -410,7 +410,7 @@ TEST_SUITE("FocusManager") {
             }
             std::stable_sort(expected_order.begin(), expected_order.end(),
                              [&addresses](size_t a, size_t b) {
-                                 return std::less <const void*>()(addresses[a], addresses[b]);
+                                 return std::less<>()(addresses[a], addresses[b]);
                              });
 
             // Navigate through all and verify deterministic order

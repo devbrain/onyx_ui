@@ -581,7 +581,7 @@ namespace onyxui {
             int cell_width = 0;
             for (int i = 0; i < cell.column_span; ++i) {
                 if (cell.column + i < m_num_columns) {
-                    cell_width += m_column_widths[static_cast<size_t>(cell.column + i)];
+                    cell_width += m_column_widths[static_cast<size_t>(cell.column) + i];
                     if (i < cell.column_span - 1) {
                         cell_width += m_column_spacing;
                     }
@@ -591,7 +591,7 @@ namespace onyxui {
             int cell_height = 0;
             for (int i = 0; i < cell.row_span; ++i) {
                 if (cell.row + i < actual_rows) {
-                    cell_height += m_row_heights[static_cast<size_t>(cell.row + i)];
+                    cell_height += m_row_heights[static_cast<size_t>(cell.row) + i];
                     if (i < cell.row_span - 1) {
                         cell_height += m_row_spacing;
                     }
@@ -778,7 +778,7 @@ namespace onyxui {
                 // Calculate current total width of spanned columns
                 int current_total = 0;
                 for (int i = 0; i < cell.column_span && (cell.column + i) < m_num_columns; ++i) {
-                    current_total += m_column_widths[static_cast<size_t>(cell.column + i)];
+                    current_total += m_column_widths[static_cast<size_t>(cell.column) + i];
                     if (i > 0) {
                         current_total += m_column_spacing; // Include spacing between columns
                     }
@@ -795,10 +795,10 @@ namespace onyxui {
                         int const remainder = extra_needed % columns_to_expand;
 
                         for (int i = 0; i < columns_to_expand; ++i) {
-                            m_column_widths[static_cast<size_t>(cell.column + i)] += extra_per_column;
+                            m_column_widths[static_cast<size_t>(cell.column) + i] += extra_per_column;
                             // Distribute remainder to first columns
                             if (i < remainder) {
-                                m_column_widths[static_cast<size_t>(cell.column + i)] += 1;
+                                m_column_widths[static_cast<size_t>(cell.column) + i] += 1;
                             }
                         }
                     }
@@ -825,7 +825,7 @@ namespace onyxui {
                 int current_total = 0;
                 int const actual_rows = static_cast<int>(m_row_heights.size());
                 for (int i = 0; i < cell.row_span && (cell.row + i) < actual_rows; ++i) {
-                    current_total += m_row_heights[static_cast<size_t>(cell.row + i)];
+                    current_total += m_row_heights[static_cast<size_t>(cell.row) + i];
                     if (i > 0) {
                         current_total += m_row_spacing; // Include spacing between rows
                     }
@@ -842,10 +842,10 @@ namespace onyxui {
                         int const remainder = extra_needed % rows_to_expand;
 
                         for (int i = 0; i < rows_to_expand; ++i) {
-                            m_row_heights[static_cast<size_t>(cell.row + i)] += extra_per_row;
+                            m_row_heights[static_cast<size_t>(cell.row) + i] += extra_per_row;
                             // Distribute remainder to first rows
                             if (i < remainder) {
-                                m_row_heights[static_cast<size_t>(cell.row + i)] += 1;
+                                m_row_heights[static_cast<size_t>(cell.row) + i] += 1;
                             }
                         }
                     }

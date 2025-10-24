@@ -11,6 +11,7 @@
 #include <string_view>
 #include <vector>
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/resolved_style.hh>
 
 namespace onyxui {
     /**
@@ -219,6 +220,84 @@ namespace onyxui {
         }
 
         /**
+         * @brief Access underlying renderer (const version)
+         * @return Const pointer to renderer, or nullptr if measuring
+         *
+         * @details
+         * Const overload for accessing renderer from const contexts.
+         * Useful for read-only operations like querying capabilities.
+         */
+        [[nodiscard]] virtual const renderer_type* renderer() const noexcept {
+            return nullptr;
+        }
+
+        // ===================================================================
+        // Style Access (v2.0)
+        // ===================================================================
+
+        /**
+         * @brief Get the resolved style for this rendering pass
+         *
+         * @return Reference to the immutable resolved style
+         *
+         * @details
+         * The style contains all visual properties resolved through CSS inheritance:
+         * - background_color, foreground_color
+         * - font, box_style, icon_style
+         * - opacity, border_color
+         *
+         * This style is resolved ONCE before rendering and passed to the context,
+         * eliminating the need for repeated get_effective_*() calls.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     auto& style = ctx.style();
+         *     ctx.draw_text(m_text, pos, style.font, style.foreground_color);
+         *     ctx.draw_rect(bounds, style.box_style);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] const resolved_style<Backend>& style() const noexcept {
+            return m_style;
+        }
+
+        // ===================================================================
+        // Convenience Methods (Using Context Style)
+        // ===================================================================
+
+        /**
+         * @brief Draw text using context style (foreground color and font)
+         *
+         * @param text Text to draw
+         * @param position Top-left position
+         * @return Size of the rendered text
+         *
+         * @details
+         * Convenience method that uses the context's resolved style.
+         * Equivalent to: draw_text(text, position, style().font, style().foreground_color)
+         */
+        [[nodiscard]] size_type draw_text(
+            std::string_view text,
+            const point_type& position
+        ) {
+            return draw_text(text, position, m_style.font, m_style.foreground_color);
+        }
+
+        /**
+         * @brief Draw rectangle using context style (box_style)
+         *
+         * @param bounds Rectangle bounds
+         *
+         * @details
+         * Convenience method that uses the context's resolved box_style.
+         * Equivalent to: draw_rect(bounds, style().box_style)
+         */
+        void draw_rect(const rect_type& bounds) {
+            draw_rect(bounds, m_style.box_style);
+        }
+
+        /**
          * @brief Set dirty regions for optimized rendering
          * @param regions List of rectangles that need redrawing
          *
@@ -229,7 +308,7 @@ namespace onyxui {
          *
          * **Usage**:
          * @code
-         * draw_context<Backend> ctx(renderer);
+         * draw_context<Backend> ctx(renderer, style);
          * ctx.set_dirty_regions(dirty_rects);
          * widget->do_render(ctx);  // Only renders if intersects dirty regions
          * @endcode
@@ -237,6 +316,21 @@ namespace onyxui {
          * **Note**: Empty vector means "render everything" (default behavior)
          */
         virtual void set_dirty_regions(const std::vector<rect_type>& regions) {
+            // Default: no-op (measure_context doesn't care about dirty regions)
+            (void)regions;
+        }
+
+        /**
+         * @brief Set dirty regions for optimized rendering (move semantics)
+         * @param regions List of rectangles that need redrawing (moved)
+         *
+         * @details
+         * Move overload for performance when caller has a temporary vector.
+         * Allows noexcept move instead of potentially throwing copy.
+         *
+         * **Exception Safety**: No-throw guarantee via move semantics
+         */
+        virtual void set_dirty_regions(std::vector<rect_type>&& regions) noexcept {
             // Default: no-op (measure_context doesn't care about dirty regions)
             (void)regions;
         }
@@ -266,8 +360,27 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Protected constructor (abstract class)
+         * @brief Protected constructor with resolved style
+         *
+         * @param style The resolved style for this rendering pass
+         *
+         * @details
+         * The style is resolved by the caller (typically ui_element::render())
+         * through CSS inheritance before creating the render context.
+         */
+        explicit render_context(const resolved_style<Backend>& style)
+            : m_style(style) {}
+
+        /**
+         * @brief Default constructor (for backward compatibility)
+         *
+         * @details
+         * Creates context with default-constructed style.
+         * Prefer the style-based constructor for new code.
          */
         render_context() = default;
+
+    private:
+        resolved_style<Backend> m_style;  ///< Resolved visual style for this pass
     };
 }

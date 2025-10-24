@@ -31,9 +31,8 @@ TEST_SUITE("Theme - Layout Integration") {
 
         template<typename Widget>
         void apply_default_theme(Widget& w) {
-            if (auto* theme = ctx.themes().get_theme("Test Theme")) {
-                w.apply_theme(*theme);
-            }
+            // Use v2.0 by-name API (recommended)
+            w.apply_theme("Test Theme", ctx.themes());
         }
     };
 

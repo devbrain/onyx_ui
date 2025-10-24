@@ -1,0 +1,80 @@
+# Monokai Theme
+# A vibrant dark theme originally created by Wimer Hazenberg for TextMate
+# Features high-contrast colors with warm tones and bright accents
+# Popular in Sublime Text, VS Code, and many other editors
+
+name: "Monokai"
+description: "Vibrant dark theme with warm tones, originally for TextMate"
+
+# Monokai color palette
+# Background: #272822 (dark gray-green)
+# Foreground: #F8F8F2 (off-white)
+# Accents: Pink #F92672, Orange #FD971F, Yellow #E6DB74, Green #A6E22E
+#          Cyan #66D9EF, Purple #AE81FF
+
+# Global colors
+window_bg:
+  r: 39   # #272822 - Dark gray-green
+  g: 40
+  b: 34
+
+text_fg:
+  r: 248  # #F8F8F2 - Off-white
+  g: 248
+  b: 242
+
+border_color:
+  r: 102  # #66D9EF - Cyan
+  g: 217
+  b: 239
+
+# Button styling
+button:
+  fg_normal: { r: 248, g: 248, b: 242 }   # Off-white on dark bg
+  bg_normal: { r: 39, g: 40, b: 34 }
+
+  fg_hover: { r: 39, g: 40, b: 34 }       # Dark on cyan
+  bg_hover: { r: 102, g: 217, b: 239 }
+
+  fg_pressed: { r: 39, g: 40, b: 34 }     # Dark on pink
+  bg_pressed: { r: 249, g: 38, b: 114 }
+
+  fg_disabled: { r: 117, g: 113, b: 94 }  # Dimmed on dark bg
+  bg_disabled: { r: 39, g: 40, b: 34 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Label styling
+label:
+  text: { r: 166, g: 226, b: 46 }         # #A6E22E - Green
+  background: { r: 39, g: 40, b: 34 }     # Dark bg
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Panel styling
+panel:
+  background: { r: 39, g: 40, b: 34 }     # Dark bg
+  border_color: { r: 102, g: 217, b: 239 } # Cyan
+  box_style: single_line
+  has_border: true

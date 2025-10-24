@@ -687,7 +687,7 @@ namespace onyxui {
          * @return Const reference to shared theme registry
          */
         [[nodiscard]] const theme_registry_type& themes() const noexcept {
-            const_cast<ui_context*>(this)->ensure_shared_services_initialized();
+            ensure_shared_services_initialized();
             return *s_shared_themes;
         }
 
@@ -709,7 +709,7 @@ namespace onyxui {
          * @return Const reference to shared hotkey manager
          */
         [[nodiscard]] const hotkey_manager_type& hotkeys() const noexcept {
-            const_cast<ui_context*>(this)->ensure_shared_services_initialized();
+            ensure_shared_services_initialized();
             return *s_shared_hotkeys;
         }
 

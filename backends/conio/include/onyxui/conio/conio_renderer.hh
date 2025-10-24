@@ -74,7 +74,6 @@ namespace onyxui::conio {
 
             using size_type = size; // Required by RenderLike concept
 
-        public:
             conio_renderer();
             ~conio_renderer();
             // ===================================================================

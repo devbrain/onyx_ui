@@ -38,11 +38,14 @@
 #pragma once
 
 #include <onyxui/theme.hh>
+#include <failsafe/logger.hh>
 #include <unordered_map>
 #include <vector>
 #include <string>
 #include <optional>
 #include <algorithm>
+#include <shared_mutex>
+#include <mutex>
 
 namespace onyxui {
 
@@ -61,7 +64,9 @@ namespace onyxui {
      *
      * ## Thread Safety
      *
-     * Not thread-safe. All access must be on UI thread.
+     * **Thread-safe** (as of v2.0). Uses std::shared_mutex for reader-writer locking:
+     * - Multiple threads can read simultaneously (get_theme, has_theme, list_theme_names)
+     * - Write operations (register_theme, unregister_theme, clear) are exclusive
      *
      * ## Lifetime
      *
@@ -90,9 +95,20 @@ namespace onyxui {
          * @endcode
          */
         void register_theme(const theme_type& theme) {
-            if (!theme.name.empty()) {
-                m_themes[theme.name] = theme;
+            if (theme.name.empty()) {
+                LOG_WARN("Ignoring theme registration with empty name");
+                return;
             }
+
+            std::unique_lock lock(m_mutex);
+
+            if (m_themes.find(theme.name) != m_themes.end()) {
+                LOG_INFO("Overwriting existing theme: ", theme.name);
+            } else {
+                LOG_DEBUG("Registered theme: ", theme.name);
+            }
+
+            m_themes[theme.name] = theme;
         }
 
         /**
@@ -100,10 +116,22 @@ namespace onyxui {
          * @param theme Theme to register (must have non-empty name)
          */
         void register_theme(theme_type&& theme) {
-            if (!theme.name.empty()) {
-                std::string name = theme.name;  // Copy name before move
-                m_themes[std::move(name)] = std::move(theme);
+            if (theme.name.empty()) {
+                LOG_WARN("Ignoring theme registration with empty name");
+                return;
             }
+
+            std::string name = theme.name;  // Copy name before move
+
+            std::unique_lock lock(m_mutex);
+
+            if (m_themes.find(name) != m_themes.end()) {
+                LOG_INFO("Overwriting existing theme: ", name);
+            } else {
+                LOG_DEBUG("Registered theme: ", name);
+            }
+
+            m_themes[std::move(name)] = std::move(theme);
         }
 
         /**
@@ -128,8 +156,16 @@ namespace onyxui {
          * @endcode
          */
         [[nodiscard]] const theme_type* get_theme(const std::string& name) const noexcept {
+            std::shared_lock lock(m_mutex);
+
             auto it = m_themes.find(name);
-            return (it != m_themes.end()) ? &it->second : nullptr;
+            if (it != m_themes.end()) {
+                LOG_DEBUG("Found theme: ", name);
+                return &it->second;
+            }
+
+            LOG_DEBUG("Theme not found: ", name);
+            return nullptr;
         }
 
         /**
@@ -144,6 +180,8 @@ namespace onyxui {
          * @endcode
          */
         [[nodiscard]] std::vector<std::string> list_theme_names() const {
+            std::shared_lock lock(m_mutex);
+
             std::vector<std::string> names;
             names.reserve(m_themes.size());
             for (const auto& [name, theme] : m_themes) {
@@ -168,8 +206,9 @@ namespace onyxui {
          * }
          * @endcode
          */
-        [[nodiscard]] const std::unordered_map<std::string, theme_type>& all_themes() const noexcept {
-            return m_themes;
+        [[nodiscard]] std::unordered_map<std::string, theme_type> all_themes() const {
+            std::shared_lock lock(m_mutex);
+            return m_themes;  // Return by value for thread safety
         }
 
         /**
@@ -178,6 +217,7 @@ namespace onyxui {
          * @return True if theme exists
          */
         [[nodiscard]] bool has_theme(const std::string& name) const noexcept {
+            std::shared_lock lock(m_mutex);
             return m_themes.find(name) != m_themes.end();
         }
 
@@ -187,14 +227,25 @@ namespace onyxui {
          * @return True if theme was removed, false if not found
          */
         bool unregister_theme(const std::string& name) {
-            return m_themes.erase(name) > 0;
+            std::unique_lock lock(m_mutex);
+
+            bool removed = m_themes.erase(name) > 0;
+            if (removed) {
+                LOG_INFO("Unregistered theme: ", name);
+            } else {
+                LOG_WARN("Cannot unregister theme (not found): ", name);
+            }
+            return removed;
         }
 
         /**
          * @brief Clear all registered themes
          */
         void clear() noexcept {
+            std::unique_lock lock(m_mutex);
+            size_t count = m_themes.size();
             m_themes.clear();
+            LOG_INFO("Cleared all themes (", count, " removed)");
         }
 
         /**
@@ -202,6 +253,7 @@ namespace onyxui {
          * @return Theme count
          */
         [[nodiscard]] size_t size() const noexcept {
+            std::shared_lock lock(m_mutex);
             return m_themes.size();
         }
 
@@ -210,11 +262,13 @@ namespace onyxui {
          * @return True if no themes registered
          */
         [[nodiscard]] bool empty() const noexcept {
+            std::shared_lock lock(m_mutex);
             return m_themes.empty();
         }
 
     private:
         std::unordered_map<std::string, theme_type> m_themes;
+        mutable std::shared_mutex m_mutex;  ///< Reader-writer lock for thread safety
     };
 
 } // namespace onyxui

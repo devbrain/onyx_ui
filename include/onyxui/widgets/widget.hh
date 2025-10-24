@@ -482,7 +482,6 @@ namespace onyxui {
         std::weak_ptr<action<Backend>> m_action;                     ///< Associated action (weak reference)
         std::vector<scoped_connection> m_action_connections;         ///< Auto-cleanup connections
 
-    protected:
         /**
          * @brief Apply theme to this widget (must be implemented by derived classes)
          */

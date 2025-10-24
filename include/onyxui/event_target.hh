@@ -647,7 +647,9 @@ namespace onyxui {
         bool repeat = event_traits<E>::is_repeat(event);
 
         // Extract modifiers if available
-        bool shift = false, ctrl = false, alt = false;
+        bool shift = false;
+        bool ctrl = false;
+        bool alt = false;
         if constexpr (ModifierState<E>) {
             shift = event_traits<E>::shift_pressed(event);
             ctrl = event_traits<E>::ctrl_pressed(event);

@@ -176,7 +176,7 @@ namespace onyxui::conio {
         if (h <= 0 || h > 1000) {
             throw std::runtime_error("illegal terminal height");
         }
-        m_cells.resize(static_cast<std::size_t>(w * h));
+        m_cells.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
         m_width = w;
         m_height = h;
         m_clip_rect.x = 0;
@@ -257,7 +257,7 @@ namespace onyxui::conio {
 
             // Reallocate internal buffer
             m_cells.clear();
-            m_cells.resize(static_cast<std::size_t>(w * h));
+            m_cells.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
             m_width = w;
             m_height = h;
             m_clip_rect.x = 0;

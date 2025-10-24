@@ -8,7 +8,7 @@
 #pragma once
 
 #include <string>
-#include <onyxui/widgets/widget.hh>
+#include <onyxui/widgets/stateful_widget.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 #include <onyxui/layout_strategy.hh>  // For horizontal_alignment
@@ -46,9 +46,9 @@ namespace onyxui {
      * @endcode
      */
     template<UIBackend Backend>
-    class button : public widget<Backend> {
+    class button : public stateful_widget<Backend> {
     public:
-        using base = widget<Backend>;
+        using base = stateful_widget<Backend>;
         using renderer_type = typename Backend::renderer_type;
         using size_type = typename Backend::size_type;
         using theme_type = typename base::theme_type;
@@ -185,21 +185,9 @@ namespace onyxui {
                 // RENDERING PATH: Draw button with current state
                 const auto& bounds = this->bounds();
 
-                // Select colors based on state
-                typename Backend::color_type fg, bg;
-                if (!this->is_enabled()) {
-                    fg = theme->button.fg_disabled;
-                    bg = theme->button.bg_disabled;
-                } else if (this->is_pressed()) {
-                    fg = theme->button.fg_pressed;
-                    bg = theme->button.bg_pressed;
-                } else if (this->is_hovered() || this->has_focus()) {
-                    fg = theme->button.fg_hover;
-                    bg = theme->button.bg_hover;
-                } else {
-                    fg = theme->button.fg_normal;
-                    bg = theme->button.bg_normal;
-                }
+                // Use pre-resolved style from context (state already resolved during CSS phase)
+                // The foreground_color was set by get_theme_foreground_color() → get_state_foreground()
+                auto fg = ctx.style().foreground_color;
 
                 // Draw button box/border
                 ctx.draw_rect(bounds, theme->button.box_style);
@@ -253,6 +241,38 @@ namespace onyxui {
 
         // Note: get_content_size() is automatically handled by base widget class!
         // This eliminates ~50 lines of duplicated measurement code.
+
+        /**
+         * @brief Get theme-specific background color
+         * @return Button background color from theme (state-dependent)
+         */
+        [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
+            return this->get_state_background(theme.button);
+        }
+
+        /**
+         * @brief Get theme-specific foreground color
+         * @return Button foreground color from theme (state-dependent)
+         */
+        [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
+            return this->get_state_foreground(theme.button);
+        }
+
+        /**
+         * @brief Get theme-specific box style
+         * @return Button box style from theme
+         */
+        [[nodiscard]] typename Backend::renderer_type::box_style get_theme_box_style(const theme_type& theme) const override {
+            return theme.button.box_style;
+        }
+
+        /**
+         * @brief Get theme-specific font
+         * @return Button font from theme
+         */
+        [[nodiscard]] typename Backend::renderer_type::font get_theme_font(const theme_type& theme) const override {
+            return theme.button.font;
+        }
 
         /**
          * @brief Apply theme to button

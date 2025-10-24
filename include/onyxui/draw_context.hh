@@ -65,24 +65,68 @@ namespace onyxui {
         using icon_type = typename base::icon_type;
 
         /**
-         * @brief Construct draw context with renderer
+         * @brief Construct draw context with renderer and resolved style
          * @param renderer Reference to the actual renderer
+         * @param style Resolved visual style for this rendering pass
          *
          * @details
          * The renderer reference must remain valid for the lifetime of this context.
          * Typically, the draw_context is stack-allocated and short-lived.
+         *
+         * The style is resolved by the caller (ui_element::render()) through
+         * CSS inheritance before creating the context.
+         */
+        explicit draw_context(renderer_type& renderer, const resolved_style<Backend>& style)
+            : base(style)
+            , m_renderer(&renderer) {}
+
+        /**
+         * @brief Construct draw context with renderer only (backward compatibility)
+         * @param renderer Reference to the actual renderer
+         *
+         * @details
+         * Creates context with default-constructed style.
+         * Prefer the style-based constructor for new code.
          */
         explicit draw_context(renderer_type& renderer)
             : m_renderer(&renderer) {}
 
         /**
-         * @brief Construct draw context with renderer and dirty regions
+         * @brief Construct draw context with renderer, style, and dirty regions
          * @param renderer Reference to the actual renderer
+         * @param style Resolved visual style for this rendering pass
          * @param dirty_regions List of rectangles that need redrawing
+         *
+         * @throws std::bad_alloc if dirty_regions copy fails
          *
          * @details
          * When dirty regions are provided, only widgets that intersect with
          * these regions will be rendered, optimizing performance.
+         *
+         * **Exception Safety**: Basic guarantee
+         * - If construction fails, no resources are leaked
+         * - Already-constructed members are destructed properly
+         * - Caller must handle exception and use fallback rendering strategy
+         */
+        draw_context(renderer_type& renderer, const resolved_style<Backend>& style, const std::vector<rect_type>& dirty_regions)
+            : base(style)
+            , m_renderer(&renderer)
+            , m_dirty_regions(dirty_regions) {}
+
+        /**
+         * @brief Construct draw context with renderer and dirty regions (backward compatibility)
+         * @param renderer Reference to the actual renderer
+         * @param dirty_regions List of rectangles that need redrawing
+         *
+         * @throws std::bad_alloc if dirty_regions copy fails
+         *
+         * @details
+         * Creates context with default-constructed style.
+         * Prefer the style-based constructor for new code.
+         *
+         * **Exception Safety**: Basic guarantee
+         * - If construction fails, no resources are leaked
+         * - Caller must handle exception and use fallback rendering strategy
          */
         draw_context(renderer_type& renderer, const std::vector<rect_type>& dirty_regions)
             : m_renderer(&renderer), m_dirty_regions(dirty_regions) {}
@@ -114,7 +158,7 @@ namespace onyxui {
             const color_type& color
         ) override {
             // First, measure the text to get its size
-            auto text_size = renderer_type::measure_text(std::string(text), font);
+            auto text_size = renderer_type::measure_text(text, font);
 
             // Create a rect for the text at the specified position
             rect_type text_rect;
@@ -126,7 +170,7 @@ namespace onyxui {
 
             // Set colors and draw
             m_renderer->set_foreground(color);
-            m_renderer->draw_text(text_rect, std::string(text), font);
+            m_renderer->draw_text(text_rect, text, font);
 
             return text_size;
         }
@@ -220,11 +264,40 @@ namespace onyxui {
         }
 
         /**
+         * @brief Access underlying renderer (const version)
+         * @return Const pointer to the renderer
+         */
+        [[nodiscard]] const renderer_type* renderer() const noexcept override {
+            return m_renderer;
+        }
+
+        /**
          * @brief Set dirty regions for optimized rendering
          * @param regions List of rectangles that need redrawing
+         *
+         * @throws std::bad_alloc if vector copy fails
+         *
+         * @details
+         * **Exception Safety**: Basic guarantee
+         * - If copy fails, old dirty regions are preserved
+         * - Context remains in valid state
          */
         void set_dirty_regions(const std::vector<rect_type>& regions) override {
             m_dirty_regions = regions;
+        }
+
+        /**
+         * @brief Set dirty regions for optimized rendering (move semantics)
+         * @param regions List of rectangles that need redrawing (moved)
+         *
+         * @details
+         * Move overload for performance when caller has a temporary vector.
+         * Provides noexcept guarantee by using move semantics.
+         *
+         * **Exception Safety**: No-throw guarantee
+         */
+        void set_dirty_regions(std::vector<rect_type>&& regions) noexcept override {
+            m_dirty_regions = std::move(regions);
         }
 
         /**

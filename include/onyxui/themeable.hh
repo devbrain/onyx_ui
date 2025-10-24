@@ -6,7 +6,11 @@
 
 #include <optional>
 #include <utility>  // for std::exchange
+#include <memory>
+#include <string>
 #include <onyxui/theme.hh>
+#include <onyxui/resolved_style.hh>
+#include <failsafe/logger.hh>
 
 namespace onyxui {
     /**
@@ -61,9 +65,12 @@ namespace onyxui {
             themeable(const themeable&) = delete;
             themeable& operator=(const themeable&) = delete;
 
-            // Move operations (safe: transfers theme pointer and overrides)
+            // Move operations (safe: transfers theme ownership and overrides)
             themeable(themeable&& other) noexcept
-                : m_theme(std::exchange(other.m_theme, nullptr))
+                : m_theme_raw(std::exchange(other.m_theme_raw, nullptr))
+                , m_owned_theme(std::move(other.m_owned_theme))
+                , m_theme_ptr(std::move(other.m_theme_ptr))
+                , m_theme_name(std::move(other.m_theme_name))
                 , m_background_override(std::move(other.m_background_override))
                 , m_foreground_override(std::move(other.m_foreground_override))
                 , m_box_style_override(std::move(other.m_box_style_override))
@@ -73,7 +80,10 @@ namespace onyxui {
 
             themeable& operator=(themeable&& other) noexcept {
                 if (this != &other) {
-                    m_theme = std::exchange(other.m_theme, nullptr);
+                    m_theme_raw = std::exchange(other.m_theme_raw, nullptr);
+                    m_owned_theme = std::move(other.m_owned_theme);
+                    m_theme_ptr = std::move(other.m_theme_ptr);
+                    m_theme_name = std::move(other.m_theme_name);
                     m_background_override = std::move(other.m_background_override);
                     m_foreground_override = std::move(other.m_foreground_override);
                     m_box_style_override = std::move(other.m_box_style_override);
@@ -84,11 +94,124 @@ namespace onyxui {
                 return *this;
             }
 
-            void apply_theme(const theme_type& theme) {
+            // ===================================================================
+            // Theme Application - Three Safe Options
+            // ===================================================================
+
+            /**
+             * @brief Apply theme by name from registry (Option 1 - Recommended)
+             *
+             * @param name Theme name (must be registered in theme_registry)
+             * @param registry Theme registry to look up the theme
+             * @return true if theme was found and applied, false otherwise
+             *
+             * @details
+             * This is the safest and most efficient option:
+             * - Zero overhead (registry owns the theme)
+             * - Automatic lifetime management
+             * - Perfect for app-wide standard themes
+             *
+             * @example
+             * @code
+             * if (widget->apply_theme("Norton Blue", ctx.themes())) {
+             *     // Theme applied successfully
+             * } else {
+             *     std::cerr << "Theme not found\n";
+             * }
+             * @endcode
+             */
+            template<typename ThemeRegistry>
+            bool apply_theme(const std::string& name, ThemeRegistry& registry) {
+                const theme_type* theme = registry.get_theme(name);
+                if (!theme) {
+                    LOG_WARN("Theme not found in registry: ", name);
+                    return false;
+                }
+
+                LOG_DEBUG("Applying theme by name: ", name);
+                before_apply_theme(*theme);
+
+                // Clear owned/shared themes (switching to registry theme)
+                m_owned_theme.reset();
+                m_theme_ptr.reset();
+                m_theme_raw = theme;
+                m_theme_name = name;
+
+                this->do_apply_theme(*theme);
+                after_apply_theme(*theme);
+                return true;
+            }
+
+            /**
+             * @brief Apply theme by value (Option 2 - Copy)
+             *
+             * @param theme Theme to apply (will be copied/moved)
+             *
+             * @details
+             * Widget takes ownership of a copy:
+             * - Pass by value (use std::move for zero-copy)
+             * - Widget owns its own theme copy
+             * - Perfect for per-widget customization
+             *
+             * @example
+             * @code
+             * // Copy
+             * auto my_theme = create_theme();
+             * widget->apply_theme(my_theme);
+             *
+             * // Move (zero-copy)
+             * widget->apply_theme(std::move(my_theme));
+             * @endcode
+             */
+            void apply_theme(theme_type theme) {  // Pass by value!
+                LOG_DEBUG("Applying theme by value: ", theme.name.empty() ? "(unnamed)" : theme.name);
                 before_apply_theme(theme);
-                set_theme_internal(&theme);
-                this->do_apply_theme(theme);
-                after_apply_theme(theme);
+
+                // Clear shared theme (switching to owned theme)
+                m_theme_ptr.reset();
+                m_owned_theme = std::make_unique<theme_type>(std::move(theme));
+                m_theme_raw = m_owned_theme.get();
+                m_theme_name = m_theme_raw->name;
+
+                this->do_apply_theme(*m_owned_theme);
+                after_apply_theme(*m_owned_theme);
+            }
+
+            /**
+             * @brief Apply theme by shared_ptr (Option 3 - Shared)
+             *
+             * @param theme Shared pointer to theme
+             *
+             * @details
+             * Multiple widgets share the same theme:
+             * - Shared ownership with reference counting
+             * - Efficient memory usage for shared themes
+             * - Perfect for sharing custom themes across few widgets
+             *
+             * @example
+             * @code
+             * auto shared_theme = std::make_shared<ui_theme<Backend>>(create_theme());
+             * widget1->apply_theme(shared_theme);
+             * widget2->apply_theme(shared_theme);  // Both share same instance
+             * @endcode
+             */
+            void apply_theme(std::shared_ptr<const theme_type> theme) {
+                if (!theme) {
+                    LOG_WARN("Cannot apply null shared_ptr theme");
+                    return;
+                }
+
+                LOG_DEBUG("Applying theme by shared_ptr: ", theme->name.empty() ? "(unnamed)" : theme->name);
+                before_apply_theme(*theme);
+
+                // Clear owned theme (switching to shared theme)
+                m_owned_theme.reset();
+                m_theme_ptr = theme;
+                m_theme_raw = theme.get();
+                m_theme_name = m_theme_raw->name;
+
+                this->do_apply_theme(*theme);
+                after_apply_theme(*theme);
             }
 
             // ===================================================================
@@ -290,12 +413,14 @@ namespace onyxui {
             }
 
             /**
-             * @brief Get effective opacity (multiplies with parent's)
+             * @brief Get effective opacity (multiplies with parent's opacity)
+             * @details Opacity is multiplicative in CSS: parent=0.5, child=0.8 → effective=0.4
+             *          This represents the VISUAL opacity, not just the CSS property value.
              */
             [[nodiscard]] float get_effective_opacity() const {
                 float opacity = m_opacity_override.value_or(1.0F);
 
-                // Multiply with parent's opacity (CSS-style)
+                // Multiply with parent's opacity (CSS-style multiplicative composition)
                 if (auto* p = get_themeable_parent()) {
                     opacity *= p->get_effective_opacity();
                 }
@@ -318,8 +443,8 @@ namespace onyxui {
              */
             [[nodiscard]] const theme_type* get_theme() const {
                 // First check if we have a theme directly set
-                if (m_theme) {
-                    return m_theme;
+                if (m_theme_raw) {
+                    return m_theme_raw;
                 }
 
                 // Walk up the parent chain to find a theme
@@ -338,12 +463,64 @@ namespace onyxui {
                 return get_theme() != nullptr;
             }
 
+            // ===================================================================
+            // Style Resolution (v2.0)
+            // ===================================================================
+
+            /**
+             * @brief Resolve all visual properties into a complete style
+             *
+             * @details
+             * This is the core of the style-based rendering architecture.
+             * It resolves ALL visual properties through CSS inheritance ONCE:
+             * - Override → Parent → Theme → Default
+             *
+             * The resulting `resolved_style` contains everything a widget needs
+             * to render, eliminating the need for repeated `get_effective_*()`
+             * calls during rendering.
+             *
+             * ## Performance
+             *
+             * - Resolution: O(tree_height) - walks inheritance chain
+             * - Rendering: O(1) - just uses resolved values
+             * - Net win: Style resolved once, used many times during rendering
+             *
+             * ## Usage Pattern
+             *
+             * @code
+             * // In ui_element::render()
+             * void render(renderer_type& r) {
+             *     auto style = resolve_style();     // CSS inheritance happens HERE
+             *     draw_context ctx(r, style);       // Pass resolved style
+             *     this->do_render(ctx);             // Widget just draws!
+             * }
+             * @endcode
+             *
+             * @return Fully-resolved style ready for rendering
+             */
+            [[nodiscard]] resolved_style<Backend> resolve_style() const {
+                resolved_style<Backend> style;
+
+                // Resolve all properties through CSS inheritance
+                style.background_color = get_effective_background_color();
+                style.foreground_color = get_effective_foreground_color();
+                style.box_style = get_effective_box_style();
+                style.font = get_effective_font();
+                style.opacity = get_effective_opacity();
+                style.icon_style = get_effective_icon_style();
+
+                // Border color (defaults to foreground if not specified)
+                style.border_color = get_effective_foreground_color();
+
+                return style;
+            }
+
         protected:
             themeable() = default;
 
-            // Internal theme setter (for apply_theme only)
+            // Internal theme setter (for apply_theme only - deprecated, kept for compatibility)
             void set_theme_internal(const theme_type* theme) {
-                m_theme = theme;
+                m_theme_raw = theme;
             }
 
             // Theme application hooks
@@ -404,8 +581,11 @@ namespace onyxui {
             // Derived classes (ui_element) need direct access for CSS-style inheritance.
 
         private:
-            // Theme reference (access via get_theme() for proper inheritance)
-            const theme_type* m_theme = nullptr;
+            // Theme ownership (three-way API)
+            const theme_type* m_theme_raw = nullptr;              ///< Non-owning pointer (always points to active theme)
+            std::unique_ptr<theme_type> m_owned_theme;            ///< Option 2: owned copy
+            std::shared_ptr<const theme_type> m_theme_ptr;        ///< Option 3: shared ownership
+            std::string m_theme_name;                             ///< Track applied theme name
 
         protected:
 

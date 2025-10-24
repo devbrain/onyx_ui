@@ -230,3 +230,115 @@ TEST_CASE("Context lifetimes") {
         CHECK(ctx2.is_rendering() == true);
     }
 }
+
+// ============================================================================
+// resolved_style Integration Tests
+// ============================================================================
+
+#include <onyxui/resolved_style.hh>
+#include <onyxui/theme.hh>
+
+TEST_CASE("render_context - Style accessor returns resolved_style") {
+    SUBCASE("measure_context with style") {
+        resolved_style<Backend> style;
+        style.foreground_color = {255, 0, 0};
+        style.background_color = {0, 255, 0};
+
+        measure_context<Backend> ctx(style);
+
+        CHECK(ctx.style().foreground_color.r == 255);
+        CHECK(ctx.style().background_color.g == 255);
+    }
+
+    SUBCASE("draw_context with style") {
+        Backend::renderer_type renderer;
+        resolved_style<Backend> style;
+        style.foreground_color = {100, 100, 100};
+        style.background_color = {200, 200, 200};
+
+        draw_context<Backend> ctx(renderer, style);
+
+        CHECK(ctx.style().foreground_color.r == 100);
+        CHECK(ctx.style().background_color.r == 200);
+    }
+}
+
+TEST_CASE("draw_context - Constructor accepts resolved_style") {
+    Backend::renderer_type renderer;
+    resolved_style<Backend> style;
+    style.foreground_color = {100, 100, 100};
+
+    draw_context<Backend> ctx(renderer, style);
+
+    CHECK(ctx.style().foreground_color.r == 100);
+    CHECK(ctx.is_rendering() == true);
+    CHECK(ctx.is_measuring() == false);
+}
+
+TEST_CASE("measure_context - Constructor accepts resolved_style") {
+    resolved_style<Backend> style;
+    style.foreground_color = {50, 50, 50};
+    style.background_color = {200, 200, 200};
+
+    measure_context<Backend> ctx(style);
+
+    CHECK(ctx.style().foreground_color.r == 50);
+    CHECK(ctx.style().background_color.r == 200);
+    CHECK(ctx.is_rendering() == false);
+    CHECK(ctx.is_measuring() == true);
+}
+
+TEST_CASE("render_context - Style is passed to context") {
+    resolved_style<Backend> style1;
+    style1.foreground_color = {100, 100, 100};
+    style1.background_color = {50, 50, 50};
+
+    resolved_style<Backend> style2;
+    style2.foreground_color = {200, 200, 200};
+    style2.background_color = {150, 150, 150};
+
+    measure_context<Backend> ctx1(style1);
+    measure_context<Backend> ctx2(style2);
+
+    // Each context should have its own style
+    CHECK(ctx1.style().foreground_color.r == 100);
+    CHECK(ctx2.style().foreground_color.r == 200);
+    CHECK(ctx1.style().background_color.r == 50);
+    CHECK(ctx2.style().background_color.r == 150);
+}
+
+TEST_CASE("render_context - Style default construction") {
+    SUBCASE("measure_context without style uses defaults") {
+        measure_context<Backend> ctx;
+
+        // Should have default style
+        CHECK(ctx.style().foreground_color.r == 0);
+        CHECK(ctx.style().foreground_color.g == 0);
+        CHECK(ctx.style().foreground_color.b == 0);
+    }
+
+    SUBCASE("draw_context without style uses defaults") {
+        Backend::renderer_type renderer;
+        draw_context<Backend> ctx(renderer);
+
+        // Should have default style
+        CHECK(ctx.style().background_color.r == 0);
+        CHECK(ctx.style().background_color.g == 0);
+        CHECK(ctx.style().background_color.b == 0);
+    }
+}
+
+TEST_CASE("render_context - Style is copied on construction") {
+    resolved_style<Backend> style;
+    style.foreground_color = {123, 45, 67};
+
+    measure_context<Backend> ctx(style);
+
+    // Modify original style
+    style.foreground_color = {255, 255, 255};
+
+    // Context should retain original values
+    CHECK(ctx.style().foreground_color.r == 123);
+    CHECK(ctx.style().foreground_color.g == 45);
+    CHECK(ctx.style().foreground_color.b == 67);
+}

@@ -55,7 +55,7 @@
 #pragma once
 
 #include <string>
-#include <onyxui/widgets/widget.hh>
+#include <onyxui/widgets/stateful_widget.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 
@@ -100,9 +100,9 @@ namespace onyxui {
      * - Hover: Visual highlight
      */
     template<UIBackend Backend>
-    class menu_item : public widget<Backend> {
+    class menu_item : public stateful_widget<Backend> {
     public:
-        using base = widget<Backend>;
+        using base = stateful_widget<Backend>;
         using renderer_type = typename Backend::renderer_type;
         using size_type = typename Backend::size_type;
         using rect_type = typename Backend::rect_type;
@@ -303,19 +303,9 @@ namespace onyxui {
                 // RENDERING PATH: Draw with state colors
                 const auto& item_bounds = this->bounds();
 
-                bool const is_focused = this->has_focus();
-                bool const is_hovered = this->is_hovered();
-                bool const is_highlighted = is_focused || is_hovered;
-
-                // Select colors based on state
-                typename Backend::color_type fg;
-                if (!this->is_enabled()) {
-                    fg = theme->button.fg_disabled;
-                } else if (is_highlighted) {
-                    fg = theme->button.fg_hover;
-                } else {
-                    fg = theme->button.fg_normal;
-                }
+                // Use pre-resolved style from context (state already resolved during CSS phase)
+                // The foreground_color was set by get_theme_foreground_color() → get_state_foreground()
+                auto fg = ctx.style().foreground_color;
 
                 // Draw item text (left side, with padding)
                 int const text_x = rect_utils::get_x(item_bounds) + 2;  // 2 char padding
@@ -336,6 +326,24 @@ namespace onyxui {
                 rect_utils::set_bounds(item_rect, 0, 0, total_width, total_height);
                 ctx.draw_rect(item_rect, typename renderer_type::box_style{});
             }
+        }
+
+        /**
+         * @brief Get theme-specific foreground color
+         * @return Menu item foreground color from theme (state-dependent)
+         * @details Menu items use button theme colors for consistency
+         */
+        [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
+            return this->get_state_foreground(theme.button);
+        }
+
+        /**
+         * @brief Get theme-specific background color
+         * @return Menu item background color from theme (state-dependent)
+         * @details Menu items use button theme colors for consistency
+         */
+        [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
+            return this->get_state_background(theme.button);
         }
 
         /**

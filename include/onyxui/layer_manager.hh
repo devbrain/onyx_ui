@@ -713,7 +713,7 @@ namespace onyxui {
             template<typename Fn>
             bool with_root(Fn&& fn) {
                 if (auto locked = root.lock()) {
-                    fn(locked.get());
+                    std::forward<Fn>(fn)(locked.get());
                     return true;
                 }
                 return false;
@@ -725,7 +725,7 @@ namespace onyxui {
             template<typename Fn>
             bool with_root(Fn&& fn) const {
                 if (auto locked = root.lock()) {
-                    fn(locked.get());
+                    std::forward<Fn>(fn)(locked.get());
                     return true;
                 }
                 return false;
@@ -803,8 +803,8 @@ namespace onyxui {
                 int const height = size_utils::get_height(size);
 
                 // Center in viewport
-                int const x = rect_utils::get_x(viewport) + (vp_width - width) / 2;
-                int const y = rect_utils::get_y(viewport) + (vp_height - height) / 2;
+                int const x = rect_utils::get_x(viewport) + ((vp_width - width) / 2);
+                int const y = rect_utils::get_y(viewport) + ((vp_height - height) / 2);
 
                 rect_utils::set_bounds(layer.bounds, x, y, width, height);
             });

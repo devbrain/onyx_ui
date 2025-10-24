@@ -1,0 +1,80 @@
+# Solarized Dark Theme
+# A precision-colored scheme designed by Ethan Schoonover
+# Features low-contrast, yet readable colors with selective accent colors
+# Website: https://ethanschoonover.com/solarized/
+
+name: "Solarized Dark"
+description: "Low-contrast precision-colored theme by Ethan Schoonover"
+
+# Solarized color palette
+# Base colors:  base03 (002b36), base02 (073642), base01 (586e75), base00 (657b83)
+#               base0 (839496), base1 (93a1a1), base2 (eee8d5), base3 (fdf6e3)
+# Accent colors: yellow (b58900), orange (cb4b16), red (dc322f), magenta (d33682)
+#                violet (6c71c4), blue (268bd2), cyan (2aa198), green (859900)
+
+# Global colors
+window_bg:
+  r: 0    # base03
+  g: 43
+  b: 54
+
+text_fg:
+  r: 131  # base0
+  g: 148
+  b: 150
+
+border_color:
+  r: 88   # base01
+  g: 110
+  b: 117
+
+# Button styling
+button:
+  fg_normal: { r: 131, g: 148, b: 150 }   # base0 on base02
+  bg_normal: { r: 7, g: 54, b: 66 }
+
+  fg_hover: { r: 253, g: 246, b: 227 }    # base3 on base01
+  bg_hover: { r: 88, g: 110, b: 117 }
+
+  fg_pressed: { r: 38, g: 139, b: 210 }   # blue on base02
+  bg_pressed: { r: 7, g: 54, b: 66 }
+
+  fg_disabled: { r: 88, g: 110, b: 117 }  # base01 on base03
+  bg_disabled: { r: 0, g: 43, b: 54 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Label styling
+label:
+  text: { r: 147, g: 161, b: 161 }        # base1
+  background: { r: 0, g: 43, b: 54 }      # base03
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Panel styling
+panel:
+  background: { r: 0, g: 43, b: 54 }      # base03
+  border_color: { r: 88, g: 110, b: 117 } # base01
+  box_style: single_line
+  has_border: true

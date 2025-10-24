@@ -1,0 +1,83 @@
+# Gruvbox Dark Theme
+# A retro groove color scheme designed by Pavel Pertsev (morhetz)
+# Features warm, muted colors inspired by vintage computers
+# Designed for long coding sessions with reduced eye strain
+# Repository: https://github.com/morhetz/gruvbox
+
+name: "Gruvbox Dark"
+description: "Retro groove theme with warm, muted colors"
+
+# Gruvbox dark color palette (hard variant)
+# Background: #1d2021 (hard dark)
+# Foreground: #ebdbb2 (light beige)
+# Dark colors: #282828 (bg), #3c3836 (bg1), #504945 (bg2), #665c54 (bg3)
+# Light colors: #fbf1c7 (fg0), #ebdbb2 (fg), #d5c4a1 (fg2), #bdae93 (fg3)
+# Red: #fb4934, Green: #b8bb26, Yellow: #fabd2f, Blue: #83a598
+# Purple: #d3869b, Aqua: #8ec07c, Orange: #fe8019
+
+# Global colors
+window_bg:
+  r: 29   # #1d2021 - Hard dark background
+  g: 32
+  b: 33
+
+text_fg:
+  r: 235  # #ebdbb2 - Light beige
+  g: 219
+  b: 178
+
+border_color:
+  r: 142  # #8ec07c - Aqua
+  g: 192
+  b: 124
+
+# Button styling
+button:
+  fg_normal: { r: 235, g: 219, b: 178 }   # Light beige on dark bg
+  bg_normal: { r: 40, g: 40, b: 40 }      # #282828
+
+  fg_hover: { r: 29, g: 32, b: 33 }       # Dark on aqua
+  bg_hover: { r: 142, g: 192, b: 124 }    # Aqua
+
+  fg_pressed: { r: 29, g: 32, b: 33 }     # Dark on yellow
+  bg_pressed: { r: 250, g: 189, b: 47 }   # Yellow
+
+  fg_disabled: { r: 146, g: 131, b: 116 } # #928374 - Gray on dark
+  bg_disabled: { r: 29, g: 32, b: 33 }
+
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Label styling
+label:
+  text: { r: 184, g: 187, b: 38 }         # #b8bb26 - Green
+  background: { r: 29, g: 32, b: 33 }     # Hard dark bg
+
+  font:
+    bold: false
+    reverse: false
+    underline: false
+
+  mnemonic_font:
+    bold: true
+    reverse: false
+    underline: false
+
+# Panel styling
+panel:
+  background: { r: 29, g: 32, b: 33 }     # Hard dark bg
+  border_color: { r: 142, g: 192, b: 124 } # Aqua
+  box_style: single_line
+  has_border: true

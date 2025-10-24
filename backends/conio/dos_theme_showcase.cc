@@ -286,6 +286,10 @@ private:
     /**
      * @brief Apply theme by name using theme registry
      * @param theme_name Name of theme to apply
+     *
+     * @details
+     * Uses the v2.0 three-way theme API with by-name registration.
+     * This is the recommended approach: zero overhead, registry owns the theme.
      */
     void apply_theme_by_name(const std::string& theme_name) {
         auto* themes = ui_services<conio_backend>::themes();
@@ -294,16 +298,17 @@ private:
             return;
         }
 
-        // Use get_theme() which returns a stable pointer to the stored theme
-        if (auto* theme = themes->get_theme(theme_name)) {
-            this->apply_theme(*theme);
-
-            // Log theme switch with description
-            std::cerr << "Switched to: " << theme->name;
-            if (!theme->description.empty()) {
-                std::cerr << " - " << theme->description;
+        // Use the v2.0 by-name API (recommended)
+        if (this->apply_theme(theme_name, *themes)) {
+            // Theme applied successfully
+            if (auto* theme = themes->get_theme(theme_name)) {
+                // Log theme switch with description
+                std::cerr << "Switched to: " << theme->name;
+                if (!theme->description.empty()) {
+                    std::cerr << " - " << theme->description;
+                }
+                std::cerr << std::endl;
             }
-            std::cerr << std::endl;
         } else {
             std::cerr << "Error: Theme '" << theme_name << "' not found!" << std::endl;
         }

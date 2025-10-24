@@ -9,6 +9,7 @@
 
 #include <onyxui/yaml/fkyaml_adapter.hh>
 #include <onyxui/theme.hh>
+#include <failsafe/logger.hh>
 #include <fstream>
 #include <stdexcept>
 #include <string>
@@ -71,19 +72,21 @@ namespace onyxui::theme_loader {
      */
     template<UIBackend Backend>
     ui_theme <Backend> load_from_file(const std::filesystem::path& file_path) {
+        LOG_DEBUG("Loading theme from: ", file_path.string());
+
         // Check if file exists
         if (!std::filesystem::exists(file_path)) {
-            throw std::runtime_error(
-                "Theme file not found: " + file_path.string()
-            );
+            std::string error = "Theme file not found: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
 
         // Open file
         std::ifstream file(file_path);
         if (!file.is_open()) {
-            throw std::runtime_error(
-                "Failed to open theme file: " + file_path.string()
-            );
+            std::string error = "Failed to open theme file: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
 
         // Read entire file
@@ -95,11 +98,13 @@ namespace onyxui::theme_loader {
 
         // Parse YAML and deserialize
         try {
-            return yaml::from_yaml_string <ui_theme <Backend>>(yaml_content);
+            auto theme = yaml::from_yaml_string <ui_theme <Backend>>(yaml_content);
+            LOG_INFO("Loaded theme from ", file_path.string(), ": ", theme.name);
+            return theme;
         } catch (const std::exception& e) {
-            throw std::runtime_error(
-                "Failed to parse theme file '" + file_path.string() + "': " + e.what()
-            );
+            std::string error = "Failed to parse theme file '" + file_path.string() + "': " + std::string(e.what());
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
     }
 
@@ -126,15 +131,18 @@ namespace onyxui::theme_loader {
      */
     template<UIBackend Backend>
     void save_to_file(const ui_theme <Backend>& theme, const std::filesystem::path& file_path) {
+        LOG_DEBUG("Saving theme to: ", file_path.string());
+
         // Create parent directories if they don't exist
         auto parent_path = file_path.parent_path();
         if (!parent_path.empty() && !std::filesystem::exists(parent_path)) {
             try {
                 std::filesystem::create_directories(parent_path);
+                LOG_DEBUG("Created directory: ", parent_path.string());
             } catch (const std::exception& e) {
-                throw std::runtime_error(
-                    "Failed to create directory '" + parent_path.string() + "': " + e.what()
-                );
+                std::string error = "Failed to create directory '" + parent_path.string() + "': " + std::string(e.what());
+                LOG_ERROR(error);
+                throw std::runtime_error(error);
             }
         }
 
@@ -143,27 +151,29 @@ namespace onyxui::theme_loader {
         try {
             yaml_content = yaml::to_yaml_string(theme);
         } catch (const std::exception& e) {
-            throw std::runtime_error(
-                "Failed to serialize theme: " + std::string(e.what())
-            );
+            std::string error = "Failed to serialize theme: " + std::string(e.what());
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
 
         // Write to file
         std::ofstream file(file_path);
         if (!file.is_open()) {
-            throw std::runtime_error(
-                "Failed to create theme file: " + file_path.string()
-            );
+            std::string error = "Failed to create theme file: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
 
         file << yaml_content;
         file.close();
 
         if (file.fail()) {
-            throw std::runtime_error(
-                "Failed to write theme file: " + file_path.string()
-            );
+            std::string error = "Failed to write theme file: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
         }
+
+        LOG_INFO("Saved theme to ", file_path.string(), ": ", theme.name);
     }
 
     /**

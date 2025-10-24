@@ -482,12 +482,12 @@ namespace onyxui {
             // Check for conflicts
             if (m_conflict_policy != conflict_policy::allow) {
                 if (is_registered(seq, scope_target)) {
-                    // Build conflict message
-                    std::string const shortcut_str = format_key_sequence(seq);
-                    std::string const scope_str = format_scope(scope, scope_target);
-                    std::string const action_name = action_ptr->text().empty()
-                        ? "<unnamed>"
-                        : action_ptr->text();
+                    // Build conflict message (commented out with logging)
+                    // std::string const shortcut_str = format_key_sequence(seq);
+                    // std::string const scope_str = format_scope(scope, scope_target);
+                    // std::string const action_name = action_ptr->text().empty()
+                    //     ? "<unnamed>"
+                    //     : action_ptr->text();
 
                     if (m_conflict_policy == conflict_policy::warn) {
                         // LOG_CAT_WARN("Hotkeys",

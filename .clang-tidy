@@ -8,6 +8,7 @@ Checks: >
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
+  -bugprone-branch-clone,
   cert-*,
   clang-analyzer-*,
   concurrency-*,
@@ -18,6 +19,7 @@ Checks: >
   -cppcoreguidelines-pro-type-reinterpret-cast,
   -cppcoreguidelines-special-member-functions,
   misc-*,
+  -misc-no-recursion,
   -misc-non-private-member-variables-in-classes,
   -misc-use-anonymous-namespace,
   modernize-*,
@@ -29,7 +31,8 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-function-cognitive-complexity,
-  -readability-else-after-return
+  -readability-else-after-return,
+  -readability-named-parameter
 
 # Warnings as errors (strict mode)
 WarningsAsErrors: ''
@@ -62,8 +65,10 @@ CheckOptions:
     value:           'm_'
   - key:             readability-identifier-naming.ProtectedMemberPrefix
     value:           'm_'
+  # Constexpr variables use lower_case for template metaprogramming traits
+  # (e.g., always_false, is_event_v) per C++17+ conventions
   - key:             readability-identifier-naming.ConstexprVariableCase
-    value:           UPPER_CASE
+    value:           lower_case
   - key:             readability-identifier-naming.MacroDefinitionCase
     value:           UPPER_CASE
 

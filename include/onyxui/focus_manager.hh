@@ -245,7 +245,7 @@ namespace onyxui {
                                  return a_idx < b_idx;
                              }
                              // Equal tab indices: use pointer address as stable tiebreaker
-                             return std::less<const void*>()(a, b);
+                             return std::less<>()(a, b);
                          }
 
                          // Explicit indices come before implicit (-1)
@@ -300,7 +300,7 @@ namespace onyxui {
                                  return a_idx < b_idx;
                              }
                              // Equal tab indices: use pointer address as stable tiebreaker
-                             return std::less<const void*>()(a, b);
+                             return std::less<>()(a, b);
                          }
 
                          // Explicit indices come before implicit (-1)

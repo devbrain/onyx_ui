@@ -54,6 +54,7 @@ add_executable(ui_unittest
         widgets/test_layout_edge_cases.cc
         widgets/test_complex_layouts.cc
         widgets/test_theme_layout_integration.cc
+        widgets/test_stateful_widget.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
         # YAML infrastructure tests (backend-agnostic, use test::test_types)
@@ -62,10 +63,23 @@ add_executable(ui_unittest
         reflection/test_enum_reflection.cc
         reflection/test_nested_structs.cc
         reflection/test_font_reflection.cc
+        # Theming infrastructure tests (v2.0 - Phase 4)
+        theming/test_resolved_style.cc
+        theming/test_theme_api.cc
+        theming/test_style_pipeline.cc
+        theming/test_style_resolution.cc
+        theming/test_style_inheritance.cc
+        theming/test_style_edge_cases.cc
+        theming/test_style_thread_safety.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+# Disable logging in unit tests (override inherited DEBUG level)
+target_compile_options(ui_unittest PRIVATE
+    -ULOGGER_MIN_LEVEL                      # Undefine inherited value
+    -DLOGGER_MIN_LEVEL=LOGGER_LEVEL_ERROR   # Set to ERROR only
+)
 target_link_libraries(ui_unittest PRIVATE
     onyxui
     doctest::doctest

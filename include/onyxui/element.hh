@@ -214,7 +214,6 @@ namespace onyxui {
             // Grant access to layout strategies
             friend class layout_strategy <Backend>;
 
-        public:
             /**
              * @brief Construct a UI element
              * @param parent Pointer to the parent element (or nullptr for root)
@@ -231,7 +230,7 @@ namespace onyxui {
              *
              * @note Exception safety: No-throw guarantee (noexcept)
              */
-            virtual ~ui_element() noexcept {
+            ~ui_element() noexcept override {
                 // Defensive: null out children's parent pointers before destruction
                 // This catches bugs where someone holds a child pointer after parent dies
                 for (auto& child : m_children) {
@@ -521,8 +520,11 @@ namespace onyxui {
                     return;
                 }
 
-                // Create draw context with dirty regions for optimization
-                draw_context<Backend> ctx(renderer, dirty_regions);
+                // Resolve style ONCE through CSS inheritance (v2.0)
+                auto style = this->resolve_style();
+
+                // Create draw context with resolved style and dirty regions
+                draw_context<Backend> ctx(renderer, style, dirty_regions);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
                 if (!ctx.should_render(m_bounds)) {
@@ -530,7 +532,7 @@ namespace onyxui {
                     return;
                 }
 
-                // Render this element (within parent's clip)
+                // Render this element (style already resolved in ctx)
                 do_render(ctx);
 
                 // Set clip rect for children (content area only)
@@ -635,7 +637,6 @@ namespace onyxui {
                 return s;
             }
 
-        protected:
             /**
              * @brief Get parent for CSS-style theme inheritance
              *

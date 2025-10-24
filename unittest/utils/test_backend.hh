@@ -81,7 +81,10 @@ namespace onyxui {
     struct test_backend {
         // Simple geometric types for testing
         struct rect {
-            int x = 0, y = 0, w = 0, h = 0;
+            int x = 0;
+            int y = 0;
+            int w = 0;
+            int h = 0;
 
             constexpr rect() = default;
 
@@ -93,7 +96,8 @@ namespace onyxui {
         };
 
         struct size {
-            int w = 0, h = 0;
+            int w = 0;
+            int h = 0;
 
             constexpr size() = default;
 
@@ -105,7 +109,8 @@ namespace onyxui {
         };
 
         struct point {
-            int x = 0, y = 0;
+            int x = 0;
+            int y = 0;
 
             constexpr point() = default;
 
@@ -118,15 +123,26 @@ namespace onyxui {
 
         // Simple color for testing (defined before renderer needs it)
         struct color {
-            uint8_t r = 0, g = 0, b = 0, a = 255;
+            uint8_t r = 0;
+            uint8_t g = 0;
+            uint8_t b = 0;
+            uint8_t a = 255;
+
+            bool operator==(const color&) const = default;
         };
 
         struct renderer {
             struct box_style {
                 bool draw_border = false;  // Required for panel/group_box rendering
+
+                bool operator==(const box_style&) const = default;
             };
-            struct icon_style {};
-            struct font {};
+            struct icon_style {
+                bool operator==(const icon_style&) const = default;
+            };
+            struct font {
+                bool operator==(const font&) const = default;
+            };
             using size_type = size;  // Required by RenderLike concept
 
             void set_foreground([[maybe_unused]] const color& c) {
@@ -263,7 +279,8 @@ namespace onyxui {
         };
 
         struct test_mouse_event {
-            int x = 0, y = 0;
+            int x = 0;
+            int y = 0;
             int button = 0;
             bool pressed = false;
         };

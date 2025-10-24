@@ -155,7 +155,9 @@ TEST_CASE("Signal - Disconnect by ID") {
 
 TEST_CASE("Signal - Disconnect all") {
     signal<> simple_signal;
-    int count_a = 0, count_b = 0, count_c = 0;
+    int count_a = 0;
+    int count_b = 0;
+    int count_c = 0;
 
     simple_signal.connect([&]() { count_a++; });
     simple_signal.connect([&]() { count_b++; });
@@ -304,7 +306,9 @@ TEST_CASE("Scoped connection - Default constructor") {
 
 TEST_CASE("Scoped connection - Multiple in same scope") {
     signal<> sig;
-    int count_a = 0, count_b = 0, count_c = 0;
+    int count_a = 0;
+    int count_b = 0;
+    int count_c = 0;
 
     {
         scoped_connection const conn_a(sig, [&]() { count_a++; });

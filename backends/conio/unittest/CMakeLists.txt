@@ -38,6 +38,12 @@ target_link_libraries(conio_unittest PRIVATE
 # Apply warning flags
 target_compile_options(conio_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
 
+# Disable logging in tests (override inherited DEBUG level)
+target_compile_options(conio_unittest PRIVATE
+    -ULOGGER_MIN_LEVEL                      # Undefine inherited value
+    -DLOGGER_MIN_LEVEL=LOGGER_LEVEL_ERROR   # Set to ERROR only
+)
+
 # Install to bin directory for easy loading
 install(TARGETS conio_unittest
     LIBRARY DESTINATION bin

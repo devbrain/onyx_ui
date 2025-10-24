@@ -45,7 +45,7 @@ cmake --build build --target conio -j8
 
 ### Running Tests
 ```bash
-# Run all 569 unit tests
+# Run all 653 unit tests
 ./build/bin/ui_unittest
 
 # List all test cases
@@ -63,7 +63,7 @@ cmake --build build --target conio -j8
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
 
-# All 569 tests should pass with zero warnings
+# All 653 tests should pass with zero warnings
 ```
 
 ## Code Architecture
@@ -295,6 +295,202 @@ button->set_background_color({0, 255, 0});  // Green button
 - Opacity (multiplicative)
 
 See `include/onyxui/themeable.hh` for the inheritance system.
+
+### Theme System v2.0 (NEW - October 2025)
+
+The theme system has been refactored with three major improvements:
+
+**1. Thread-Safe Theme Registry**
+
+The `theme_registry` now uses reader-writer locking for thread-safe concurrent access:
+
+```cpp
+theme_registry<Backend> registry;  // Thread-safe!
+
+// Multiple threads can safely read themes concurrently
+auto* theme = registry.get_theme("Norton Blue");  // Shared lock
+
+// Writes are exclusive
+registry.register_theme(my_theme);  // Unique lock
+```
+
+All operations are logged via failsafe logging (DEBUG level in debug builds):
+- Theme registration: `LOG_INFO("Registered theme: {name}")`
+- Theme lookup: `LOG_DEBUG("Found theme: {name}")`
+- Theme application: `LOG_DEBUG("Applying theme: {name}")`
+
+**2. Three-Way Theme API (Safe Ownership)**
+
+The old unsafe `apply_theme(const theme_type&)` has been removed. Use one of three safe options:
+
+```cpp
+// Option 1: By name (registry-based) - RECOMMENDED
+// Zero overhead, registry owns the theme
+element->apply_theme("Norton Blue", registry);
+
+// Option 2: By value (copy/move)
+// Element takes ownership via unique_ptr
+ui_theme<Backend> my_theme = create_custom_theme();
+element->apply_theme(std::move(my_theme));  // Moved!
+
+// Option 3: By shared_ptr
+// Reference-counted shared ownership
+auto theme_ptr = std::make_shared<ui_theme<Backend>>(my_theme);
+element->apply_theme(theme_ptr);
+```
+
+**Benefits:**
+- No dangling pointer risk (old API removed)
+- Clear ownership semantics
+- Flexible for different use cases
+- Type-safe and explicit
+
+**3. Style-Based Rendering Architecture**
+
+The new `resolved_style` structure is the cornerstone of v2.0:
+
+```cpp
+// Style is resolved ONCE per frame via CSS inheritance
+void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
+    auto style = this->resolve_style();  // Resolve through CSS hierarchy
+
+    draw_context<Backend> ctx(renderer, style, dirty_regions);
+
+    do_render(ctx);  // Widgets use pre-resolved style
+}
+```
+
+**Key types:**
+
+```cpp
+// POD-like structure with all visual properties
+template<UIBackend Backend>
+struct resolved_style {
+    color_type background_color;
+    color_type foreground_color;
+    color_type border_color;
+    box_style_type box_style;
+    font_type font;
+    float opacity;
+    icon_style_type icon_style;
+
+    // Utility methods (immutable)
+    [[nodiscard]] resolved_style with_opacity(float op) const noexcept;
+    [[nodiscard]] resolved_style with_colors(color_type bg, color_type fg) const noexcept;
+    [[nodiscard]] resolved_style with_font(font_type f) const noexcept;
+};
+```
+
+**render_context carries style:**
+
+```cpp
+template<UIBackend Backend>
+class render_context {
+    // Access resolved style
+    [[nodiscard]] const resolved_style<Backend>& style() const noexcept;
+
+    // Convenience methods using context style
+    [[nodiscard]] size_type draw_text(std::string_view text, const point_type& position);
+    void draw_rect(const rect_type& bounds);
+};
+```
+
+**Benefits:**
+- **Performance**: CSS inheritance resolved once per frame, not per widget
+- **Simplicity**: Widgets receive pre-resolved style via context
+- **Consistency**: Single source of truth for visual properties
+- **Immutability**: `resolved_style` is POD-like with copy semantics
+
+**4. Stateful Widget Helper**
+
+New base class for interactive widgets with visual states:
+
+```cpp
+template<UIBackend Backend>
+class stateful_widget : public widget<Backend> {
+public:
+    enum class interaction_state {
+        normal, hover, pressed, disabled
+    };
+
+protected:
+    // State management
+    void set_interaction_state(interaction_state state);
+    [[nodiscard]] interaction_state get_interaction_state() const noexcept;
+
+    // State-based color helpers
+    template<typename WidgetTheme>
+    [[nodiscard]] color_type get_state_background(const WidgetTheme& widget_theme) const noexcept;
+
+    template<typename WidgetTheme>
+    [[nodiscard]] color_type get_state_foreground(const WidgetTheme& widget_theme) const noexcept;
+
+    // Convenience queries
+    [[nodiscard]] bool is_normal() const noexcept;
+    [[nodiscard]] bool is_hovered() const noexcept;
+    [[nodiscard]] bool is_pressed() const noexcept;
+    [[nodiscard]] bool is_disabled() const noexcept;
+
+    void enable();
+    void disable();
+};
+```
+
+**Usage pattern:**
+
+```cpp
+template<UIBackend Backend>
+class button : public stateful_widget<Backend> {
+    void do_render(render_context<Backend>& ctx) const override {
+        auto* theme = this->get_theme();
+        if (theme) {
+            // Get state-appropriate colors automatically
+            auto bg = this->get_state_background(theme->button);
+            auto fg = this->get_state_foreground(theme->button);
+
+            // Render with state colors...
+        }
+    }
+
+    void on_mouse_enter() override {
+        this->set_interaction_state(interaction_state::hover);
+        // Automatically calls invalidate_arrange() to trigger redraw
+    }
+};
+```
+
+**Theme structure expects:**
+```cpp
+struct button_theme {
+    color_type bg_normal, fg_normal;
+    color_type bg_hover, fg_hover;
+    color_type bg_pressed, fg_pressed;
+    color_type bg_disabled, fg_disabled;
+};
+```
+
+**Architecture Summary:**
+
+1. **CSS Inheritance** → Resolves to `resolved_style`
+2. **resolved_style** → Passed to `render_context` (draw/measure)
+3. **render_context** → Provides style to widgets during rendering
+4. **Widgets** → Use pre-resolved style, no repeated lookups
+
+**Performance characteristics:**
+- Style resolution: O(depth) once per frame
+- Widget rendering: O(1) style access
+- Thread-safe: Reader-writer locking on registry
+- Memory: POD-like resolved_style (~50-100 bytes)
+
+**See also:**
+- `include/onyxui/resolved_style.hh` - Style structure
+- `include/onyxui/render_context.hh` - Visitor pattern base
+- `include/onyxui/draw_context.hh` - Rendering implementation
+- `include/onyxui/measure_context.hh` - Measurement implementation
+- `include/onyxui/widgets/stateful_widget.hh` - Interactive widget helper
+- `include/onyxui/theme_registry.hh` - Thread-safe registry
+- `include/onyxui/themeable.hh` - Three-way theme API
+- `unittest/theming/test_resolved_style.cc` - Comprehensive tests (11 test cases, 88 assertions)
 
 ### Widget Library
 
@@ -611,19 +807,35 @@ TEST_CASE("Widget - Basic functionality") {
 
 ## Recent Major Changes
 
-**Latest work:** Comprehensive layout testing implementation
+**Latest work:** Theme System v2.0 Refactoring (October 2025)
+- **Phase 1**: Added thread-safe theme registry with failsafe logging
+- **Phase 2**: Implemented three-way theme API (by-name, by-value, by-shared_ptr)
+- **Phase 3**: Style-based rendering architecture with `resolved_style`
+- **Phase 4**: Comprehensive testing (11 new test cases, 88 assertions)
+- **Phase 5**: Documentation and polish
+- Removed unsafe `apply_theme(const theme_type&)` API
+- All 653 tests passing (was 642), zero warnings
+
+**Key architectural improvements:**
+- **Thread Safety**: Reader-writer locking on theme registry
+- **Performance**: CSS inheritance resolved once per frame, not per widget
+- **Safety**: No dangling pointer risk with new ownership semantics
+- **Simplicity**: Widgets receive pre-resolved style via render_context
+- **Stateful Widgets**: New helper base class for interactive widgets
+
+**Previous work:** Comprehensive layout testing implementation (2025)
 - Implemented 57 new layout tests across all priority levels
 - Fixed critical y=65541 overflow bug in element.hh
 - Created visual testing framework with canvas-based validation
 - Added edge case, robustness, and complex scenario coverage
-- All 569 tests passing, zero warnings
 
 **Key features:**
 - Complete widget library (12+ widgets)
-- CSS-style theming with inheritance
+- CSS-style theming with inheritance (v2.0 refactored)
 - Render context pattern (visitor) for unified measurement/rendering
 - Comprehensive hotkey system
 - Signal/slot for event handling
 - Mnemonic support (Alt+key shortcuts)
-- 569 tests with 2771 assertions
+- 653 tests with 4052 assertions
 - Visual testing framework for layout validation
+- Thread-safe theme management with failsafe logging

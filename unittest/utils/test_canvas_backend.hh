@@ -25,7 +25,10 @@ namespace onyxui::testing {
      * @brief Rectangle type for canvas backend
      */
     struct canvas_rect {
-        int x = 0, y = 0, w = 0, h = 0;
+        int x = 0;
+        int y = 0;
+        int w = 0;
+        int h = 0;
 
         canvas_rect() = default;
         canvas_rect(int x_, int y_, int w_, int h_) : x(x_), y(y_), w(w_), h(h_) {}
@@ -36,7 +39,8 @@ namespace onyxui::testing {
      * @brief Size type for canvas backend
      */
     struct canvas_size {
-        int w = 0, h = 0;
+        int w = 0;
+        int h = 0;
 
         canvas_size() = default;
         canvas_size(int w_, int h_) : w(w_), h(h_) {}
@@ -49,7 +53,8 @@ namespace onyxui::testing {
      * @brief Point type for canvas backend
      */
     struct canvas_point {
-        int x = 0, y = 0;
+        int x = 0;
+        int y = 0;
 
         canvas_point() = default;
         canvas_point(int x_, int y_) : x(x_), y(y_) {}
@@ -62,7 +67,9 @@ namespace onyxui::testing {
      * @brief Color type for canvas backend
      */
     struct canvas_color {
-        uint8_t r = 0, g = 0, b = 0;
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
 
         canvas_color() = default;
         canvas_color(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
@@ -84,7 +91,8 @@ namespace onyxui::testing {
      * @brief Mouse button event type for canvas backend
      */
     struct canvas_mouse_button_event {
-        int x = 0, y = 0;
+        int x = 0;
+        int y = 0;
         int button = 0;  // 0=left, 1=right, 2=middle
         bool pressed = false;
     };
@@ -94,7 +102,8 @@ namespace onyxui::testing {
      * @brief Mouse motion event type for canvas backend
      */
     struct canvas_mouse_motion_event {
-        int x = 0, y = 0;
+        int x = 0;
+        int y = 0;
     };
 
     /**
@@ -166,7 +175,7 @@ namespace onyxui::testing {
         /**
          * @brief Draw text - required by RenderLike (different signature!)
          */
-        void draw_text(const canvas_rect& rect, const std::string& text, const font& f) {
+        void draw_text(const canvas_rect& rect, std::string_view text, const font& f) {
             if (!m_canvas) return;
 
             // Draw text at rect position
