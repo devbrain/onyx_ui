@@ -84,12 +84,12 @@ namespace {
             return base::handle_mouse_leave();
         }
 
-        bool handle_mouse_down(int x, int y, int button) {
-            return base::handle_mouse_down(x, y, button);
+        bool handle_mouse_down(int x, int y, int mouse_button) {
+            return base::handle_mouse_down(x, y, mouse_button);
         }
 
-        bool handle_mouse_up(int x, int y, int button) {
-            return base::handle_mouse_up(x, y, button);
+        bool handle_mouse_up(int x, int y, int mouse_button) {
+            return base::handle_mouse_up(x, y, mouse_button);
         }
 
     protected:
@@ -115,12 +115,12 @@ namespace {
             return base::handle_mouse_leave();
         }
 
-        bool handle_mouse_down(int x, int y, int button) {
-            return base::handle_mouse_down(x, y, button);
+        bool handle_mouse_down(int x, int y, int mouse_button) {
+            return base::handle_mouse_down(x, y, mouse_button);
         }
 
-        bool handle_mouse_up(int x, int y, int button) {
-            return base::handle_mouse_up(x, y, button);
+        bool handle_mouse_up(int x, int y, int mouse_button) {
+            return base::handle_mouse_up(x, y, mouse_button);
         }
     };
 
@@ -787,8 +787,7 @@ TEST_CASE("stateful_widget - Button integration with automatic state syncing") {
 
     // Trigger hover via event
     btn.handle_mouse_enter();
-    auto hover_fg = btn.get_effective_foreground_color();
-    // Note: get_effective_foreground_color() needs resolve_style() to be called
+    // Note: Color resolution needs resolve_style() to be called
     // This test verifies the state changes, color resolution tested separately
 
     // Trigger pressed via event

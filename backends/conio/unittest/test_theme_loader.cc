@@ -7,7 +7,7 @@
 
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
-#include <onyxui/yaml/fkyaml_adapter.hh>
+#include <../../../include/onyxui/utils/fkyaml_adapter.hh>
 #include <onyxui/theme.hh>
 #include <onyxui/theme_loader.hh>
 #include <onyxui/conio/conio_backend.hh>

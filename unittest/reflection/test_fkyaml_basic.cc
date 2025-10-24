@@ -7,7 +7,7 @@
 
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
-#include <onyxui/yaml/fkyaml_adapter.hh>
+#include <onyxui/utils/fkyaml_adapter.hh>
 #include <string>
 
 using namespace onyxui::yaml;
@@ -23,7 +23,7 @@ TEST_CASE("fkYAML Adapter - Basic struct serialization") {
     simple_config config{42, "hello", true};
 
     SUBCASE("Serialize to YAML string") {
-        std::string yaml_str = to_yaml_string(config);
+        const std::string yaml_str = to_yaml_string(config);
 
         CHECK(!yaml_str.empty());
         CHECK(yaml_str.find("number") != std::string::npos);
