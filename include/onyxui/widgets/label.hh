@@ -149,15 +149,10 @@ namespace onyxui {
         void do_render(render_context<Backend>& ctx) const override {
             auto* theme = this->get_theme();
 
-            // During rendering, use actual bounds; during measurement, use origin
-            int x = 0;
-            int y = 0;
-            if (ctx.is_rendering()) {
-                const auto& bounds = this->bounds();
-                x = rect_utils::get_x(bounds);
-                y = rect_utils::get_y(bounds);
-            }
-            // else: use origin {0, 0} for measurement
+            // Use bounds for positioning (measure_context tracks bounding box, ignores position)
+            const auto& bounds = this->bounds();
+            int x = rect_utils::get_x(bounds);
+            int y = rect_utils::get_y(bounds);
 
             if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
                 // Render styled text with mnemonic (multi-segment)

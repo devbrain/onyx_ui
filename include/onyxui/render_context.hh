@@ -179,38 +179,12 @@ namespace onyxui {
         ) = 0;
 
         /**
-         * @brief Check if this context is measuring (not rendering)
-         * @return True if measure_context, false otherwise
-         *
-         * @details
-         * Allows widgets to skip expensive calculations during measurement.
-         *
-         * @example
-         * @code
-         * if (!ctx.is_measuring()) {
-         *     // Only do this during actual rendering
-         *     draw_expensive_decoration();
-         * }
-         * @endcode
-         */
-        [[nodiscard]] virtual bool is_measuring() const noexcept = 0;
-
-        /**
-         * @brief Check if this context is rendering (not measuring)
-         * @return True if draw_context, false otherwise
-         *
-         * @details
-         * Convenience method, equivalent to `!is_measuring()`
-         */
-        [[nodiscard]] virtual bool is_rendering() const noexcept = 0;
-
-        /**
          * @brief Access underlying renderer (for advanced use cases)
          * @return Pointer to renderer, or nullptr if measuring
          *
          * @details
-         * Returns nullptr during measurement pass.
-         * Use `is_rendering()` to check before accessing.
+         * Returns nullptr during measurement pass (measure_context).
+         * Returns valid renderer during rendering pass (draw_context).
          *
          * **Warning**: Directly using the renderer bypasses the visitor pattern
          * and may cause measurement/rendering to diverge. Use sparingly.
@@ -260,6 +234,60 @@ namespace onyxui {
          */
         [[nodiscard]] const resolved_style<Backend>& style() const noexcept {
             return m_style;
+        }
+
+        /**
+         * @brief Get the top-left position where widget should draw
+         *
+         * @return Position assigned by parent layout
+         *
+         * @details
+         * The position is set by the parent during arrange() and passed through
+         * the render context. This decouples widgets from element state.
+         *
+         * - **During measurement**: Returns {0, 0} (position irrelevant)
+         * - **During rendering**: Returns actual position from bounds
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     auto pos = ctx.position();
+         *     int x = point_utils::get_x(pos);
+         *     int y = point_utils::get_y(pos);
+         *     ctx.draw_text(m_text, {x, y}, font, color);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] const point_type& position() const noexcept {
+            return m_position;
+        }
+
+        /**
+         * @brief Get the available size assigned by parent layout
+         *
+         * @return Size constraint from parent (0,0 during measurement)
+         *
+         * @details
+         * The available size is set by the parent during arrange():
+         *
+         * - **During measurement**: Returns {0, 0} → use natural size
+         * - **During rendering**: Returns bounds.size → use assigned size
+         *
+         * Widgets that can expand (like buttons) use this to respect parent layout:
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     auto avail = ctx.available_size();
+         *     int width = size_utils::get_width(avail);
+         *
+         *     // Use assigned width if available, otherwise calculate natural width
+         *     int final_width = (width > 0) ? width : calculate_natural_width();
+         *
+         *     // Draw at ctx.position() with final_width
+         * }
+         * @endcode
+         */
+        [[nodiscard]] const size_type& available_size() const noexcept {
+            return m_available_size;
         }
 
         // ===================================================================
@@ -360,27 +388,59 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Protected constructor with resolved style
+         * @brief Protected constructor with resolved style, position, and size
          *
          * @param style The resolved style for this rendering pass
+         * @param position Top-left corner where widget should draw
+         * @param available_size Size assigned by parent layout (0,0 during measurement)
          *
          * @details
          * The style is resolved by the caller (typically ui_element::render())
          * through CSS inheritance before creating the render context.
+         *
+         * Position and size are extracted from bounds during rendering, or set to
+         * {0,0} during measurement.
+         */
+        explicit render_context(
+            const resolved_style<Backend>& style,
+            const point_type& position,
+            const size_type& available_size
+        )
+            : m_style(style)
+            , m_position(position)
+            , m_available_size(available_size) {
+        }
+
+        /**
+         * @brief Constructor with resolved style only (zero position/size)
+         *
+         * @param style The resolved style for this rendering pass
+         *
+         * @details
+         * Position and size are initialized to zero.
+         * Use this for measurement contexts.
          */
         explicit render_context(const resolved_style<Backend>& style)
-            : m_style(style) {}
+            : m_style(style) {
+            // Initialize position and size to zero (measurement defaults)
+            size_utils::set_size(m_available_size, 0, 0);
+        }
 
         /**
          * @brief Default constructor (for backward compatibility)
          *
          * @details
-         * Creates context with default-constructed style.
-         * Prefer the style-based constructor for new code.
+         * Creates context with default-constructed style, zero position/size.
+         * Prefer the style-based constructors for new code.
          */
-        render_context() = default;
+        render_context() {
+            // Member variables are default-initialized to zero
+            size_utils::set_size(m_available_size, 0, 0);
+        }
 
     private:
-        resolved_style<Backend> m_style;  ///< Resolved visual style for this pass
+        resolved_style<Backend> m_style;        ///< Resolved visual style for this pass
+        point_type m_position{};                ///< Top-left position where widget draws
+        size_type m_available_size{};           ///< Size assigned by parent (0,0 during measurement)
     };
 }

@@ -34,7 +34,7 @@ theme_type create_test_theme() {
     theme.button.bg_pressed = color{170, 170, 170};
     theme.button.fg_disabled = color{128, 128, 128};
     theme.button.bg_disabled = color{64, 64, 64};
-    theme.button.box_style = conio_renderer::box_style::double_line;
+    theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
     theme.button.font = {true, false, false};
     theme.button.text_align = horizontal_alignment::center;
 
@@ -43,7 +43,7 @@ theme_type create_test_theme() {
 
     theme.panel.background = color{0, 0, 170};
     theme.panel.border_color = color{255, 255, 255};
-    theme.panel.box_style = conio_renderer::box_style::single_line;
+    theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
     theme.window_bg = color{0, 0, 170};
     theme.text_fg = color{255, 255, 255};
@@ -195,7 +195,7 @@ TEST_CASE("Theme Loader - String operations") {
         original.button.bg_pressed = color{170, 170, 170};
         original.button.fg_disabled = color{128, 128, 128};
         original.button.bg_disabled = color{64, 64, 64};
-        original.button.box_style = conio_renderer::box_style::double_line;
+        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
         original.button.font = {true, false, false};
         original.button.mnemonic_font = {true, true, false};
         original.button.padding_horizontal = 4;
@@ -207,7 +207,7 @@ TEST_CASE("Theme Loader - String operations") {
         original.label.mnemonic_font = {false, true, false};
         original.panel.background = color{0, 0, 170};
         original.panel.border_color = color{255, 255, 255};
-        original.panel.box_style = conio_renderer::box_style::single_line;
+        original.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
         original.panel.has_border = true;
         original.window_bg = color{0, 0, 170};
         original.text_fg = color{255, 255, 255};
@@ -280,7 +280,7 @@ border_color: [80, 80, 80]
         CHECK(theme.name == "Custom Theme");
         CHECK(theme.description == "Loaded from string");
         CHECK(theme.button.fg_normal.r == 200);
-        CHECK(theme.button.box_style == conio_renderer::box_style::rounded);
+        CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
         CHECK(theme.button.text_align == horizontal_alignment::left);
         CHECK(theme.window_bg.r == 20);
     }

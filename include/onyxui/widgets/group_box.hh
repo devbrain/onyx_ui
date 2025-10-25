@@ -234,19 +234,10 @@ namespace onyxui {
          * - Height: +2 for top and bottom borders
          */
         size_type do_measure(int available_width, int available_height) override {
-            // Measure children using base class (which uses layout strategy)
-            size_type const content = base::do_measure(available_width, available_height);
-
-            int width = size_utils::get_width(content);
-            int height = size_utils::get_height(content);
-
-            // Add border space (1 char on each side)
-            width += 2;
-            height += 2;
-
-            size_type result{};
-            size_utils::set_size(result, width, height);
-            return result;
+            // Measure using base class (widget_container handles border addition)
+            // Base class chain: panel -> widget_container -> widget
+            // widget_container::do_measure() already adds border size
+            return base::do_measure(available_width, available_height);
         }
 
         /**

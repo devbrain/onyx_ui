@@ -59,36 +59,53 @@ Now that you have your environment set up, let's create a simple "Hello World" a
     Create a new file named `main.cc` and add the following code:
 
     ```cpp
+    #include <onyxui/conio/conio_backend.hh>
+    #include <onyxui/ui_handle.hh>
+    #include <onyxui/ui_context.hh>
     #include <onyxui/widgets/vbox.hh>
     #include <onyxui/widgets/button.hh>
     #include <onyxui/widgets/label.hh>
-    #include <backends/conio/conio_backend.hh>
     #include <iostream>
 
     int main() {
-        using Backend = onyxui::conio_backend;
+        using Backend = onyxui::conio::conio_backend;
 
-        // Create a window with a vertical layout
-        auto window = onyxui::create_vbox<Backend>();
+        // 1. Create UI context (provides services: layers, focus, themes, background)
+        onyxui::scoped_ui_context<Backend> ctx;
 
-        // Add a title label
+        // 2. Configure background (optional - defaults to black solid)
+        auto* bg = onyxui::ui_services<Backend>::background();
+        if (bg) {
+            bg->set_mode(onyxui::background_mode::solid);
+            bg->set_color({0, 0, 170});  // Blue background
+        }
+
+        // 3. Build UI widget tree
+        auto root = onyxui::create_vbox<Backend>();
+
         auto title = onyxui::create_label<Backend>("Welcome to OnyxUI!");
-        window->add_child(std::move(title));
+        root->add_child(std::move(title));
 
-        // Add a button with a click handler
         auto button = onyxui::create_button<Backend>("Click Me");
         button->clicked().connect([]() {
             std::cout << "Button clicked!" << std::endl;
         });
-        window->add_child(std::move(button));
+        root->add_child(std::move(button));
 
-        // Layout and render the UI
-        window->measure(80, 24);
-        window->arrange({0, 0, 80, 24});
+        // 4. Create UI handle (manages rendering pipeline)
+        onyxui::ui_handle<Backend> ui(std::move(root));
 
-        // In a real application, you would have an event loop here.
-        // For this simple example, we'll just print the state of the UI.
-        // The conio backend would render to the console.
+        // 5. Main event loop
+        bool quit = false;
+        while (!quit) {
+            // Render frame: background -> widgets -> layers
+            ui.display();
+            ui.present();
+
+            // Handle events (simplified - real code would poll events)
+            // if (user_pressed_escape()) quit = true;
+            break;  // For this simple example, just render once
+        }
 
         return 0;
     }

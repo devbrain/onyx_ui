@@ -12,6 +12,7 @@ add_executable(ui_unittest
         core/test_scoped_layer.cc
         core/test_render_context.cc
         core/test_content_area.cc
+        core/test_background_renderer.cc
         events/test_events.cc
         events/test_event_target.cc
         focus/test_focus_manager.cc
@@ -46,6 +47,7 @@ add_executable(ui_unittest
         widgets/test_actions.cc
         widgets/test_mnemonics.cc
         widgets/test_menus.cc
+        widgets/test_menu_border_layout.cc
         widgets/test_theme_switching.cc
         widgets/test_status_bar.cc
         widgets/test_group_box.cc
@@ -71,6 +73,8 @@ add_executable(ui_unittest
         theming/test_style_inheritance.cc
         theming/test_style_edge_cases.cc
         theming/test_style_thread_safety.cc
+        # Layer management tests
+        layer/test_layer_dirty_regions.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})

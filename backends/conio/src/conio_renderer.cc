@@ -40,13 +40,27 @@ namespace onyxui::conio {
 
     conio_renderer::~conio_renderer() = default;
 
-    void conio_renderer::draw_box(const rect& r, box_style style) {
-        if (style == box_style::none) return;
-
-        // Get clip region
+    void conio_renderer::draw_box(const rect& r, const box_style& style) {
         const rect clip = get_clip_rect();
 
-        // Box drawing characters based on style
+        // Fill interior if solid
+        if (style.is_solid) {
+            for (int y = r.y; y < r.y + r.h; ++y) {
+                for (int x = r.x; x < r.x + r.w; ++x) {
+                    // Check if position is within clip region
+                    if (x >= clip.x && x < clip.x + clip.w &&
+                        y >= clip.y && y < clip.y + clip.h) {
+                        // Fill with space character using background color
+                        m_pimpl->m_vram.put(x, y, ' ', m_pimpl->m_fg, m_pimpl->m_bg);
+                    }
+                }
+            }
+        }
+
+        // Draw border if not none
+        if (style.style == border_style::none) return;
+
+        // Box drawing characters based on border style
         int tl = 0;
         int tr = 0;
         int bl = 0;
@@ -54,21 +68,21 @@ namespace onyxui::conio {
         int h = 0;
         int v = 0;
 
-        switch (style) {
-            case box_style::single_line:
+        switch (style.style) {
+            case border_style::single_line:
                 tl = DOS_TL; tr = DOS_TR; bl = DOS_BL; br = DOS_BR;
                 h = DOS_H; v = DOS_V;
                 break;
-            case box_style::double_line:
+            case border_style::double_line:
                 tl = DOS_TL2; tr = DOS_TR2; bl = DOS_BL2; br = DOS_BR2;
                 h = DOS_H2; v = DOS_V2;
                 break;
-            case box_style::rounded:
+            case border_style::rounded:
                 tl = BOX_ROUND_TL; tr = BOX_ROUND_TR;
                 bl = BOX_ROUND_BL; br = BOX_ROUND_BR;
                 h = BOX_ROUND_H; v = BOX_ROUND_V;
                 break;
-            case box_style::heavy:
+            case border_style::heavy:
                 tl = BOX_HEAVY_ROUND_TL; tr = BOX_HEAVY_ROUND_TR;
                 bl = BOX_HEAVY_ROUND_BL; br = BOX_HEAVY_ROUND_BR;
                 h = BOX_HEAVY_H; v = BOX_HEAVY_V;

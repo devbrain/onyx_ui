@@ -153,7 +153,7 @@ namespace onyxui {
          * @details
          * Performs the complete layout and rendering pipeline:
          * 1. Gets viewport bounds from renderer
-         * 2. Clears any dirty regions from previous frame
+         * 2. Renders background via ui_services
          * 3. Measures the UI tree
          * 4. Arranges widgets within bounds
          * 5. Renders to the back buffer
@@ -183,9 +183,16 @@ namespace onyxui {
             // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
 
-            // Clear dirty regions before rendering
-            for (const auto& region : dirty_regions) {
-                m_renderer.clear_region(region);
+            // Add dirty regions from removed layers (fixes menu switching artifacts)
+            if (auto* layers = ui_services<Backend>::layers()) {
+                const auto& removed_regions = layers->get_removed_layer_dirty_regions();
+                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
+                layers->clear_removed_layer_dirty_regions();
+            }
+
+            // Render background BEFORE widgets (from ui_services)
+            if (auto* bg = ui_services<Backend>::background()) {
+                bg->render(m_renderer, bounds, dirty_regions);
             }
 
             // Two-pass layout for base UI
@@ -218,9 +225,16 @@ namespace onyxui {
             // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
 
-            // Clear dirty regions before rendering
-            for (const auto& region : dirty_regions) {
-                m_renderer.clear_region(region);
+            // Add dirty regions from removed layers (fixes menu switching artifacts)
+            if (auto* layers = ui_services<Backend>::layers()) {
+                const auto& removed_regions = layers->get_removed_layer_dirty_regions();
+                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
+                layers->clear_removed_layer_dirty_regions();
+            }
+
+            // Render background BEFORE widgets (from ui_services)
+            if (auto* bg = ui_services<Backend>::background()) {
+                bg->render(m_renderer, bounds, dirty_regions);
             }
 
             // Two-pass layout for base UI

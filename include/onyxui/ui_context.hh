@@ -512,6 +512,7 @@
 #include <onyxui/focus_manager.hh>
 #include <onyxui/theme_registry.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
+#include <onyxui/background_renderer.hh>
 
 namespace onyxui {
 
@@ -611,6 +612,7 @@ namespace onyxui {
         using focus_manager_type = hierarchical_focus_manager<Backend, ui_element<Backend>>;
         using theme_registry_type = theme_registry<Backend>;
         using hotkey_manager_type = hotkey_manager<Backend>;
+        using background_renderer_type = background_renderer<Backend>;
 
         /**
          * @brief Construct a new UI context with default-initialized services
@@ -713,10 +715,27 @@ namespace onyxui {
             return *s_shared_hotkeys;
         }
 
+        /**
+         * @brief Get the background renderer
+         * @return Reference to background renderer
+         */
+        [[nodiscard]] background_renderer_type& background() noexcept {
+            return m_background_renderer;
+        }
+
+        /**
+         * @brief Get the background renderer (const)
+         * @return Const reference to background renderer
+         */
+        [[nodiscard]] const background_renderer_type& background() const noexcept {
+            return m_background_renderer;
+        }
+
     private:
         // Per-context services (isolated per UI instance)
         layer_manager_type m_layer_manager;
         focus_manager_type m_focus_manager;
+        background_renderer_type m_background_renderer;
 
         // Shared services (singleton pattern - shared across all contexts)
         static inline std::shared_ptr<theme_registry_type> s_shared_themes;

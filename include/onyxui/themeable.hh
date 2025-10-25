@@ -164,7 +164,9 @@ namespace onyxui {
              * @endcode
              */
             void apply_theme(theme_type theme) {  // Pass by value!
-                LOG_DEBUG("Applying theme by value: ", theme.name.empty() ? "(unnamed)" : theme.name);
+                // Note: No logging here - this is primarily used for recursive propagation
+                // to children. Logging would create excessive output (one per widget in tree).
+                // User-facing theme application uses apply_theme(name, registry) which logs.
                 before_apply_theme(theme);
 
                 // Clear shared theme (switching to owned theme)

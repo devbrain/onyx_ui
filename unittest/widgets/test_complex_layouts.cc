@@ -243,14 +243,16 @@ TEST_SUITE("Layout - Complex Scenarios") {
         INFO("Grid-like layout with group boxes:\n", debug_canvas(*canvas));
 
         // All four content labels should be visible in their respective boxes
-        // Top row: Content 1 at (1,1), Content 2 at (19,1) after box1(13) + spacing(5) + border(1)
+        // Top row: Content 1 at (1,1), Content 2 at (17,1) after box1(11) + spacing(5) + border(1)
+        // Box1 width = content(9) + borders(2) = 11
         assert_text_at(*canvas, "Content 1", 1, 1, "Box 1 content");
-        assert_text_at(*canvas, "Content 2", 19, 1, "Box 2 content");
+        assert_text_at(*canvas, "Content 2", 17, 1, "Box 2 content");
 
-        // Bottom row: top_row is 5 rows (0-4), spacing is 5 rows (5-9), bottom starts at row 10
-        // Content is at row 11 (border at row 10, content at row 11)
-        assert_text_at(*canvas, "Content 3", 1, 11, "Box 3 content");
-        assert_text_at(*canvas, "Content 4", 19, 11, "Box 4 content");
+        // Bottom row: top_row is 3 rows (box height), spacing is 5 rows, bottom starts at row 8
+        // Content is at row 9 (border at row 8, content at row 9)
+        // Box height = top_border(1) + content(1) + bottom_border(1) = 3
+        assert_text_at(*canvas, "Content 3", 1, 9, "Box 3 content");
+        assert_text_at(*canvas, "Content 4", 17, 9, "Box 4 content");
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Deep nesting - 5 levels with mixed borders") {

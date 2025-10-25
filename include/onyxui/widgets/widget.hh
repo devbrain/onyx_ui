@@ -23,8 +23,10 @@
  * class my_widget : public widget<Backend> {
  * protected:
  *     void do_render(render_context<Backend>& ctx) const override {
- *         // Custom rendering - same code handles measurement and rendering
- *         // Use ctx.is_rendering() to branch if needed
+ *         // Custom rendering - same code handles BOTH measurement and rendering
+ *         // Widgets are completely unaware of context type (visitor pattern)
+ *         ctx.draw_text(m_text, position, font, color);
+ *         ctx.draw_rect(bounds, box_style);
  *     }
  * };
  * @endcode

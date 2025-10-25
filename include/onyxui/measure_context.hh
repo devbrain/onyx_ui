@@ -27,11 +27,10 @@ namespace onyxui {
      *
      * ## Behavior
      *
-     * - `is_measuring()` returns `true`
-     * - `is_rendering()` returns `false`
      * - All draw operations update internal bounds tracking
      * - No actual rendering occurs
      * - `get_size()` returns the final measured size
+     * - `renderer()` returns nullptr (no renderer during measurement)
      *
      * ## Bounds Tracking
      *
@@ -81,24 +80,31 @@ namespace onyxui {
          * @param style Resolved visual style (for consistency with draw_context)
          *
          * @details
-         * Initializes with zero size. The size expands as draw operations
-         * are performed. The style is available via base::style() for widgets
-         * that need it during measurement.
+         * Initializes bounding box tracking. The bounding box expands as draw
+         * operations are performed, tracking min/max extents to calculate final size.
          */
         explicit measure_context(const resolved_style<Backend>& style)
-            : base(style) {
-            size_utils::set_size(m_measured_size, 0, 0);
+            : base(style)
+            , m_min_x(INT_MAX)
+            , m_min_y(INT_MAX)
+            , m_max_right(INT_MIN)
+            , m_max_bottom(INT_MIN)
+            , m_has_content(false) {
         }
 
         /**
          * @brief Construct measure context (default style)
          *
          * @details
-         * Initializes with zero size and default-constructed style.
-         * The size expands as draw operations are performed.
+         * Initializes bounding box tracking with default-constructed style.
+         * The bounding box expands as draw operations are performed.
          */
-        measure_context() {
-            size_utils::set_size(m_measured_size, 0, 0);
+        measure_context()
+            : m_min_x(INT_MAX)
+            , m_min_y(INT_MAX)
+            , m_max_right(INT_MIN)
+            , m_max_bottom(INT_MIN)
+            , m_has_content(false) {
         }
 
         /**
@@ -119,7 +125,8 @@ namespace onyxui {
          *
          * @details
          * Measures the text size using renderer's static method and updates
-         * the tracked bounds. No actual rendering occurs.
+         * the tracked bounding box. No actual rendering occurs.
+         * Position is tracked to calculate the bounding box of all content.
          */
         [[nodiscard]] size_type draw_text(
             std::string_view text,
@@ -130,14 +137,16 @@ namespace onyxui {
             // Measure text size
             auto text_size = renderer_type::measure_text(text, font);
 
-            // Calculate extents: position + size
+            // Calculate bounding box extents
             int const x = point_utils::get_x(position);
             int const y = point_utils::get_y(position);
-            int const right = safe_math::add_clamped(x, size_utils::get_width(text_size));
-            int const bottom = safe_math::add_clamped(y, size_utils::get_height(text_size));
+            int const w = size_utils::get_width(text_size);
+            int const h = size_utils::get_height(text_size);
+            int const right = safe_math::add_clamped(x, w);
+            int const bottom = safe_math::add_clamped(y, h);
 
-            // Update tracked bounds
-            update_bounds(right, bottom);
+            // Update bounding box
+            update_bounding_box(x, y, right, bottom);
 
             return text_size;
         }
@@ -146,30 +155,30 @@ namespace onyxui {
          * @brief "Draw" a rectangle (measurement only)
          *
          * @details
-         * Updates tracked bounds to include the rectangle. No actual rendering occurs.
+         * Updates tracked bounding box to include the rectangle. No actual rendering occurs.
          */
         void draw_rect(
             const rect_type& bounds,
             box_style /*style*/
         ) override {
-            // Calculate extents: x + width, y + height
+            // Calculate bounding box extents
             int const x = rect_utils::get_x(bounds);
             int const y = rect_utils::get_y(bounds);
             int const w = rect_utils::get_width(bounds);
             int const h = rect_utils::get_height(bounds);
-
             int const right = safe_math::add_clamped(x, w);
             int const bottom = safe_math::add_clamped(y, h);
 
-            // Update tracked bounds
-            update_bounds(right, bottom);
+            // Update bounding box
+            update_bounding_box(x, y, right, bottom);
         }
 
         /**
          * @brief "Draw" a line (measurement only)
          *
          * @details
-         * Updates tracked bounds to include both endpoints. No actual rendering occurs.
+         * Updates tracked bounding box to include both line endpoints plus width.
+         * No actual rendering occurs.
          */
         void draw_line(
             const point_type& from,
@@ -183,19 +192,21 @@ namespace onyxui {
             int const x2 = point_utils::get_x(to);
             int const y2 = point_utils::get_y(to);
 
-            // Calculate bounds including line width
-            int const right = std::max(x1, x2) + width;
-            int const bottom = std::max(y1, y2) + width;
+            // Calculate bounding box including line width
+            int const min_x = std::min(x1, x2);
+            int const min_y = std::min(y1, y2);
+            int const max_x = std::max(x1, x2) + width;
+            int const max_y = std::max(y1, y2) + width;
 
-            // Update tracked bounds
-            update_bounds(right, bottom);
+            // Update bounding box
+            update_bounding_box(min_x, min_y, max_x, max_y);
         }
 
         /**
          * @brief "Draw" an icon and return its size (measurement only)
          *
          * @details
-         * Calculates icon size from renderer and updates tracked bounds.
+         * Calculates icon size from renderer and updates tracked bounding box.
          * No actual rendering occurs. Icon size is queried from the renderer's
          * static get_icon_size() method, allowing backend-specific sizing.
          */
@@ -206,39 +217,17 @@ namespace onyxui {
             // Get icon size from renderer (static method - no instance needed)
             size_type icon_size = renderer_type::get_icon_size(icon);
 
-            int const icon_width = size_utils::get_width(icon_size);
-            int const icon_height = size_utils::get_height(icon_size);
+            int const x = point_utils::get_x(position);
+            int const y = point_utils::get_y(position);
+            int const w = size_utils::get_width(icon_size);
+            int const h = size_utils::get_height(icon_size);
+            int const right = safe_math::add_clamped(x, w);
+            int const bottom = safe_math::add_clamped(y, h);
 
-            // Calculate extents: position + icon_size
-            int const right = safe_math::add_clamped(
-                point_utils::get_x(position),
-                icon_width
-            );
-            int const bottom = safe_math::add_clamped(
-                point_utils::get_y(position),
-                icon_height
-            );
-
-            // Update tracked bounds
-            update_bounds(right, bottom);
+            // Update bounding box
+            update_bounding_box(x, y, right, bottom);
 
             return icon_size;
-        }
-
-        /**
-         * @brief Check if this context is measuring
-         * @return true (measure_context is for measurement)
-         */
-        [[nodiscard]] bool is_measuring() const noexcept override {
-            return true;
-        }
-
-        /**
-         * @brief Check if this context is rendering
-         * @return false (measure_context is for measurement)
-         */
-        [[nodiscard]] bool is_rendering() const noexcept override {
-            return false;
         }
 
         /**
@@ -265,44 +254,63 @@ namespace onyxui {
          * Returns the size that encompasses all draw operations performed
          * on this context. This is typically called after `do_render(ctx)`
          * to get the widget's content size.
+         *
+         * The size is calculated from the bounding box: (max - min) for both dimensions.
+         * If no content was drawn, returns zero size.
          */
         [[nodiscard]] size_type get_size() const noexcept {
-            return m_measured_size;
+            size_type result{};
+            if (m_has_content) {
+                int const width = m_max_right - m_min_x;
+                int const height = m_max_bottom - m_min_y;
+                size_utils::set_size(result, width, height);
+            } else {
+                size_utils::set_size(result, 0, 0);
+            }
+            return result;
         }
 
         /**
          * @brief Reset measured size to zero
          *
          * @details
-         * Resets the tracked bounds to zero. Useful if reusing the same
+         * Resets the tracked bounding box. Useful if reusing the same
          * context for multiple measurements.
          */
         void reset() noexcept {
-            size_utils::set_size(m_measured_size, 0, 0);
+            m_min_x = INT_MAX;
+            m_min_y = INT_MAX;
+            m_max_right = INT_MIN;
+            m_max_bottom = INT_MIN;
+            m_has_content = false;
         }
 
     private:
         /**
-         * @brief Update tracked bounds with new extents
+         * @brief Update tracked bounding box with new extents
          *
+         * @param left Left edge (x position)
+         * @param top Top edge (y position)
          * @param right Right edge (x + width)
          * @param bottom Bottom edge (y + height)
          *
          * @details
-         * Expands the tracked size to include the new extents. Uses maximum
-         * of current and new values.
+         * Expands the tracked bounding box to include the new rectangle.
+         * Tracks minimum and maximum extents across all draw operations.
+         * This allows correct measurement regardless of draw position.
          */
-        void update_bounds(int right, int bottom) noexcept {
-            int const current_width = size_utils::get_width(m_measured_size);
-            int const current_height = size_utils::get_height(m_measured_size);
-
-            // Expand to maximum extents
-            int const new_width = std::max(current_width, right);
-            int const new_height = std::max(current_height, bottom);
-
-            size_utils::set_size(m_measured_size, new_width, new_height);
+        void update_bounding_box(int left, int top, int right, int bottom) noexcept {
+            m_min_x = std::min(m_min_x, left);
+            m_min_y = std::min(m_min_y, top);
+            m_max_right = std::max(m_max_right, right);
+            m_max_bottom = std::max(m_max_bottom, bottom);
+            m_has_content = true;
         }
 
-        size_type m_measured_size;  ///< Tracked bounding box size
+        int m_min_x;         ///< Minimum x coordinate seen
+        int m_min_y;         ///< Minimum y coordinate seen
+        int m_max_right;     ///< Maximum right edge (x + width)
+        int m_max_bottom;    ///< Maximum bottom edge (y + height)
+        bool m_has_content;  ///< Whether any content was drawn
     };
 }

@@ -36,7 +36,7 @@ namespace {
         theme.button.bg_pressed = color{170, 170, 170};
         theme.button.fg_disabled = color{128, 128, 128};
         theme.button.bg_disabled = color{64, 64, 64};
-        theme.button.box_style = conio_renderer::box_style::double_line;
+        theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
         theme.button.font = {true, false, false};
         theme.button.mnemonic_font = {true, true, false};
         theme.button.padding_horizontal = 4;
@@ -52,7 +52,7 @@ namespace {
         // Panel style
         theme.panel.background = color{0, 0, 170};
         theme.panel.border_color = color{255, 255, 255};
-        theme.panel.box_style = conio_renderer::box_style::single_line;
+        theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
         theme.panel.has_border = true;
 
         // Global palette
@@ -177,7 +177,7 @@ border_color: [80, 80, 80]
         // Check button style
         CHECK(theme.button.fg_normal.r == 255);
         CHECK(theme.button.bg_normal.r == 30);
-        CHECK(theme.button.box_style == conio_renderer::box_style::rounded);
+        CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
         CHECK(theme.button.text_align == horizontal_alignment::left);
         CHECK(theme.button.font.bold == true);
         CHECK(theme.button.padding_horizontal == 6);
@@ -190,7 +190,7 @@ border_color: [80, 80, 80]
         // Check panel style
         CHECK(theme.panel.background.r == 40);
         CHECK(theme.panel.border_color.r == 100);
-        CHECK(theme.panel.box_style == conio_renderer::box_style::heavy);
+        CHECK(theme.panel.box_style.style == conio_renderer::border_style::heavy);
         CHECK(theme.panel.has_border == true);
 
         // Check global palette

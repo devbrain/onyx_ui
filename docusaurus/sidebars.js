@@ -12,6 +12,7 @@ const sidebars = {
         'core-concepts/backend-pattern',
         'core-concepts/two-pass-layout',
         'core-concepts/render-context',
+        'core-concepts/background-renderer',
         'core-concepts/event-system',
         'core-concepts/theming-system',
         'core-concepts/service-locator',

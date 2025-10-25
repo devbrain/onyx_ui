@@ -523,8 +523,17 @@ namespace onyxui {
                 // Resolve style ONCE through CSS inheritance (v2.0)
                 auto style = this->resolve_style();
 
-                // Create draw context with resolved style and dirty regions
-                draw_context<Backend> ctx(renderer, style, dirty_regions);
+                // Extract position and size from bounds for render context
+                point_type pos{rect_utils::get_x(m_bounds), rect_utils::get_y(m_bounds)};
+
+                size_type size;
+                size_utils::set_size(size,
+                    rect_utils::get_width(m_bounds),
+                    rect_utils::get_height(m_bounds));
+
+                // Create draw context with resolved style, position, size, and dirty regions
+                // Passing position/size decouples widgets from element state (pure visitor pattern)
+                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
                 if (!ctx.should_render(m_bounds)) {

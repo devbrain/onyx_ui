@@ -37,16 +37,6 @@ add_backend_library(
         thirdparty::utf8cpp  # Required for UTF-8 text measurement in renderer
 )
 
-# Demo application
-add_executable(dos_theme_showcase
-        dos_theme_showcase.cc
-        dos_theme.hh
-)
-
-target_link_libraries(dos_theme_showcase PRIVATE
-    onyxui_conio_backend
-    termbox2_lib  # Direct termbox2 usage in demo
-)
 
 # Conio backend integration tests (built as shared library for doctest DLL)
 if(ONYX_UI_BUILD_TEST)

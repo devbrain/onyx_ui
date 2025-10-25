@@ -31,15 +31,32 @@ namespace onyxui::conio {
             // ===================================================================
 
             /**
-             * @enum box_style
-             * @brief Defines different box drawing styles
+             * @enum border_style
+             * @brief Defines different box border drawing styles
              */
-            enum class box_style : uint8_t {
+            enum class border_style : uint8_t {
                 none, // No border
                 single_line, // ┌─┐ Single line borders
                 double_line, // ╔═╗ Double line borders
                 rounded, // ╭─╮ Rounded corners
                 heavy // Heavy/bold lines
+            };
+
+            /**
+             * @struct box_style
+             * @brief Defines box appearance (border style and fill behavior)
+             */
+            struct box_style {
+                border_style style = border_style::none; // Border drawing style
+                bool is_solid = true; // Fill interior with background color
+
+                // Convenience constructors
+                constexpr box_style() noexcept = default;
+                constexpr explicit box_style(border_style s, bool solid = true) noexcept
+                    : style(s), is_solid(solid) {}
+
+                // Comparison operators for testing
+                constexpr bool operator==(const box_style&) const noexcept = default;
             };
 
             /**
@@ -83,9 +100,9 @@ namespace onyxui::conio {
             /**
              * @brief Draw a box with the specified style
              * @param r Rectangle defining the box bounds
-             * @param style Box drawing style
+             * @param style Box drawing style (border and fill behavior)
              */
-            void draw_box(const rect& r, box_style style);
+            void draw_box(const rect& r, const box_style& style);
 
             /**
              * @brief Draw text within a rectangle
@@ -221,8 +238,8 @@ namespace onyxui::conio {
              * int total_width = text_width + padding*2 + border*2;  // border on both sides
              * @endcode
              */
-            [[nodiscard]] static constexpr int get_border_thickness(box_style style) noexcept {
-                return (style == box_style::none) ? 0 : 1;
+            [[nodiscard]] static constexpr int get_border_thickness(const box_style& style) noexcept {
+                return (style.style == border_style::none) ? 0 : 1;
             }
 
             // ===================================================================

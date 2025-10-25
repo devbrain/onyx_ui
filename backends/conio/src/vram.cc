@@ -166,10 +166,6 @@ namespace onyxui::conio {
         auto w = tb_width();
         auto h = tb_height();
 
-        // DEBUG: Show what termbox returned
-        std::cerr << "VRAM::init(): termbox returned width=" << w << " height=" << h << std::endl;
-        std::cerr.flush();
-
         if (w <= 0 || w > 1000) {
             throw std::runtime_error("illegal terminal width");
         }
@@ -183,13 +179,6 @@ namespace onyxui::conio {
         m_clip_rect.y = 0;
         m_clip_rect.w = w;
         m_clip_rect.h = h;
-
-        // DEBUG: Show initialized clip rect
-        std::cerr << "VRAM::init(): clip_rect = {x=" << m_clip_rect.x
-                  << ", y=" << m_clip_rect.y
-                  << ", w=" << m_clip_rect.w
-                  << ", h=" << m_clip_rect.h << "}" << std::endl;
-        std::cerr.flush();
     }
 
     vram::impl::~impl() {
@@ -214,12 +203,6 @@ namespace onyxui::conio {
 
     cell& vram::impl::get_cell(int x, int y) {
         if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
-            std::cerr << "VRAM::get_cell() OUT OF RANGE!"
-                      << " x=" << x << " y=" << y
-                      << " vram_size=" << m_width << "x" << m_height << std::endl;
-            std::cerr << "  Clip rect: {x=" << m_clip_rect.x << ", y=" << m_clip_rect.y
-                      << ", w=" << m_clip_rect.w << ", h=" << m_clip_rect.h << "}" << std::endl;
-            std::cerr.flush();
             throw std::runtime_error("VRAM coords are out of range");
         }
         std::size_t idx = static_cast<std::size_t>(x) + static_cast<std::size_t>(y * m_width);
@@ -284,16 +267,6 @@ namespace onyxui::conio {
     }
 
     void vram::put(int x, int y, int ch, color fg, color bg, text_attribute attr) {
-        // DEBUG: Check coordinates before clipping
-        auto y_unsigned = static_cast<unsigned int>(y);
-        if (y < 0 || y > 1000 || y_unsigned > 1000) {
-            std::cerr << "VRAM::put() called with BAD y=" << y
-                      << " (unsigned: " << y_unsigned << ") x=" << x
-                      << " char='" << static_cast<char>(ch) << "' (" << ch << ")"
-                      << " vram_size=" << m_pimpl->m_width << "x" << m_pimpl->m_height << std::endl;
-            std::cerr.flush();
-        }
-
         if (!m_pimpl->clip(x, y)) {
             return;
         }

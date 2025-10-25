@@ -277,6 +277,7 @@ namespace onyxui {
             });
 
             sort_layers_by_z_index();
+            m_layers_changed = true;  // Signal that layers were modified
 
             return id;
         }
@@ -312,11 +313,23 @@ namespace onyxui {
          * @brief Remove a layer
          *
          * @param id Layer to remove
+         *
+         * @details
+         * Tracks the removed layer's bounds as a dirty region so the area
+         * gets redrawn on the next frame (fixes menu switching artifacts).
          */
         void remove_layer(layer_id id) {
             auto it = find_layer(id);
             if (it != m_layers.end()) {
+                // Track removed layer bounds for dirty region marking
+                // Try to get bounds from the widget itself (more accurate if manually positioned)
+                rect_type bounds_to_track = it->bounds;
+                it->with_root([&](element_type* root) {
+                    bounds_to_track = root->bounds();
+                });
+                m_removed_layer_dirty_regions.push_back(bounds_to_track);
                 m_layers.erase(it);
+                m_layers_changed = true;  // Signal that layers were modified
             }
         }
 
@@ -326,6 +339,7 @@ namespace onyxui {
          * @param type Type of layers to remove
          */
         void clear_layers(layer_type type) {
+            auto old_size = m_layers.size();
             m_layers.erase(
                 std::remove_if(m_layers.begin(), m_layers.end(),
                     [type](const layer_data& layer) {
@@ -333,6 +347,9 @@ namespace onyxui {
                     }),
                 m_layers.end()
             );
+            if (m_layers.size() != old_size) {
+                m_layers_changed = true;  // Signal that layers were modified
+            }
         }
 
         /**
@@ -661,6 +678,78 @@ namespace onyxui {
             return false;
         }
 
+        /**
+         * @brief Get dirty regions from removed layers
+         * @return Vector of rectangles that were occupied by removed layers
+         *
+         * @details
+         * Returns the bounds of all layers removed since the last call to
+         * clear_removed_layer_dirty_regions(). These regions should be marked
+         * as dirty to ensure proper redrawing.
+         *
+         * **Use case:** Menu switching - when menu A is replaced by menu B,
+         * menu A's area needs to be redrawn to clear artifacts.
+         */
+        [[nodiscard]] const std::vector<rect_type>& get_removed_layer_dirty_regions() const noexcept {
+            return m_removed_layer_dirty_regions;
+        }
+
+        /**
+         * @brief Clear the list of removed layer dirty regions
+         *
+         * @details
+         * Should be called after the dirty regions have been processed/marked.
+         * Typically called by ui_handle::display() after incorporating the
+         * regions into the dirty region tracking system.
+         */
+        void clear_removed_layer_dirty_regions() noexcept {
+            m_removed_layer_dirty_regions.clear();
+        }
+
+        /**
+         * @brief Check if layers were added or removed since last check
+         * @return true if layers changed, false otherwise
+         *
+         * @details
+         * **Use case with blocking event loops (like conio_poll_event):**
+         *
+         * When using a blocking event loop, layer changes during event handling
+         * won't be visible until the next frame. To fix this, check this flag
+         * after handling events and call display() immediately if true:
+         *
+         * @code
+         * while (!quit) {
+         *     ui.display();
+         *     ui.present();
+         *
+         *     tb_event ev;
+         *     conio_poll_event(&ev);  // Blocks until event
+         *     ui.handle_event(ev);     // May open/close layers
+         *
+         *     // Fix: Redraw immediately if layers changed during event handling
+         *     auto* layers = ui_services<Backend>::layers();
+         *     if (layers && layers->layers_changed()) {
+         *         layers->clear_layers_changed_flag();
+         *         ui.display();  // Immediate redraw
+         *         ui.present();
+         *     }
+         * }
+         * @endcode
+         */
+        [[nodiscard]] bool layers_changed() const noexcept {
+            return m_layers_changed;
+        }
+
+        /**
+         * @brief Clear the layers changed flag
+         *
+         * @details
+         * Should be called after checking layers_changed() and handling the change.
+         */
+        void clear_layers_changed_flag() noexcept {
+            m_layers_changed = false;
+        }
+
     private:
         // Layer data structure
         struct layer_data {
@@ -735,6 +824,8 @@ namespace onyxui {
         config m_config;
         std::vector<layer_data> m_layers;
         uint32_t m_next_id;
+        std::vector<rect_type> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (for dirty region tracking)
+        bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
 
         // Helper methods
         auto find_layer(layer_id id) {

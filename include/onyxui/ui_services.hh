@@ -65,6 +65,7 @@ namespace onyxui {
     template<UIBackend Backend> class ui_element;
     template<UIBackend Backend, typename ElementType> class hierarchical_focus_manager;
     template<UIBackend Backend> class theme_registry;
+    template<UIBackend Backend> class background_renderer;
 
     /**
      * @class ui_services
@@ -272,6 +273,28 @@ namespace onyxui {
         [[nodiscard]] static hotkey_manager<Backend>* hotkeys() noexcept {
             auto* ctx = current();
             return ctx ? &ctx->hotkeys() : nullptr;
+        }
+
+        /**
+         * @brief Get the background renderer from current context
+         * @return Pointer to background renderer, or nullptr if no context
+         *
+         * @details
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* bg = ui_services<Backend>::background()) {
+         *     bg->set_mode(background_mode::solid);
+         *     bg->set_color({0, 0, 170});
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static background_renderer<Backend>* background() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->background() : nullptr;
         }
 
         // ================================================================

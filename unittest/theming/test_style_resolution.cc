@@ -371,16 +371,16 @@ TEST_CASE("Style Resolution - Deep chain with override at each level") {
     // Build chain with override at each level
     auto l1 = std::make_unique<panel<Backend>>();
     l1->apply_theme("Resolution Test", ctx.themes());
-    l1->set_opacity(1.0f);
+    l1->set_opacity(1.0F);
 
     auto* l2 = l1->template emplace_child<panel>();
-    l2->set_opacity(0.9f);
+    l2->set_opacity(0.9F);
 
     auto* l3 = l2->template emplace_child<panel>();
-    l3->set_opacity(0.8f);
+    l3->set_opacity(0.8F);
 
     auto* l4 = l3->template emplace_child<panel>();
-    l4->set_opacity(0.7f);
+    l4->set_opacity(0.7F);
 
     auto* l5 = l4->template emplace_child<button>("Deep");
     // No override, inherits from L4
@@ -388,7 +388,7 @@ TEST_CASE("Style Resolution - Deep chain with override at each level") {
     auto style = l5->resolve_style();
 
     // Opacity is multiplicative: 1.0 * 0.9 * 0.8 * 0.7 * 1.0 = 0.504
-    CHECK(style.opacity == doctest::Approx(0.504f).epsilon(0.01));
+    CHECK(style.opacity == doctest::Approx(0.504F).epsilon(0.01));
 }
 
 // ============================================================================

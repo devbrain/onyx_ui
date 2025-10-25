@@ -123,11 +123,11 @@ TEST_CASE("Coverage - Enum edge cases") {
         // Test all box_style values as part of button_style (not standalone)
         // because enums serialize properly only when embedded in structs
         const std::vector<conio_renderer::box_style> all_styles = {
-            conio_renderer::box_style::none,
-            conio_renderer::box_style::single_line,
-            conio_renderer::box_style::double_line,
-            conio_renderer::box_style::rounded,
-            conio_renderer::box_style::heavy
+            conio_renderer::box_style{conio_renderer::border_style::none, true},
+            conio_renderer::box_style{conio_renderer::border_style::single_line, true},
+            conio_renderer::box_style{conio_renderer::border_style::double_line, true},
+            conio_renderer::box_style{conio_renderer::border_style::rounded, true},
+            conio_renderer::box_style{conio_renderer::border_style::heavy, true}
         };
 
         for (auto style : all_styles) {
@@ -222,7 +222,7 @@ name: "Minimal"
         original.button.bg_pressed = conio::color{0, 0, 255};
         original.button.fg_disabled = conio::color{128, 128, 128};
         original.button.bg_disabled = conio::color{64, 64, 64};
-        original.button.box_style = conio_renderer::box_style::single_line;
+        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
         original.button.font = {true, false, false};
         original.button.mnemonic_font = {false, false, true};
         original.button.padding_horizontal = 2;
@@ -238,7 +238,7 @@ name: "Minimal"
         // Panel
         original.panel.background = conio::color{0, 0, 170};
         original.panel.border_color = conio::color{255, 255, 255};
-        original.panel.box_style = conio_renderer::box_style::double_line;
+        original.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
         original.panel.has_border = true;
 
         // Round-trip
@@ -341,7 +341,7 @@ button:
         // reflect-cpp doesn't throw - it uses default value for invalid enum strings
         auto theme = from_yaml_string<theme_type>(yaml);
         using conio_renderer = onyxui::conio::conio_renderer;
-        CHECK(theme.button.box_style == conio_renderer::box_style::none);  // Default value
+        CHECK(theme.button.box_style.style == conio_renderer::border_style::none);  // Default value
     }
 
     SUBCASE("Malformed YAML - unclosed quote") {

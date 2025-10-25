@@ -101,7 +101,7 @@ namespace onyxui::conio {
             theme.button.bg_pressed = color{170, 170, 170};  // Light gray
             theme.button.fg_disabled = color{85, 85, 85};    // Dark gray
             theme.button.bg_disabled = color{0, 0, 170};     // Dark blue
-            theme.button.box_style = conio_renderer::box_style::single_line;
+            theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
             theme.button.text_align = horizontal_alignment::center;
@@ -113,7 +113,12 @@ namespace onyxui::conio {
             // Panel style
             theme.panel.background = color{0, 0, 170};      // Dark blue
             theme.panel.border_color = color{255, 255, 0};  // Yellow
-            theme.panel.box_style = conio_renderer::box_style::single_line;
+            theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+
+            // Menu style
+            theme.menu.background = color{0, 0, 170};       // Dark blue
+            theme.menu.border_color = color{255, 255, 0};   // Yellow
+            theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
             return theme;
         }
@@ -141,7 +146,7 @@ namespace onyxui::conio {
             theme.button.bg_pressed = color{0, 0, 0};
             theme.button.fg_disabled = color{85, 85, 85};
             theme.button.bg_disabled = color{170, 170, 170};
-            theme.button.box_style = conio_renderer::box_style::double_line;
+            theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
             theme.button.text_align = horizontal_alignment::center;
@@ -153,7 +158,12 @@ namespace onyxui::conio {
             // Panels
             theme.panel.background = color{0, 170, 170};
             theme.panel.border_color = color{0, 0, 0};
-            theme.panel.box_style = conio_renderer::box_style::double_line;
+            theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
+
+            // Menu style
+            theme.menu.background = color{0, 170, 170};
+            theme.menu.border_color = color{0, 0, 0};
+            theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
 
             return theme;
         }
@@ -181,7 +191,7 @@ namespace onyxui::conio {
             theme.button.bg_pressed = color{255, 255, 0};
             theme.button.fg_disabled = color{85, 85, 85};
             theme.button.bg_disabled = color{0, 170, 170};
-            theme.button.box_style = conio_renderer::box_style::single_line;
+            theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
             theme.button.text_align = horizontal_alignment::center;
@@ -193,7 +203,12 @@ namespace onyxui::conio {
             // Panels
             theme.panel.background = color{0, 0, 85};
             theme.panel.border_color = color{170, 170, 170};
-            theme.panel.box_style = conio_renderer::box_style::single_line;
+            theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+
+            // Menu style
+            theme.menu.background = color{0, 0, 85};
+            theme.menu.border_color = color{170, 170, 170};
+            theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
             return theme;
         }
@@ -221,7 +236,7 @@ namespace onyxui::conio {
             theme.button.bg_pressed = color{255, 255, 255};
             theme.button.fg_disabled = color{85, 85, 85};
             theme.button.bg_disabled = color{170, 170, 170};
-            theme.button.box_style = conio_renderer::box_style::single_line;
+            theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
             theme.button.text_align = horizontal_alignment::center;
@@ -233,7 +248,12 @@ namespace onyxui::conio {
             // Panels
             theme.panel.background = color{170, 170, 170};
             theme.panel.border_color = color{0, 0, 0};
-            theme.panel.box_style = conio_renderer::box_style::single_line;
+            theme.panel.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+
+            // Menu style
+            theme.menu.background = color{170, 170, 170};
+            theme.menu.border_color = color{0, 0, 0};
+            theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
             return theme;
         }

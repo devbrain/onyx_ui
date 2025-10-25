@@ -104,6 +104,18 @@ namespace onyxui::yaml {
         template<typename T>
         fkyaml::node to_yaml_value(const T& value);
 
+        // Helper to detect if a type has a custom *_to_string function in parent namespace
+        // Used for types like box_style that should serialize as strings, not structs
+        template<typename T>
+        concept HasCustomToString = requires(const T& value) {
+            // Check for box_style_to_string, icon_style_to_string, etc.
+            { box_style_to_string(value) } -> std::convertible_to<std::string>;
+        } || requires(const T& value) {
+            { icon_style_to_string(value) } -> std::convertible_to<std::string_view>;
+        } || requires(const T& value) {
+            { border_style_to_string(value) } -> std::convertible_to<std::string_view>;
+        };
+
         // Unified serialization function using if constexpr dispatch
         template<typename T>
         fkyaml::node to_yaml_value(const T& value) {
@@ -135,6 +147,17 @@ namespace onyxui::yaml {
                     return fkyaml::node(std::string(rfl::enum_to_string(value)));
                 } else {
                     return fkyaml::node(static_cast<std::underlying_type_t<T>>(value));
+                }
+            }
+            // Handle types with custom *_to_string functions (BEFORE Reflectable check!)
+            // This ensures box_style, icon_style, etc. serialize as strings, not structs
+            else if constexpr (HasCustomToString<T>) {
+                if constexpr (requires { box_style_to_string(value); }) {
+                    return fkyaml::node(box_style_to_string(value));
+                } else if constexpr (requires { icon_style_to_string(value); }) {
+                    return fkyaml::node(std::string(icon_style_to_string(value)));
+                } else if constexpr (requires { border_style_to_string(value); }) {
+                    return fkyaml::node(std::string(border_style_to_string(value)));
                 }
             }
             // Handle reflectable structs
@@ -273,7 +296,7 @@ namespace onyxui::yaml {
                 }
             }
             // Handle custom enum types (via enum_from_yaml_impl helper if enum_reflection.hh is included)
-            else if constexpr (requires { enum_from_yaml_impl(node, static_cast<T*>(nullptr)); }) {
+            else if constexpr (requires(const fkyaml::node& n) { enum_from_yaml_impl(n, static_cast<T*>(nullptr)); }) {
                 return enum_from_yaml_impl(node, static_cast<T*>(nullptr));
             }
             // Handle bool

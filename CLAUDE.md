@@ -583,6 +583,122 @@ All policies respect `min_size` and `max_size` bounds.
 - `add_child()` takes ownership, `remove_child()` returns ownership
 - Signal connections managed by `scoped_connection` (RAII)
 
+### Background Rendering
+
+The framework separates background rendering from the widget tree for architectural clarity and performance.
+
+**Why Not a Widget?**
+
+Background rendering is a **global UI concern**, not a widget:
+- Renders before the widget tree (establishes drawing surface)
+- Not part of the layout hierarchy (no measure/arrange)
+- Supports modes impossible for widgets (transparency for game overlays)
+- Avoids performance overhead of widget tree traversal
+
+**Architecture:**
+
+```cpp
+// Service managed by ui_context (not a widget!)
+background_renderer<Backend>  // Per-context instance
+  ├─ Accessed via ui_services<Backend>::background()
+  ├─ Renders before widget tree in ui_handle::display()
+  └─ Supports dirty region optimization
+```
+
+**Three Rendering Modes:**
+
+1. **Solid Mode** (default) - Fill with solid color
+   - Respects dirty regions (only fills changed areas)
+   - Suitable for traditional desktop applications
+   - Optimized: O(dirty_regions) draw calls
+
+2. **Transparent Mode** - No background
+   - UI widgets overlay game/3D rendering
+   - Suitable for game HUDs, in-game menus
+   - Zero overhead: no rendering
+
+3. **Pattern Mode** (future) - Tiled/stretched textures
+   - Currently falls back to solid mode
+   - Reserved for future texture support
+
+**Usage Pattern:**
+
+```cpp
+// Access from ui_services (not widget tree)
+auto* bg = ui_services<Backend>::background();
+if (bg) {
+    bg->set_mode(background_mode::solid);
+    bg->set_color({0, 0, 170});  // Blue background
+}
+
+// Changes take effect on next display() call
+ui.display();  // Background rendered first, then widgets
+```
+
+**Frame-Based Behavior:**
+
+Background changes apply on the **next frame** (next `display()` call):
+- No immediate redraw triggered
+- Application controls when to redraw
+- Consistent with event-driven architecture
+
+**Integration with ui_handle:**
+
+```cpp
+void ui_handle::display() {
+    auto dirty_regions = m_root->get_and_clear_dirty_regions();
+
+    // 1. Render background FIRST (from ui_services)
+    if (auto* bg = ui_services<Backend>::background()) {
+        bg->render(m_renderer, viewport, dirty_regions);
+    }
+
+    // 2. Measure/arrange widget tree
+    m_root->measure(viewport.w, viewport.h);
+    m_root->arrange(viewport);
+
+    // 3. Render widgets on top of background
+    m_root->render(m_renderer, dirty_regions);
+
+    // 4. Render popup layers (menus, dialogs)
+    layers->render_all_layers(m_renderer, viewport);
+}
+```
+
+**Per-Context Independence:**
+
+Each `ui_context` has its own `background_renderer`:
+```cpp
+{
+    scoped_ui_context<Backend> ctx1;
+    auto* bg1 = ui_services<Backend>::background();
+    bg1->set_color({255, 0, 0});  // Red
+
+    {
+        scoped_ui_context<Backend> ctx2;
+        auto* bg2 = ui_services<Backend>::background();
+        bg2->set_color({0, 255, 0});  // Green
+        // ctx2 is active - green background
+    }
+    // ctx1 is active again - red background preserved
+}
+```
+
+**Testing:**
+
+Comprehensive tests in `unittest/core/test_background_renderer.cc`:
+- 8 test cases, 67 assertions
+- Mode switching, color changes, dirty regions
+- Renderer state verification
+- ui_context integration
+- Copy/move semantics
+
+**See also:**
+- `include/onyxui/background_renderer.hh` - Implementation
+- `include/onyxui/ui_context.hh` - Service integration
+- `include/onyxui/ui_handle.hh` - Rendering pipeline
+- `examples/demo.cc` - Usage example
+
 ## Project Structure
 
 ```

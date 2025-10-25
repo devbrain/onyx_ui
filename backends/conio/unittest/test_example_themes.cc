@@ -57,7 +57,7 @@ TEST_CASE("Example Themes - Norton Blue") {
 
     // Verify button style
     using conio_renderer = conio::conio_renderer;
-    CHECK(theme.button.box_style == conio_renderer::box_style::single_line);
+    CHECK(theme.button.box_style.style == conio_renderer::border_style::single_line);
     CHECK(theme.button.padding_horizontal == 2);
 }
 
@@ -76,8 +76,8 @@ TEST_CASE("Example Themes - Borland Turbo") {
 
     // Verify double-line box style
     using conio_renderer = conio::conio_renderer;
-    CHECK(theme.button.box_style == conio_renderer::box_style::double_line);
-    CHECK(theme.panel.box_style == conio_renderer::box_style::double_line);
+    CHECK(theme.button.box_style.style == conio_renderer::border_style::double_line);
+    CHECK(theme.panel.box_style.style == conio_renderer::border_style::double_line);
 }
 
 TEST_CASE("Example Themes - Midnight Commander") {
@@ -131,8 +131,8 @@ TEST_CASE("Example Themes - High Contrast") {
 
     // Verify heavy borders for accessibility
     using conio_renderer = conio::conio_renderer;
-    CHECK(theme.button.box_style == conio_renderer::box_style::heavy);
-    CHECK(theme.panel.box_style == conio_renderer::box_style::heavy);
+    CHECK(theme.button.box_style.style == conio_renderer::border_style::heavy);
+    CHECK(theme.panel.box_style.style == conio_renderer::border_style::heavy);
 
     // Verify bold font for readability
     CHECK(theme.button.font.bold == true);
@@ -154,8 +154,8 @@ TEST_CASE("Example Themes - Dark Professional") {
 
     // Verify modern rounded borders
     using conio_renderer = conio::conio_renderer;
-    CHECK(theme.button.box_style == conio_renderer::box_style::rounded);
-    CHECK(theme.panel.box_style == conio_renderer::box_style::rounded);
+    CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
+    CHECK(theme.panel.box_style.style == conio_renderer::border_style::rounded);
 
     // Verify modern blue hover color
     CHECK(theme.button.bg_hover.b == 215);
@@ -181,7 +181,7 @@ TEST_CASE("Example Themes - Light Modern") {
 
     // Verify rounded borders
     using conio_renderer = conio::conio_renderer;
-    CHECK(theme.button.box_style == conio_renderer::box_style::rounded);
+    CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
 }
 
 TEST_CASE("Example Themes - Load all from directory") {

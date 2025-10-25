@@ -264,9 +264,6 @@ namespace onyxui {
 
             // Calculate sizes (needed for both measurement and rendering)
             typename renderer_type::font const text_font = theme->button.font;
-            auto text_size = renderer_type::measure_text(m_text, text_font);
-            int const text_width = size_utils::get_width(text_size);
-            int const text_height = size_utils::get_height(text_size);
 
             std::string const shortcut = get_shortcut_text();
             int shortcut_width = 0;
@@ -276,55 +273,36 @@ namespace onyxui {
                 shortcut_width = size_utils::get_width(shortcut_size);
             }
 
+            // Use bounds for positioning (measure_context tracks bounding box, ignores position)
+            const auto& item_bounds = this->bounds();
+            int const base_x = rect_utils::get_x(item_bounds);
+            int const base_y = rect_utils::get_y(item_bounds);
+            int const item_width = rect_utils::get_width(item_bounds);
+
             // Separator has fixed size
             if (is_separator()) {
-                if (ctx.is_rendering()) {
-                    const auto& item_bounds = this->bounds();
-                    int const width = rect_utils::get_width(item_bounds);
-                    std::string const sep_line(static_cast<size_t>(width), '-');
-                    typename Backend::point_type const pos{rect_utils::get_x(item_bounds),
-                                                     rect_utils::get_y(item_bounds)};
-                    ctx.draw_text(sep_line, pos, typename renderer_type::font{},
-                                 theme->label.text);
-                } else {
-                    // MEASUREMENT: Separator is fixed 20x1
-                    typename Backend::rect_type sep_rect;
-                    rect_utils::set_bounds(sep_rect, 0, 0, 20, 1);
-                    ctx.draw_rect(sep_rect, typename renderer_type::box_style{});
-                }
+                int const width = std::max(20, item_width);
+                std::string const sep_line(static_cast<size_t>(width), '-');
+                typename Backend::point_type const pos{base_x, base_y};
+                ctx.draw_text(sep_line, pos, typename renderer_type::font{},
+                             theme->label.text);
                 return;
             }
 
-            // Calculate total width: padding + text + gap + shortcut + padding
-            int const total_width = 2 + text_width + (shortcut_width > 0 ? 4 + shortcut_width : 0) + 2;
-            int const total_height = text_height;
+            // Use pre-resolved style from context (state already resolved during CSS phase)
+            auto fg = ctx.style().foreground_color;
 
-            if (ctx.is_rendering()) {
-                // RENDERING PATH: Draw with state colors
-                const auto& item_bounds = this->bounds();
+            // Draw item text (left side, with padding)
+            int const text_x = base_x + 2;  // 2 char padding
+            int const text_y = base_y;
+            typename Backend::point_type const text_pos{text_x, text_y};
+            ctx.draw_text(m_text, text_pos, text_font, fg);
 
-                // Use pre-resolved style from context (state already resolved during CSS phase)
-                // The foreground_color was set by get_theme_foreground_color() → get_state_foreground()
-                auto fg = ctx.style().foreground_color;
-
-                // Draw item text (left side, with padding)
-                int const text_x = rect_utils::get_x(item_bounds) + 2;  // 2 char padding
-                int const text_y = rect_utils::get_y(item_bounds);
-                typename Backend::point_type const text_pos{text_x, text_y};
-                ctx.draw_text(m_text, text_pos, text_font, fg);
-
-                // Draw shortcut (right side)
-                if (!shortcut.empty()) {
-                    int const width = rect_utils::get_width(item_bounds);
-                    int const shortcut_x = rect_utils::get_x(item_bounds) + width - shortcut_width - 2;
-                    typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
-                    ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
-                }
-            } else {
-                // MEASUREMENT PATH: Track the size
-                typename Backend::rect_type item_rect;
-                rect_utils::set_bounds(item_rect, 0, 0, total_width, total_height);
-                ctx.draw_rect(item_rect, typename renderer_type::box_style{});
+            // Draw shortcut (right side)
+            if (!shortcut.empty()) {
+                int const shortcut_x = base_x + item_width - shortcut_width - 2;
+                typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
+                ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
             }
         }
 

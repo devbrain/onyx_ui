@@ -25,12 +25,6 @@ TEST_CASE("measure_context - Basic functionality") {
         CHECK(size_utils::get_height(size) == 0);
     }
 
-    SUBCASE("is_measuring returns true") {
-        measure_context<Backend> const ctx;
-        CHECK(ctx.is_measuring() == true);
-        CHECK(ctx.is_rendering() == false);
-    }
-
     SUBCASE("renderer() returns nullptr") {
         measure_context<Backend> ctx;
         CHECK(ctx.renderer() == nullptr);
@@ -68,10 +62,11 @@ TEST_CASE("measure_context - Text measurement") {
         // Draw text "Hi" (2 chars) at (10, 5)
         (void)ctx.draw_text("Hi", pos, font, color);
 
-        // Should track to position + size = (10+2, 5+1) = (12, 6)
+        // Bounding box: min={10,5}, max={12,6} → size = {2, 1}
+        // Position is ignored - only size matters for measurement
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 12);
-        CHECK(size_utils::get_height(measured) == 6);
+        CHECK(size_utils::get_width(measured) == 2);
+        CHECK(size_utils::get_height(measured) == 1);
     }
 }
 
@@ -100,10 +95,11 @@ TEST_CASE("measure_context - Rectangle measurement") {
 
         ctx.draw_rect(rect, style);
 
-        // Should track to position + size = (5+8, 3+4) = (13, 7)
+        // Bounding box: min={5,3}, max={13,7} → size = {8, 4}
+        // Position is ignored - only size matters for measurement
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 13);
-        CHECK(size_utils::get_height(measured) == 7);
+        CHECK(size_utils::get_width(measured) == 8);
+        CHECK(size_utils::get_height(measured) == 4);
     }
 }
 
@@ -132,14 +128,6 @@ TEST_CASE("measure_context - Reset functionality") {
 }
 
 TEST_CASE("draw_context - Basic functionality") {
-    SUBCASE("is_rendering returns true") {
-        Backend::renderer_type renderer;
-        draw_context<Backend> const ctx(renderer);
-
-        CHECK(ctx.is_measuring() == false);
-        CHECK(ctx.is_rendering() == true);
-    }
-
     SUBCASE("renderer() returns non-null") {
         Backend::renderer_type renderer;
         draw_context<Backend> ctx(renderer);
@@ -186,8 +174,7 @@ TEST_CASE("Polymorphic usage") {
         auto ctx = std::make_unique<measure_context<Backend>>();
         render_context<Backend>* base = ctx.get();
 
-        CHECK(base->is_measuring() == true);
-        CHECK(base->is_rendering() == false);
+        // measure_context has no renderer
         CHECK(base->renderer() == nullptr);
     }
 
@@ -196,8 +183,7 @@ TEST_CASE("Polymorphic usage") {
         auto ctx = std::make_unique<draw_context<Backend>>(renderer);
         render_context<Backend>* base = ctx.get();
 
-        CHECK(base->is_measuring() == false);
-        CHECK(base->is_rendering() == true);
+        // draw_context has valid renderer
         CHECK(base->renderer() != nullptr);
     }
 }
@@ -226,8 +212,8 @@ TEST_CASE("Context lifetimes") {
         // Move
         draw_context<Backend> const ctx2 = std::move(ctx1);
 
-        // Moved context works
-        CHECK(ctx2.is_rendering() == true);
+        // Moved context retains renderer
+        CHECK(ctx2.renderer() != nullptr);
     }
 }
 
@@ -271,8 +257,7 @@ TEST_CASE("draw_context - Constructor accepts resolved_style") {
     draw_context<Backend> ctx(renderer, style);
 
     CHECK(ctx.style().foreground_color.r == 100);
-    CHECK(ctx.is_rendering() == true);
-    CHECK(ctx.is_measuring() == false);
+    CHECK(ctx.renderer() != nullptr);
 }
 
 TEST_CASE("measure_context - Constructor accepts resolved_style") {
@@ -284,8 +269,7 @@ TEST_CASE("measure_context - Constructor accepts resolved_style") {
 
     CHECK(ctx.style().foreground_color.r == 50);
     CHECK(ctx.style().background_color.r == 200);
-    CHECK(ctx.is_rendering() == false);
-    CHECK(ctx.is_measuring() == true);
+    CHECK(ctx.renderer() == nullptr);
 }
 
 TEST_CASE("render_context - Style is passed to context") {

@@ -59,10 +59,11 @@
 #include <vector>
 #include <memory>
 #include <iostream>  // For debug output
-#include <onyxui/widgets/vbox.hh>
+#include <onyxui/widgets/widget_container.hh>
 #include <onyxui/widgets/menu_item.hh>
 #include <onyxui/ui_services.hh>
 #include <onyxui/focus_manager.hh>
+#include <onyxui/layout/linear_layout.hh>
 
 namespace onyxui {
 
@@ -91,19 +92,27 @@ namespace onyxui {
      * Arrow keys navigate between focusable items (skipping separators).
      */
     template<UIBackend Backend>
-    class menu : public vbox<Backend> {
+    class menu : public widget_container<Backend> {
     public:
-        using base = vbox<Backend>;
+        using base = widget_container<Backend>;
         using renderer_type = typename Backend::renderer_type;
         using rect_type = typename Backend::rect_type;
+        using size_type = typename Backend::size_type;
 
         /**
          * @brief Construct an empty menu
          * @param parent Parent element
          */
         explicit menu(ui_element<Backend>* parent = nullptr)
-            : base(0, horizontal_alignment::left, vertical_alignment::top, parent) {
+            : base(parent) {
+            this->m_has_border = true;  // Menus always have borders
             this->set_focusable(true);
+            // Use vertical layout (like vbox)
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical, 0,
+                    horizontal_alignment::left,
+                    vertical_alignment::top));
         }
 
         /**

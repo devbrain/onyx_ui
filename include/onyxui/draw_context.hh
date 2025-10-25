@@ -26,10 +26,9 @@ namespace onyxui {
      *
      * ## Behavior
      *
-     * - `is_measuring()` returns `false`
-     * - `is_rendering()` returns `true`
      * - All draw operations forward to the renderer
      * - Size information is obtained by calling renderer's measurement methods
+     * - `renderer()` returns valid pointer to renderer
      *
      * ## Usage
      *
@@ -65,6 +64,28 @@ namespace onyxui {
         using icon_type = typename base::icon_type;
 
         /**
+         * @brief Construct draw context with renderer, style, position, and size
+         * @param renderer Reference to the actual renderer
+         * @param style Resolved visual style for this rendering pass
+         * @param position Top-left corner where widget should draw
+         * @param available_size Size assigned by parent layout
+         *
+         * @details
+         * This is the preferred constructor that fully supports the visitor pattern.
+         * Position and size are passed from parent's arrange() to decouple widgets
+         * from element state.
+         */
+        explicit draw_context(
+            renderer_type& renderer,
+            const resolved_style<Backend>& style,
+            const point_type& position,
+            const size_type& available_size
+        )
+            : base(style, position, available_size)
+            , m_renderer(&renderer) {
+        }
+
+        /**
          * @brief Construct draw context with renderer and resolved style
          * @param renderer Reference to the actual renderer
          * @param style Resolved visual style for this rendering pass
@@ -75,6 +96,9 @@ namespace onyxui {
          *
          * The style is resolved by the caller (ui_element::render()) through
          * CSS inheritance before creating the context.
+         *
+         * Position and size default to zero - prefer the full constructor for
+         * proper visitor pattern support.
          */
         explicit draw_context(renderer_type& renderer, const resolved_style<Backend>& style)
             : base(style)
@@ -92,6 +116,33 @@ namespace onyxui {
             : m_renderer(&renderer) {}
 
         /**
+         * @brief Construct draw context with renderer, style, position, size, and dirty regions
+         * @param renderer Reference to the actual renderer
+         * @param style Resolved visual style for this rendering pass
+         * @param position Top-left corner where widget should draw
+         * @param available_size Size assigned by parent layout
+         * @param dirty_regions List of rectangles that need redrawing
+         *
+         * @throws std::bad_alloc if dirty_regions copy fails
+         *
+         * @details
+         * This is the complete constructor with all parameters for full visitor pattern support.
+         * Position and size decouple widgets from element state, and dirty regions enable
+         * optimized incremental rendering.
+         */
+        draw_context(
+            renderer_type& renderer,
+            const resolved_style<Backend>& style,
+            const point_type& position,
+            const size_type& available_size,
+            const std::vector<rect_type>& dirty_regions
+        )
+            : base(style, position, available_size)
+            , m_renderer(&renderer)
+            , m_dirty_regions(dirty_regions) {
+        }
+
+        /**
          * @brief Construct draw context with renderer, style, and dirty regions
          * @param renderer Reference to the actual renderer
          * @param style Resolved visual style for this rendering pass
@@ -102,6 +153,8 @@ namespace onyxui {
          * @details
          * When dirty regions are provided, only widgets that intersect with
          * these regions will be rendered, optimizing performance.
+         *
+         * Position and size default to zero - prefer the full constructor.
          *
          * **Exception Safety**: Basic guarantee
          * - If construction fails, no resources are leaked
@@ -237,22 +290,6 @@ namespace onyxui {
             size_type size{};
             size_utils::set_size(size, 1, 1);
             return size;
-        }
-
-        /**
-         * @brief Check if this context is measuring
-         * @return false (draw_context is for rendering)
-         */
-        [[nodiscard]] bool is_measuring() const noexcept override {
-            return false;
-        }
-
-        /**
-         * @brief Check if this context is rendering
-         * @return true (draw_context is for rendering)
-         */
-        [[nodiscard]] bool is_rendering() const noexcept override {
-            return true;
         }
 
         /**

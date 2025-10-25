@@ -58,10 +58,17 @@ namespace onyxui {
             font_type mnemonic_font{};     // Font for mnemonic character (typically underlined)
         };
 
+        struct menu_style {
+            color_type background;
+            color_type border_color;
+            box_style_type box_style{};  // Use {} to trigger default member initializers
+        };
+
         // Widget-specific styles
         button_style button{};  // Use {} to trigger default member initializers
         label_style label{};
         panel_style panel{};
+        menu_style menu{};
 
         // Global palette
         color_type window_bg;

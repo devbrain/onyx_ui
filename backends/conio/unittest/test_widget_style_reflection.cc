@@ -33,7 +33,7 @@ TEST_CASE("Button Style - Serialization") {
             .bg_pressed = color{170, 170, 170},
             .fg_disabled = color{128, 128, 128},
             .bg_disabled = color{64, 64, 64},
-            .box_style = conio_renderer::box_style::double_line,
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true},
             .font = {true, false, false},
             .mnemonic_font = {true, true, false},
             .padding_horizontal = 4,
@@ -99,7 +99,7 @@ corner_radius: 0
         CHECK(style.fg_hover.g == 255);
 
         // Check enums
-        CHECK(style.box_style == conio_renderer::box_style::double_line);
+        CHECK(style.box_style.style == conio_renderer::border_style::double_line);
         CHECK(style.text_align == horizontal_alignment::center);
 
         // Check fonts
@@ -197,7 +197,7 @@ TEST_CASE("Panel Style - Serialization") {
         panel_style style{
             .background = color{0, 0, 170},
             .border_color = color{255, 255, 255},
-            .box_style = conio_renderer::box_style::single_line,
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true},
             .has_border = true
         };
 
@@ -214,7 +214,7 @@ TEST_CASE("Panel Style - Serialization") {
         panel_style style{
             .background = color{50, 50, 50},
             .border_color = color{0, 0, 0},
-            .box_style = conio_renderer::box_style::none,
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::none, true},
             .has_border = false
         };
 
@@ -237,7 +237,7 @@ has_border: true
 
         CHECK(style.background.b == 170);
         CHECK(style.border_color.r == 255);
-        CHECK(style.box_style == conio_renderer::box_style::single_line);
+        CHECK(style.box_style.style == conio_renderer::border_style::single_line);
         CHECK(style.has_border == true);
     }
 
@@ -265,7 +265,7 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
             .bg_pressed = color{30, 30, 30},
             .fg_disabled = color{100, 100, 100},
             .bg_disabled = color{40, 40, 40},
-            .box_style = conio_renderer::box_style::rounded,
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::rounded, true},
             .font = {true, false, false},
             .mnemonic_font = {true, true, false},
             .padding_horizontal = 6,
@@ -305,7 +305,7 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
         panel_style original{
             .background = color{30, 30, 30},
             .border_color = color{200, 200, 200},
-            .box_style = conio_renderer::box_style::heavy,
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::heavy, true},
             .has_border = false
         };
 
