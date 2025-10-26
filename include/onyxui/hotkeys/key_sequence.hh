@@ -78,6 +78,9 @@
 #include <cstdint>
 #include <compare>
 #include <cctype>
+#include <string>
+#include <map>
+#include <stdexcept>
 
 namespace onyxui {
 
@@ -416,6 +419,133 @@ namespace onyxui {
      */
     constexpr key_sequence make_f_key(int f_num) noexcept {
         return key_sequence{f_num, key_modifier::none};
+    }
+
+    // ================================================================
+    // String Parsing and Formatting
+    // ================================================================
+
+    namespace detail {
+        // Special key name to code mapping
+        inline const std::map<std::string, int> special_keys = {
+            {"Up", -1}, {"Down", -2}, {"Left", -3}, {"Right", -4},
+            {"Enter", '\n'}, {"Escape", 27}, {"Tab", '\t'},
+            {"Space", ' '}, {"Backspace", '\b'},
+        };
+    }
+
+    /**
+     * @brief Parse key sequence from string
+     * @param str String like "Ctrl+S", "F10", "Down"
+     * @return Parsed key sequence
+     * @throws std::runtime_error if format is invalid
+     *
+     * @details
+     * Supported formats:
+     * - Modifiers: "Ctrl+", "Alt+", "Shift+"
+     * - F-keys: "F1" through "F12"
+     * - Special keys: "Up", "Down", "Left", "Right", "Enter", "Escape", "Tab"
+     * - Single characters: "a", "s", "A" (case insensitive)
+     *
+     * @example
+     * @code
+     * auto key = parse_key_sequence("Ctrl+S");    // Ctrl+S
+     * auto key = parse_key_sequence("F10");        // F10
+     * auto key = parse_key_sequence("Down");       // Down arrow
+     * auto key = parse_key_sequence("Shift+Tab");  // Shift+Tab
+     * @endcode
+     */
+    inline key_sequence parse_key_sequence(const std::string& str) {
+        key_modifier mods = key_modifier::none;
+        std::string remaining = str;
+
+        // Parse modifiers
+        auto parse_modifier = [&](const std::string& prefix, key_modifier mod) {
+            if (remaining.starts_with(prefix)) {
+                mods = mods | mod;
+                remaining = remaining.substr(prefix.length());
+                return true;
+            }
+            return false;
+        };
+
+        while (parse_modifier("Ctrl+", key_modifier::ctrl) ||
+               parse_modifier("Alt+", key_modifier::alt) ||
+               parse_modifier("Shift+", key_modifier::shift)) {}
+
+        if (remaining.empty()) {
+            throw std::runtime_error("Empty key sequence");
+        }
+
+        // F-keys: "F1" through "F12"
+        if (remaining[0] == 'F' && remaining.length() >= 2) {
+            try {
+                int f_num = std::stoi(remaining.substr(1));
+                if (f_num < 1 || f_num > 12) {
+                    throw std::runtime_error("F-key out of range (1-12): " + remaining);
+                }
+                return key_sequence{f_num, mods};
+            } catch (const std::exception&) {
+                throw std::runtime_error("Invalid F-key format: " + remaining);
+            }
+        }
+
+        // Special keys
+        auto it = detail::special_keys.find(remaining);
+        if (it != detail::special_keys.end()) {
+            return key_sequence{static_cast<char>(it->second), mods};
+        }
+
+        // Single character
+        if (remaining.length() == 1) {
+            char ch = static_cast<char>(std::tolower(static_cast<unsigned char>(remaining[0])));
+            return key_sequence{ch, mods};
+        }
+
+        throw std::runtime_error("Invalid key sequence: " + str);
+    }
+
+    /**
+     * @brief Format key sequence as string
+     * @param seq Key sequence to format
+     * @return String like "Ctrl+S" or "F10"
+     *
+     * @example
+     * @code
+     * key_sequence seq{'s', key_modifier::ctrl};
+     * std::string str = format_key_sequence(seq);  // "Ctrl+S"
+     * @endcode
+     */
+    inline std::string format_key_sequence(const key_sequence& seq) {
+        std::string result;
+
+        // Add modifiers
+        if ((seq.modifiers & key_modifier::ctrl) != key_modifier::none) {
+            result += "Ctrl+";
+        }
+        if ((seq.modifiers & key_modifier::alt) != key_modifier::none) {
+            result += "Alt+";
+        }
+        if ((seq.modifiers & key_modifier::shift) != key_modifier::none) {
+            result += "Shift+";
+        }
+
+        // Add key
+        if (seq.f_key != 0) {
+            result += "F" + std::to_string(seq.f_key);
+        } else {
+            // Check if special key
+            for (const auto& [name, code] : detail::special_keys) {
+                if (static_cast<int>(seq.key) == code) {
+                    result += name;
+                    return result;
+                }
+            }
+            // Regular character
+            result += static_cast<char>(std::toupper(static_cast<unsigned char>(seq.key)));
+        }
+
+        return result;
     }
 
 } // namespace onyxui

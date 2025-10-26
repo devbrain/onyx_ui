@@ -128,6 +128,11 @@ namespace onyxui {
 
         // Hotkey support - convert to ASCII
         [[nodiscard]] static char to_ascii(const tb_event& e) noexcept {
+            // Control characters (for semantic actions like menu navigation)
+            if (e.key == TB_KEY_ESC) return 27;
+            if (e.key == TB_KEY_ENTER) return '\n';
+            if (e.key == TB_KEY_TAB) return '\t';
+
             // For character input
             if (e.ch != 0) {
                 uint32_t ch = e.ch;
@@ -148,10 +153,27 @@ namespace onyxui {
             return '\0';  // Not an ASCII key
         }
 
+        // Hotkey support - convert to special key code (for arrow keys)
+        [[nodiscard]] static int to_special_key(const tb_event& e) noexcept {
+            // Arrow keys use negative codes to distinguish from ASCII/F-keys
+            if (e.key == TB_KEY_ARROW_UP) return -1;
+            if (e.key == TB_KEY_ARROW_DOWN) return -2;
+            if (e.key == TB_KEY_ARROW_LEFT) return -3;
+            if (e.key == TB_KEY_ARROW_RIGHT) return -4;
+            return 0;  // Not a special key
+        }
+
         // Hotkey support - convert to F-key number
         [[nodiscard]] static int to_f_key(const tb_event& e) noexcept {
-            if (e.key >= TB_KEY_F1 && e.key <= TB_KEY_F12) {
-                return (e.key - TB_KEY_F1) + 1;  // F1=1, F2=2, ..., F12=12
+            // Static assertions to verify our assumptions about termbox2 F-key ordering
+            static_assert(TB_KEY_F1 > TB_KEY_F12,
+                "termbox2 F-key ordering assumption violated: expected F1 > F12");
+            static_assert(TB_KEY_F1 - TB_KEY_F12 == 11,
+                "termbox2 F-key spacing assumption violated: expected F1-F12 = 11");
+
+            // Note: TB_KEY_F1 (65535) > TB_KEY_F12 (65524), so check range correctly
+            if (e.key <= TB_KEY_F1 && e.key >= TB_KEY_F12) {
+                return (TB_KEY_F1 - e.key) + 1;  // F1=1, F2=2, ..., F12=12
             }
             return 0;  // Not an F-key
         }

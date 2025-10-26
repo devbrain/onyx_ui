@@ -341,21 +341,21 @@ TEST_SUITE("event_traits::to_ascii") {
     TEST_CASE("Non-hotkey keys return null character") {
         test_backend::test_keyboard_event event;
 
-        // Special navigation keys should not be used as hotkeys
+        // Control characters ARE valid hotkeys (for semantic actions)
         event.key_code = traits::KEY_TAB;
-        CHECK(traits::to_ascii(event) == '\0');
+        CHECK(traits::to_ascii(event) == '\t');  // Tab is a valid hotkey
 
         event.key_code = traits::KEY_ENTER;
-        CHECK(traits::to_ascii(event) == '\0');
+        CHECK(traits::to_ascii(event) == '\n');  // Enter is a valid hotkey
 
         event.key_code = traits::KEY_ESCAPE;
+        CHECK(traits::to_ascii(event) == 27);  // Escape is a valid hotkey
+
+        // Arrow keys handled by to_special_key(), not to_ascii()
+        event.key_code = 2000;  // KEY_UP
         CHECK(traits::to_ascii(event) == '\0');
 
-        // Arrow keys, Home, End, etc. (arbitrary high values)
-        event.key_code = 1000;
-        CHECK(traits::to_ascii(event) == '\0');
-
-        event.key_code = 9999;
+        event.key_code = 9999;  // Arbitrary high value
         CHECK(traits::to_ascii(event) == '\0');
     }
 }

@@ -526,27 +526,77 @@ All widgets support:
 
 ### Hotkey System
 
-Global keyboard shortcut management:
+**Two-Layer System:**
+1. **Framework Semantic Actions** (NEW) - Scheme-based keyboard layouts
+2. **Application Actions** - User-defined shortcuts
+
+#### Hotkey Schemes (Customizable Keyboard Layouts)
+
+Users can switch between different keyboard layouts at runtime:
+
+```cpp
+// Access via ui_context (auto-configured)
+scoped_ui_context<Backend> ctx;
+
+// Current scheme is "Windows" (F10 for menu)
+auto* current = ctx.hotkey_schemes().get_current_scheme();
+
+// Switch to Norton Commander (F9 for menu)
+ctx.hotkey_schemes().set_current_scheme("Norton Commander");
+
+// Register framework semantic action handlers
+ctx.hotkeys().register_semantic_action(
+    hotkey_action::activate_menu_bar,
+    [&menu]() { menu->activate(); }
+);
+
+// Now F10 (Windows) or F9 (Norton) will activate menu!
+```
+
+**Built-in Schemes:**
+- **Windows**: F10 for menu (standard modern UI convention)
+- **Norton Commander**: F9 for menu (classic DOS feel)
+
+**Custom Schemes:**
+```cpp
+hotkey_scheme vim_scheme;
+vim_scheme.name = "Vim-style";
+vim_scheme.set_binding(hotkey_action::menu_down, parse_key_sequence("j"));
+vim_scheme.set_binding(hotkey_action::menu_up, parse_key_sequence("k"));
+// ... etc
+
+ctx.hotkey_schemes().register_scheme(std::move(vim_scheme));
+ctx.hotkey_schemes().set_current_scheme("Vim-style");
+```
+
+#### Application Actions
+
+Application-defined keyboard shortcuts:
 
 ```cpp
 hotkey_manager<Backend> hotkeys;
 
 // Register hotkeys
-hotkeys.register_hotkey(
-    key_sequence::from_string("Ctrl+S"),
-    save_action,
-    hotkey_scope::global
-);
+auto save_action = std::make_shared<action<Backend>>();
+save_action->set_shortcut('s', key_modifier::ctrl);
+hotkeys.register_action(save_action);
 
 // Process events
-hotkeys.process_event(event);  // Triggers matching actions
+hotkeys.handle_key_event(event);  // Triggers matching actions
 ```
 
-Features:
+**Priority System:**
+1. Framework semantic actions (from current scheme) - FIRST
+2. Element-scoped application actions
+3. Global application actions
+4. Widget keyboard events - LAST
+
+**Features:**
 - Conflict detection with policy enforcement
-- Scope management (global, local)
-- Key sequence parsing ("Ctrl+Shift+A", "Alt+F4", etc.)
+- Scope management (global, element-scoped)
+- Key sequence parsing ("Ctrl+Shift+A", "Alt+F4", "F10", etc.)
 - Integration with action system
+- Graceful fallback (no binding = mouse still works)
 
 See `include/onyxui/hotkeys/` for implementation.
 
@@ -923,7 +973,24 @@ TEST_CASE("Widget - Basic functionality") {
 
 ## Recent Major Changes
 
-**Latest work:** Theme System v2.0 Refactoring (October 2025)
+**Latest work:** Hotkey Scheme System (October 2025)
+- **Phase 1**: Core structures (hotkey_action, hotkey_scheme, key_sequence parsing)
+- **Phase 2**: Registry + built-in schemes (Windows with F10, Norton Commander with F9)
+- **Phase 3**: hotkey_manager enhancement (scheme-aware semantic actions with priority)
+- 859 tests passing (was 855), 6236 assertions (was 6184)
+- Runtime scheme switching (user can choose Windows vs Norton Commander keyboard layout)
+- Priority system: Semantic actions → Application actions → Widget keyboard events
+- Zero breaking changes (backward compatible with existing hotkey code)
+
+**Key features:**
+- **Customizable Keyboard Layouts**: Users can switch between Windows (F10) and Norton Commander (F9) at runtime
+- **Semantic Actions**: Framework-level actions (menu navigation, focus) separate from application hotkeys
+- **Priority System**: Framework shortcuts take precedence over application shortcuts
+- **Graceful Fallback**: Missing binding = mouse still works (progressive enhancement)
+- **Auto-Configuration**: Built-in schemes pre-registered in ui_context, no manual setup required
+- **Library-Level**: NOT backend-specific (keys are universal, unlike themes)
+
+**Previous work:** Theme System v2.0 Refactoring (October 2025)
 - **Phase 1**: Added thread-safe theme registry with failsafe logging
 - **Phase 2**: Implemented three-way theme API (by-name, by-value, by-shared_ptr)
 - **Phase 3**: Style-based rendering architecture with `resolved_style`
@@ -949,9 +1016,9 @@ TEST_CASE("Widget - Basic functionality") {
 - Complete widget library (12+ widgets)
 - CSS-style theming with inheritance (v2.0 refactored)
 - Render context pattern (visitor) for unified measurement/rendering
-- Comprehensive hotkey system
+- Comprehensive hotkey system with customizable schemes (Windows vs Norton Commander)
 - Signal/slot for event handling
 - Mnemonic support (Alt+key shortcuts)
-- 653 tests with 4052 assertions
+- 859 tests with 6236 assertions
 - Visual testing framework for layout validation
 - Thread-safe theme management with failsafe logging

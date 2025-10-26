@@ -66,6 +66,7 @@ namespace onyxui {
     template<UIBackend Backend, typename ElementType> class hierarchical_input_manager;
     template<UIBackend Backend> class theme_registry;
     template<UIBackend Backend> class background_renderer;
+    class hotkey_scheme_registry;
 
     /**
      * @class ui_services
@@ -274,6 +275,27 @@ namespace onyxui {
         [[nodiscard]] static hotkey_manager<Backend>* hotkeys() noexcept {
             auto* ctx = current();
             return ctx ? &ctx->hotkeys() : nullptr;
+        }
+
+        /**
+         * @brief Get the hotkey scheme registry from current context
+         * @return Pointer to hotkey scheme registry, or nullptr if no context
+         *
+         * @details
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* schemes = ui_services<Backend>::hotkey_schemes()) {
+         *     schemes->set_current_scheme("Norton Commander");
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static hotkey_scheme_registry* hotkey_schemes() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->hotkey_schemes() : nullptr;
         }
 
         /**

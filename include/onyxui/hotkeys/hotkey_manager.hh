@@ -90,6 +90,9 @@
 #pragma once
 
 #include <onyxui/hotkeys/key_sequence.hh>
+#include <onyxui/hotkeys/key_chord.hh>
+#include <onyxui/hotkeys/hotkey_action.hh>
+#include <onyxui/hotkeys/hotkey_scheme_registry.hh>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/widgets/action.hh>
@@ -100,6 +103,7 @@
 #include <vector>
 #include <optional>
 #include <string>
+#include <functional>
 
 namespace onyxui {
 
@@ -124,7 +128,7 @@ namespace onyxui {
      * window-scoped, then global. This allows context-specific
      * overrides of global hotkeys.
      */
-    enum class hotkey_scope {
+    enum class hotkey_scope : std::uint8_t {
         global,   ///< Active anywhere in application
         window,   ///< Active when window has focus
         element   ///< Active when element or children have focus
@@ -195,11 +199,20 @@ namespace onyxui {
     class hotkey_manager {
     public:
         /**
-         * @brief Construct an empty hotkey manager
+         * @brief Construct a hotkey manager
+         * @param scheme_registry Optional pointer to hotkey scheme registry
+         *
+         * @details
+         * If scheme_registry is provided, the manager will support framework
+         * semantic actions (menu navigation, focus, etc.) based on the current
+         * hotkey scheme. Semantic actions have priority over application actions.
+         *
+         * If scheme_registry is nullptr, only application actions are supported.
          */
-        hotkey_manager()
+        explicit hotkey_manager(hotkey_scheme_registry* scheme_registry = nullptr)
             : m_registrations()
-            , m_conflict_policy(conflict_policy::warn) {}
+            , m_conflict_policy(conflict_policy::warn)
+            , m_scheme_registry(scheme_registry) {}
 
         /**
          * @brief Destructor
@@ -216,7 +229,7 @@ namespace onyxui {
          * @enum conflict_policy
          * @brief How to handle hotkey conflicts
          */
-        enum class conflict_policy {
+        enum class conflict_policy : std::uint8_t {
             allow,    ///< Allow conflicts (last registered wins)
             warn,     ///< Allow but warn (default)
             error     ///< Reject conflicting registrations
@@ -332,11 +345,15 @@ namespace onyxui {
          *
          * @details
          * Converts the keyboard event to a key_sequence and searches for
-         * matching registered hotkeys. Checks scoped hotkeys first, then global.
+         * matching registered hotkeys.
          *
          * **Priority Order:**
-         * 1. Element-scoped hotkeys (focused element and ancestors)
-         * 2. Global hotkeys
+         * 1. Framework semantic actions (from current hotkey scheme)
+         * 2. Element-scoped application actions (focused element and ancestors)
+         * 3. Global application actions
+         *
+         * This priority ensures framework-level shortcuts (F10 for menu)
+         * take precedence over application shortcuts.
          *
          * **Example:**
          * @code
@@ -359,20 +376,37 @@ namespace onyxui {
                 return false;
             }
 
+            // PRIORITY 0: Check for modifier-only activation (QBasic-style)
+            if (handle_modifier_event(event)) {
+                return true;  // Modifier-only action triggered
+            }
+
             // Build key_sequence from event
             std::optional<key_sequence> seq = event_to_sequence(event);
             if (!seq) {
                 return false;  // Not a hotkey candidate
             }
 
-            // Try scoped hotkeys first (if we have focus info)
+            // PRIORITY 0.5: Check for multi-key chords (Emacs-style)
+            if (process_chord(*seq)) {
+                return true;  // Chord completed or partial match
+            }
+
+            // PRIORITY 1: Framework semantic actions (from current scheme)
+            if (m_scheme_registry) {
+                if (try_semantic_action(*seq)) {
+                    return true;
+                }
+            }
+
+            // PRIORITY 2: Element-scoped application actions
             if (focused_element) {
                 if (try_scoped_hotkeys(*seq, focused_element)) {
                     return true;
                 }
             }
 
-            // Try global hotkeys
+            // PRIORITY 3: Global application actions
             return try_global_hotkeys(*seq);
         }
 
@@ -397,6 +431,87 @@ namespace onyxui {
          */
         [[nodiscard]] conflict_policy get_conflict_policy() const noexcept {
             return m_conflict_policy;
+        }
+
+        /**
+         * @brief Set hotkey scheme registry
+         * @param registry Pointer to scheme registry (non-owning)
+         *
+         * @details
+         * Sets or updates the scheme registry used for framework semantic actions.
+         * Can be set after construction for lazy initialization.
+         *
+         * Setting to nullptr disables semantic action support.
+         */
+        void set_scheme_registry(hotkey_scheme_registry* registry) noexcept {
+            m_scheme_registry = registry;
+        }
+
+        /**
+         * @brief Get current scheme registry
+         * @return Pointer to scheme registry, or nullptr if not set
+         */
+        [[nodiscard]] hotkey_scheme_registry* get_scheme_registry() const noexcept {
+            return m_scheme_registry;
+        }
+
+        /**
+         * @brief Register a handler for a framework semantic action
+         * @param action The semantic action to handle
+         * @param handler Callback to execute when action is triggered
+         *
+         * @details
+         * Registers a callback for a framework semantic action (menu navigation,
+         * focus, etc.). The handler will be invoked when the user presses the
+         * key bound to this action in the current hotkey scheme.
+         *
+         * **Priority:**
+         * Semantic actions are checked FIRST, before application actions.
+         * This allows framework-level shortcuts (F10 for menu) to take priority.
+         *
+         * **Graceful Fallback:**
+         * If a semantic action has no handler registered, no action is taken.
+         * This allows minimal implementations.
+         *
+         * @example
+         * @code
+         * hotkey_manager<Backend> manager(&scheme_registry);
+         *
+         * // Register menu activation handler
+         * manager.register_semantic_action(
+         *     hotkey_action::activate_menu_bar,
+         *     [&menu]() { menu->show(); }
+         * );
+         *
+         * // Now F10 (Windows scheme) or F9 (Norton scheme) will show menu
+         * @endcode
+         */
+        void register_semantic_action(
+            hotkey_action action,
+            std::function<void()> handler
+        ) {
+            m_semantic_handlers[action] = std::move(handler);
+        }
+
+        /**
+         * @brief Unregister a semantic action handler
+         * @param action The semantic action to unregister
+         *
+         * @details
+         * Removes the handler for the given semantic action.
+         * Safe to call even if no handler is registered.
+         */
+        void unregister_semantic_action(hotkey_action action) {
+            m_semantic_handlers.erase(action);
+        }
+
+        /**
+         * @brief Check if a semantic action has a registered handler
+         * @param action The semantic action to check
+         * @return True if handler is registered
+         */
+        [[nodiscard]] bool has_semantic_handler(hotkey_action action) const {
+            return m_semantic_handlers.contains(action);
         }
 
         /**
@@ -522,29 +637,63 @@ namespace onyxui {
         std::optional<key_sequence> event_to_sequence(const KeyEvent& event) {
             using traits = event_traits<KeyEvent>;
 
-            // Try ASCII key
+            // Build modifier flags
+            key_modifier mods = key_modifier::none;
+            if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
+            if (traits::alt_pressed(event)) mods |= key_modifier::alt;
+            if (traits::shift_pressed(event)) mods |= key_modifier::shift;
+
+            // Try ASCII key (includes control characters like Escape, Enter, Tab)
             char const ascii = traits::to_ascii(event);
             if (ascii != '\0') {
-                key_modifier mods = key_modifier::none;
-                if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
-                if (traits::alt_pressed(event)) mods |= key_modifier::alt;
-                if (traits::shift_pressed(event)) mods |= key_modifier::shift;
-
                 return key_sequence{ascii, mods};
             }
 
             // Try F-key
             int const f_key = traits::to_f_key(event);
             if (f_key != 0) {
-                key_modifier mods = key_modifier::none;
-                if (traits::ctrl_pressed(event)) mods |= key_modifier::ctrl;
-                if (traits::alt_pressed(event)) mods |= key_modifier::alt;
-                if (traits::shift_pressed(event)) mods |= key_modifier::shift;
-
                 return key_sequence{f_key, mods};
             }
 
+            // Try special key (arrow keys, etc.) - required by HotkeyCapable concept
+            int const special = traits::to_special_key(event);
+            if (special != 0) {
+                return key_sequence{static_cast<char>(special), mods};
+            }
+
             return std::nullopt;
+        }
+
+        /**
+         * @brief Try to trigger framework semantic action
+         * @return True if semantic action was found and handler executed
+         */
+        bool try_semantic_action(const key_sequence& seq) {
+            if (!m_scheme_registry) {
+                return false;
+            }
+
+            // Get current hotkey scheme
+            const auto* scheme = m_scheme_registry->get_current_scheme();
+            if (!scheme) {
+                return false;
+            }
+
+            // Find semantic action for this key
+            auto action_opt = scheme->find_action_for_key(seq);
+            if (!action_opt) {
+                return false;  // Key not bound to any semantic action
+            }
+
+            // Check if we have a handler for this action
+            auto handler_it = m_semantic_handlers.find(*action_opt);
+            if (handler_it == m_semantic_handlers.end()) {
+                return false;  // No handler registered (graceful fallback)
+            }
+
+            // Execute handler
+            handler_it->second();
+            return true;
         }
 
         /**
@@ -660,6 +809,120 @@ namespace onyxui {
 
         std::map<key_sequence, std::vector<hotkey_registration<Backend>>> m_registrations;
         conflict_policy m_conflict_policy;
+
+        // Scheme-aware semantic action support
+        hotkey_scheme_registry* m_scheme_registry;                    ///< Non-owning pointer to scheme registry
+        std::map<hotkey_action, std::function<void()>> m_semantic_handlers;  ///< Semantic action callbacks
+
+        // Multi-key sequence support
+        chord_matcher m_chord_matcher;                                ///< State machine for multi-key sequences
+        std::map<key_chord, std::function<void()>> m_chord_handlers; ///< Handlers for multi-key chords
+
+        // Modifier-only activation support (QBasic-style)
+        std::map<key_modifier, std::function<void()>> m_modifier_handlers;  ///< Handlers for modifier-only keys
+        key_modifier m_last_modifier_state = key_modifier::none;    ///< Track modifier state for press/release
+
+    public:
+        /**
+         * @brief Register a multi-key chord (Emacs-style)
+         * @param chord The key chord to register
+         * @param handler Callback when chord is completed
+         *
+         * @example
+         * @code
+         * // Register Ctrl+X, Ctrl+C to exit
+         * manager.register_chord(
+         *     make_emacs_chord({
+         *         {'x', key_modifier::ctrl},
+         *         {'c', key_modifier::ctrl}
+         *     }),
+         *     []() { std::exit(0); }
+         * );
+         * @endcode
+         */
+        void register_chord(const key_chord& chord, std::function<void()> handler) {
+            m_chord_handlers[chord] = std::move(handler);
+        }
+
+        /**
+         * @brief Register modifier-only activation (QBasic-style)
+         * @param mod Modifier key that triggers action
+         * @param handler Callback when modifier is pressed alone
+         *
+         * @example
+         * @code
+         * // Alt key alone activates menu (like MS-DOS apps)
+         * manager.register_modifier_activation(
+         *     key_modifier::alt,
+         *     [&menu]() { menu->activate(); }
+         * );
+         * @endcode
+         */
+        void register_modifier_activation(key_modifier mod, std::function<void()> handler) {
+            m_modifier_handlers[mod] = std::move(handler);
+        }
+
+        /**
+         * @brief Handle modifier key events (for single-key activation)
+         * @param event The keyboard event
+         * @return True if modifier-only action was triggered
+         *
+         * @details
+         * Tracks modifier key press/release to detect single-key activation.
+         * Must be called for both key press and release events.
+         */
+        template<KeyboardEvent KeyEvent>
+        bool handle_modifier_event(const KeyEvent& event) {
+            using traits = event_traits<KeyEvent>;
+
+            // Get current modifier state
+            key_modifier current_mods = key_modifier::none;
+            if (traits::ctrl_pressed(event)) current_mods |= key_modifier::ctrl;
+            if (traits::alt_pressed(event)) current_mods |= key_modifier::alt;
+            if (traits::shift_pressed(event)) current_mods |= key_modifier::shift;
+
+            // Check if this is a modifier-only press (no character key)
+            char ascii = '\0';
+            int f_key = 0;
+            if constexpr (HotkeyCapable<KeyEvent>) {
+                ascii = traits::to_ascii(event);
+                f_key = traits::to_f_key(event);
+            }
+
+            bool is_modifier_only = (ascii == '\0' && f_key == 0);
+
+            // On key press with just modifiers
+            if (traits::is_key_press(event) && is_modifier_only) {
+                // Check if we have a handler for this modifier
+                auto it = m_modifier_handlers.find(current_mods);
+                if (it != m_modifier_handlers.end()) {
+                    it->second();  // Execute handler
+                    return true;
+                }
+            }
+
+            // Track modifier state for release detection
+            m_last_modifier_state = current_mods;
+            return false;
+        }
+
+        /**
+         * @brief Process key event for chord matching
+         * @param seq The key sequence from current event
+         * @return True if a chord was completed and handled
+         */
+        bool process_chord(const key_sequence& seq) {
+            // Check all registered chords
+            for (auto& [chord, handler] : m_chord_handlers) {
+                if (m_chord_matcher.process_key(seq, chord)) {
+                    handler();  // Execute chord handler
+                    return true;
+                }
+            }
+
+            // Check if we have a partial match
+            return m_chord_matcher.has_partial_match();
+        }
     };
 
 } // namespace onyxui

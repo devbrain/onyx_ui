@@ -87,14 +87,19 @@ namespace onyxui {
      *
      * @details
      * Extends KeyboardEvent with methods to convert backend-specific key codes
-     * to backend-agnostic ASCII characters or F-key numbers.
+     * to backend-agnostic ASCII characters, F-key numbers, or special keys.
      *
      * **Backend Implementation Requirements:**
      * - `to_ascii()`: Convert key to lowercase ASCII ('a'-'z', '0'-'9', punctuation)
+     *   - Include control characters: Escape (27), Enter ('\n'), Tab ('\t')
      *   - Return '\0' for non-ASCII keys (arrows, Home, End, etc.)
      *   - Always return lowercase ('A' → 'a', 'S' → 's')
      * - `to_f_key()`: Convert key to F-key number (1-12 for F1-F12)
      *   - Return 0 for non-F-keys
+     * - `to_special_key()`: Convert key to special key code (arrow keys, etc.)
+     *   - Return -1 for Up, -2 for Down, -3 for Left, -4 for Right
+     *   - Return 0 for non-special keys
+     *   - Required for menu navigation (arrow keys)
      *
      * **Why This Design:**
      * This simple mapping allows backend-agnostic hotkeys using only the common
@@ -102,23 +107,35 @@ namespace onyxui {
      *
      * @example Backend Implementation
      * ```cpp
-     * // SDL backend example
+     * // termbox backend example
      * template<>
-     * struct event_traits<SDL_KeyboardEvent> {
-     *     static char to_ascii(const SDL_KeyboardEvent& e) {
-     *         SDL_Keycode key = e.keysym.sym;
-     *         if (key >= SDLK_a && key <= SDLK_z) return static_cast<char>(key);
-     *         if (key >= SDLK_0 && key <= SDLK_9) return static_cast<char>(key);
+     * struct event_traits<tb_event> {
+     *     static char to_ascii(const tb_event& e) {
+     *         // Control characters (for semantic actions)
+     *         if (e.key == TB_KEY_ESC) return 27;
+     *         if (e.key == TB_KEY_ENTER) return '\n';
+     *         if (e.key == TB_KEY_TAB) return '\t';
+     *
+     *         // Character input
+     *         if (e.ch >= 'a' && e.ch <= 'z') return static_cast<char>(e.ch);
+     *         if (e.ch >= 'A' && e.ch <= 'Z') return static_cast<char>(e.ch - 'A' + 'a');
      *         // ... handle punctuation ...
      *         return '\0';  // Not an ASCII key
      *     }
      *
-     *     static int to_f_key(const SDL_KeyboardEvent& e) {
-     *         SDL_Keycode key = e.keysym.sym;
-     *         if (key >= SDLK_F1 && key <= SDLK_F12) {
-     *             return (key - SDLK_F1) + 1;
+     *     static int to_f_key(const tb_event& e) {
+     *         if (e.key >= TB_KEY_F1 && e.key <= TB_KEY_F12) {
+     *             return (e.key - TB_KEY_F1) + 1;
      *         }
      *         return 0;  // Not an F-key
+     *     }
+     *
+     *     static int to_special_key(const tb_event& e) {
+     *         if (e.key == TB_KEY_ARROW_UP) return -1;
+     *         if (e.key == TB_KEY_ARROW_DOWN) return -2;
+     *         if (e.key == TB_KEY_ARROW_LEFT) return -3;
+     *         if (e.key == TB_KEY_ARROW_RIGHT) return -4;
+     *         return 0;  // Not a special key
      *     }
      * };
      * ```
@@ -127,6 +144,7 @@ namespace onyxui {
     concept HotkeyCapable = KeyboardEvent<T> && requires(const T& e) {
         { event_traits<T>::to_ascii(e) } -> std::convertible_to<char>;
         { event_traits<T>::to_f_key(e) } -> std::convertible_to<int>;
+        { event_traits<T>::to_special_key(e) } -> std::convertible_to<int>;
     };
 
     /**

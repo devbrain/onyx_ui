@@ -71,6 +71,8 @@
 #include <onyxui/scoped_layer.hh>
 #include <onyxui/ui_services.hh>
 #include <onyxui/focus_manager.hh>
+#include <onyxui/hotkeys/hotkey_action.hh>
+#include <onyxui/hotkeys/hotkey_manager.hh>
 
 namespace onyxui {
 
@@ -129,6 +131,7 @@ namespace onyxui {
             : base(1, horizontal_alignment::left, vertical_alignment::top, parent)  // 1px spacing between menu items
             , m_open_menu_index(std::nullopt) {
             this->set_focusable(true);
+            initialize_hotkeys();
         }
 
         /**
@@ -363,6 +366,105 @@ namespace onyxui {
                     entry.dropdown_menu->apply_theme(theme);
                 }
             }
+        }
+
+        /**
+         * @brief Initialize semantic action handlers for menu bar
+         *
+         * @details
+         * Registers handlers for:
+         * - activate_menu_bar: Open first menu (F10/F9)
+         * - menu_left/menu_right: Navigate between menus
+         * - menu_up/menu_down: Navigate within dropdown
+         * - menu_select: Activate focused item
+         * - menu_cancel: Close menu
+         */
+        void initialize_hotkeys() {
+            auto* hotkeys = ui_services<Backend>::hotkeys();
+            if (!hotkeys) return;
+
+            // Activate menu bar (F10/F9 based on scheme)
+            hotkeys->register_semantic_action(
+                hotkey_action::activate_menu_bar,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        // Menu already open - close it
+                        close_menu();
+                    } else if (!m_menus.empty()) {
+                        // Open first menu
+                        open_menu(0);
+                    }
+                }
+            );
+
+            // Navigate left between menus
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_left,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        navigate_previous();
+                    }
+                }
+            );
+
+            // Navigate right between menus
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_right,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        navigate_next();
+                    }
+                }
+            );
+
+            // Navigate down in dropdown menu
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_down,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        auto& entry = m_menus[*m_open_menu_index];
+                        if (entry.dropdown_menu) {
+                            entry.dropdown_menu->focus_next();
+                        }
+                    }
+                }
+            );
+
+            // Navigate up in dropdown menu
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_up,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        auto& entry = m_menus[*m_open_menu_index];
+                        if (entry.dropdown_menu) {
+                            entry.dropdown_menu->focus_previous();
+                        }
+                    }
+                }
+            );
+
+            // Select/activate focused menu item
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_select,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        auto& entry = m_menus[*m_open_menu_index];
+                        if (entry.dropdown_menu) {
+                            entry.dropdown_menu->activate_focused();
+                        }
+                    }
+                }
+            );
+
+            // Cancel/close menu
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_cancel,
+                [this]() {
+                    if (m_open_menu_index.has_value()) {
+                        close_menu();
+                    }
+                }
+            );
         }
 
     private:

@@ -512,6 +512,8 @@
 #include <onyxui/input_manager.hh>
 #include <onyxui/theme_registry.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
+#include <onyxui/hotkeys/hotkey_scheme_registry.hh>
+#include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
 #include <onyxui/background_renderer.hh>
 
 namespace onyxui {
@@ -612,6 +614,7 @@ namespace onyxui {
         using input_manager_type = hierarchical_input_manager<Backend, ui_element<Backend>>;
         using theme_registry_type = theme_registry<Backend>;
         using hotkey_manager_type = hotkey_manager<Backend>;
+        using hotkey_scheme_registry_type = hotkey_scheme_registry;
         using background_renderer_type = background_renderer<Backend>;
 
         /**
@@ -716,6 +719,30 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get the hotkey scheme registry (shared across all contexts)
+         * @return Reference to shared hotkey scheme registry
+         *
+         * @details
+         * The hotkey scheme registry is shared across all UI contexts.
+         * Schemes registered in one context are available in all contexts.
+         * Built-in schemes (Windows, Norton Commander) are auto-registered
+         * on first context creation.
+         */
+        [[nodiscard]] hotkey_scheme_registry_type& hotkey_schemes() noexcept {
+            ensure_shared_services_initialized();
+            return *s_shared_hotkey_schemes;
+        }
+
+        /**
+         * @brief Get the hotkey scheme registry (const, shared across all contexts)
+         * @return Const reference to shared hotkey scheme registry
+         */
+        [[nodiscard]] const hotkey_scheme_registry_type& hotkey_schemes() const noexcept {
+            ensure_shared_services_initialized();
+            return *s_shared_hotkey_schemes;
+        }
+
+        /**
          * @brief Get the background renderer
          * @return Reference to background renderer
          */
@@ -740,6 +767,7 @@ namespace onyxui {
         // Shared services (singleton pattern - shared across all contexts)
         static inline std::shared_ptr<theme_registry_type> s_shared_themes;
         static inline std::shared_ptr<hotkey_manager_type> s_shared_hotkeys;
+        static inline std::shared_ptr<hotkey_scheme_registry_type> s_shared_hotkey_schemes;
 
         /**
          * @brief Initialize shared services on first access
@@ -762,8 +790,16 @@ namespace onyxui {
                     Backend::register_themes(*s_shared_themes);
                 }
             }
+            if (!s_shared_hotkey_schemes) {
+                s_shared_hotkey_schemes = std::make_shared<hotkey_scheme_registry_type>();
+
+                // Auto-register built-in hotkey schemes (first is default)
+                s_shared_hotkey_schemes->register_scheme(builtin_hotkey_schemes::windows());
+                s_shared_hotkey_schemes->register_scheme(builtin_hotkey_schemes::norton_commander());
+            }
             if (!s_shared_hotkeys) {
-                s_shared_hotkeys = std::make_shared<hotkey_manager_type>();
+                // Pass scheme registry to hotkey_manager for semantic action support
+                s_shared_hotkeys = std::make_shared<hotkey_manager_type>(s_shared_hotkey_schemes.get());
             }
         }
 
@@ -1026,6 +1062,14 @@ namespace onyxui {
          */
         [[nodiscard]] auto& hotkeys() noexcept {
             return m_context.hotkeys();
+        }
+
+        /**
+         * @brief Convenience accessor for hotkey scheme registry
+         * @return Reference to hotkey scheme registry
+         */
+        [[nodiscard]] auto& hotkey_schemes() noexcept {
+            return m_context.hotkey_schemes();
         }
 
     private:

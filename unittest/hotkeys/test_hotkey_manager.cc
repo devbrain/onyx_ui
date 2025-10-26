@@ -16,6 +16,8 @@
 #include <doctest/doctest.h>
 #include <memory>
 #include <onyxui/hotkeys/hotkey_manager.hh>
+#include <onyxui/hotkeys/hotkey_scheme_registry.hh>
+#include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/panel.hh>
 #include "onyxui/hotkeys/key_sequence.hh"
@@ -588,5 +590,233 @@ TEST_SUITE("hotkey_manager::scenarios") {
         // Re-register
         CHECK(manager.register_action(act));
         CHECK(manager.is_registered(key_sequence{'x', key_modifier::ctrl}));
+    }
+}
+
+// ======================================================================
+// Test Suite: hotkey_manager - Semantic Actions (Phase 3)
+// ======================================================================
+
+TEST_SUITE("hotkey_manager::semantic_actions") {
+    using Backend = test_backend;
+
+    TEST_CASE("Semantic action registration") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        bool handler_called = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { handler_called = true; }
+        );
+
+        CHECK(manager.has_semantic_handler(hotkey_action::activate_menu_bar));
+        CHECK_FALSE(manager.has_semantic_handler(hotkey_action::menu_down));
+    }
+
+    TEST_CASE("Semantic action triggering - F10 (Windows scheme)") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        bool menu_activated = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { menu_activated = true; }
+        );
+
+        // Simulate F10 press (Windows scheme)
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        CHECK(manager.handle_key_event(event));
+        CHECK(menu_activated);
+    }
+
+    TEST_CASE("Semantic action triggering - F9 (Norton Commander scheme)") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::norton_commander());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        bool menu_activated = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { menu_activated = true; }
+        );
+
+        // Simulate F9 press (Norton Commander scheme)
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F9;
+        event.pressed = true;
+
+        CHECK(manager.handle_key_event(event));
+        CHECK(menu_activated);
+    }
+
+    TEST_CASE("Scheme switching changes active keys") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+        registry.register_scheme(builtin_hotkey_schemes::norton_commander());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        int menu_activation_count = 0;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { menu_activation_count++; }
+        );
+
+        // Start with Windows scheme (F10)
+        registry.set_current_scheme("Windows");
+
+        test_backend::test_keyboard_event f10_event;
+        f10_event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        f10_event.pressed = true;
+
+        CHECK(manager.handle_key_event(f10_event));
+        CHECK(menu_activation_count == 1);
+
+        // Switch to Norton Commander scheme (F9)
+        registry.set_current_scheme("Norton Commander");
+
+        // F10 should no longer work
+        menu_activation_count = 0;
+        CHECK_FALSE(manager.handle_key_event(f10_event));
+        CHECK(menu_activation_count == 0);
+
+        // F9 should work now
+        test_backend::test_keyboard_event f9_event;
+        f9_event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F9;
+        f9_event.pressed = true;
+
+        CHECK(manager.handle_key_event(f9_event));
+        CHECK(menu_activation_count == 1);
+    }
+
+    TEST_CASE("Priority: Semantic actions before application actions") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        bool semantic_called = false;
+        bool application_called = false;
+
+        // Register semantic action for F10
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { semantic_called = true; }
+        );
+
+        // Register application action for F10 (should be lower priority)
+        auto app_action = std::make_shared<action<Backend>>();
+        app_action->set_shortcut_f(10);
+        app_action->triggered.connect([&]() { application_called = true; });
+        manager.register_action(app_action);
+
+        // Simulate F10 press
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        // Semantic action should take priority
+        CHECK(manager.handle_key_event(event));
+        CHECK(semantic_called);
+        CHECK_FALSE(application_called);  // Application action should NOT be called
+    }
+
+    TEST_CASE("Graceful fallback: No handler registered") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        // Don't register any handler for activate_menu_bar
+
+        // Simulate F10 press
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        // Should return false (no handler), allowing fallback to application actions
+        CHECK_FALSE(manager.handle_key_event(event));
+    }
+
+    TEST_CASE("Graceful fallback: No scheme registry") {
+        hotkey_manager<Backend> manager(nullptr);  // No scheme registry
+
+        // Register semantic action (should have no effect without registry)
+        bool handler_called = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { handler_called = true; }
+        );
+
+        // Simulate F10 press
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        // Should return false (no scheme registry)
+        CHECK_FALSE(manager.handle_key_event(event));
+        CHECK_FALSE(handler_called);
+    }
+
+    TEST_CASE("Unregister semantic action") {
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        hotkey_manager<Backend> manager(&registry);
+
+        bool handler_called = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { handler_called = true; }
+        );
+
+        REQUIRE(manager.has_semantic_handler(hotkey_action::activate_menu_bar));
+
+        // Unregister
+        manager.unregister_semantic_action(hotkey_action::activate_menu_bar);
+        CHECK_FALSE(manager.has_semantic_handler(hotkey_action::activate_menu_bar));
+
+        // Handler should not be called after unregistering
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        CHECK_FALSE(manager.handle_key_event(event));
+        CHECK_FALSE(handler_called);
+    }
+
+    TEST_CASE("Set scheme registry after construction") {
+        hotkey_manager<Backend> manager;  // No registry initially
+
+        CHECK(manager.get_scheme_registry() == nullptr);
+
+        hotkey_scheme_registry registry;
+        registry.register_scheme(builtin_hotkey_schemes::windows());
+
+        manager.set_scheme_registry(&registry);
+        CHECK(manager.get_scheme_registry() == &registry);
+
+        // Should now work
+        bool menu_activated = false;
+        manager.register_semantic_action(
+            hotkey_action::activate_menu_bar,
+            [&]() { menu_activated = true; }
+        );
+
+        test_backend::test_keyboard_event event;
+        event.key_code = event_traits<test_backend::test_keyboard_event>::KEY_F10;
+        event.pressed = true;
+
+        CHECK(manager.handle_key_event(event));
+        CHECK(menu_activated);
     }
 }

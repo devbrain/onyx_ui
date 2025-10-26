@@ -347,6 +347,12 @@ namespace onyxui {
         static constexpr int KEY_F11 = 1010;
         static constexpr int KEY_F12 = 1011;
 
+        // Arrow key constants
+        static constexpr int KEY_UP = 2000;
+        static constexpr int KEY_DOWN = 2001;
+        static constexpr int KEY_LEFT = 2002;
+        static constexpr int KEY_RIGHT = 2003;
+
         [[nodiscard]] static int key_code(const test_backend::test_keyboard_event& e) noexcept { return e.key_code; }
         [[nodiscard]] static bool is_key_press(const test_backend::test_keyboard_event& e) noexcept { return e.pressed; }
         [[nodiscard]] static bool is_repeat(const test_backend::test_keyboard_event&) noexcept { return false; }
@@ -372,6 +378,11 @@ namespace onyxui {
             // Digits
             if (code >= '0' && code <= '9') return static_cast<char>(code);
 
+            // Control characters (for hotkeys)
+            if (code == KEY_TAB) return '\t';
+            if (code == KEY_ENTER) return '\n';
+            if (code == KEY_ESCAPE) return 27;
+
             // Common punctuation
             switch (code) {
                 case ' ': case '!': case '"': case '#': case '$': case '%': case '&': case '\'':
@@ -383,6 +394,17 @@ namespace onyxui {
                 default:
                     return '\0';  // Not an ASCII key
             }
+        }
+
+        // Hotkey support - convert to special key code (for arrow keys)
+        [[nodiscard]] static int to_special_key(const test_backend::test_keyboard_event& e) noexcept {
+            int code = e.key_code;
+            // Arrow keys use negative codes to distinguish from ASCII/F-keys
+            if (code == KEY_UP) return -1;
+            if (code == KEY_DOWN) return -2;
+            if (code == KEY_LEFT) return -3;
+            if (code == KEY_RIGHT) return -4;
+            return 0;  // Not a special key
         }
 
         // Hotkey support - convert to F-key number

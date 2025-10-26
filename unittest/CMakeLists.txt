@@ -50,6 +50,7 @@ add_executable(ui_unittest
         widgets/test_menus.cc
         widgets/test_menu_item_measurement.cc
         widgets/test_menu_border_layout.cc
+        widgets/test_menu_hotkey_integration.cc
         widgets/test_theme_switching.cc
         widgets/test_status_bar.cc
         widgets/test_group_box.cc
@@ -62,6 +63,8 @@ add_executable(ui_unittest
         widgets/test_separator.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
+        hotkeys/test_hotkey_scheme.cc
+        hotkeys/test_key_chord.cc
         # YAML infrastructure tests (backend-agnostic, use test::test_types)
         reflection/test_fkyaml_basic.cc
         reflection/test_color_yaml.cc
