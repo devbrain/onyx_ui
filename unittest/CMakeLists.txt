@@ -37,6 +37,7 @@ add_executable(ui_unittest
         widgets/test_anchor_panel.cc
         widgets/test_absolute_panel.cc
         widgets/test_button.cc
+        widgets/test_button_mouse_tracking.cc
         widgets/test_label.cc
         widgets/test_panel.cc
         widgets/test_spacer.cc
@@ -47,6 +48,7 @@ add_executable(ui_unittest
         widgets/test_actions.cc
         widgets/test_mnemonics.cc
         widgets/test_menus.cc
+        widgets/test_menu_item_measurement.cc
         widgets/test_menu_border_layout.cc
         widgets/test_theme_switching.cc
         widgets/test_status_bar.cc
@@ -57,6 +59,7 @@ add_executable(ui_unittest
         widgets/test_complex_layouts.cc
         widgets/test_theme_layout_integration.cc
         widgets/test_stateful_widget.cc
+        widgets/test_separator.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
         # YAML infrastructure tests (backend-agnostic, use test::test_types)

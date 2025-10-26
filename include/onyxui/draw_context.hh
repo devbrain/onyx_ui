@@ -293,6 +293,34 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw horizontal separator line
+         * @param bounds Line bounds (y and height define position, x and w define extent)
+         * @param style Line drawing style
+         */
+        void draw_horizontal_line(
+            const rect_type& bounds,
+            const typename renderer_type::line_style& style
+        ) override {
+            if (m_renderer) {
+                m_renderer->draw_horizontal_line(bounds, style);
+            }
+        }
+
+        /**
+         * @brief Draw vertical separator line
+         * @param bounds Line bounds (x and width define position, y and h define extent)
+         * @param style Line drawing style
+         */
+        void draw_vertical_line(
+            const rect_type& bounds,
+            const typename renderer_type::line_style& style
+        ) override {
+            if (m_renderer) {
+                m_renderer->draw_vertical_line(bounds, style);
+            }
+        }
+
+        /**
          * @brief Access underlying renderer
          * @return Pointer to the renderer
          */

@@ -194,11 +194,18 @@ namespace onyxui {
 
         /**
          * @brief Handle mouse leave event
-         * @details Automatically sets state to normal if enabled
+         * @details Returns to normal state ONLY if not currently in pressed state
+         *
+         * If mouse button is still held down when leaving (visual state = pressed),
+         * maintain that state. This prevents visual state desync during drag operations.
          */
         bool handle_mouse_leave() override {
             if (this->is_enabled()) {
-                set_interaction_state(interaction_state::normal);
+                // Only return to normal if we're not visually pressed
+                // If pressed, we'll transition on mouse_up instead
+                if (m_state != interaction_state::pressed) {
+                    set_interaction_state(interaction_state::normal);
+                }
             }
             return base::handle_mouse_leave();
         }

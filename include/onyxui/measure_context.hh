@@ -231,6 +231,46 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw horizontal line (measurement only - tracks bounds)
+         * @param bounds Line bounds
+         * @param style Line style (unused during measurement)
+         */
+        void draw_horizontal_line(
+            const rect_type& bounds,
+            [[maybe_unused]] const typename renderer_type::line_style& style
+        ) override {
+            // During measurement, just track the bounding box
+            int const x = rect_utils::get_x(bounds);
+            int const y = rect_utils::get_y(bounds);
+            int const w = rect_utils::get_width(bounds);
+            int const h = rect_utils::get_height(bounds);
+            int const right = safe_math::add_clamped(x, w);
+            int const bottom = safe_math::add_clamped(y, h);
+
+            update_bounding_box(x, y, right, bottom);
+        }
+
+        /**
+         * @brief Draw vertical line (measurement only - tracks bounds)
+         * @param bounds Line bounds
+         * @param style Line style (unused during measurement)
+         */
+        void draw_vertical_line(
+            const rect_type& bounds,
+            [[maybe_unused]] const typename renderer_type::line_style& style
+        ) override {
+            // During measurement, just track the bounding box
+            int const x = rect_utils::get_x(bounds);
+            int const y = rect_utils::get_y(bounds);
+            int const w = rect_utils::get_width(bounds);
+            int const h = rect_utils::get_height(bounds);
+            int const right = safe_math::add_clamped(x, w);
+            int const bottom = safe_math::add_clamped(y, h);
+
+            update_bounding_box(x, y, right, bottom);
+        }
+
+        /**
          * @brief Access underlying renderer
          * @return nullptr (no renderer during measurement)
          */

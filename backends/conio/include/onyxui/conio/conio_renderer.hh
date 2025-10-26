@@ -60,6 +60,27 @@ namespace onyxui::conio {
             };
 
             /**
+             * @struct line_style
+             * @brief Defines line appearance for separators
+             *
+             * @details
+             * Used for drawing horizontal and vertical separator lines in menus,
+             * toolbars, and other UI elements. Line style determines the visual
+             * appearance of the line characters used.
+             */
+            struct line_style {
+                border_style style = border_style::single_line; // Line drawing style
+
+                // Convenience constructors
+                constexpr line_style() noexcept = default;
+                constexpr explicit line_style(border_style s) noexcept
+                    : style(s) {}
+
+                // Comparison operators for testing
+                constexpr bool operator==(const line_style&) const noexcept = default;
+            };
+
+            /**
              * @struct font
              * @brief Font attributes for text rendering in TUI
              *
@@ -128,6 +149,30 @@ namespace onyxui::conio {
              * This is used by the dirty rectangle system to clear old content.
              */
             void clear_region(const rect& r);
+
+            /**
+             * @brief Draw a horizontal line
+             * @param r Rectangle defining the line bounds (y and height define line position, x and w define extent)
+             * @param style Line drawing style
+             *
+             * @details
+             * Draws a horizontal line using box-drawing characters. The line is drawn
+             * at vertical position r.y with width r.w starting from r.x.
+             * Used for menu separators, horizontal dividers, etc.
+             */
+            void draw_horizontal_line(const rect& r, const line_style& style);
+
+            /**
+             * @brief Draw a vertical line
+             * @param r Rectangle defining the line bounds (x and width define line position, y and h define extent)
+             * @param style Line drawing style
+             *
+             * @details
+             * Draws a vertical line using box-drawing characters. The line is drawn
+             * at horizontal position r.x with height r.h starting from r.y.
+             * Used for vertical separators, column dividers, etc.
+             */
+            void draw_vertical_line(const rect& r, const line_style& style);
 
             // ===================================================================
             // Required Clipping Methods (RenderLike Concept)

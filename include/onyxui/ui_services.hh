@@ -63,7 +63,7 @@ namespace onyxui {
     // Forward declarations
     template<UIBackend Backend> class layer_manager;
     template<UIBackend Backend> class ui_element;
-    template<UIBackend Backend, typename ElementType> class hierarchical_focus_manager;
+    template<UIBackend Backend, typename ElementType> class hierarchical_input_manager;
     template<UIBackend Backend> class theme_registry;
     template<UIBackend Backend> class background_renderer;
 
@@ -86,7 +86,7 @@ namespace onyxui {
      * ## Service Access
      *
      * - **layers()**: Get layer manager from current context
-     * - **focus()**: Get focus manager from current context
+     * - **input()**: Get input manager from current context
      * - **themes()**: Get theme registry from current context
      *
      * All accessors return nullptr if no context is active (safe).
@@ -211,8 +211,8 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get the focus manager from current context
-         * @return Pointer to focus manager, or nullptr if no context
+         * @brief Get the input manager from current context
+         * @return Pointer to input manager, or nullptr if no context
          *
          * @details
          * Returns nullptr if:
@@ -221,14 +221,15 @@ namespace onyxui {
          *
          * Always check for nullptr before using:
          * @code
-         * if (auto* focus = ui_services<Backend>::focus()) {
-         *     focus->set_focus(widget);
+         * if (auto* input = ui_services<Backend>::input()) {
+         *     input->set_focus(widget);
+         *     input->set_capture(widget);
          * }
          * @endcode
          */
-        [[nodiscard]] static hierarchical_focus_manager<Backend, ui_element<Backend>>* focus() noexcept {
+        [[nodiscard]] static hierarchical_input_manager<Backend, ui_element<Backend>>* input() noexcept {
             auto* ctx = current();
-            return ctx ? &ctx->focus() : nullptr;
+            return ctx ? &ctx->input() : nullptr;
         }
 
         /**

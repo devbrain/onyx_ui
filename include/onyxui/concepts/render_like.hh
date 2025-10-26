@@ -18,8 +18,8 @@ namespace onyxui {
      *
      * @details
      * A renderer must provide:
-     * - **Type definitions**: box_style, font, icon_style, size_type
-     * - **Drawing methods**: draw_box, draw_text, draw_icon
+     * - **Type definitions**: box_style, line_style, font, icon_style, size_type
+     * - **Drawing methods**: draw_box, draw_text, draw_icon, draw_horizontal_line, draw_vertical_line
      * - **Static measurement methods**: measure_text, get_icon_size (no instance needed)
      * - **Clipping methods**: push_clip, pop_clip, get_clip_rect
      * - **Viewport management**: get_viewport (returns drawable area bounds)
@@ -89,10 +89,12 @@ namespace onyxui {
     concept RenderLike = RectLike<R> && requires(T renderer,
                                                   const R& rect,
                                                   const typename T::box_style& box,
+                                                  const typename T::line_style& line,
                                                   const typename T::font& f,
                                                   const typename T::icon_style& i)
     {
         typename T::box_style;
+        typename T::line_style;
         typename T::font;
         typename T::icon_style;
         typename T::size_type;  // Required for measure_text return type
@@ -101,6 +103,10 @@ namespace onyxui {
         { renderer.draw_box(rect, box) } -> std::same_as<void>;
         { renderer.draw_text(rect, "text", f) } -> std::same_as<void>;
         { renderer.draw_icon(rect, i) } -> std::same_as<void>;
+
+        // Line drawing methods
+        { renderer.draw_horizontal_line(rect, line) } -> std::same_as<void>;
+        { renderer.draw_vertical_line(rect, line) } -> std::same_as<void>;
 
         // Clearing method (for dirty rectangle support)
         { renderer.clear_region(rect) } -> std::same_as<void>;

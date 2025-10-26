@@ -15,6 +15,7 @@ namespace onyxui {
     struct ui_theme {
         using color_type = typename Backend::color_type;
         using box_style_type = typename Backend::renderer_type::box_style;
+        using line_style_type = typename Backend::renderer_type::line_style;
         using font_type = typename Backend::renderer_type::font;
 
         // Theme metadata
@@ -64,11 +65,23 @@ namespace onyxui {
             box_style_type box_style{};  // Use {} to trigger default member initializers
         };
 
+        struct menu_bar_style {
+            int item_spacing = 2;           // Spacing between menu items (File, Edit, etc.)
+            int item_padding_horizontal = 0; // Horizontal padding inside each menu item (0 = left-aligned)
+            int item_padding_vertical = 0;   // Vertical padding inside each menu item
+        };
+
+        struct separator_style {
+            line_style_type line_style{};   // Line drawing style for separators
+        };
+
         // Widget-specific styles
         button_style button{};  // Use {} to trigger default member initializers
         label_style label{};
         panel_style panel{};
         menu_style menu{};
+        menu_bar_style menu_bar{};
+        separator_style separator{};
 
         // Global palette
         color_type window_bg;

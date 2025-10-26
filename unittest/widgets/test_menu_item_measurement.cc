@@ -1,0 +1,519 @@
+/**
+ * @file test_menu_item_measurement.cc
+ * @brief Tests for menu item measurement and padding
+ * @date 2025-10-25
+ */
+
+#include <doctest/doctest.h>
+#include <onyxui/widgets/menu_item.hh>
+#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/action.hh>
+#include <onyxui/widgets/menu.hh>
+#include <onyxui/widgets/menu_bar.hh>
+#include <onyxui/widgets/panel.hh>
+#include <onyxui/ui_context.hh>
+#include <onyxui/theme.hh>
+#include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
+#include "../utils/layout_assertions.hh"
+
+using namespace onyxui;
+using Backend = test_backend;
+
+namespace {
+    // Helper to create a test theme with default values
+    ui_theme<Backend> create_menu_test_theme(const std::string& name) {
+        ui_theme<Backend> theme;
+        theme.name = name;
+        theme.description = "Test theme for menu measurement";
+
+        // Set default colors
+        theme.window_bg = {0, 0, 170};
+        theme.text_fg = {255, 255, 255};
+        theme.border_color = {255, 255, 255};
+
+        // Button/menu item colors
+        theme.button.bg_normal = {0, 0, 170};
+        theme.button.fg_normal = {255, 255, 255};
+        theme.button.bg_hover = {0, 170, 170};
+        theme.button.fg_hover = {255, 255, 255};
+        theme.button.bg_pressed = {170, 0, 0};
+        theme.button.fg_pressed = {255, 255, 255};
+        theme.button.bg_disabled = {85, 85, 85};
+        theme.button.fg_disabled = {170, 170, 170};
+
+        // Label colors
+        theme.label.background = {0, 0, 170};
+        theme.label.text = {255, 255, 255};
+
+        // Panel border settings (important for other tests that share this theme!)
+        theme.panel.box_style.draw_border = true;
+
+        // Default font
+        theme.button.font = {};  // Use default font
+
+        return theme;
+    }
+}
+
+TEST_CASE("Menu Item - Measurement includes padding") {
+    SUBCASE("Short text like 'About' needs padding space") {
+        // Setup context (for theme registry)
+        scoped_ui_context<Backend> ctx;
+
+        // Register a test theme
+        ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
+
+        menu_item<Backend> item;
+        item.set_text("About");  // 5 characters
+
+        // Apply the theme
+        item.apply_theme("Test Theme", ctx.themes());
+
+        // Measure the menu item
+        auto size = item.measure(100, 100);
+        int width = size_utils::get_width(size);
+
+        // The text is 5 chars, but it's drawn at x+2 (left padding)
+        // So the minimum width should be 5 + 2 = 7
+        // But ideally we want 5 + 2 (left) + 2 (right) = 9
+        CHECK(width >= 9);  // Text (5) + left padding (2) + right padding (2)
+    }
+
+    SUBCASE("Menu item with shortcut needs padding on both sides") {
+        scoped_ui_context<Backend> ctx;
+
+        menu_item<Backend> item;
+        item.set_text("Open");  // 4 characters
+
+        // Apply default theme
+        auto* themes = ui_services<Backend>::themes();
+        if (themes && !themes->list_theme_names().empty()) {
+            item.apply_theme(themes->list_theme_names()[0], *themes);
+        }
+
+        // Create an action with a shortcut
+        auto action = std::make_shared<onyxui::action<Backend>>();
+        action->set_text("Open");
+        action->set_shortcut('O', key_modifier::ctrl);  // "Ctrl+O" = 6 chars
+        item.set_action(action);
+
+        // Measure the menu item
+        auto size = item.measure(100, 100);
+        int width = size_utils::get_width(size);
+
+        // Text "Open" (4) at position 2
+        // Shortcut "Ctrl+O" (6) with 2 chars right padding
+        // Total needed: 2 + 4 + spacing + 6 + 2 = at least 14
+        // Should have enough space for text with left padding and shortcut with right padding
+        CHECK(width >= 14);
+    }
+
+    SUBCASE("Separator has fixed minimum width") {
+        scoped_ui_context<Backend> ctx;
+
+        auto separator = menu_item<Backend>::make_separator();
+
+        // Apply default theme
+        auto* themes = ui_services<Backend>::themes();
+        if (themes && !themes->list_theme_names().empty()) {
+            separator->apply_theme(themes->list_theme_names()[0], *themes);
+        }
+
+        // Measure the separator
+        auto size = separator->measure(100, 100);
+        int width = size_utils::get_width(size);
+
+        // Separator should have at least 20 chars width (from the code)
+        CHECK(width >= 20);
+    }
+}
+
+TEST_CASE("Menu Item - Text is not truncated when rendered") {
+    SUBCASE("Menu item displays full text with padding") {
+        scoped_ui_context<Backend> ctx;
+
+        menu_item<Backend> item;
+        item.set_text("About");
+
+        // Apply default theme
+        auto* themes = ui_services<Backend>::themes();
+        if (themes && !themes->list_theme_names().empty()) {
+            item.apply_theme(themes->list_theme_names()[0], *themes);
+        }
+
+        // Measure and arrange with the measured size
+        auto measured_size = item.measure(100, 100);
+        int measured_width = size_utils::get_width(measured_size);
+
+        // Arrange with exactly the measured width
+        Backend::rect_type bounds{0, 0, measured_width, 1};
+        item.arrange(bounds);
+
+        // Now simulate rendering to check if text fits
+        // The text "About" (5 chars) is drawn at position x+2
+        // So we need at least 7 chars width to display it fully
+        int text_start = 2;  // Left padding
+        int text_length = 5;  // "About"
+        int required_width = text_start + text_length;
+
+        // The measured width should be enough to display the text with padding
+        CHECK(measured_width >= required_width);
+
+        // Even better: should have right padding too
+        int ideal_width = text_start + text_length + 2;  // +2 for right padding
+        CHECK(measured_width >= ideal_width);
+    }
+}
+
+TEST_CASE("Menu Item - Theme changes don't break measurement") {
+    SUBCASE("Changing theme invalidates cached measurement") {
+        scoped_ui_context<Backend> ctx;
+
+        // Register two different themes
+        ctx.themes().register_theme(create_menu_test_theme("Theme 1"));
+        auto theme2 = create_menu_test_theme("Theme 2");
+        theme2.button.fg_normal = {255, 0, 0};  // Different color
+        ctx.themes().register_theme(std::move(theme2));
+
+        menu_item<Backend> item;
+        item.set_text("About");
+
+        // Apply first theme and measure
+        item.apply_theme("Theme 1", ctx.themes());
+        auto size1 = item.measure(100, 100);
+        int width1 = size_utils::get_width(size1);
+
+        CHECK(width1 >= 9);  // Should have padding
+
+        // Change to second theme
+        item.apply_theme("Theme 2", ctx.themes());
+
+        // Measure again - should still have correct width
+        auto size2 = item.measure(100, 100);
+        int width2 = size_utils::get_width(size2);
+
+        CHECK(width2 >= 9);  // Should still have padding after theme change
+        CHECK(width2 == width1);  // Width should remain consistent
+    }
+
+    SUBCASE("Theme change forces remeasurement for items with shortcuts") {
+        scoped_ui_context<Backend> ctx;
+
+        ctx.themes().register_theme(create_menu_test_theme("Theme 1"));
+        ctx.themes().register_theme(create_menu_test_theme("Theme 2"));
+
+        menu_item<Backend> item;
+        item.set_text("Save");
+
+        // Add action with shortcut
+        auto action = std::make_shared<onyxui::action<Backend>>();
+        action->set_text("Save");
+        action->set_shortcut('S', key_modifier::ctrl);
+        item.set_action(action);
+
+        // Apply first theme and measure
+        item.apply_theme("Theme 1", ctx.themes());
+        auto size1 = item.measure(100, 100);
+        int width1 = size_utils::get_width(size1);
+
+        CHECK(width1 >= 14);  // Text + shortcut + padding
+
+        // Change theme
+        item.apply_theme("Theme 2", ctx.themes());
+
+        // Measure again
+        auto size2 = item.measure(100, 100);
+        int width2 = size_utils::get_width(size2);
+
+        CHECK(width2 >= 14);  // Should still have proper width
+    }
+}
+
+TEST_CASE("Menu Item - Visual rendering consistency") {
+    using CanvasBackend = onyxui::testing::test_canvas_backend;
+    using namespace onyxui::testing;
+
+    SUBCASE("Multiple menu items render consistently with borders") {
+        scoped_ui_context<CanvasBackend> ctx;
+
+        // Register test theme for canvas rendering
+        ui_theme<CanvasBackend> theme;
+        theme.name = "Canvas Test Theme";
+        theme.description = "Theme for visual testing";
+        theme.window_bg = {0, 0, 170};
+        theme.text_fg = {255, 255, 255};
+        theme.border_color = {255, 255, 255};
+
+        // Button colors for menu items
+        theme.button.bg_normal = {0, 0, 170};
+        theme.button.fg_normal = {255, 255, 255};
+        theme.button.bg_hover = {0, 170, 170};
+        theme.button.fg_hover = {255, 255, 255};
+        theme.button.bg_pressed = {170, 0, 0};
+        theme.button.fg_pressed = {255, 255, 255};
+        theme.button.bg_disabled = {85, 85, 85};
+        theme.button.fg_disabled = {170, 170, 170};
+
+        // Box style with border
+        theme.button.box_style.draw_border = true;
+        theme.button.font = {};
+
+        // Panel border settings (CRITICAL for other tests!)
+        theme.panel.box_style.draw_border = true;
+        theme.panel.box_style.corner = '+';
+        theme.panel.box_style.horizontal = '-';
+        theme.panel.box_style.vertical = '|';
+
+        ctx.themes().register_theme(std::move(theme));
+
+        // Create three menu items like in the menu bar
+        menu_item<CanvasBackend> file_item;
+        file_item.set_text("File");
+        file_item.apply_theme("Canvas Test Theme", ctx.themes());
+
+        menu_item<CanvasBackend> theme_item;
+        theme_item.set_text("Theme");
+        theme_item.apply_theme("Canvas Test Theme", ctx.themes());
+
+        menu_item<CanvasBackend> help_item;
+        help_item.set_text("Help");
+        help_item.apply_theme("Canvas Test Theme", ctx.themes());
+
+        // Render each to canvas
+        auto file_canvas = render_to_canvas(file_item, 10, 3);
+        auto theme_canvas = render_to_canvas(theme_item, 10, 3);
+        auto help_canvas = render_to_canvas(help_item, 10, 3);
+
+        // All items should have consistent border rendering
+        bool file_has_border = file_canvas->has_complete_border(0, 0, 10, 3);
+        bool theme_has_border = theme_canvas->has_complete_border(0, 0, 10, 3);
+        bool help_has_border = help_canvas->has_complete_border(0, 0, 10, 3);
+
+        // All should have consistent border rendering
+        CHECK(file_has_border == theme_has_border);
+        CHECK(theme_has_border == help_has_border);
+        CHECK(file_has_border == help_has_border);
+    }
+
+    SUBCASE("Menu bar buttons render consistently") {
+        using namespace onyxui;
+        scoped_ui_context<CanvasBackend> ctx;
+
+        // Register test theme
+        ui_theme<CanvasBackend> theme;
+        theme.name = "Border Test Theme";
+        theme.button.box_style.draw_border = true;
+        theme.button.box_style.corner = '+';
+        theme.button.box_style.horizontal = '-';
+        theme.button.box_style.vertical = '|';
+        theme.button.bg_normal = {0, 0, 170};
+        theme.button.fg_normal = {255, 255, 255};
+        theme.button.font = {};
+        ctx.themes().register_theme(std::move(theme));
+
+        // Create three buttons like in menu bar
+        button<CanvasBackend> file_btn("File");
+        file_btn.apply_theme("Border Test Theme", ctx.themes());
+
+        button<CanvasBackend> theme_btn("Theme");
+        theme_btn.apply_theme("Border Test Theme", ctx.themes());
+
+        button<CanvasBackend> help_btn("Help");
+        help_btn.apply_theme("Border Test Theme", ctx.themes());
+
+        // Render each
+        auto file_canvas = render_to_canvas(file_btn, 10, 3);
+        auto theme_canvas = render_to_canvas(theme_btn, 10, 3);
+        auto help_canvas = render_to_canvas(help_btn, 10, 3);
+
+        // Check borders
+        bool file_border = file_canvas->has_complete_border(0, 0, 10, 3);
+        bool theme_border = theme_canvas->has_complete_border(0, 0, 10, 3);
+        bool help_border = help_canvas->has_complete_border(0, 0, 10, 3);
+
+        INFO("File button canvas:\n", debug_canvas(*file_canvas));
+        INFO("Theme button canvas:\n", debug_canvas(*theme_canvas));
+        INFO("Help button canvas:\n", debug_canvas(*help_canvas));
+
+        // EXPECTED TO FAIL if there's an inconsistency
+        CHECK(file_border);
+        CHECK(theme_border);
+        CHECK(help_border);
+        CHECK(file_border == theme_border);
+        CHECK(theme_border == help_border);
+    }
+
+    SUBCASE("Menu bar with actual menu_bar widget - theme applied AFTER creation") {
+        using namespace onyxui;
+        scoped_ui_context<CanvasBackend> ctx;
+
+        // Register test theme
+        ui_theme<CanvasBackend> theme;
+        theme.name = "Widget Demo Theme";
+        theme.button.box_style.draw_border = true;
+        theme.button.box_style.corner = '+';
+        theme.button.box_style.horizontal = '-';
+        theme.button.box_style.vertical = '|';
+        theme.button.bg_normal = {0, 0, 170};
+        theme.button.fg_normal = {255, 255, 255};
+        theme.button.font = {};
+        ctx.themes().register_theme(std::move(theme));
+
+        // Create a panel as the parent (simulating main_widget)
+        panel<CanvasBackend> root;
+        root.set_vbox_layout(0);
+
+        // Create menu bar and add menus (BEFORE applying theme, like widget_demo)
+        auto menu_bar_ptr = std::make_unique<menu_bar<CanvasBackend>>(&root);
+
+        // Add File menu
+        auto file_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("File", std::move(file_menu));
+
+        // Add Theme menu
+        auto theme_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("Theme", std::move(theme_menu));
+
+        // Add Help menu
+        auto help_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("Help", std::move(help_menu));
+
+        // Keep pointer to menu bar
+        auto* menu_bar = menu_bar_ptr.get();
+
+        // Add menu bar to root
+        root.add_child(std::move(menu_bar_ptr));
+
+        // NOW apply theme to root (simulating what widget_demo does)
+        root.apply_theme("Widget Demo Theme", ctx.themes());
+
+        // Measure and arrange
+        root.measure(100, 100);
+        root.arrange({0, 0, 100, 100});
+
+        // Get the button bounds from menu bar
+        auto file_btn_bounds = menu_bar->get_menu_button_bounds(0);
+        auto theme_btn_bounds = menu_bar->get_menu_button_bounds(1);
+        auto help_btn_bounds = menu_bar->get_menu_button_bounds(2);
+
+        // Create small canvases to render each button individually
+        auto render_button = [&menu_bar](size_t index, int width, int height) {
+            auto canvas = std::make_shared<test_canvas>(width, height);
+            canvas_renderer renderer(canvas);
+
+            // Get button bounds
+            auto bounds = menu_bar->get_menu_button_bounds(index);
+            int w = rect_utils::get_width(bounds);
+            int h = rect_utils::get_height(bounds);
+
+            // Adjust bounds for small canvas
+            canvas_rect small_bounds{0, 0, std::min(w, width), std::min(h, height)};
+
+            // We can't easily render just one button, so let's skip this approach
+            return canvas;
+        };
+
+        // For now, just check that the buttons have non-zero bounds
+        CHECK(rect_utils::get_width(file_btn_bounds) > 0);
+        CHECK(rect_utils::get_width(theme_btn_bounds) > 0);
+        CHECK(rect_utils::get_width(help_btn_bounds) > 0);
+
+        INFO("File button at: ", rect_utils::get_x(file_btn_bounds), ",", rect_utils::get_y(file_btn_bounds),
+             " size: ", rect_utils::get_width(file_btn_bounds), "x", rect_utils::get_height(file_btn_bounds));
+        INFO("Theme button at: ", rect_utils::get_x(theme_btn_bounds), ",", rect_utils::get_y(theme_btn_bounds),
+             " size: ", rect_utils::get_width(theme_btn_bounds), "x", rect_utils::get_height(theme_btn_bounds));
+        INFO("Help button at: ", rect_utils::get_x(help_btn_bounds), ",", rect_utils::get_y(help_btn_bounds),
+             " size: ", rect_utils::get_width(help_btn_bounds), "x", rect_utils::get_height(help_btn_bounds));
+    }
+
+    SUBCASE("REGRESSION: File menu button border (visual rendering test)") {
+        // This test reproduces the exact structure of widgets_demo
+        // to catch the bug where File button doesn't have a border
+        using namespace onyxui;
+        scoped_ui_context<CanvasBackend> ctx;
+
+        // Create main panel (like main_widget in demo.hh)
+        auto root = std::make_unique<panel<CanvasBackend>>();
+        root->set_vbox_layout(0);
+        root->set_padding(thickness::all(0));
+
+        // Create menu bar as child (BEFORE applying theme, line 181 of demo.hh)
+        auto* menu_bar_ptr = root->emplace_child<menu_bar>();
+
+        // Add three menus in exact same order as widgets_demo
+        auto file_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("&File", std::move(file_menu));
+
+        auto theme_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("&Theme", std::move(theme_menu));
+
+        auto help_menu = std::make_unique<menu<CanvasBackend>>();
+        menu_bar_ptr->add_menu("&Help", std::move(help_menu));
+
+        // NOW apply theme by name (line 53 of demo.hh)
+        bool applied = root->apply_theme("Canvas Test Theme", ctx.themes());
+        REQUIRE(applied);
+
+        // Measure and arrange
+        root->measure(80, 25);
+        root->arrange({0, 0, 80, 25});
+
+        // Render to canvas
+        auto canvas = std::make_shared<test_canvas>(80, 25);
+        canvas_renderer renderer(canvas);
+        std::vector<canvas_rect> dirty_regions = {{0, 0, 80, 25}};
+        root->render(renderer, dirty_regions);
+
+        // Visual inspection
+        INFO("Rendered menu bar:\n", debug_canvas(*canvas));
+
+        // Get the three menu bar items (NOT buttons!)
+        auto& mb_children = menu_bar_ptr->children();
+        REQUIRE(mb_children.size() == 3);
+
+        auto* file_item = dynamic_cast<menu_bar_item<CanvasBackend>*>(mb_children[0].get());
+        auto* theme_item = dynamic_cast<menu_bar_item<CanvasBackend>*>(mb_children[1].get());
+        auto* help_item = dynamic_cast<menu_bar_item<CanvasBackend>*>(mb_children[2].get());
+
+        REQUIRE(file_item != nullptr);
+        REQUIRE(theme_item != nullptr);
+        REQUIRE(help_item != nullptr);
+
+        auto file_bounds = file_item->bounds();
+        auto theme_bounds = theme_item->bounds();
+        auto help_bounds = help_item->bounds();
+
+        INFO("File button bounds: ", rect_utils::get_x(file_bounds), ",", rect_utils::get_y(file_bounds),
+             " ", rect_utils::get_width(file_bounds), "x", rect_utils::get_height(file_bounds));
+        INFO("Theme button bounds: ", rect_utils::get_x(theme_bounds), ",", rect_utils::get_y(theme_bounds),
+             " ", rect_utils::get_width(theme_bounds), "x", rect_utils::get_height(theme_bounds));
+        INFO("Help button bounds: ", rect_utils::get_x(help_bounds), ",", rect_utils::get_y(help_bounds),
+             " ", rect_utils::get_width(help_bounds), "x", rect_utils::get_height(help_bounds));
+
+        // CRITICAL: Verify menu bar items DON'T have borders!
+        // Menu bar items should render ONLY text, no borders
+        // This is the architectural fix for the File menu button border bug
+        CHECK_MESSAGE(!canvas->has_complete_border(
+            rect_utils::get_x(file_bounds), rect_utils::get_y(file_bounds),
+            rect_utils::get_width(file_bounds), rect_utils::get_height(file_bounds)),
+            "File menu item should NOT have border (it's not a button!)");
+
+        CHECK_MESSAGE(!canvas->has_complete_border(
+            rect_utils::get_x(theme_bounds), rect_utils::get_y(theme_bounds),
+            rect_utils::get_width(theme_bounds), rect_utils::get_height(theme_bounds)),
+            "Theme menu item should NOT have border (it's not a button!)");
+
+        CHECK_MESSAGE(!canvas->has_complete_border(
+            rect_utils::get_x(help_bounds), rect_utils::get_y(help_bounds),
+            rect_utils::get_width(help_bounds), rect_utils::get_height(help_bounds)),
+            "Help menu item should NOT have border (it's not a button!)");
+
+        // Verify text is rendered (the important part)
+        // Text should be left-aligned (horizontal_padding = 0 for menu bar items)
+        assert_text_at(*canvas, "File", rect_utils::get_x(file_bounds), rect_utils::get_y(file_bounds), "File menu text");
+        assert_text_at(*canvas, "Theme", rect_utils::get_x(theme_bounds), rect_utils::get_y(theme_bounds), "Theme menu text");
+        assert_text_at(*canvas, "Help", rect_utils::get_x(help_bounds), rect_utils::get_y(help_bounds), "Help menu text");
+    }
+}

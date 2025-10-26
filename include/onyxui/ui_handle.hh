@@ -104,7 +104,6 @@ namespace onyxui {
     private:
         std::unique_ptr<widget_type> m_root;
         renderer_type m_renderer;
-        widget_type* m_hovered_widget = nullptr;  ///< Widget currently under mouse
 
     public:
         /**
@@ -165,20 +164,6 @@ namespace onyxui {
 
             // Get viewport from renderer (renderer knows its size)
             auto bounds = m_renderer.get_viewport();
-
-            // DEBUG: Check what bounds renderer is returning
-            int bounds_x = rect_utils::get_x(bounds);
-            int bounds_y = rect_utils::get_y(bounds);
-            int bounds_w = rect_utils::get_width(bounds);
-            int bounds_h = rect_utils::get_height(bounds);
-            auto y_unsigned = static_cast<unsigned int>(bounds_y);
-            if (bounds_y < 0 || bounds_y > 10000 || y_unsigned > 10000) {
-                std::cerr << "UI_HANDLE::display(): Renderer returned bad viewport!"
-                          << " x=" << bounds_x << " y=" << bounds_y
-                          << " (unsigned: " << y_unsigned << ")"
-                          << " w=" << bounds_w << " h=" << bounds_h << std::endl;
-                std::cerr.flush();
-            }
 
             // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
@@ -356,74 +341,100 @@ namespace onyxui {
             // Keyboard Event Handling
             // ============================================================
             if constexpr (KeyboardEvent<event_type>) {
-                // 1. Handle Tab navigation (focus_manager traverses tree automatically)
-                if (auto* focus = ui_services<Backend>::focus()) {
-                    if (focus->handle_tab_navigation_in_tree(event, m_root.get())) {
-                        return true;  // Tab was handled, focus changed
+                // Runtime check: is this actually a key press event?
+                if (event_traits<event_type>::is_key_press(event)) {
+                    // 1. Handle Tab navigation (input_manager traverses tree automatically)
+                    if (auto* input = ui_services<Backend>::input()) {
+                        if (input->handle_tab_navigation_in_tree(event, m_root.get())) {
+                            return true;  // Tab was handled, focus changed
+                        }
                     }
-                }
 
-                // 2. Try global hotkeys from service locator
-                // Global hotkeys work regardless of focus
-                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
-                    if (hotkeys->handle_key_event(event, nullptr)) {
-                        return true;  // Global hotkey handled
+                    // 2. Try global hotkeys from service locator
+                    // Global hotkeys work regardless of focus
+                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                        if (hotkeys->handle_key_event(event, nullptr)) {
+                            return true;  // Global hotkey handled
+                        }
                     }
-                }
 
-                // 3. Get focused widget for forwarding
-                widget_type* focused = nullptr;
-                if (auto* focus = ui_services<Backend>::focus()) {
-                    auto* focused_target = focus->get_focused();
-                    focused = static_cast<widget_type*>(focused_target);
-                }
+                    // 3. Get focused widget for forwarding
+                    widget_type* focused = nullptr;
+                    if (auto* input = ui_services<Backend>::input()) {
+                        auto* focused_target = input->get_focused();
+                        focused = static_cast<widget_type*>(focused_target);
+                    }
 
-                // 4. Forward keyboard event to focused widget
-                if (focused) {
-                    return focused->process_event(event);
+                    // 4. Forward keyboard event to focused widget
+                    if (focused) {
+                        return focused->process_event(event);
+                    }
                 }
             }
 
             // ============================================================
-            // Mouse Event Handling
+            // Mouse Event Handling (Unified with Input Manager)
             // ============================================================
             if constexpr (MousePositionEvent<event_type>) {
+                auto* input = ui_services<Backend>::input();
+                if (!input) return false;  // No input manager available
+
                 int mouse_x = event_traits<event_type>::mouse_x(event);
                 int mouse_y = event_traits<event_type>::mouse_y(event);
 
-                // Perform hit testing to find widget under mouse
-                widget_type* hit_widget = m_root->hit_test(mouse_x, mouse_y);
+                // Check if this is a button press/release event
+                bool is_button_event = false;
+                bool is_press = false;
+                if constexpr (MouseButtonEvent<event_type>) {
+                    is_button_event = true;
+                    is_press = event_traits<event_type>::is_button_press(event);
+                }
 
-                // Handle mouse enter/leave when hovered widget changes
-                if (hit_widget != m_hovered_widget) {
-                    // Mouse left previous widget
-                    if (m_hovered_widget) {
-                        m_hovered_widget->handle_mouse_leave();
-                    }
+                // Determine target widget:
+                // - If mouse is captured, route to captured widget
+                // - Otherwise, hit test to find widget under mouse
+                auto* captured_target = input->get_captured();
+                auto* captured = static_cast<widget_type*>(captured_target);
+                widget_type* target_widget = captured ? captured : m_root->hit_test(mouse_x, mouse_y);
 
-                    // Mouse entered new widget
-                    m_hovered_widget = hit_widget;
-                    if (m_hovered_widget) {
-                        m_hovered_widget->handle_mouse_enter();
+                // Handle hover changes (only when NOT captured)
+                if (!captured) {
+                    input->set_hover(target_widget);
+                }
+
+                // Handle mouse capture
+                if (is_button_event) {
+                    if (is_press) {
+                        // WORKAROUND: Some backends (like termbox2) don't send mouse release events.
+                        // If we're pressing on a different widget than what's captured,
+                        // implicitly release the old capture first by sending it a mouse up event.
+                        auto* currently_captured = input->get_captured();
+                        if (currently_captured && currently_captured != target_widget) {
+                            // Send mouse up to previously captured widget to clean up its state
+                            static_cast<widget_type*>(currently_captured)->handle_mouse_up(mouse_x, mouse_y, 1);
+                            input->release_capture();
+                        }
+
+                        // Mouse button down - capture mouse to this widget
+                        input->set_capture(target_widget);
+                        // Note: set_capture also sets focus if widget is focusable
+                    } else {
+                        // Mouse button up - release capture
+                        // Note: This branch may never execute on backends like termbox2 that don't
+                        // send release events, but we keep it for backends that do.
+                        input->release_capture();
+
+                        // After releasing capture, update hover state based on current mouse position
+                        // This ensures is_hovered() is correct when handle_mouse_up() is called
+                        widget_type* hover_target = m_root->hit_test(mouse_x, mouse_y);
+                        input->set_hover(hover_target);
                     }
                 }
 
-                // Route event to widget under mouse
-                if (hit_widget) {
-                    // Check if this is a button event
-                    if constexpr (MouseButtonEvent<event_type>) {
-                        if (bool is_press = event_traits<event_type>::is_button_press(event)) {
-                            // Mouse button down - set focus to clicked widget
-                            if (hit_widget->is_focusable() && hit_widget->is_enabled()) {
-                                if (auto* focus = ui_services<Backend>::focus()) {
-                                    focus->set_focus(hit_widget);
-                                }
-                            }
-                        }
-                    }
-
+                // Route event to target widget (either captured or under mouse)
+                if (target_widget) {
                     // Route event through process_event to get proper click generation
-                    return hit_widget->process_event(event);
+                    return target_widget->process_event(event);
                 }
             }
 
@@ -478,8 +489,8 @@ namespace onyxui {
             return m_root != nullptr;
         }
 
-        // NOTE: focus() and layers() accessors removed
-        // Use ui_services<Backend>::focus() and ui_services<Backend>::layers() instead
+        // NOTE: input() and layers() accessors removed
+        // Use ui_services<Backend>::input() and ui_services<Backend>::layers() instead
 
         /**
          * @brief Mark a region as dirty (needs redrawing)

@@ -50,6 +50,7 @@
 namespace onyxui {
     // Forward declarations for friend declarations
     template<UIBackend Backend> class focus_manager;
+    template<UIBackend Backend> class input_manager;
     template<UIBackend Backend> class ui_handle;
 
     /**
@@ -90,7 +91,9 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     class event_target {
-        // Allow focus_manager to access protected focus methods
+        // Allow input_manager to access protected focus and mouse methods
+        friend class input_manager<Backend>;
+        // Allow focus_manager to access protected focus methods (backward compat)
         friend class focus_manager<Backend>;
         // Allow ui_handle to access protected mouse event handlers
         friend class ui_handle<Backend>;
@@ -397,6 +400,22 @@ namespace onyxui {
                 m_accept_keys_as_click = accept;
             }
 
+            // -----------------------------------------------------------------------
+            // Internal Processing (State Management) - Protected for testing
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Process mouse movement and track hover state
+             * @note Protected to allow test fixtures to simulate real event sequences
+             */
+            bool process_mouse_move(int x, int y);
+
+            /**
+             * @brief Process mouse button and track pressed state
+             * @note Protected to allow test fixtures to simulate real event sequences
+             */
+            bool process_mouse_button(int x, int y, int button, bool pressed);
+
         private:
             /**
              * @brief Manually set focus state
@@ -410,20 +429,6 @@ namespace onyxui {
                     handle_focus_lost();
                 }
             }
-
-            // -----------------------------------------------------------------------
-            // Internal Processing (State Management)
-            // -----------------------------------------------------------------------
-
-            /**
-             * @brief Process mouse movement and track hover state
-             */
-            bool process_mouse_move(int x, int y);
-
-            /**
-             * @brief Process mouse button and track pressed state
-             */
-            bool process_mouse_button(int x, int y, int button, bool pressed);
 
             /**
              * @brief Process keyboard input
@@ -511,12 +516,14 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
     template<UIBackend Backend>
     bool event_target<Backend>::handle_mouse_enter() {
+        m_is_hovered = true;  // Sync hover state when input_manager notifies enter
         if (m_on_mouse_enter) return m_on_mouse_enter();
         return false;
     }
 
     template<UIBackend Backend>
     bool event_target<Backend>::handle_mouse_leave() {
+        m_is_hovered = false;  // Sync hover state when input_manager notifies leave
         if (m_on_mouse_leave) return m_on_mouse_leave();
         return false;
     }

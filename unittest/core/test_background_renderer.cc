@@ -25,6 +25,10 @@ namespace {
             bool draw_border = false;
             bool operator==(const box_style&) const = default;
         };
+        struct line_style {
+            char line_char = '-';
+            bool operator==(const line_style&) const = default;
+        };
         struct icon_style {
             bool operator==(const icon_style&) const = default;
         };
@@ -52,6 +56,8 @@ namespace {
         void draw_text(const test_backend::rect&, std::string_view, const font&) {}
         void draw_icon(const test_backend::rect&, const icon_style&) {}
         void clear_region(const test_backend::rect&) {}
+        void draw_horizontal_line(const test_backend::rect&, const line_style&) {}
+        void draw_vertical_line(const test_backend::rect&, const line_style&) {}
 
         static size_type measure_text(std::string_view, const font&) {
             return {0, 0};

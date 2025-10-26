@@ -130,6 +130,11 @@ namespace onyxui::testing {
             char vertical = '|';
         };
 
+        struct line_style {
+            char horizontal = '-';
+            char vertical = '|';
+        };
+
         struct font {
             bool bold = false;
             bool underline = false;
@@ -205,6 +210,30 @@ namespace onyxui::testing {
                 for (int x = rect.x; x < rect.x + rect.w; ++x) {
                     m_canvas->put(x, y, ' ');
                 }
+            }
+        }
+
+        /**
+         * @brief Draw horizontal line
+         */
+        void draw_horizontal_line(const canvas_rect& rect, const line_style& style) {
+            if (!m_canvas) return;
+
+            int const y = rect.y;
+            for (int x = rect.x; x < rect.x + rect.w; ++x) {
+                m_canvas->put(x, y, style.horizontal);
+            }
+        }
+
+        /**
+         * @brief Draw vertical line
+         */
+        void draw_vertical_line(const canvas_rect& rect, const line_style& style) {
+            if (!m_canvas) return;
+
+            int const x = rect.x;
+            for (int y = rect.y; y < rect.y + rect.h; ++y) {
+                m_canvas->put(x, y, style.vertical);
             }
         }
 
@@ -319,9 +348,9 @@ namespace onyxui::testing {
          * @brief Register themes
          */
         static void register_themes(theme_registry<test_canvas_backend>& registry) {
-            // Create a simple default theme for testing
+            // Create a simple default theme for canvas testing
             onyxui::ui_theme<test_canvas_backend> default_theme;
-            default_theme.name = "Test Theme";
+            default_theme.name = "Canvas Test Theme";  // Unique name to avoid conflicts
 
             // Set up box style with border enabled
             default_theme.panel.box_style.draw_border = true;
@@ -330,6 +359,10 @@ namespace onyxui::testing {
             default_theme.panel.box_style.vertical = '|';
 
             // Register as default (first theme)
+            registry.register_theme(default_theme);
+
+            // Also register "Test Theme" as an alias for backwards compatibility
+            default_theme.name = "Test Theme";
             registry.register_theme(default_theme);
         }
     };

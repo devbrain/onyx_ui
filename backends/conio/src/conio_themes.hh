@@ -120,6 +120,14 @@ namespace onyxui::conio {
             theme.menu.border_color = color{255, 255, 0};   // Yellow
             theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
+            // Menu bar style
+            theme.menu_bar.item_spacing = 2;              // 2px between menu items
+            theme.menu_bar.item_padding_horizontal = 0;   // No horizontal padding (left-aligned)
+            theme.menu_bar.item_padding_vertical = 0;     // No vertical padding
+
+            // Separator style
+            theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
+
             return theme;
         }
 
@@ -164,6 +172,14 @@ namespace onyxui::conio {
             theme.menu.background = color{0, 170, 170};
             theme.menu.border_color = color{0, 0, 0};
             theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
+
+            // Menu bar style
+            theme.menu_bar.item_spacing = 2;              // 2px between menu items
+            theme.menu_bar.item_padding_horizontal = 0;   // No horizontal padding (left-aligned)
+            theme.menu_bar.item_padding_vertical = 0;     // No vertical padding
+
+            // Separator style
+            theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
 
             return theme;
         }
@@ -210,6 +226,14 @@ namespace onyxui::conio {
             theme.menu.border_color = color{170, 170, 170};
             theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
+            // Menu bar style
+            theme.menu_bar.item_spacing = 2;              // 2px between menu items
+            theme.menu_bar.item_padding_horizontal = 0;   // No horizontal padding (left-aligned)
+            theme.menu_bar.item_padding_vertical = 0;     // No vertical padding
+
+            // Separator style
+            theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
+
             return theme;
         }
 
@@ -254,6 +278,14 @@ namespace onyxui::conio {
             theme.menu.background = color{170, 170, 170};
             theme.menu.border_color = color{0, 0, 0};
             theme.menu.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+
+            // Menu bar style
+            theme.menu_bar.item_spacing = 2;              // 2px between menu items
+            theme.menu_bar.item_padding_horizontal = 0;   // No horizontal padding (left-aligned)
+            theme.menu_bar.item_padding_vertical = 0;     // No vertical padding
+
+            // Separator style
+            theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
 
             return theme;
         }

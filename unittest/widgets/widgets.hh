@@ -30,9 +30,31 @@ namespace onyxui {
         public:
             using button <Backend>::button;
             using button <Backend>::handle_click;
+            using button <Backend>::handle_mouse_down;
+            using button <Backend>::handle_mouse_up;
+            using button <Backend>::handle_mouse_leave;
+            using button <Backend>::handle_mouse_enter;
+            using button <Backend>::process_mouse_move;
+            using button <Backend>::process_mouse_button;
 
             void simulate_click() {
                 this->handle_click(0, 0);
             }
+
+            // Expose state query for testing (visual interaction_state)
+            [[nodiscard]] bool is_visually_pressed() const {
+                return this->get_interaction_state() == button<Backend>::interaction_state::pressed;
+            }
+
+            [[nodiscard]] bool is_visually_hovered() const {
+                return this->get_interaction_state() == button<Backend>::interaction_state::hover;
+            }
+
+            [[nodiscard]] bool is_visually_normal() const {
+                return this->get_interaction_state() == button<Backend>::interaction_state::normal;
+            }
+
+        protected:
+            using button<Backend>::get_interaction_state;
     };
 }

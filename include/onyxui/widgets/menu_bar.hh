@@ -65,7 +65,7 @@
 #include <optional>
 #include <onyxui/widgets/hbox.hh>
 #include <onyxui/widgets/menu.hh>
-#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/menu_bar_item.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 #include <onyxui/layer_manager.hh>
 #include <onyxui/scoped_layer.hh>
@@ -80,13 +80,13 @@ namespace onyxui {
 
     /**
      * @struct menu_entry
-     * @brief Associates a menu title button with its dropdown menu
+     * @brief Associates a menu title item with its dropdown menu
      */
     template<UIBackend Backend>
     struct menu_entry {
-        button<Backend>* title_button;  ///< Button for menu title
-        menu<Backend>* dropdown_menu;   ///< Associated dropdown menu
-        char mnemonic_char;              ///< Mnemonic character for Alt+key
+        menu_bar_item<Backend>* title_item;           ///< Menu bar item for menu title
+        std::unique_ptr<menu<Backend>> dropdown_menu; ///< Owned dropdown menu (not a child - shown as popup)
+        char mnemonic_char;                           ///< Mnemonic character for Alt+key
     };
 
     /**
@@ -126,7 +126,7 @@ namespace onyxui {
          * @param parent Parent element
          */
         explicit menu_bar(ui_element<Backend>* parent = nullptr)
-            : base(0, horizontal_alignment::left, vertical_alignment::top, parent)
+            : base(1, horizontal_alignment::left, vertical_alignment::top, parent)  // 1px spacing between menu items
             , m_open_menu_index(std::nullopt) {
             this->set_focusable(true);
         }
@@ -161,8 +161,8 @@ namespace onyxui {
          * @endcode
          */
         std::size_t add_menu(std::string_view title, std::unique_ptr<menu<Backend>> menu_ptr) {
-            // Create button for menu title
-            auto title_button = std::make_unique<button<Backend>>("", this);
+            // Create menu_bar_item for menu title (NOT a button!)
+            auto title_item = std::make_unique<menu_bar_item<Backend>>("", this);
 
             // Parse mnemonic from title
             mnemonic_info<Backend> const mnemonic = parse_mnemonic<Backend>(
@@ -171,27 +171,25 @@ namespace onyxui {
                 typename Backend::renderer_type::font{}
             );
 
-            title_button->set_text(strip_mnemonic(title));
+            title_item->set_text(strip_mnemonic(title));
 
-            // Store button pointer before moving
-            button<Backend>* button_ptr = title_button.get();
+            // Store item pointer before moving
+            menu_bar_item<Backend>* item_ptr = title_item.get();
 
-            // Add button to menu bar
-            this->add_child(std::move(title_button));
+            // Add item to menu bar
+            this->add_child(std::move(title_item));
 
-            // Store menu entry
-            menu_entry<Backend> const entry{
-                button_ptr,
-                menu_ptr.get(),
+            // Store menu entry with owned dropdown menu
+            std::size_t const index = m_menus.size();
+
+            menu_entry<Backend> entry{
+                item_ptr,
+                std::move(menu_ptr),  // Transfer ownership into entry
                 mnemonic.mnemonic_char
             };
 
-            std::size_t const index = m_menus.size();
-            m_menus.push_back(entry);
-            m_owned_menus.push_back(std::move(menu_ptr));
-
-            // Connect button click to open menu
-            button_ptr->clicked.connect([this, index]() {
+            // Connect item click to open menu
+            item_ptr->clicked.connect([this, index]() {
                 this->open_menu(index);
             });
 
@@ -199,6 +197,8 @@ namespace onyxui {
             entry.dropdown_menu->closing.connect([this]() {
                 this->close_menu();
             });
+
+            m_menus.push_back(std::move(entry));
 
             return index;
         }
@@ -264,7 +264,7 @@ namespace onyxui {
          */
         [[nodiscard]] menu<Backend>* get_menu(std::size_t index) {
             if (index < m_menus.size()) {
-                return m_menus[index].dropdown_menu;
+                return m_menus[index].dropdown_menu.get();
             }
             return nullptr;
         }
@@ -286,8 +286,8 @@ namespace onyxui {
          * Used for positioning dropdown menus below their buttons.
          */
         [[nodiscard]] rect_type get_menu_button_bounds(std::size_t index) const {
-            if (index < m_menus.size() && m_menus[index].title_button) {
-                return m_menus[index].title_button->bounds();
+            if (index < m_menus.size() && m_menus[index].title_item) {
+                return m_menus[index].title_item->bounds();
             }
             return rect_type{};
         }
@@ -351,22 +351,24 @@ namespace onyxui {
          * @brief Apply theme to menu bar and all owned menus
          */
         void do_apply_theme(const typename base::theme_type& theme) override {
-            // Apply to base (hbox) which propagates to title buttons
+            // Apply spacing from theme
+            this->set_spacing(theme.menu_bar.item_spacing);
+
+            // Apply to base (hbox) which propagates to title items
             base::do_apply_theme(theme);
 
             // Also apply to all owned menus (not part of normal child tree)
-            for (auto& menu_ptr : m_owned_menus) {
-                if (menu_ptr) {
-                    menu_ptr->apply_theme(theme);
+            for (auto& entry : m_menus) {
+                if (entry.dropdown_menu) {
+                    entry.dropdown_menu->apply_theme(theme);
                 }
             }
         }
 
     private:
-        std::vector<menu_entry<Backend>> m_menus;                    ///< Menu entries
-        std::vector<std::unique_ptr<menu<Backend>>> m_owned_menus;   ///< Owned menus
-        std::optional<std::size_t> m_open_menu_index;                ///< Currently open menu
-        scoped_layer<Backend> m_current_menu;                        ///< Current menu popup (RAII cleanup)
+        std::vector<menu_entry<Backend>> m_menus;  ///< Menu entries with owned dropdown menus
+        std::optional<std::size_t> m_open_menu_index;  ///< Currently open menu
+        scoped_layer<Backend> m_current_menu;      ///< Current menu popup (RAII cleanup)
     };
 
 } // namespace onyxui
@@ -389,13 +391,13 @@ namespace onyxui {
 
         // Show context menu with outside click detection (Phase 1.3)
         // scoped_layer auto-closes previous menu when reassigned
-        m_current_menu = entry.title_button->show_context_menu_scoped(
-            entry.dropdown_menu
+        m_current_menu = entry.title_item->show_context_menu_scoped(
+            entry.dropdown_menu.get()  // Pass raw pointer, unique_ptr retains ownership
         );
 
         // Focus the menu and first item
-        if (auto* focus = ui_services<Backend>::focus()) {
-            focus->set_focus(entry.dropdown_menu);
+        if (auto* focus = ui_services<Backend>::input()) {
+            focus->set_focus(entry.dropdown_menu.get());  // Pass raw pointer
             if (entry.dropdown_menu) {
                 entry.dropdown_menu->focus_first();
             }
@@ -412,7 +414,7 @@ namespace onyxui {
         m_current_menu.reset();
 
         // Clear focus
-        if (auto* focus = ui_services<Backend>::focus()) {
+        if (auto* focus = ui_services<Backend>::input()) {
             focus->clear_focus();
         }
 

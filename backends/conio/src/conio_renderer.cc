@@ -214,6 +214,78 @@ namespace onyxui::conio {
     }
 
     // ======================================================================
+    // Line Drawing
+    // ======================================================================
+
+    void conio_renderer::draw_horizontal_line(const rect& r, const line_style& style) {
+        const rect clip = get_clip_rect();
+
+        // Select line character based on style
+        int line_char = 0;
+        switch (style.style) {
+            case border_style::single_line:
+                line_char = DOS_H;  // ─
+                break;
+            case border_style::double_line:
+                line_char = DOS_H2;  // ═
+                break;
+            case border_style::rounded:
+                line_char = BOX_ROUND_H;  // ─ (same as single)
+                break;
+            case border_style::heavy:
+                line_char = BOX_HEAVY_H;  // ━
+                break;
+            case border_style::none:
+            default:
+                return;  // Don't draw anything
+        }
+
+        // Draw horizontal line at y position
+        const int y = r.y;
+        for (int x = r.x; x < r.x + r.w; ++x) {
+            // Check if position is within clip region
+            if (x >= clip.x && x < clip.x + clip.w &&
+                y >= clip.y && y < clip.y + clip.h) {
+                m_pimpl->m_vram.put(x, y, line_char, m_pimpl->m_fg, m_pimpl->m_bg);
+            }
+        }
+    }
+
+    void conio_renderer::draw_vertical_line(const rect& r, const line_style& style) {
+        const rect clip = get_clip_rect();
+
+        // Select line character based on style
+        int line_char = 0;
+        switch (style.style) {
+            case border_style::single_line:
+                line_char = DOS_V;  // │
+                break;
+            case border_style::double_line:
+                line_char = DOS_V2;  // ║
+                break;
+            case border_style::rounded:
+                line_char = BOX_ROUND_V;  // │ (same as single)
+                break;
+            case border_style::heavy:
+                line_char = BOX_HEAVY_V;  // ┃
+                break;
+            case border_style::none:
+            default:
+                return;  // Don't draw anything
+        }
+
+        // Draw vertical line at x position
+        const int x = r.x;
+        for (int y = r.y; y < r.y + r.h; ++y) {
+            // Check if position is within clip region
+            if (x >= clip.x && x < clip.x + clip.w &&
+                y >= clip.y && y < clip.y + clip.h) {
+                m_pimpl->m_vram.put(x, y, line_char, m_pimpl->m_fg, m_pimpl->m_bg);
+            }
+        }
+    }
+
+    // ======================================================================
     // Icon Drawing
     // ======================================================================
 

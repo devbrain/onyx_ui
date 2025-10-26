@@ -112,6 +112,14 @@ namespace onyxui {
 
     protected:
         /**
+         * @brief Get theme-specific box style
+         * @return Panel box style from theme
+         */
+        [[nodiscard]] typename Backend::renderer_type::box_style get_theme_box_style(const theme_type& theme) const override {
+            return theme.panel.box_style;
+        }
+
+        /**
          * @brief Apply theme to panel
          */
         void do_apply_theme([[maybe_unused]] const theme_type& theme) override {

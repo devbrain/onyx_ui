@@ -273,7 +273,17 @@ namespace onyxui {
                 shortcut_width = size_utils::get_width(shortcut_size);
             }
 
-            // Use bounds for positioning (measure_context tracks bounding box, ignores position)
+            // Get text size for measurement
+            auto text_size = renderer_type::measure_text(m_text, text_font);
+            int text_width = size_utils::get_width(text_size);
+
+            // Define padding constants
+            constexpr int LEFT_PADDING = 2;
+            constexpr int RIGHT_PADDING = 2;
+            constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
+
+            // Use bounds for positioning during rendering
+            // During measurement, bounds will be zero, which is fine
             const auto& item_bounds = this->bounds();
             int const base_x = rect_utils::get_x(item_bounds);
             int const base_y = rect_utils::get_y(item_bounds);
@@ -281,7 +291,10 @@ namespace onyxui {
 
             // Separator has fixed size
             if (is_separator()) {
-                int const width = std::max(20, item_width);
+                int const min_width = 20;
+                // During measurement (item_width == 0), use minimum width
+                // During rendering, use actual width
+                int const width = item_width > 0 ? std::max(min_width, item_width) : min_width;
                 std::string const sep_line(static_cast<size_t>(width), '-');
                 typename Backend::point_type const pos{base_x, base_y};
                 ctx.draw_text(sep_line, pos, typename renderer_type::font{},
@@ -289,21 +302,42 @@ namespace onyxui {
                 return;
             }
 
-            // Use pre-resolved style from context (state already resolved during CSS phase)
+            // Use pre-resolved style from context
             auto fg = ctx.style().foreground_color;
 
-            // Draw item text (left side, with padding)
-            int const text_x = base_x + 2;  // 2 char padding
-            int const text_y = base_y;
-            typename Backend::point_type const text_pos{text_x, text_y};
+            // Calculate minimum width needed
+            int const min_width = LEFT_PADDING + text_width +
+                                  (shortcut.empty() ? 0 : SHORTCUT_SPACING + shortcut_width) +
+                                  RIGHT_PADDING;
+
+            // Use actual width if available (rendering), otherwise use minimum (measurement)
+            // During measurement, item_width is 0, so we use min_width
+            int const effective_width = (item_width > 0) ? item_width : min_width;
+
+            // Ensure measurement includes left padding by drawing marker at leftmost edge
+            // During measurement (base_x = 0), this ensures bounding box starts at 0
+            // During rendering, this is harmless (just a space at the left edge)
+            typename Backend::point_type const left_marker{base_x, base_y};
+            ctx.draw_text(" ", left_marker, text_font, fg);
+
+            // Draw text with left padding
+            int const text_x = base_x + LEFT_PADDING;
+            typename Backend::point_type const text_pos{text_x, base_y};
             ctx.draw_text(m_text, text_pos, text_font, fg);
 
-            // Draw shortcut (right side)
+            // Draw shortcut if present (right-aligned within effective width)
             if (!shortcut.empty()) {
-                int const shortcut_x = base_x + item_width - shortcut_width - 2;
-                typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
+                int const shortcut_x = base_x + effective_width - shortcut_width - RIGHT_PADDING;
+                typename Backend::point_type const shortcut_pos{shortcut_x, base_y};
                 ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
             }
+
+            // Ensure measurement includes right padding by drawing marker at rightmost edge
+            // During measurement this ensures the bounding box extends to include right padding
+            // During rendering this is harmless (just a space at the right edge)
+            int const right_edge = base_x + effective_width - 1;
+            typename Backend::point_type const right_marker{right_edge, base_y};
+            ctx.draw_text(" ", right_marker, text_font, fg);
         }
 
         /**
@@ -332,7 +366,8 @@ namespace onyxui {
             if (m_has_mnemonic) {
                 m_has_mnemonic = false;  // Clear until set_mnemonic_text is called again
             }
-            this->invalidate_arrange();
+            // Invalidate measurement because font changes affect text size
+            this->invalidate_measure();
         }
 
         /**

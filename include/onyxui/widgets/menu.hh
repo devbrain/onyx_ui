@@ -240,7 +240,7 @@ namespace onyxui {
          */
         void focus_first() {
             // Focus first focusable item using global focus manager
-            auto* focus_mgr = ui_services<Backend>::focus();
+            auto* focus_mgr = ui_services<Backend>::input();
             if (!focus_mgr) return;
 
             for (auto& child : this->children()) {
@@ -261,7 +261,7 @@ namespace onyxui {
          * Skips separators and disabled items.
          */
         void focus_next() {
-            auto* focus_mgr = ui_services<Backend>::focus();
+            auto* focus_mgr = ui_services<Backend>::input();
             if (!focus_mgr) return;
 
             auto menu_items = items();
@@ -296,7 +296,7 @@ namespace onyxui {
          * Skips separators and disabled items.
          */
         void focus_previous() {
-            auto* focus_mgr = ui_services<Backend>::focus();
+            auto* focus_mgr = ui_services<Backend>::input();
             if (!focus_mgr) return;
 
             auto menu_items = items();

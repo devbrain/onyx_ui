@@ -179,6 +179,46 @@ namespace onyxui {
         ) = 0;
 
         /**
+         * @brief Draw a horizontal separator line
+         *
+         * @param bounds Rectangle defining line position and extent
+         * @param style Line drawing style
+         *
+         * @details
+         * Draws a horizontal line using box-drawing characters. The line is drawn
+         * at vertical position bounds.y with width bounds.w starting from bounds.x.
+         *
+         * - **measure_context**: Tracks line bounds, no rendering
+         * - **draw_context**: Draws actual horizontal line
+         *
+         * Used for menu separators, horizontal dividers, etc.
+         */
+        virtual void draw_horizontal_line(
+            const rect_type& bounds,
+            const typename renderer_type::line_style& style
+        ) = 0;
+
+        /**
+         * @brief Draw a vertical separator line
+         *
+         * @param bounds Rectangle defining line position and extent
+         * @param style Line drawing style
+         *
+         * @details
+         * Draws a vertical line using box-drawing characters. The line is drawn
+         * at horizontal position bounds.x with height bounds.h starting from bounds.y.
+         *
+         * - **measure_context**: Tracks line bounds, no rendering
+         * - **draw_context**: Draws actual vertical line
+         *
+         * Used for vertical separators, column dividers, etc.
+         */
+        virtual void draw_vertical_line(
+            const rect_type& bounds,
+            const typename renderer_type::line_style& style
+        ) = 0;
+
+        /**
          * @brief Access underlying renderer (for advanced use cases)
          * @return Pointer to renderer, or nullptr if measuring
          *

@@ -509,7 +509,7 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/layer_manager.hh>
-#include <onyxui/focus_manager.hh>
+#include <onyxui/input_manager.hh>
 #include <onyxui/theme_registry.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/background_renderer.hh>
@@ -609,7 +609,7 @@ namespace onyxui {
     class ui_context {
     public:
         using layer_manager_type = layer_manager<Backend>;
-        using focus_manager_type = hierarchical_focus_manager<Backend, ui_element<Backend>>;
+        using input_manager_type = hierarchical_input_manager<Backend, ui_element<Backend>>;
         using theme_registry_type = theme_registry<Backend>;
         using hotkey_manager_type = hotkey_manager<Backend>;
         using background_renderer_type = background_renderer<Backend>;
@@ -656,19 +656,19 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get the focus manager
-         * @return Reference to focus manager
+         * @brief Get the input manager (focus, mouse capture, hover)
+         * @return Reference to input manager
          */
-        [[nodiscard]] focus_manager_type& focus() noexcept {
-            return m_focus_manager;
+        [[nodiscard]] input_manager_type& input() noexcept {
+            return m_input_manager;
         }
 
         /**
-         * @brief Get the focus manager (const)
-         * @return Const reference to focus manager
+         * @brief Get the input manager (const)
+         * @return Const reference to input manager
          */
-        [[nodiscard]] const focus_manager_type& focus() const noexcept {
-            return m_focus_manager;
+        [[nodiscard]] const input_manager_type& input() const noexcept {
+            return m_input_manager;
         }
 
         /**
@@ -734,7 +734,7 @@ namespace onyxui {
     private:
         // Per-context services (isolated per UI instance)
         layer_manager_type m_layer_manager;
-        focus_manager_type m_focus_manager;
+        input_manager_type m_input_manager;
         background_renderer_type m_background_renderer;
 
         // Shared services (singleton pattern - shared across all contexts)
@@ -914,7 +914,7 @@ namespace onyxui {
      * ### Member Function Reference:
      * - `get()` - Get reference to owned ui_context
      * - `layers()` - Convenience accessor for layer_manager
-     * - `focus()` - Convenience accessor for focus_manager
+     * - `input()` - Convenience accessor for input_manager
      * - `themes()` - Convenience accessor for theme_registry
      *
      * ### Constraints:
@@ -1005,11 +1005,11 @@ namespace onyxui {
         }
 
         /**
-         * @brief Convenience accessor for focus manager
-         * @return Reference to focus manager
+         * @brief Convenience accessor for input manager
+         * @return Reference to input manager
          */
-        [[nodiscard]] auto& focus() noexcept {
-            return m_context.focus();
+        [[nodiscard]] auto& input() noexcept {
+            return m_context.input();
         }
 
         /**

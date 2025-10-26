@@ -137,6 +137,11 @@ namespace onyxui {
 
                 bool operator==(const box_style&) const = default;
             };
+            struct line_style {
+                char line_char = '-';  // Character to use for lines
+
+                bool operator==(const line_style&) const = default;
+            };
             struct icon_style {
                 bool operator==(const icon_style&) const = default;
             };
@@ -167,6 +172,14 @@ namespace onyxui {
 
             void clear_region([[maybe_unused]] const rect& r) {
                 // Stub for testing - tracks what regions are cleared
+            }
+
+            void draw_horizontal_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style) {
+                // Stub for testing
+            }
+
+            void draw_vertical_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style) {
+                // Stub for testing
             }
 
             /**

@@ -28,7 +28,8 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         // Helper to apply default theme to a widget
         template<typename Widget>
         void apply_default_theme(Widget& w) {
-            if (auto* theme = ctx.themes().get_theme("Test Theme")) {
+            // Use "Canvas Test Theme" which is guaranteed to have border settings
+            if (auto* theme = ctx.themes().get_theme("Canvas Test Theme")) {
                 w.apply_theme(*theme);
             }
         }
