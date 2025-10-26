@@ -184,8 +184,8 @@ namespace onyxui {
             if (auto* theme = this->get_theme()) {
                 m_mnemonic_info = parse_mnemonic<Backend>(
                     mnemonic_text,
-                    theme->button.font,  // Use button fonts as fallback for menu items
-                    theme->button.mnemonic_font
+                    theme->menu_item.normal.font,
+                    theme->menu_item.mnemonic_font
                 );
                 m_has_mnemonic = true;
             } else {
@@ -262,9 +262,24 @@ namespace onyxui {
             auto* theme = this->get_theme();
             if (!theme) return;
 
-            // Calculate sizes (needed for both measurement and rendering)
-            typename renderer_type::font const text_font = theme->button.font;
+            // DEBUG: Log menu item state
+            std::cerr << "[menu_item::do_render] text=\"" << m_text << "\" "
+                      << "hover=" << this->is_hovered() << " "
+                      << "focus=" << this->has_focus() << " "
+                      << "enabled=" << this->is_enabled() << std::endl;
 
+            // Use resolved style from context (includes state-dependent font!)
+            auto const& text_font = ctx.style().font;
+            auto const& fg = ctx.style().foreground_color;
+
+            // DEBUG: Log resolved colors
+            std::cerr << "[menu_item::do_render] ctx.style() bg=("
+                      << static_cast<int>(ctx.style().background_color.r) << ","
+                      << static_cast<int>(ctx.style().background_color.g) << ","
+                      << static_cast<int>(ctx.style().background_color.b) << ") fg=("
+                      << static_cast<int>(fg.r) << "," << static_cast<int>(fg.g) << "," << static_cast<int>(fg.b) << ")" << std::endl;
+
+            // Calculate sizes (needed for both measurement and rendering)
             std::string const shortcut = get_shortcut_text();
             int shortcut_width = 0;
             if (!shortcut.empty()) {
@@ -302,9 +317,6 @@ namespace onyxui {
                 return;
             }
 
-            // Use pre-resolved style from context
-            auto fg = ctx.style().foreground_color;
-
             // Calculate minimum width needed
             int const min_width = LEFT_PADDING + text_width +
                                   (shortcut.empty() ? 0 : SHORTCUT_SPACING + shortcut_width) +
@@ -313,6 +325,15 @@ namespace onyxui {
             // Use actual width if available (rendering), otherwise use minimum (measurement)
             // During measurement, item_width is 0, so we use min_width
             int const effective_width = (item_width > 0) ? item_width : min_width;
+
+            // Get text height for background rectangle
+            int const text_height = size_utils::get_height(text_size);
+
+            // Draw background rectangle using resolved style
+            // Background color is state-dependent (normal/highlighted/disabled)
+            typename Backend::rect_type bg_rect;
+            rect_utils::set_bounds(bg_rect, base_x, base_y, effective_width, text_height);
+            ctx.fill_rect(bg_rect);
 
             // Ensure measurement includes left padding by drawing marker at leftmost edge
             // During measurement (base_x = 0), this ensures bounding box starts at 0
@@ -340,22 +361,87 @@ namespace onyxui {
             ctx.draw_text(" ", right_marker, text_font, fg);
         }
 
+    public:
+        /**
+         * @brief Resolve style with state-dependent colors (NO parent color inheritance)
+         *
+         * @details
+         * Menu items use STATE-DEPENDENT colors that should NOT be inherited from parents.
+         * We override resolve_style() to use our own state colors directly instead of
+         * inheriting parent colors.
+         *
+         * Priority: explicit override → state-dependent theme color → default
+         */
+        [[nodiscard]] resolved_style<Backend> resolve_style() const override {
+            resolved_style<Backend> style;
+
+            // Resolve background color: explicit override OR state-dependent theme color
+            if (this->m_background_override) {
+                style.background_color = *this->m_background_override;
+            } else if (auto* theme = this->get_theme()) {
+                style.background_color = get_theme_background_color(*theme);
+                std::cerr << "[menu_item::resolve_style] Using state-dependent bg" << std::endl;
+            } else {
+                style.background_color = typename Backend::color_type{};
+            }
+
+            // Resolve foreground color: explicit override OR state-dependent theme color
+            if (this->m_foreground_override) {
+                style.foreground_color = *this->m_foreground_override;
+            } else if (auto* theme = this->get_theme()) {
+                style.foreground_color = get_theme_foreground_color(*theme);
+            } else {
+                style.foreground_color = typename Backend::color_type{};
+            }
+
+            // Resolve other properties normally (these can inherit from parent)
+            style.box_style = this->get_effective_box_style();
+            style.font = this->get_effective_font();
+            style.opacity = this->get_effective_opacity();
+            style.icon_style = this->get_effective_icon_style();
+            style.border_color = style.foreground_color;
+
+            return style;
+        }
+
         /**
          * @brief Get theme-specific foreground color
          * @return Menu item foreground color from theme (state-dependent)
-         * @details Menu items use button theme colors for consistency
+         * @details Uses menu_item-specific states (normal/highlighted/disabled)
          */
         [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
-            return this->get_state_foreground(theme.button);
+            // Map menu_item states to visual_state
+            if (!this->is_enabled()) {
+                return theme.menu_item.disabled.foreground;
+            }
+            if (this->is_hovered() || this->has_focus()) {
+                return theme.menu_item.highlighted.foreground;
+            }
+            return theme.menu_item.normal.foreground;
         }
 
         /**
          * @brief Get theme-specific background color
          * @return Menu item background color from theme (state-dependent)
-         * @details Menu items use button theme colors for consistency
+         * @details Uses menu_item-specific states (normal/highlighted/disabled)
          */
         [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
-            return this->get_state_background(theme.button);
+            // Map menu_item states to visual_state
+            typename Backend::color_type bg;
+            if (!this->is_enabled()) {
+                bg = theme.menu_item.disabled.background;
+                std::cerr << "[menu_item::get_theme_background_color] DISABLED bg=("
+                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+            } else if (this->is_hovered() || this->has_focus()) {
+                bg = theme.menu_item.highlighted.background;
+                std::cerr << "[menu_item::get_theme_background_color] HIGHLIGHTED bg=("
+                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+            } else {
+                bg = theme.menu_item.normal.background;
+                std::cerr << "[menu_item::get_theme_background_color] NORMAL bg=("
+                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+            }
+            return bg;
         }
 
         /**
@@ -368,6 +454,35 @@ namespace onyxui {
             }
             // Invalidate measurement because font changes affect text size
             this->invalidate_measure();
+        }
+
+        /**
+         * @brief Handle mouse enter (hover)
+         *
+         * @details
+         * Mouse hover sets focus (DOS-style menu behavior).
+         * This ensures keyboard navigation works from the hovered position.
+         */
+        bool handle_mouse_enter() override {
+            // Mouse hover also sets focus (DOS menu behavior)
+            auto* input = ui_services<Backend>::input();
+            if (input && this->is_focusable() && this->is_enabled() && !is_separator()) {
+                input->set_focus(this);
+            }
+
+            return base::handle_mouse_enter();  // Sets hover state
+        }
+
+        /**
+         * @brief Handle mouse down (click)
+         *
+         * @details
+         * Clicking a menu item triggers its action.
+         * Disabled items and separators don't respond to clicks.
+         */
+        bool handle_mouse_down(int x, int y, int button) override {
+            // Call base implementation first (sets pressed state and emits clicked signal)
+            return base::handle_mouse_down(x, y, button);
         }
 
         /**

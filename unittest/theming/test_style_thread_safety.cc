@@ -30,8 +30,8 @@ namespace {
         theme.text_fg = {200, 200, 200};
         theme.border_color = {100, 100, 100};
 
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_normal = {0, 120, 215};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.background = {0, 120, 215};
         theme.label.text = {200, 200, 200};
         theme.label.background = {50, 50, 50};
         theme.panel.background = {60, 60, 60};
@@ -68,7 +68,7 @@ TEST_CASE("Thread Safety - Concurrent style resolution (10 threads)") {
             // Each thread resolves style 100 times
             for (int j = 0; j < 100; ++j) {
                 auto style = widgets[i]->resolve_style();
-                if (style.background_color.g == 120) {  // button.bg_normal = {0, 120, 215}
+                if (style.background_color.g == 120) {  // button.normal.background = {0, 120, 215}
                     ++success_count;
                 }
             }
@@ -98,7 +98,7 @@ TEST_CASE("Thread Safety - Concurrent resolution of shared widget") {
         threads.emplace_back([&]() {
             for (int j = 0; j < 50; ++j) {
                 auto style = widget->resolve_style();
-                if (style.foreground_color.r == 255) {  // button.fg_normal = {255, 255, 255}
+                if (style.foreground_color.r == 255) {  // button.normal.foreground = {255, 255, 255}
                     ++success_count;
                 }
             }

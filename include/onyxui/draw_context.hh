@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <onyxui/render_context.hh>
 #include <onyxui/concepts/size_like.hh>
@@ -234,12 +235,41 @@ namespace onyxui {
          * @details
          * Forwards to renderer's draw_box() method.
          * The rectangle is actually rendered to the screen/buffer.
+         * Sets foreground and background colors from resolved style before drawing.
          */
         void draw_rect(
             const rect_type& bounds,
             box_style style
         ) override {
+            // Set colors from resolved style before drawing
+            m_renderer->set_foreground(this->style().foreground_color);
+            m_renderer->set_background(this->style().background_color);
             m_renderer->draw_box(bounds, style);
+        }
+
+        /**
+         * @brief Fill a rectangle with solid background color
+         *
+         * @details
+         * Fills the rectangle with background color from resolved style.
+         * Creates a box_style with no border and solid fill, then calls draw_box().
+         * The renderer's background color is set before drawing.
+         */
+        void fill_rect(const rect_type& bounds) override {
+            // Set background color from resolved style
+            auto const& bg = this->style().background_color;
+
+            // DEBUG: Log fill_rect call
+            std::cerr << "[draw_context::fill_rect] bounds=("
+                      << rect_utils::get_x(bounds) << "," << rect_utils::get_y(bounds) << ","
+                      << rect_utils::get_width(bounds) << "," << rect_utils::get_height(bounds) << ") "
+                      << "bg=(" << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+
+            m_renderer->set_background(bg);
+
+            // Create fill-only style (no border, solid fill)
+            box_style fill_style{};  // Default: border_style::none, is_solid=true
+            m_renderer->draw_box(bounds, fill_style);
         }
 
         /**

@@ -29,14 +29,14 @@ namespace {
         theme.border_color = {170, 170, 170};
 
         // Button styling
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_normal = {0, 0, 170};
-        theme.button.fg_hover = {255, 255, 0};
-        theme.button.bg_hover = {0, 170, 170};
-        theme.button.fg_pressed = {0, 0, 0};
-        theme.button.bg_pressed = {170, 170, 170};
-        theme.button.fg_disabled = {128, 128, 128};
-        theme.button.bg_disabled = {64, 64, 64};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.background = {0, 0, 170};
+        theme.button.hover.foreground = {255, 255, 0};
+        theme.button.hover.background = {0, 170, 170};
+        theme.button.pressed.foreground = {0, 0, 0};
+        theme.button.pressed.background = {170, 170, 170};
+        theme.button.disabled.foreground = {128, 128, 128};
+        theme.button.disabled.background = {64, 64, 64};
 
         // Label styling
         theme.label.text = {255, 255, 255};
@@ -65,8 +65,8 @@ TEST_CASE("Theme API - By-name application success") {
     bool success = btn->apply_theme("Blue Theme", ctx.themes());
 
     CHECK(success == true);
-    CHECK(btn->get_effective_background_color().b == 170);
-    CHECK(btn->get_effective_foreground_color().r == 255);
+    CHECK(btn->resolve_style().background_color.b == 170);
+    CHECK(btn->resolve_style().foreground_color.r == 255);
 }
 
 TEST_CASE("Theme API - By-name application failure (theme not found)") {
@@ -103,19 +103,19 @@ TEST_CASE("Theme API - By-name switching between themes") {
     ctx.themes().register_theme(std::move(blue));
 
     auto red = create_test_theme("Red");
-    red.button.bg_normal = {170, 0, 0};  // Red button
+    red.button.normal.background = {170, 0, 0};  // Red button
     ctx.themes().register_theme(std::move(red));
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
     btn->apply_theme("Blue", ctx.themes());
-    auto blue_bg = btn->get_effective_background_color();
+    auto blue_bg = btn->resolve_style().background_color;
 
     btn->apply_theme("Red", ctx.themes());
-    auto red_bg = btn->get_effective_background_color();
+    auto red_bg = btn->resolve_style().background_color;
 
-    CHECK(blue_bg.b == 170);  // Blue: button.bg_normal = {0, 0, 170}
-    CHECK(red_bg.r == 170);   // Red: button.bg_normal = {170, 0, 0}
+    CHECK(blue_bg.b == 170);  // Blue: button.normal.background = {0, 0, 170}
+    CHECK(red_bg.r == 170);   // Red: button.normal.background = {170, 0, 0}
 }
 
 // ============================================================================
@@ -128,7 +128,7 @@ TEST_CASE("Theme API - By-value application with move") {
 
     btn->apply_theme(std::move(theme));
 
-    CHECK(btn->get_effective_background_color().b == 170);
+    CHECK(btn->resolve_style().background_color.b == 170);
     // Note: Cannot check 'theme' after move - it's in moved-from state
 }
 
@@ -137,7 +137,7 @@ TEST_CASE("Theme API - By-value with temporary") {
 
     btn->apply_theme(create_test_theme("Temporary"));
 
-    CHECK(btn->get_effective_background_color().b == 170);
+    CHECK(btn->resolve_style().background_color.b == 170);
 }
 
 TEST_CASE("Theme API - By-value multiple widgets require explicit copies") {
@@ -150,8 +150,8 @@ TEST_CASE("Theme API - By-value multiple widgets require explicit copies") {
     btn1->apply_theme(std::move(theme));
     btn2->apply_theme(std::move(theme_copy));
 
-    CHECK(btn1->get_effective_background_color().b == 170);
-    CHECK(btn2->get_effective_background_color().b == 170);
+    CHECK(btn1->resolve_style().background_color.b == 170);
+    CHECK(btn2->resolve_style().background_color.b == 170);
 }
 
 // ============================================================================
@@ -166,7 +166,7 @@ TEST_CASE("Theme API - By-shared_ptr application") {
 
     btn->apply_theme(theme);
 
-    CHECK(btn->get_effective_background_color().b == 170);
+    CHECK(btn->resolve_style().background_color.b == 170);
     CHECK(theme.use_count() >= 2);  // Widget holds a copy
 }
 
@@ -183,9 +183,9 @@ TEST_CASE("Theme API - By-shared_ptr multiple widgets") {
     btn3->apply_theme(theme);
 
     CHECK(theme.use_count() >= 4);  // Original + 3 widgets
-    CHECK(btn1->get_effective_background_color().b == 170);
-    CHECK(btn2->get_effective_background_color().b == 170);
-    CHECK(btn3->get_effective_background_color().b == 170);
+    CHECK(btn1->resolve_style().background_color.b == 170);
+    CHECK(btn2->resolve_style().background_color.b == 170);
+    CHECK(btn3->resolve_style().background_color.b == 170);
 }
 
 TEST_CASE("Theme API - By-shared_ptr lifetime management") {
@@ -200,14 +200,14 @@ TEST_CASE("Theme API - By-shared_ptr lifetime management") {
     } // theme goes out of scope
 
     // Theme should still be alive (widget holds reference)
-    CHECK(btn->get_effective_background_color().b == 170);
+    CHECK(btn->resolve_style().background_color.b == 170);
 }
 
 TEST_CASE("Theme API - By-shared_ptr dynamic updates") {
     auto theme = std::make_shared<ui_theme<Backend>>(
         create_test_theme("Dynamic")
     );
-    theme->button.bg_normal = {0, 0, 170};  // Blue button
+    theme->button.normal.background = {0, 0, 170};  // Blue button
 
     auto btn1 = std::make_unique<button<Backend>>("Btn1");
     auto btn2 = std::make_unique<button<Backend>>("Btn2");
@@ -215,14 +215,14 @@ TEST_CASE("Theme API - By-shared_ptr dynamic updates") {
     btn2->apply_theme(theme);
 
     // Modify theme
-    theme->button.bg_normal = {170, 0, 0};  // Change to red button
+    theme->button.normal.background = {170, 0, 0};  // Change to red button
 
     // Re-apply to see changes
     btn1->apply_theme(theme);
     btn2->apply_theme(theme);
 
-    CHECK(btn1->get_effective_background_color().r == 170);
-    CHECK(btn2->get_effective_background_color().r == 170);
+    CHECK(btn1->resolve_style().background_color.r == 170);
+    CHECK(btn2->resolve_style().background_color.r == 170);
 }
 
 // ============================================================================
@@ -237,9 +237,9 @@ TEST_CASE("Theme API - Null pointer safety") {
     btn->apply_theme(null_theme);
 
     // Widget should retain default values (no crash)
-    CHECK(btn->get_effective_background_color().r >= 0);
-    CHECK(btn->get_effective_background_color().g >= 0);
-    CHECK(btn->get_effective_background_color().b >= 0);
+    CHECK(btn->resolve_style().background_color.r >= 0);
+    CHECK(btn->resolve_style().background_color.g >= 0);
+    CHECK(btn->resolve_style().background_color.b >= 0);
 }
 
 TEST_CASE("Theme API - By-name is zero overhead") {
@@ -274,10 +274,10 @@ TEST_CASE("Theme API - All three APIs produce same result") {
     btn3->apply_theme(theme_for_shared);                  // By-shared_ptr
 
     // All buttons should have identical styling
-    CHECK(btn1->get_effective_background_color() == btn2->get_effective_background_color());
-    CHECK(btn2->get_effective_background_color() == btn3->get_effective_background_color());
-    CHECK(btn1->get_effective_foreground_color() == btn2->get_effective_foreground_color());
-    CHECK(btn2->get_effective_foreground_color() == btn3->get_effective_foreground_color());
+    CHECK(btn1->resolve_style().background_color == btn2->resolve_style().background_color);
+    CHECK(btn2->resolve_style().background_color == btn3->resolve_style().background_color);
+    CHECK(btn1->resolve_style().foreground_color == btn2->resolve_style().foreground_color);
+    CHECK(btn2->resolve_style().foreground_color == btn3->resolve_style().foreground_color);
 }
 
 // ============================================================================
@@ -318,9 +318,9 @@ TEST_CASE("Theme API - Theme with incomplete data") {
     btn->apply_theme(std::move(incomplete_theme));
 
     // Should apply successfully with default values
-    CHECK(btn->get_effective_background_color().r == 0);
-    CHECK(btn->get_effective_background_color().g == 0);
-    CHECK(btn->get_effective_background_color().b == 0);
+    CHECK(btn->resolve_style().background_color.r == 0);
+    CHECK(btn->resolve_style().background_color.g == 0);
+    CHECK(btn->resolve_style().background_color.b == 0);
 }
 
 // ============================================================================
@@ -344,11 +344,11 @@ TEST_CASE("Theme API - Apply to widget hierarchy") {
     parent->apply_theme("Hierarchy Test", ctx.themes());
 
     // Check parent
-    CHECK(parent->get_effective_background_color().b == 170);
+    CHECK(parent->resolve_style().background_color.b == 170);
 
     // Children should inherit
-    CHECK(child1_ptr->get_effective_background_color().b >= 100);
-    CHECK(child2_ptr->get_effective_background_color().b >= 100);
+    CHECK(child1_ptr->resolve_style().background_color.b >= 100);
+    CHECK(child2_ptr->resolve_style().background_color.b >= 100);
 }
 
 TEST_CASE("Theme API - Apply same theme twice is idempotent") {
@@ -359,10 +359,10 @@ TEST_CASE("Theme API - Apply same theme twice is idempotent") {
     auto widget = std::make_unique<button<Backend>>("Test");
 
     widget->apply_theme("Test", ctx.themes());
-    auto bg1 = widget->get_effective_background_color();
+    auto bg1 = widget->resolve_style().background_color;
 
     widget->apply_theme("Test", ctx.themes());
-    auto bg2 = widget->get_effective_background_color();
+    auto bg2 = widget->resolve_style().background_color;
 
     CHECK(bg1 == bg2);
 }
@@ -371,27 +371,27 @@ TEST_CASE("Theme API - Multiple theme switches maintain consistency") {
     scoped_ui_context<Backend> ctx;
 
     auto blue = create_test_theme("Blue");
-    blue.button.bg_normal = {0, 0, 170};  // Blue button
+    blue.button.normal.background = {0, 0, 170};  // Blue button
     ctx.themes().register_theme(std::move(blue));
 
     auto red = create_test_theme("Red");
-    red.button.bg_normal = {170, 0, 0};  // Red button
+    red.button.normal.background = {170, 0, 0};  // Red button
     ctx.themes().register_theme(std::move(red));
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
     // Switch multiple times
     btn->apply_theme("Blue", ctx.themes());
-    auto bg1 = btn->get_effective_background_color();
+    auto bg1 = btn->resolve_style().background_color;
 
     btn->apply_theme("Red", ctx.themes());
-    auto bg2 = btn->get_effective_background_color();
+    auto bg2 = btn->resolve_style().background_color;
 
     btn->apply_theme("Blue", ctx.themes());
-    auto bg3 = btn->get_effective_background_color();
+    auto bg3 = btn->resolve_style().background_color;
 
     btn->apply_theme("Red", ctx.themes());
-    auto bg4 = btn->get_effective_background_color();
+    auto bg4 = btn->resolve_style().background_color;
 
     // First and third should match (both blue)
     CHECK(bg1.r == bg3.r);

@@ -22,27 +22,39 @@ namespace onyxui {
         std::string name;         ///< Theme name (e.g., "Norton Blue", "Dark Mode")
         std::string description;  ///< Optional description (e.g., "Classic Norton Utilities style")
 
-        struct button_style {
-            // Visual properties (colors)
-            color_type fg_normal;
-            color_type bg_normal;
-            color_type fg_hover;
-            color_type bg_hover;
-            color_type fg_pressed;
-            color_type bg_pressed;
-            color_type fg_disabled;
-            color_type bg_disabled;
+        /**
+         * @brief Complete visual state bundle - reusable across all stateful widgets
+         * @details Combines font style + colors for a single visual state
+         *
+         * @note No helper methods provided - backend types are opaque
+         *       Use explicit initialization with designated initializers
+         */
+        struct visual_state {
+            font_type font;           ///< Font style (normal, bold, italic, etc.)
+            color_type foreground;    ///< Text/foreground color
+            color_type background;    ///< Background color
+        };
 
-            // Style references (not rendering resources!)
-            box_style_type box_style{};      // "Which box style to use" - Use {} to trigger default member initializers
-            font_type font{};                 // "Which font to use for normal text"
-            font_type mnemonic_font{};        // "Which font to use for mnemonic character (typically underlined)"
+        /**
+         * @brief Button styling - REFACTORED to use visual_state (BREAKING CHANGE)
+         * @details Old: fg_normal/bg_normal pattern → New: state bundles
+         */
+        struct button_style {
+            // State bundles (NEW - replaces fg_*/bg_* fields)
+            visual_state normal;      ///< Normal state
+            visual_state hover;       ///< Mouse hover state
+            visual_state pressed;     ///< Mouse pressed state
+            visual_state disabled;    ///< Disabled state
+
+            // Button-specific styling
+            font_type mnemonic_font{};        ///< Font for mnemonic character (typically underlined)
+            box_style_type box_style{};       ///< Box drawing style
 
             // Layout preferences
-            int padding_horizontal = 4;  // Horizontal padding (left/right) in renderer units
-            int padding_vertical = 4;    // Vertical padding (top/bottom) in renderer units
-            horizontal_alignment text_align = horizontal_alignment::center;  // Text alignment within button
-            int corner_radius = 0;  // Hint for renderer, if supported
+            int padding_horizontal = 4;       ///< Horizontal padding (left/right) in renderer units
+            int padding_vertical = 4;         ///< Vertical padding (top/bottom) in renderer units
+            horizontal_alignment text_align = horizontal_alignment::center;  ///< Text alignment within button
+            int corner_radius = 0;            ///< Hint for renderer, if supported
         };
 
         struct panel_style {
@@ -75,13 +87,50 @@ namespace onyxui {
             line_style_type line_style{};   // Line drawing style for separators
         };
 
+        /**
+         * @brief Menu item styling with state-based bundles
+         */
+        struct menu_item_style {
+            visual_state normal;       ///< Default state (not focused, not hovered)
+            visual_state highlighted;  ///< Keyboard focus OR mouse hover
+            visual_state disabled;     ///< Item is disabled
+
+            // Mnemonic-specific styling
+            font_type mnemonic_font{};   ///< Font for underlined mnemonic character
+
+            // Shortcut hint styling
+            visual_state shortcut;       ///< "Ctrl+S" hint (typically dimmer)
+
+            // Layout
+            int padding_horizontal = 8;
+            int padding_vertical = 1;
+        };
+
+        /**
+         * @brief Menu bar item styling
+         */
+        struct menu_bar_item_style {
+            visual_state normal;       ///< Closed, not hovered
+            visual_state hover;        ///< Mouse hover (closed)
+            visual_state open;         ///< Menu is expanded
+
+            font_type mnemonic_font{};   ///< Underlined mnemonic
+
+            int padding_horizontal = 4;
+            int padding_vertical = 0;
+        };
+
         // Widget-specific styles
-        button_style button{};  // Use {} to trigger default member initializers
-        label_style label{};
-        panel_style panel{};
-        menu_style menu{};
-        menu_bar_style menu_bar{};
-        separator_style separator{};
+        button_style button{};            // BREAKING CHANGE - refactored
+        label_style label{};              // Unchanged
+        panel_style panel{};              // Unchanged
+        menu_style menu{};                // Unchanged
+        menu_bar_style menu_bar{};        // Unchanged
+        separator_style separator{};      // Unchanged
+
+        // NEW: Menu item styles
+        menu_item_style menu_item{};
+        menu_bar_item_style menu_bar_item{};
 
         // Global palette
         color_type window_bg;

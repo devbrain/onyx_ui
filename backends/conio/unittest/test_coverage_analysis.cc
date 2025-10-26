@@ -214,17 +214,28 @@ name: "Minimal"
         original.text_fg = conio::color{240, 250, 255};
 
         // Button with all states
-        original.button.fg_normal = conio::color{255, 255, 255};
-        original.button.bg_normal = conio::color{0, 0, 170};
-        original.button.fg_hover = conio::color{255, 255, 0};
-        original.button.bg_hover = conio::color{0, 170, 170};
-        original.button.fg_pressed = conio::color{255, 255, 255};
-        original.button.bg_pressed = conio::color{0, 0, 255};
-        original.button.fg_disabled = conio::color{128, 128, 128};
-        original.button.bg_disabled = conio::color{64, 64, 64};
-        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
-        original.button.font = {true, false, false};
+        original.button.normal = {
+            .font = {true, false, false},
+            .foreground = conio::color{255, 255, 255},
+            .background = conio::color{0, 0, 170}
+        };
+        original.button.hover = {
+            .font = {true, false, false},
+            .foreground = conio::color{255, 255, 0},
+            .background = conio::color{0, 170, 170}
+        };
+        original.button.pressed = {
+            .font = {false, false, false},
+            .foreground = conio::color{255, 255, 255},
+            .background = conio::color{0, 0, 255}
+        };
+        original.button.disabled = {
+            .font = {false, false, false},
+            .foreground = conio::color{128, 128, 128},
+            .background = conio::color{64, 64, 64}
+        };
         original.button.mnemonic_font = {false, false, true};
+        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
         original.button.padding_horizontal = 2;
         original.button.padding_vertical = 1;
         original.button.text_align = horizontal_alignment::center;
@@ -249,7 +260,7 @@ name: "Minimal"
         CHECK(restored.name == original.name);
         CHECK(restored.description == original.description);
         CHECK(restored.window_bg.r == original.window_bg.r);
-        CHECK(restored.button.fg_normal.g == original.button.fg_normal.g);
+        CHECK(restored.button.normal.foreground.g == original.button.normal.foreground.g);
         CHECK(restored.button.padding_horizontal == original.button.padding_horizontal);
         CHECK(restored.button.text_align == original.button.text_align);
         CHECK(restored.panel.box_style == original.panel.box_style);

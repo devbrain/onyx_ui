@@ -236,27 +236,6 @@ namespace onyxui {
                 invalidate_visual();
             }
 
-            /**
-             * @brief Get effective background color with inheritance
-             *
-             * Resolution: override → parent → theme → global fallback
-             */
-            [[nodiscard]] color_type get_effective_background_color() const {
-                if (m_background_override) {
-                    return *m_background_override;
-                }
-
-                if (auto* p = get_themeable_parent()) {
-                    return p->get_effective_background_color();
-                }
-
-                if (auto* theme = get_theme()) {
-                    return get_theme_background_color(*theme);
-                }
-
-                return color_type{};  // Fallback: default-constructed color
-            }
-
             // ===================================================================
             // Foreground/Text Color (Inheritable)
             // ===================================================================
@@ -269,22 +248,6 @@ namespace onyxui {
             void clear_foreground_color() {
                 m_foreground_override.reset();
                 invalidate_visual();
-            }
-
-            [[nodiscard]] color_type get_effective_foreground_color() const {
-                if (m_foreground_override) {
-                    return *m_foreground_override;
-                }
-
-                if (auto* p = get_themeable_parent()) {
-                    return p->get_effective_foreground_color();
-                }
-
-                if (auto* theme = get_theme()) {
-                    return get_theme_foreground_color(*theme);
-                }
-
-                return color_type{};
             }
 
             // ===================================================================
@@ -500,19 +463,39 @@ namespace onyxui {
              *
              * @return Fully-resolved style ready for rendering
              */
-            [[nodiscard]] resolved_style<Backend> resolve_style() const {
+            [[nodiscard]] virtual resolved_style<Backend> resolve_style() const {
                 resolved_style<Backend> style;
 
-                // Resolve all properties through CSS inheritance
-                style.background_color = get_effective_background_color();
-                style.foreground_color = get_effective_foreground_color();
+                // Resolve background color: override → parent → theme → default
+                if (m_background_override) {
+                    style.background_color = *m_background_override;
+                } else if (auto* p = get_themeable_parent()) {
+                    style.background_color = p->resolve_style().background_color;
+                } else if (auto* theme = get_theme()) {
+                    style.background_color = get_theme_background_color(*theme);
+                } else {
+                    style.background_color = color_type{};
+                }
+
+                // Resolve foreground color: override → parent → theme → default
+                if (m_foreground_override) {
+                    style.foreground_color = *m_foreground_override;
+                } else if (auto* p = get_themeable_parent()) {
+                    style.foreground_color = p->resolve_style().foreground_color;
+                } else if (auto* theme = get_theme()) {
+                    style.foreground_color = get_theme_foreground_color(*theme);
+                } else {
+                    style.foreground_color = color_type{};
+                }
+
+                // Resolve other properties
                 style.box_style = get_effective_box_style();
                 style.font = get_effective_font();
                 style.opacity = get_effective_opacity();
                 style.icon_style = get_effective_icon_style();
 
-                // Border color (defaults to foreground if not specified)
-                style.border_color = get_effective_foreground_color();
+                // Border color (defaults to foreground)
+                style.border_color = style.foreground_color;
 
                 return style;
             }

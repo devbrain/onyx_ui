@@ -26,16 +26,27 @@ theme_type create_test_theme() {
     theme.name = "Test Theme";
     theme.description = "A theme for testing file I/O";
 
-    theme.button.fg_normal = color{255, 255, 255};
-    theme.button.bg_normal = color{0, 0, 170};
-    theme.button.fg_hover = color{255, 255, 0};
-    theme.button.bg_hover = color{0, 170, 170};
-    theme.button.fg_pressed = color{0, 0, 0};
-    theme.button.bg_pressed = color{170, 170, 170};
-    theme.button.fg_disabled = color{128, 128, 128};
-    theme.button.bg_disabled = color{64, 64, 64};
+    theme.button.normal = {
+        .font = {true, false, false},
+        .foreground = color{255, 255, 255},
+        .background = color{0, 0, 170}
+    };
+    theme.button.hover = {
+        .font = {true, false, false},
+        .foreground = color{255, 255, 0},
+        .background = color{0, 170, 170}
+    };
+    theme.button.pressed = {
+        .font = {false, false, false},
+        .foreground = color{0, 0, 0},
+        .background = color{170, 170, 170}
+    };
+    theme.button.disabled = {
+        .font = {false, false, false},
+        .foreground = color{128, 128, 128},
+        .background = color{64, 64, 64}
+    };
     theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
-    theme.button.font = {true, false, false};
     theme.button.text_align = horizontal_alignment::center;
 
     theme.label.text = color{255, 255, 255};
@@ -73,8 +84,8 @@ TEST_CASE("Theme Loader - Save and load from file") {
         // Verify all fields match
         CHECK(loaded.name == original.name);
         CHECK(loaded.description == original.description);
-        CHECK(loaded.button.fg_normal.r == original.button.fg_normal.r);
-        CHECK(loaded.button.bg_normal.b == original.button.bg_normal.b);
+        CHECK(loaded.button.normal.foreground.r == original.button.normal.foreground.r);
+        CHECK(loaded.button.normal.background.b == original.button.normal.background.b);
         CHECK(loaded.button.box_style == original.button.box_style);
         CHECK(loaded.label.text.r == original.label.text.r);
         CHECK(loaded.panel.has_border == original.panel.has_border);
@@ -152,7 +163,7 @@ TEST_CASE("Theme Loader - String operations") {
 
         // Verify fields match
         CHECK(loaded.name == original.name);
-        CHECK(loaded.button.fg_normal.r == original.button.fg_normal.r);
+        CHECK(loaded.button.normal.foreground.r == original.button.normal.foreground.r);
         CHECK(loaded.window_bg.b == original.window_bg.b);
     }
 
@@ -161,7 +172,8 @@ TEST_CASE("Theme Loader - String operations") {
 
         theme_type original;
         original.name = "Test";
-        original.button.fg_normal = color{255, 255, 255};
+        original.button.normal.foreground = color{255, 255, 255};
+        original.button.normal.background = color{0, 0, 170};
         original.window_bg = color{0, 0, 170};
 
         // Step 1: to_yaml (WORKS in Phase 6)
@@ -176,7 +188,7 @@ TEST_CASE("Theme Loader - String operations") {
         // Step 4: from_yaml (WORKS in Phase 6)
         auto restored = from_yaml<theme_type>(node2);
 
-        CHECK(restored.button.fg_normal.r == 255);
+        CHECK(restored.button.normal.foreground.r == 255);
         CHECK(restored.window_bg.b == 170);
     }
 
@@ -187,17 +199,28 @@ TEST_CASE("Theme Loader - String operations") {
         theme_type original;
         original.name = "Test Theme";
         original.description = "A test theme for validation";
-        original.button.fg_normal = color{255, 255, 255};
-        original.button.bg_normal = color{0, 0, 170};
-        original.button.fg_hover = color{255, 255, 0};
-        original.button.bg_hover = color{0, 170, 170};
-        original.button.fg_pressed = color{0, 0, 0};
-        original.button.bg_pressed = color{170, 170, 170};
-        original.button.fg_disabled = color{128, 128, 128};
-        original.button.bg_disabled = color{64, 64, 64};
-        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
-        original.button.font = {true, false, false};
+        original.button.normal = {
+            .font = {true, false, false},
+            .foreground = color{255, 255, 255},
+            .background = color{0, 0, 170}
+        };
+        original.button.hover = {
+            .font = {true, false, false},
+            .foreground = color{255, 255, 0},
+            .background = color{0, 170, 170}
+        };
+        original.button.pressed = {
+            .font = {false, false, false},
+            .foreground = color{0, 0, 0},
+            .background = color{170, 170, 170}
+        };
+        original.button.disabled = {
+            .font = {false, false, false},
+            .foreground = color{128, 128, 128},
+            .background = color{64, 64, 64}
+        };
         original.button.mnemonic_font = {true, true, false};
+        original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
         original.button.padding_horizontal = 4;
         original.button.padding_vertical = 2;
         original.button.text_align = horizontal_alignment::center;
@@ -224,10 +247,10 @@ TEST_CASE("Theme Loader - String operations") {
         CHECK(restored.description == original.description);
 
         // Check button style
-        CHECK(restored.button.fg_normal.r == original.button.fg_normal.r);
-        CHECK(restored.button.bg_normal.b == original.button.bg_normal.b);
+        CHECK(restored.button.normal.foreground.r == original.button.normal.foreground.r);
+        CHECK(restored.button.normal.background.b == original.button.normal.background.b);
         CHECK(restored.button.box_style == original.button.box_style);
-        CHECK(restored.button.font.bold == original.button.font.bold);
+        CHECK(restored.button.normal.font.bold == original.button.normal.font.bold);
         CHECK(restored.button.text_align == original.button.text_align);
         CHECK(restored.button.padding_horizontal == original.button.padding_horizontal);
 
@@ -254,14 +277,18 @@ TEST_CASE("Theme Loader - String operations") {
 name: "Custom Theme"
 description: "Loaded from string"
 button:
-  fg_normal: [200, 200, 200]
-  bg_normal: [30, 30, 30]
-  fg_hover: [255, 255, 255]
-  bg_hover: [50, 50, 50]
-  fg_pressed: [180, 180, 180]
-  bg_pressed: [20, 20, 20]
-  fg_disabled: [100, 100, 100]
-  bg_disabled: [40, 40, 40]
+  normal:
+    foreground: [200, 200, 200]
+    background: [30, 30, 30]
+  hover:
+    foreground: [255, 255, 255]
+    background: [50, 50, 50]
+  pressed:
+    foreground: [180, 180, 180]
+    background: [20, 20, 20]
+  disabled:
+    foreground: [100, 100, 100]
+    background: [40, 40, 40]
   box_style: rounded
   text_align: left
 label:
@@ -279,7 +306,7 @@ border_color: [80, 80, 80]
 
         CHECK(theme.name == "Custom Theme");
         CHECK(theme.description == "Loaded from string");
-        CHECK(theme.button.fg_normal.r == 200);
+        CHECK(theme.button.normal.foreground.r == 200);
         CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
         CHECK(theme.button.text_align == horizontal_alignment::left);
         CHECK(theme.window_bg.r == 20);
@@ -324,7 +351,7 @@ TEST_CASE("Theme Loader - Error handling") {
 
         // Should have loaded with default color values (0, 0, 0)
         CHECK(theme.name == "Test");
-        CHECK(theme.button.fg_normal.r == 0);  // Default value
+        CHECK(theme.button.normal.foreground.r == 0);  // Default value
     }
 
     SUBCASE("load_from_file with invalid YAML content") {

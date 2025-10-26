@@ -130,17 +130,17 @@ namespace {
         theme.name = "State Test";
 
         // Button states with distinct colors
-        theme.button.bg_normal = {0, 0, 170};      // Blue
-        theme.button.fg_normal = {255, 255, 255};  // White
+        theme.button.normal.background = {0, 0, 170};      // Blue
+        theme.button.normal.foreground = {255, 255, 255};  // White
 
-        theme.button.bg_hover = {0, 170, 170};     // Cyan
-        theme.button.fg_hover = {255, 255, 0};     // Yellow
+        theme.button.hover.background = {0, 170, 170};     // Cyan
+        theme.button.hover.foreground = {255, 255, 0};     // Yellow
 
-        theme.button.bg_pressed = {170, 170, 170}; // Gray
-        theme.button.fg_pressed = {0, 0, 0};       // Black
+        theme.button.pressed.background = {170, 170, 170}; // Gray
+        theme.button.pressed.foreground = {0, 0, 0};       // Black
 
-        theme.button.bg_disabled = {64, 64, 64};   // Dark gray
-        theme.button.fg_disabled = {128, 128, 128}; // Light gray
+        theme.button.disabled.background = {64, 64, 64};   // Dark gray
+        theme.button.disabled.foreground = {128, 128, 128}; // Light gray
 
         return theme;
     }
@@ -414,14 +414,14 @@ TEST_CASE("stateful_widget - State-based colors work with different widget theme
 
     // Create a mock label theme structure with state colors
     struct label_state_theme {
-        Backend::color_type fg_normal{255, 0, 0};
-        Backend::color_type bg_normal{0, 255, 0};
-        Backend::color_type fg_hover{255, 128, 0};
-        Backend::color_type bg_hover{0, 255, 128};
-        Backend::color_type fg_pressed{128, 0, 0};
-        Backend::color_type bg_pressed{0, 128, 0};
-        Backend::color_type fg_disabled{64, 0, 0};
-        Backend::color_type bg_disabled{0, 64, 0};
+        struct state_colors {
+            Backend::color_type foreground;
+            Backend::color_type background;
+        };
+        state_colors normal{Backend::color_type{255, 0, 0}, Backend::color_type{0, 255, 0}};
+        state_colors hover{Backend::color_type{255, 128, 0}, Backend::color_type{0, 255, 128}};
+        state_colors pressed{Backend::color_type{128, 0, 0}, Backend::color_type{0, 128, 0}};
+        state_colors disabled{Backend::color_type{64, 0, 0}, Backend::color_type{0, 64, 0}};
     } label_theme;
 
     widget.set_state(test_stateful_widget<Backend>::state_type::normal);
@@ -782,7 +782,7 @@ TEST_CASE("stateful_widget - Button integration with automatic state syncing") {
     btn.apply_theme("State Test", ctx.themes());
 
     // Normal state initially
-    auto normal_fg = btn.get_effective_foreground_color();
+    auto normal_fg = btn.resolve_style().foreground_color;
     CHECK(normal_fg.r == 255);  // White (normal state)
 
     // Trigger hover via event

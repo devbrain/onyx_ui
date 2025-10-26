@@ -28,16 +28,16 @@ namespace {
         theme.description = "A test theme for validation";
 
         // Button style
-        theme.button.fg_normal = color{255, 255, 255};
-        theme.button.bg_normal = color{0, 0, 170};
-        theme.button.fg_hover = color{255, 255, 0};
-        theme.button.bg_hover = color{0, 170, 170};
-        theme.button.fg_pressed = color{0, 0, 0};
-        theme.button.bg_pressed = color{170, 170, 170};
-        theme.button.fg_disabled = color{128, 128, 128};
-        theme.button.bg_disabled = color{64, 64, 64};
+        theme.button.normal.foreground = color{255, 255, 255};
+        theme.button.normal.background = color{0, 0, 170};
+        theme.button.hover.foreground = color{255, 255, 0};
+        theme.button.hover.background = color{0, 170, 170};
+        theme.button.pressed.foreground = color{0, 0, 0};
+        theme.button.pressed.background = color{170, 170, 170};
+        theme.button.disabled.foreground = color{128, 128, 128};
+        theme.button.disabled.background = color{64, 64, 64};
         theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
-        theme.button.font = {true, false, false};
+        theme.button.normal.font = {true, false, false};
         theme.button.mnemonic_font = {true, true, false};
         theme.button.padding_horizontal = 4;
         theme.button.padding_vertical = 2;
@@ -77,13 +77,13 @@ TEST_CASE("Complete Theme - Serialization") {
 
         // Check button style exists and has correct structure
         CHECK(yaml["button"].is_mapping());
-        CHECK(yaml["button"]["fg_normal"].is_mapping());
-        CHECK(yaml["button"]["fg_normal"]["r"].get_value<int>() == 255);
-        CHECK(yaml["button"]["bg_normal"].is_mapping());
-        CHECK(yaml["button"]["bg_normal"]["b"].get_value<int>() == 170);
+        CHECK(yaml["button"]["normal"].is_mapping());
+        CHECK(yaml["button"]["normal"]["foreground"]["r"].get_value<int>() == 255);
+        CHECK(yaml["button"]["normal"]["background"].is_mapping());
+        CHECK(yaml["button"]["normal"]["background"]["b"].get_value<int>() == 170);
         CHECK(yaml["button"]["box_style"].get_value<std::string>() == "double_line");
         CHECK(yaml["button"]["text_align"].get_value<std::string>() == "center");
-        CHECK(yaml["button"]["font"]["bold"].get_value<bool>() == true);
+        CHECK(yaml["button"]["normal"]["font"]["bold"].get_value<bool>() == true);
 
         // Check label style
         CHECK(yaml["label"].is_mapping());
@@ -126,19 +126,23 @@ TEST_CASE("Complete Theme - Deserialization") {
 name: "Dark Mode"
 description: "A dark theme for night coding"
 button:
-  fg_normal: [255, 255, 255]
-  bg_normal: [30, 30, 30]
-  fg_hover: [255, 255, 0]
-  bg_hover: [50, 50, 50]
-  fg_pressed: [200, 200, 200]
-  bg_pressed: [20, 20, 20]
-  fg_disabled: [100, 100, 100]
-  bg_disabled: [40, 40, 40]
+  normal:
+    foreground: [255, 255, 255]
+    background: [30, 30, 30]
+    font:
+      bold: true
+      underline: false
+      reverse: false
+  hover:
+    foreground: [255, 255, 0]
+    background: [50, 50, 50]
+  pressed:
+    foreground: [200, 200, 200]
+    background: [20, 20, 20]
+  disabled:
+    foreground: [100, 100, 100]
+    background: [40, 40, 40]
   box_style: rounded
-  font:
-    bold: true
-    underline: false
-    reverse: false
   mnemonic_font:
     bold: true
     underline: true
@@ -175,11 +179,11 @@ border_color: [80, 80, 80]
         CHECK(theme.description == "A dark theme for night coding");
 
         // Check button style
-        CHECK(theme.button.fg_normal.r == 255);
-        CHECK(theme.button.bg_normal.r == 30);
+        CHECK(theme.button.normal.foreground.r == 255);
+        CHECK(theme.button.normal.background.r == 30);
         CHECK(theme.button.box_style.style == conio_renderer::border_style::rounded);
         CHECK(theme.button.text_align == horizontal_alignment::left);
-        CHECK(theme.button.font.bold == true);
+        CHECK(theme.button.normal.font.bold == true);
         CHECK(theme.button.padding_horizontal == 6);
 
         // Check label style
@@ -204,14 +208,18 @@ border_color: [80, 80, 80]
 name: "Minimal Theme"
 description: "Uses many defaults"
 button:
-  fg_normal: [255, 255, 255]
-  bg_normal: [0, 0, 0]
-  fg_hover: [255, 255, 255]
-  bg_hover: [50, 50, 50]
-  fg_pressed: [255, 255, 255]
-  bg_pressed: [0, 0, 0]
-  fg_disabled: [128, 128, 128]
-  bg_disabled: [0, 0, 0]
+  normal:
+    foreground: [255, 255, 255]
+    background: [0, 0, 0]
+  hover:
+    foreground: [255, 255, 255]
+    background: [50, 50, 50]
+  pressed:
+    foreground: [255, 255, 255]
+    background: [0, 0, 0]
+  disabled:
+    foreground: [128, 128, 128]
+    background: [0, 0, 0]
 label:
   text: [255, 255, 255]
   background: [0, 0, 0]
@@ -250,10 +258,10 @@ TEST_CASE("Complete Theme - Round-trip preservation") {
         CHECK(restored.description == original.description);
 
         // Check button style
-        CHECK(restored.button.fg_normal.r == original.button.fg_normal.r);
-        CHECK(restored.button.bg_normal.b == original.button.bg_normal.b);
+        CHECK(restored.button.normal.foreground.r == original.button.normal.foreground.r);
+        CHECK(restored.button.normal.background.b == original.button.normal.background.b);
         CHECK(restored.button.box_style == original.button.box_style);
-        CHECK(restored.button.font.bold == original.button.font.bold);
+        CHECK(restored.button.normal.font.bold == original.button.normal.font.bold);
         CHECK(restored.button.text_align == original.button.text_align);
         CHECK(restored.button.padding_horizontal == original.button.padding_horizontal);
 
@@ -289,8 +297,8 @@ TEST_CASE("Complete Theme - Round-trip preservation") {
         // Both should be identical to original
         CHECK(restored1.name == original.name);
         CHECK(restored2.name == original.name);
-        CHECK(restored1.button.fg_normal.r == original.button.fg_normal.r);
-        CHECK(restored2.button.fg_normal.r == original.button.fg_normal.r);
+        CHECK(restored1.button.normal.foreground.r == original.button.normal.foreground.r);
+        CHECK(restored2.button.normal.foreground.r == original.button.normal.foreground.r);
     }
 }
 
@@ -300,14 +308,18 @@ TEST_CASE("Complete Theme - Multiple themes") {
 name: "Blue Theme"
 description: "Classic blue"
 button:
-  fg_normal: [255, 255, 255]
-  bg_normal: [0, 0, 170]
-  fg_hover: [255, 255, 0]
-  bg_hover: [0, 170, 170]
-  fg_pressed: [0, 0, 0]
-  bg_pressed: [170, 170, 170]
-  fg_disabled: [128, 128, 128]
-  bg_disabled: [64, 64, 64]
+  normal:
+    foreground: [255, 255, 255]
+    background: [0, 0, 170]
+  hover:
+    foreground: [255, 255, 0]
+    background: [0, 170, 170]
+  pressed:
+    foreground: [0, 0, 0]
+    background: [170, 170, 170]
+  disabled:
+    foreground: [128, 128, 128]
+    background: [64, 64, 64]
 label:
   text: [255, 255, 255]
   background: [0, 0, 170]
@@ -323,14 +335,18 @@ border_color: [170, 170, 170]
 name: "Dark Theme"
 description: "Dark mode"
 button:
-  fg_normal: [200, 200, 200]
-  bg_normal: [30, 30, 30]
-  fg_hover: [255, 255, 255]
-  bg_hover: [50, 50, 50]
-  fg_pressed: [180, 180, 180]
-  bg_pressed: [20, 20, 20]
-  fg_disabled: [100, 100, 100]
-  bg_disabled: [40, 40, 40]
+  normal:
+    foreground: [200, 200, 200]
+    background: [30, 30, 30]
+  hover:
+    foreground: [255, 255, 255]
+    background: [50, 50, 50]
+  pressed:
+    foreground: [180, 180, 180]
+    background: [20, 20, 20]
+  disabled:
+    foreground: [100, 100, 100]
+    background: [40, 40, 40]
 label:
   text: [200, 200, 200]
   background: [30, 30, 30]
@@ -349,7 +365,7 @@ border_color: [80, 80, 80]
         CHECK(theme1.name != theme2.name);
         CHECK(theme1.description != theme2.description);
         CHECK(theme1.window_bg.r != theme2.window_bg.r);
-        CHECK(theme1.button.bg_normal.b != theme2.button.bg_normal.b);
+        CHECK(theme1.button.normal.background.b != theme2.button.normal.background.b);
 
         // Each theme should have its own values
         CHECK(theme1.name == "Blue Theme");
@@ -370,7 +386,8 @@ TEST_CASE("Complete Theme - Error handling") {
 name: "Incomplete"
 description: "Missing button colors"
 button:
-  fg_normal: [255, 255, 255]
+  normal:
+    foreground: [255, 255, 255]
   # Missing other required colors
 label:
   text: [255, 255, 255]
@@ -409,19 +426,23 @@ TEST_CASE("Complete Theme - Field validation") {
         auto yaml = to_yaml(theme);
         auto button = yaml["button"];
 
-        // All 8 color states (now as objects)
-        CHECK(button["fg_normal"].is_mapping());
-        CHECK(button["bg_normal"].is_mapping());
-        CHECK(button["fg_hover"].is_mapping());
-        CHECK(button["bg_hover"].is_mapping());
-        CHECK(button["fg_pressed"].is_mapping());
-        CHECK(button["bg_pressed"].is_mapping());
-        CHECK(button["fg_disabled"].is_mapping());
-        CHECK(button["bg_disabled"].is_mapping());
+        // All 4 visual states with their color properties
+        CHECK(button["normal"].is_mapping());
+        CHECK(button["normal"]["foreground"].is_mapping());
+        CHECK(button["normal"]["background"].is_mapping());
+        CHECK(button["hover"].is_mapping());
+        CHECK(button["hover"]["foreground"].is_mapping());
+        CHECK(button["hover"]["background"].is_mapping());
+        CHECK(button["pressed"].is_mapping());
+        CHECK(button["pressed"]["foreground"].is_mapping());
+        CHECK(button["pressed"]["background"].is_mapping());
+        CHECK(button["disabled"].is_mapping());
+        CHECK(button["disabled"]["foreground"].is_mapping());
+        CHECK(button["disabled"]["background"].is_mapping());
 
         // Styles and preferences
         CHECK(button["box_style"].is_string());
-        CHECK(button["font"].is_mapping());
+        CHECK(button["normal"]["font"].is_mapping());
         CHECK(button["mnemonic_font"].is_mapping());
         CHECK(button["padding_horizontal"].is_integer());
         CHECK(button["padding_vertical"].is_integer());

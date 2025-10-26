@@ -92,15 +92,28 @@ namespace onyxui::conio {
             theme.text_fg = color{255, 255, 255};    // White
             theme.border_color = color{255, 255, 0}; // Yellow
 
-            // Button style
-            theme.button.fg_normal = color{255, 255, 255};   // White
-            theme.button.bg_normal = color{0, 0, 170};       // Dark blue
-            theme.button.fg_hover = color{255, 255, 0};      // Yellow
-            theme.button.bg_hover = color{0, 0, 255};        // Bright blue
-            theme.button.fg_pressed = color{0, 0, 0};        // Black
-            theme.button.bg_pressed = color{170, 170, 170};  // Light gray
-            theme.button.fg_disabled = color{85, 85, 85};    // Dark gray
-            theme.button.bg_disabled = color{0, 0, 170};     // Dark blue
+            // Button style - REFACTORED to use visual_state bundles
+            theme.button.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 255},  // White
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.button.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 0},    // Yellow
+                .background = color{0, 0, 255}       // Bright blue
+            };
+            theme.button.pressed = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},        // Black
+                .background = color{170, 170, 170}   // Light gray
+            };
+            theme.button.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},     // Dark gray
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
@@ -128,6 +141,51 @@ namespace onyxui::conio {
             // Separator style
             theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
 
+            // Menu item style - NEW
+            theme.menu_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 255},  // White
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.menu_item.highlighted = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
+                .foreground = color{255, 255, 0},    // Yellow
+                .background = color{0, 0, 255}       // Bright blue
+            };
+            theme.menu_item.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},     // Dark gray
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.menu_item.shortcut = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{170, 170, 170},  // Gray (dimmed)
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_item.padding_horizontal = 8;
+            theme.menu_item.padding_vertical = 1;
+
+            // Menu bar item style - NEW
+            theme.menu_bar_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 255},  // White
+                .background = color{0, 0, 170}       // Dark blue
+            };
+            theme.menu_bar_item.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 0},    // Yellow
+                .background = color{0, 0, 255}       // Bright blue
+            };
+            theme.menu_bar_item.open = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
+                .foreground = color{0, 0, 0},        // Black
+                .background = color{0, 255, 255}     // Cyan
+            };
+            theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_bar_item.padding_horizontal = 4;
+            theme.menu_bar_item.padding_vertical = 0;
+
             return theme;
         }
 
@@ -145,15 +203,28 @@ namespace onyxui::conio {
             theme.text_fg = color{0, 0, 0};          // Black
             theme.border_color = color{255, 255, 0}; // Yellow
 
-            // Buttons
-            theme.button.fg_normal = color{0, 0, 0};
-            theme.button.bg_normal = color{170, 170, 170};  // Light gray
-            theme.button.fg_hover = color{255, 255, 255};
-            theme.button.bg_hover = color{0, 85, 85};
-            theme.button.fg_pressed = color{255, 255, 255};
-            theme.button.bg_pressed = color{0, 0, 0};
-            theme.button.fg_disabled = color{85, 85, 85};
-            theme.button.bg_disabled = color{170, 170, 170};
+            // Button style - REFACTORED to use visual_state bundles
+            theme.button.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{170, 170, 170}  // Light gray
+            };
+            theme.button.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 255},
+                .background = color{0, 85, 85}
+            };
+            theme.button.pressed = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            };
+            theme.button.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},
+                .background = color{170, 170, 170}
+            };
+            theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
@@ -181,6 +252,51 @@ namespace onyxui::conio {
             // Separator style
             theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
 
+            // Menu item style - NEW
+            theme.menu_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{0, 170, 170}    // Cyan
+            };
+            theme.menu_item.highlighted = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
+                .foreground = color{255, 255, 255},
+                .background = color{0, 85, 85}
+            };
+            theme.menu_item.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},
+                .background = color{0, 170, 170}
+            };
+            theme.menu_item.shortcut = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},    // Dark gray (dimmed)
+                .background = color{0, 170, 170}
+            };
+            theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_item.padding_horizontal = 8;
+            theme.menu_item.padding_vertical = 1;
+
+            // Menu bar item style - NEW
+            theme.menu_bar_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{0, 170, 170}    // Cyan
+            };
+            theme.menu_bar_item.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 255},
+                .background = color{0, 85, 85}
+            };
+            theme.menu_bar_item.open = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            };
+            theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_bar_item.padding_horizontal = 4;
+            theme.menu_bar_item.padding_vertical = 0;
+
             return theme;
         }
 
@@ -198,15 +314,28 @@ namespace onyxui::conio {
             theme.text_fg = color{255, 255, 85};     // Light yellow
             theme.border_color = color{170, 170, 170}; // Gray
 
-            // Buttons
-            theme.button.fg_normal = color{0, 0, 0};
-            theme.button.bg_normal = color{0, 170, 170};    // Cyan
-            theme.button.fg_hover = color{255, 255, 255};
-            theme.button.bg_hover = color{0, 85, 85};
-            theme.button.fg_pressed = color{0, 0, 0};
-            theme.button.bg_pressed = color{255, 255, 0};
-            theme.button.fg_disabled = color{85, 85, 85};
-            theme.button.bg_disabled = color{0, 170, 170};
+            // Button style - REFACTORED to use visual_state bundles
+            theme.button.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{0, 170, 170}    // Cyan
+            };
+            theme.button.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 255},
+                .background = color{0, 85, 85}
+            };
+            theme.button.pressed = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{255, 255, 0}
+            };
+            theme.button.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},
+                .background = color{0, 170, 170}
+            };
+            theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
@@ -234,6 +363,51 @@ namespace onyxui::conio {
             // Separator style
             theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
 
+            // Menu item style - NEW
+            theme.menu_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 85},   // Light yellow
+                .background = color{0, 0, 85}        // Dark blue
+            };
+            theme.menu_item.highlighted = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
+                .foreground = color{255, 255, 0},    // Bright yellow
+                .background = color{0, 0, 170}       // Brighter blue
+            };
+            theme.menu_item.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},     // Dark gray
+                .background = color{0, 0, 85}
+            };
+            theme.menu_item.shortcut = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{170, 170, 170},  // Gray (dimmed)
+                .background = color{0, 0, 85}
+            };
+            theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_item.padding_horizontal = 8;
+            theme.menu_item.padding_vertical = 1;
+
+            // Menu bar item style - NEW
+            theme.menu_bar_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{255, 255, 85},   // Light yellow
+                .background = color{0, 0, 85}        // Dark blue
+            };
+            theme.menu_bar_item.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 0},    // Bright yellow
+                .background = color{0, 0, 170}
+            };
+            theme.menu_bar_item.open = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
+                .foreground = color{0, 0, 0},        // Black
+                .background = color{255, 255, 0}     // Bright yellow
+            };
+            theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_bar_item.padding_horizontal = 4;
+            theme.menu_bar_item.padding_vertical = 0;
+
             return theme;
         }
 
@@ -251,15 +425,28 @@ namespace onyxui::conio {
             theme.text_fg = color{0, 0, 0};          // Black
             theme.border_color = color{85, 85, 85};  // Dark gray
 
-            // Buttons
-            theme.button.fg_normal = color{0, 0, 0};
-            theme.button.bg_normal = color{170, 170, 170};
-            theme.button.fg_hover = color{255, 255, 255};
-            theme.button.bg_hover = color{0, 0, 0};
-            theme.button.fg_pressed = color{0, 0, 0};
-            theme.button.bg_pressed = color{255, 255, 255};
-            theme.button.fg_disabled = color{85, 85, 85};
-            theme.button.bg_disabled = color{170, 170, 170};
+            // Button style - REFACTORED to use visual_state bundles
+            theme.button.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{170, 170, 170}
+            };
+            theme.button.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            };
+            theme.button.pressed = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{255, 255, 255}
+            };
+            theme.button.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},
+                .background = color{170, 170, 170}
+            };
+            theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
             theme.button.padding_horizontal = 2;
             theme.button.padding_vertical = 0;
@@ -286,6 +473,51 @@ namespace onyxui::conio {
 
             // Separator style
             theme.separator.line_style = conio_renderer::line_style{conio_renderer::border_style::single_line};
+
+            // Menu item style - NEW
+            theme.menu_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{170, 170, 170}   // Light gray
+            };
+            theme.menu_item.highlighted = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            };
+            theme.menu_item.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},     // Dark gray
+                .background = color{170, 170, 170}
+            };
+            theme.menu_item.shortcut = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{85, 85, 85},     // Dark gray (dimmed)
+                .background = color{170, 170, 170}
+            };
+            theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_item.padding_horizontal = 8;
+            theme.menu_item.padding_vertical = 1;
+
+            // Menu bar item style - NEW
+            theme.menu_bar_item.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = color{0, 0, 0},
+                .background = color{170, 170, 170}   // Light gray
+            };
+            theme.menu_bar_item.hover = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            };
+            theme.menu_bar_item.open = {
+                .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
+                .foreground = color{0, 0, 0},
+                .background = color{255, 255, 255}
+            };
+            theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+            theme.menu_bar_item.padding_horizontal = 4;
+            theme.menu_bar_item.padding_vertical = 0;
 
             return theme;
         }

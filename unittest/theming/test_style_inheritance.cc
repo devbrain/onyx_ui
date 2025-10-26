@@ -29,10 +29,10 @@ namespace {
         theme.border_color = {80, 80, 80};
 
         // Button styling
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_normal = {0, 120, 215};
-        theme.button.fg_hover = {255, 255, 255};
-        theme.button.bg_hover = {0, 102, 204};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.background = {0, 120, 215};
+        theme.button.hover.foreground = {255, 255, 255};
+        theme.button.hover.background = {0, 102, 204};
 
         // Label styling
         theme.label.text = {220, 220, 220};
@@ -410,8 +410,8 @@ TEST_CASE("CSS Inheritance - Orphan widget uses theme") {
     auto style = orphan->resolve_style();
 
     // Should use button-specific theme values
-    CHECK(style.background_color.g == 120);  // button.bg_normal = {0, 120, 215}
-    CHECK(style.foreground_color.r == 255);  // button.fg_normal = {255, 255, 255}
+    CHECK(style.background_color.g == 120);  // button.normal.background = {0, 120, 215}
+    CHECK(style.foreground_color.r == 255);  // button.normal.foreground = {255, 255, 255}
 }
 
 // ============================================================================

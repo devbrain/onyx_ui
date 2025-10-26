@@ -174,6 +174,18 @@ namespace onyxui {
         }
 
         /**
+         * @brief "Fill" a rectangle (measurement only)
+         *
+         * @details
+         * Tracks the rectangle bounds for measurement.
+         * No actual rendering occurs.
+         */
+        void fill_rect(const rect_type& bounds) override {
+            // Same as draw_rect for measurement purposes
+            draw_rect(bounds, box_style{});
+        }
+
+        /**
          * @brief "Draw" a line (measurement only)
          *
          * @details

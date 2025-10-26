@@ -115,6 +115,28 @@ namespace onyxui {
             return m_has_mnemonic && m_mnemonic_info.mnemonic_char != '\0';
         }
 
+        /**
+         * @brief Set whether this item's menu is open
+         * @param is_open True if menu is open, false otherwise
+         *
+         * @details
+         * Called by menu_bar when opening/closing menus.
+         * Affects visual state (open state uses different colors).
+         */
+        void set_menu_open(bool is_open) {
+            if (m_is_menu_open != is_open) {
+                m_is_menu_open = is_open;
+                this->invalidate_arrange();  // Trigger redraw
+            }
+        }
+
+        /**
+         * @brief Check if this item's menu is open
+         */
+        [[nodiscard]] bool is_menu_open() const noexcept {
+            return m_is_menu_open;
+        }
+
     protected:
         /**
          * @brief Render the menu bar item
@@ -127,8 +149,10 @@ namespace onyxui {
             auto* theme = this->get_theme();
             if (!theme) return;
 
-            // Menu bar items use label font (simple text, no button styling)
-            typename renderer_type::font const text_font = theme->label.font;
+            // DEBUG: Log menu bar item state
+            std::cerr << "[menu_bar_item::do_render] text=\"" << m_text << "\" "
+                      << "hover=" << this->is_hovered() << " "
+                      << "open=" << m_is_menu_open << std::endl;
 
             // Get padding from theme (configurable!)
             int const horizontal_padding = theme->menu_bar.item_padding_horizontal;
@@ -139,8 +163,13 @@ namespace onyxui {
             int const x = point_utils::get_x(pos);
             int const y = point_utils::get_y(pos);
 
-            // Use pre-resolved colors from context
-            auto fg = ctx.style().foreground_color;
+            // Use pre-resolved style from context (includes state-dependent font!)
+            auto const& text_font = ctx.style().font;
+            auto const& fg = ctx.style().foreground_color;
+
+            // DEBUG: Log resolved colors
+            std::cerr << "[menu_bar_item::do_render] ctx.style() fg=("
+                      << static_cast<int>(fg.r) << "," << static_cast<int>(fg.g) << "," << static_cast<int>(fg.b) << ")" << std::endl;
 
             // Menu bar items render ONLY text (no background, no border)
             // The menu bar itself provides the background
@@ -155,19 +184,33 @@ namespace onyxui {
         /**
          * @brief Get theme-specific foreground color
          * @return Menu bar item foreground color from theme (state-dependent)
+         * @details Uses menu_bar_item-specific states (normal/hover/open)
          */
         [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
-            // Menu bar items use button colors for states
-            return this->get_state_foreground(theme.button);
+            // Map menu_bar_item states to visual_state
+            if (m_is_menu_open) {
+                return theme.menu_bar_item.open.foreground;
+            }
+            if (this->is_hovered()) {
+                return theme.menu_bar_item.hover.foreground;
+            }
+            return theme.menu_bar_item.normal.foreground;
         }
 
         /**
          * @brief Get theme-specific background color
          * @return Menu bar item background color from theme (state-dependent)
+         * @details Uses menu_bar_item-specific states (normal/hover/open)
          */
         [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
-            // Menu bar items use button colors for states
-            return this->get_state_background(theme.button);
+            // Map menu_bar_item states to visual_state
+            if (m_is_menu_open) {
+                return theme.menu_bar_item.open.background;
+            }
+            if (this->is_hovered()) {
+                return theme.menu_bar_item.hover.background;
+            }
+            return theme.menu_bar_item.normal.background;
         }
 
         /**
@@ -188,7 +231,7 @@ namespace onyxui {
          * @return Menu bar item font from theme
          */
         [[nodiscard]] typename Backend::renderer_type::font get_theme_font(const theme_type& theme) const override {
-            return theme.label.font;  // Use label font, not button font
+            return theme.menu_bar_item.normal.font;
         }
 
         /**
@@ -202,6 +245,7 @@ namespace onyxui {
         std::string m_text;                       ///< Plain item text
         mnemonic_info<Backend> m_mnemonic_info;   ///< Parsed mnemonic (unused for now)
         bool m_has_mnemonic = false;              ///< Whether mnemonic is active
+        bool m_is_menu_open = false;              ///< Whether this item's menu is open
     };
 
 } // namespace onyxui

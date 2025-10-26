@@ -34,14 +34,14 @@ namespace {
         theme.border_color = {255, 255, 255};
 
         // Button/menu item colors
-        theme.button.bg_normal = {0, 0, 170};
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_hover = {0, 170, 170};
-        theme.button.fg_hover = {255, 255, 255};
-        theme.button.bg_pressed = {170, 0, 0};
-        theme.button.fg_pressed = {255, 255, 255};
-        theme.button.bg_disabled = {85, 85, 85};
-        theme.button.fg_disabled = {170, 170, 170};
+        theme.button.normal.background = {0, 0, 170};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.hover.background = {0, 170, 170};
+        theme.button.hover.foreground = {255, 255, 255};
+        theme.button.pressed.background = {170, 0, 0};
+        theme.button.pressed.foreground = {255, 255, 255};
+        theme.button.disabled.background = {85, 85, 85};
+        theme.button.disabled.foreground = {170, 170, 170};
 
         // Label colors
         theme.label.background = {0, 0, 170};
@@ -51,7 +51,7 @@ namespace {
         theme.panel.box_style.draw_border = true;
 
         // Default font
-        theme.button.font = {};  // Use default font
+        theme.button.normal.font = {};  // Use default font
 
         return theme;
     }
@@ -174,7 +174,7 @@ TEST_CASE("Menu Item - Theme changes don't break measurement") {
         // Register two different themes
         ctx.themes().register_theme(create_menu_test_theme("Theme 1"));
         auto theme2 = create_menu_test_theme("Theme 2");
-        theme2.button.fg_normal = {255, 0, 0};  // Different color
+        theme2.button.normal.foreground = {255, 0, 0};  // Different color
         ctx.themes().register_theme(std::move(theme2));
 
         menu_item<Backend> item;
@@ -247,18 +247,18 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.border_color = {255, 255, 255};
 
         // Button colors for menu items
-        theme.button.bg_normal = {0, 0, 170};
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_hover = {0, 170, 170};
-        theme.button.fg_hover = {255, 255, 255};
-        theme.button.bg_pressed = {170, 0, 0};
-        theme.button.fg_pressed = {255, 255, 255};
-        theme.button.bg_disabled = {85, 85, 85};
-        theme.button.fg_disabled = {170, 170, 170};
+        theme.button.normal.background = {0, 0, 170};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.hover.background = {0, 170, 170};
+        theme.button.hover.foreground = {255, 255, 255};
+        theme.button.pressed.background = {170, 0, 0};
+        theme.button.pressed.foreground = {255, 255, 255};
+        theme.button.disabled.background = {85, 85, 85};
+        theme.button.disabled.foreground = {170, 170, 170};
 
         // Box style with border
         theme.button.box_style.draw_border = true;
-        theme.button.font = {};
+        theme.button.normal.font = {};
 
         // Panel border settings (CRITICAL for other tests!)
         theme.panel.box_style.draw_border = true;
@@ -308,9 +308,9 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.button.box_style.corner = '+';
         theme.button.box_style.horizontal = '-';
         theme.button.box_style.vertical = '|';
-        theme.button.bg_normal = {0, 0, 170};
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.font = {};
+        theme.button.normal.background = {0, 0, 170};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.font = {};
         ctx.themes().register_theme(std::move(theme));
 
         // Create three buttons like in menu bar
@@ -356,9 +356,9 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.button.box_style.corner = '+';
         theme.button.box_style.horizontal = '-';
         theme.button.box_style.vertical = '|';
-        theme.button.bg_normal = {0, 0, 170};
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.font = {};
+        theme.button.normal.background = {0, 0, 170};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.font = {};
         ctx.themes().register_theme(std::move(theme));
 
         // Create a panel as the parent (simulating main_widget)

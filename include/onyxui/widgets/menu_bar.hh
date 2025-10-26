@@ -491,6 +491,11 @@ namespace onyxui {
         m_open_menu_index = index;
         auto& entry = m_menus[index];
 
+        // Update visual state of menu bar item
+        if (entry.title_item) {
+            entry.title_item->set_menu_open(true);
+        }
+
         // Show context menu with outside click detection (Phase 1.3)
         // scoped_layer auto-closes previous menu when reassigned
         m_current_menu = entry.title_item->show_context_menu_scoped(
@@ -510,6 +515,12 @@ namespace onyxui {
     void menu_bar<Backend>::close_menu() {
         if (!m_open_menu_index) {
             return;
+        }
+
+        // Update visual state of menu bar item
+        auto& entry = m_menus[*m_open_menu_index];
+        if (entry.title_item) {
+            entry.title_item->set_menu_open(false);
         }
 
         // RAII cleanup - scoped_layer automatically removes layer

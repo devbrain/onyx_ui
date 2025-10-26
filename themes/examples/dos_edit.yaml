@@ -10,27 +10,37 @@ window_bg: { r: 170, g: 170, b: 170 }    # Light gray
 text_fg: { r: 0, g: 0, b: 0 }            # Black
 border_color: { r: 85, g: 85, b: 85 }    # Dark gray
 
-# Button styling
+# Button styling with visual_state bundles
 button:
-  fg_normal: { r: 0, g: 0, b: 0 }
-  bg_normal: { r: 170, g: 170, b: 170 }  # Gray
+  # Normal state
+  normal:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 0, g: 0, b: 0 }
+    background: { r: 170, g: 170, b: 170 }  # Gray
 
-  fg_hover: { r: 255, g: 255, b: 255 }   # White on black
-  bg_hover: { r: 0, g: 0, b: 0 }
+  # Hover state
+  hover:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 255 }  # White on black
+    background: { r: 0, g: 0, b: 0 }
 
-  fg_pressed: { r: 0, g: 0, b: 0 }       # Black on white
-  bg_pressed: { r: 255, g: 255, b: 255 }
+  # Pressed state
+  pressed:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 0, g: 0, b: 0 }        # Black on white
+    background: { r: 255, g: 255, b: 255 }
 
-  fg_disabled: { r: 85, g: 85, b: 85 }   # Dark gray
-  bg_disabled: { r: 170, g: 170, b: 170 }
+  # Disabled state
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 85, g: 85, b: 85 }     # Dark gray
+    background: { r: 170, g: 170, b: 170 }
 
+  mnemonic_font: { bold: false, reverse: false, underline: true }
   box_style: single_line
   padding_horizontal: 2
   padding_vertical: 0
   text_align: center
-
-  font: { bold: false, reverse: false, underline: false }
-  mnemonic_font: { bold: false, reverse: false, underline: true }
 
 # Label styling
 label:
@@ -42,6 +52,6 @@ label:
 # Panel styling
 panel:
   background: { r: 170, g: 170, b: 170 }  # Gray
-  border_color: { r: 0, g: 0, b: 0 }      # Black borders
+  border_color: { r: 85, g: 85, b: 85 }   # Dark gray
   box_style: single_line
   has_border: true

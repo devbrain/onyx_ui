@@ -68,6 +68,7 @@ namespace onyxui {
     public:
         using base = widget<Backend>;
         using color_type = typename Backend::color_type;
+        using font_type = typename Backend::renderer_type::font;
 
         /**
          * @enum interaction_state
@@ -135,14 +136,14 @@ namespace onyxui {
         [[nodiscard]] color_type get_state_background(const WidgetTheme& widget_theme) const noexcept {
             switch (m_state) {
                 case interaction_state::disabled:
-                    return widget_theme.bg_disabled;
+                    return widget_theme.disabled.background;
                 case interaction_state::pressed:
-                    return widget_theme.bg_pressed;
+                    return widget_theme.pressed.background;
                 case interaction_state::hover:
-                    return widget_theme.bg_hover;
+                    return widget_theme.hover.background;
                 case interaction_state::normal:
                 default:
-                    return widget_theme.bg_normal;
+                    return widget_theme.normal.background;
             }
         }
 
@@ -166,14 +167,45 @@ namespace onyxui {
         [[nodiscard]] color_type get_state_foreground(const WidgetTheme& widget_theme) const noexcept {
             switch (m_state) {
                 case interaction_state::disabled:
-                    return widget_theme.fg_disabled;
+                    return widget_theme.disabled.foreground;
                 case interaction_state::pressed:
-                    return widget_theme.fg_pressed;
+                    return widget_theme.pressed.foreground;
                 case interaction_state::hover:
-                    return widget_theme.fg_hover;
+                    return widget_theme.hover.foreground;
                 case interaction_state::normal:
                 default:
-                    return widget_theme.fg_normal;
+                    return widget_theme.normal.foreground;
+            }
+        }
+
+        /**
+         * @brief Get font for current state
+         *
+         * @tparam WidgetTheme Widget-specific theme structure type
+         * @param widget_theme The widget theme (e.g., theme.button)
+         * @return Font appropriate for current state
+         *
+         * @details
+         * Expects the widget theme to have visual_state bundles:
+         * - normal, hover, pressed, disabled (each with .font property)
+         *
+         * @example
+         * @code
+         * auto font = get_state_font(theme->button);
+         * @endcode
+         */
+        template<typename WidgetTheme>
+        [[nodiscard]] font_type get_state_font(const WidgetTheme& widget_theme) const noexcept {
+            switch (m_state) {
+                case interaction_state::disabled:
+                    return widget_theme.disabled.font;
+                case interaction_state::pressed:
+                    return widget_theme.pressed.font;
+                case interaction_state::hover:
+                    return widget_theme.hover.font;
+                case interaction_state::normal:
+                default:
+                    return widget_theme.normal.font;
             }
         }
 

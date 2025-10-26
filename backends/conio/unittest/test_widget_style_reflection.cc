@@ -25,17 +25,28 @@ using panel_style = theme_type::panel_style;
 TEST_CASE("Button Style - Serialization") {
     SUBCASE("Complete button style") {
         button_style style{
-            .fg_normal = color{255, 255, 255},
-            .bg_normal = color{0, 0, 170},
-            .fg_hover = color{255, 255, 0},
-            .bg_hover = color{0, 170, 170},
-            .fg_pressed = color{0, 0, 0},
-            .bg_pressed = color{170, 170, 170},
-            .fg_disabled = color{128, 128, 128},
-            .bg_disabled = color{64, 64, 64},
-            .box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true},
-            .font = {true, false, false},
+            .normal = {
+                .font = {true, false, false},
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 170}
+            },
+            .hover = {
+                .font = {true, false, false},
+                .foreground = color{255, 255, 0},
+                .background = color{0, 170, 170}
+            },
+            .pressed = {
+                .font = {false, false, false},
+                .foreground = color{0, 0, 0},
+                .background = color{170, 170, 170}
+            },
+            .disabled = {
+                .font = {false, false, false},
+                .foreground = color{128, 128, 128},
+                .background = color{64, 64, 64}
+            },
             .mnemonic_font = {true, true, false},
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true},
             .padding_horizontal = 4,
             .padding_vertical = 2,
             .text_align = horizontal_alignment::center,
@@ -45,18 +56,18 @@ TEST_CASE("Button Style - Serialization") {
         auto yaml = to_yaml(style);
         CHECK(yaml.is_mapping());
 
-        // Check colors
-        // Color now as object: CHECK(yaml["fg_normal"].is_mapping());
-        // Color now as object: CHECK(yaml["bg_normal"].is_mapping());
-        // Color now as object: CHECK(yaml["fg_hover"].is_mapping());
-        // Color now as object: CHECK(yaml["bg_hover"].is_mapping());
+        // Check visual_state bundles
+        CHECK(yaml["normal"].is_mapping());
+        CHECK(yaml["hover"].is_mapping());
+        CHECK(yaml["pressed"].is_mapping());
+        CHECK(yaml["disabled"].is_mapping());
 
         // Check enums
         CHECK(yaml["box_style"].get_value<std::string>() == "double_line");
         CHECK(yaml["text_align"].get_value<std::string>() == "center");
 
-        // Check fonts
-        CHECK(yaml["font"]["bold"].get_value<bool>() == true);
+        // Check fonts in visual states
+        CHECK(yaml["normal"]["font"]["bold"].get_value<bool>() == true);
         CHECK(yaml["mnemonic_font"]["underline"].get_value<bool>() == true);
 
         // Check integers
@@ -68,19 +79,35 @@ TEST_CASE("Button Style - Serialization") {
 TEST_CASE("Button Style - Deserialization") {
     SUBCASE("Full button style from YAML") {
         std::string yaml_str = R"(
-fg_normal: [255, 255, 255]
-bg_normal: [0, 0, 170]
-fg_hover: [255, 255, 0]
-bg_hover: [0, 170, 170]
-fg_pressed: [0, 0, 0]
-bg_pressed: [170, 170, 170]
-fg_disabled: [128, 128, 128]
-bg_disabled: [64, 64, 64]
+normal:
+  font:
+    bold: true
+    underline: false
+    reverse: false
+  foreground: [255, 255, 255]
+  background: [0, 0, 170]
+hover:
+  font:
+    bold: true
+    underline: false
+    reverse: false
+  foreground: [255, 255, 0]
+  background: [0, 170, 170]
+pressed:
+  font:
+    bold: false
+    underline: false
+    reverse: false
+  foreground: [0, 0, 0]
+  background: [170, 170, 170]
+disabled:
+  font:
+    bold: false
+    underline: false
+    reverse: false
+  foreground: [128, 128, 128]
+  background: [64, 64, 64]
 box_style: double_line
-font:
-  bold: true
-  underline: false
-  reverse: false
 mnemonic_font:
   bold: true
   underline: true
@@ -93,17 +120,17 @@ corner_radius: 0
 
         auto style = from_yaml_string<button_style>(yaml_str);
 
-        // Check colors
-        CHECK(style.fg_normal.r == 255);
-        CHECK(style.bg_normal.b == 170);
-        CHECK(style.fg_hover.g == 255);
+        // Check visual states
+        CHECK(style.normal.foreground.r == 255);
+        CHECK(style.normal.background.b == 170);
+        CHECK(style.hover.foreground.g == 255);
 
         // Check enums
         CHECK(style.box_style.style == conio_renderer::border_style::double_line);
         CHECK(style.text_align == horizontal_alignment::center);
 
-        // Check fonts
-        CHECK(style.font.bold == true);
+        // Check fonts in visual states
+        CHECK(style.normal.font.bold == true);
         CHECK(style.mnemonic_font.underline == true);
 
         // Check integers
@@ -113,14 +140,18 @@ corner_radius: 0
 
     SUBCASE("Button style with defaults") {
         std::string yaml_str = R"(
-fg_normal: [255, 255, 255]
-bg_normal: [0, 0, 170]
-fg_hover: [255, 255, 0]
-bg_hover: [0, 170, 170]
-fg_pressed: [0, 0, 0]
-bg_pressed: [170, 170, 170]
-fg_disabled: [128, 128, 128]
-bg_disabled: [64, 64, 64]
+normal:
+  foreground: [255, 255, 255]
+  background: [0, 0, 170]
+hover:
+  foreground: [255, 255, 0]
+  background: [0, 170, 170]
+pressed:
+  foreground: [0, 0, 0]
+  background: [170, 170, 170]
+disabled:
+  foreground: [128, 128, 128]
+  background: [64, 64, 64]
 )";
 
         auto style = from_yaml_string<button_style>(yaml_str);
@@ -257,17 +288,28 @@ border_color: [128, 128, 128]
 TEST_CASE("Widget Styles - Round-trip preservation") {
     SUBCASE("Button style round-trip") {
         button_style original{
-            .fg_normal = color{200, 200, 200},
-            .bg_normal = color{50, 50, 50},
-            .fg_hover = color{255, 255, 255},
-            .bg_hover = color{100, 100, 255},
-            .fg_pressed = color{128, 128, 128},
-            .bg_pressed = color{30, 30, 30},
-            .fg_disabled = color{100, 100, 100},
-            .bg_disabled = color{40, 40, 40},
-            .box_style = conio_renderer::box_style{conio_renderer::border_style::rounded, true},
-            .font = {true, false, false},
+            .normal = {
+                .font = {true, false, false},
+                .foreground = color{200, 200, 200},
+                .background = color{50, 50, 50}
+            },
+            .hover = {
+                .font = {true, false, false},
+                .foreground = color{255, 255, 255},
+                .background = color{100, 100, 255}
+            },
+            .pressed = {
+                .font = {false, false, false},
+                .foreground = color{128, 128, 128},
+                .background = color{30, 30, 30}
+            },
+            .disabled = {
+                .font = {false, false, false},
+                .foreground = color{100, 100, 100},
+                .background = color{40, 40, 40}
+            },
             .mnemonic_font = {true, true, false},
+            .box_style = conio_renderer::box_style{conio_renderer::border_style::rounded, true},
             .padding_horizontal = 6,
             .padding_vertical = 3,
             .text_align = horizontal_alignment::left
@@ -276,10 +318,10 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
         auto yaml = to_yaml(original);
         auto restored = from_yaml<button_style>(yaml);
 
-        CHECK(restored.fg_normal.r == original.fg_normal.r);
-        CHECK(restored.bg_hover.b == original.bg_hover.b);
+        CHECK(restored.normal.foreground.r == original.normal.foreground.r);
+        CHECK(restored.hover.background.b == original.hover.background.b);
         CHECK(restored.box_style == original.box_style);
-        CHECK(restored.font.bold == original.font.bold);
+        CHECK(restored.normal.font.bold == original.normal.font.bold);
         CHECK(restored.padding_horizontal == original.padding_horizontal);
         CHECK(restored.text_align == original.text_align);
     }
@@ -322,14 +364,22 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
 TEST_CASE("Widget Styles - Text alignment variations") {
     SUBCASE("Left alignment") {
         button_style style{
-            .fg_normal = color{255, 255, 255},
-            .bg_normal = color{0, 0, 0},
-            .fg_hover = color{255, 255, 255},
-            .bg_hover = color{0, 0, 0},
-            .fg_pressed = color{255, 255, 255},
-            .bg_pressed = color{0, 0, 0},
-            .fg_disabled = color{255, 255, 255},
-            .bg_disabled = color{0, 0, 0},
+            .normal = {
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            },
+            .hover = {
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            },
+            .pressed = {
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            },
+            .disabled = {
+                .foreground = color{255, 255, 255},
+                .background = color{0, 0, 0}
+            },
             .text_align = horizontal_alignment::left
         };
 
@@ -339,14 +389,18 @@ TEST_CASE("Widget Styles - Text alignment variations") {
 
     SUBCASE("Right alignment") {
         std::string yaml_str = R"(
-fg_normal: [255, 255, 255]
-bg_normal: [0, 0, 0]
-fg_hover: [255, 255, 255]
-bg_hover: [0, 0, 0]
-fg_pressed: [255, 255, 255]
-bg_pressed: [0, 0, 0]
-fg_disabled: [255, 255, 255]
-bg_disabled: [0, 0, 0]
+normal:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+hover:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+pressed:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+disabled:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
 text_align: right
 )";
 
@@ -356,14 +410,18 @@ text_align: right
 
     SUBCASE("Stretch alignment") {
         std::string yaml_str = R"(
-fg_normal: [255, 255, 255]
-bg_normal: [0, 0, 0]
-fg_hover: [255, 255, 255]
-bg_hover: [0, 0, 0]
-fg_pressed: [255, 255, 255]
-bg_pressed: [0, 0, 0]
-fg_disabled: [255, 255, 255]
-bg_disabled: [0, 0, 0]
+normal:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+hover:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+pressed:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
+disabled:
+  foreground: [255, 255, 255]
+  background: [0, 0, 0]
 text_align: stretch
 )";
 

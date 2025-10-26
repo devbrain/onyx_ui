@@ -10,32 +10,37 @@ window_bg: { r: 0, g: 0, b: 0 }          # Pure black
 text_fg: { r: 255, g: 255, b: 255 }      # Pure white
 border_color: { r: 255, g: 255, b: 255 } # White borders
 
-# Button styling - maximum contrast
+# Button styling - maximum contrast with visual_state bundles
 button:
-  # Normal state: white on black
-  fg_normal: { r: 255, g: 255, b: 255 }
-  bg_normal: { r: 0, g: 0, b: 0 }
+  # Normal state: white on black with bold font
+  normal:
+    font: { bold: true, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 0, g: 0, b: 0 }
 
   # Hover state: black on white (inverted)
-  fg_hover: { r: 0, g: 0, b: 0 }
-  bg_hover: { r: 255, g: 255, b: 255 }
+  hover:
+    font: { bold: true, reverse: false, underline: false }
+    foreground: { r: 0, g: 0, b: 0 }
+    background: { r: 255, g: 255, b: 255 }
 
   # Pressed state: white on dark gray
-  fg_pressed: { r: 255, g: 255, b: 255 }
-  bg_pressed: { r: 64, g: 64, b: 64 }
+  pressed:
+    font: { bold: true, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 64, g: 64, b: 64 }
 
   # Disabled state: gray on black
-  fg_disabled: { r: 128, g: 128, b: 128 }
-  bg_disabled: { r: 0, g: 0, b: 0 }
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 128, g: 128, b: 128 }
+    background: { r: 0, g: 0, b: 0 }
 
+  mnemonic_font: { bold: true, reverse: false, underline: true }
   box_style: heavy                        # Heavy borders for better visibility
   padding_horizontal: 3                   # Extra padding for better touch targets
   padding_vertical: 1
   text_align: center
-
-  # Bold font for better readability
-  font: { bold: true, reverse: false, underline: false }
-  mnemonic_font: { bold: true, reverse: false, underline: true }
 
 # Label styling - high contrast
 label:

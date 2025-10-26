@@ -144,6 +144,23 @@ namespace onyxui {
         ) = 0;
 
         /**
+         * @brief Fill a rectangle with solid background color
+         *
+         * @param bounds Rectangle bounds
+         *
+         * @details
+         * Fills the rectangle with the background color from resolved style.
+         * No border is drawn - this is pure background fill.
+         *
+         * - **measure_context**: Tracks bounds, no rendering
+         * - **draw_context**: Fills rectangle with background color
+         *
+         * This is the preferred method for drawing widget backgrounds with
+         * state-dependent colors (hover, focus, etc.).
+         */
+        virtual void fill_rect(const rect_type& bounds) = 0;
+
+        /**
          * @brief Draw a line
          *
          * @param from Start point

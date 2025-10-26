@@ -118,7 +118,7 @@ namespace onyxui {
             if (auto* theme = this->get_theme()) {
                 m_mnemonic_info = parse_mnemonic<Backend>(
                     mnemonic_text,
-                    theme->button.font,
+                    theme->button.normal.font,
                     theme->button.mnemonic_font
                 );
                 m_has_mnemonic = true;
@@ -244,7 +244,7 @@ namespace onyxui {
             } else {
                 // Render plain text
                 typename Backend::point_type const text_pos{text_x, text_y};
-                ctx.draw_text(m_text, text_pos, theme->button.font, fg);
+                ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
             }
         }
 
@@ -264,6 +264,48 @@ namespace onyxui {
             return this->get_state_foreground(theme.button);
         }
 
+    public:
+        /**
+         * @brief Resolve style with state-dependent colors (NO parent color inheritance)
+         *
+         * @details
+         * Buttons use STATE-DEPENDENT colors that should NOT be inherited from parents.
+         * We override resolve_style() to use our own state colors directly instead of
+         * inheriting parent colors.
+         *
+         * Priority: explicit override → state-dependent theme color → default
+         */
+        [[nodiscard]] resolved_style<Backend> resolve_style() const override {
+            resolved_style<Backend> style;
+
+            // Resolve background color: explicit override OR state-dependent theme color
+            if (this->m_background_override) {
+                style.background_color = *this->m_background_override;
+            } else if (auto* theme = this->get_theme()) {
+                style.background_color = get_theme_background_color(*theme);
+            } else {
+                style.background_color = typename Backend::color_type{};
+            }
+
+            // Resolve foreground color: explicit override OR state-dependent theme color
+            if (this->m_foreground_override) {
+                style.foreground_color = *this->m_foreground_override;
+            } else if (auto* theme = this->get_theme()) {
+                style.foreground_color = get_theme_foreground_color(*theme);
+            } else {
+                style.foreground_color = typename Backend::color_type{};
+            }
+
+            // Resolve other properties normally (these can inherit from parent)
+            style.box_style = this->get_effective_box_style();
+            style.font = this->get_effective_font();
+            style.opacity = this->get_effective_opacity();
+            style.icon_style = this->get_effective_icon_style();
+            style.border_color = style.foreground_color;
+
+            return style;
+        }
+
         /**
          * @brief Get theme-specific box style
          * @return Button box style from theme
@@ -274,10 +316,10 @@ namespace onyxui {
 
         /**
          * @brief Get theme-specific font
-         * @return Button font from theme
+         * @return Button font from theme (normal state)
          */
         [[nodiscard]] typename Backend::renderer_type::font get_theme_font(const theme_type& theme) const override {
-            return theme.button.font;
+            return theme.button.normal.font;
         }
 
         /**

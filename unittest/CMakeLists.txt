@@ -79,6 +79,7 @@ add_executable(ui_unittest
         theming/test_style_inheritance.cc
         theming/test_style_edge_cases.cc
         theming/test_style_thread_safety.cc
+        theming/test_stateful_color_resolution.cc  # State-dependent colors vs CSS inheritance
         # Layer management tests
         layer/test_layer_dirty_regions.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)

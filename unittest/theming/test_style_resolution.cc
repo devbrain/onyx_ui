@@ -30,14 +30,14 @@ namespace {
         theme.border_color = {100, 100, 100};
 
         // Button styling
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_normal = {0, 120, 215};
-        theme.button.fg_hover = {255, 255, 255};
-        theme.button.bg_hover = {0, 102, 204};
-        theme.button.fg_pressed = {255, 255, 255};
-        theme.button.bg_pressed = {0, 84, 179};
-        theme.button.fg_disabled = {128, 128, 128};
-        theme.button.bg_disabled = {40, 40, 40};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.background = {0, 120, 215};
+        theme.button.hover.foreground = {255, 255, 255};
+        theme.button.hover.background = {0, 102, 204};
+        theme.button.pressed.foreground = {255, 255, 255};
+        theme.button.pressed.background = {0, 84, 179};
+        theme.button.disabled.foreground = {128, 128, 128};
+        theme.button.disabled.background = {40, 40, 40};
 
         // Label styling
         theme.label.text = {240, 240, 240};
@@ -67,7 +67,7 @@ TEST_CASE("Style Resolution - resolve_style() returns populated style") {
     // Resolve style
     auto style = btn->resolve_style();
 
-    // Verify all fields are populated (button uses button.fg_normal=255 and button.bg_normal.g=120)
+    // Verify all fields are populated (button uses button.normal.foreground=255 and button.normal.background.g=120)
     CHECK(style.foreground_color.r > 0);
     CHECK(style.background_color.g > 0);  // bg_normal = {0, 120, 215}, so check g channel
 }
@@ -163,9 +163,9 @@ TEST_CASE("Style Resolution - Theme fallback when no parent or override") {
 
     auto style = btn->resolve_style();
 
-    // Should use button-specific theme colors (button.fg_normal, button.bg_normal)
-    CHECK(style.foreground_color.r == 255);  // button.fg_normal
-    CHECK(style.background_color.g == 120);   // button.bg_normal = {0, 120, 215}
+    // Should use button-specific theme colors (button.normal.foreground, button.normal.background)
+    CHECK(style.foreground_color.r == 255);  // button.normal.foreground
+    CHECK(style.background_color.g == 120);   // button.normal.background = {0, 120, 215}
 }
 
 TEST_CASE("Style Resolution - Default fallback when no theme") {
@@ -194,7 +194,7 @@ TEST_CASE("Style Resolution - Partial theme fills gaps with defaults") {
     ui_theme<Backend> incomplete_theme;
     incomplete_theme.name = "Incomplete";
     // Leave most fields default-initialized
-    incomplete_theme.button.fg_normal = {255, 100, 0};  // Only set foreground
+    incomplete_theme.button.normal.foreground = {255, 100, 0};  // Only set foreground
 
     scoped_ui_context<Backend> ctx;
     ctx.themes().register_theme(std::move(incomplete_theme));
@@ -302,8 +302,8 @@ TEST_CASE("Style Resolution - Orphan widget with theme resolves correctly") {
     auto style = orphan->resolve_style();
 
     // Should use button-specific theme colors
-    CHECK(style.foreground_color.r == 255);  // button.fg_normal
-    CHECK(style.background_color.g == 120);   // button.bg_normal = {0, 120, 215}
+    CHECK(style.foreground_color.r == 255);  // button.normal.foreground
+    CHECK(style.background_color.g == 120);   // button.normal.background = {0, 120, 215}
 }
 
 // ============================================================================
@@ -328,7 +328,7 @@ TEST_CASE("Style Resolution - Five-level inheritance chain") {
     auto* l4 = l3->template emplace_child<panel>();
     l4->set_foreground_color({0, 255, 0});  // Green override at L4
 
-    auto* l5 = l4->template emplace_child<button>("Deep Button");
+    auto* l5 = l4->template emplace_child<panel>();
     // No override, inherits from L4
 
     auto style = l5->resolve_style();
@@ -353,10 +353,10 @@ TEST_CASE("Style Resolution - Ten-level inheritance chain") {
         current = current->template emplace_child<panel>();
     }
 
-    // Add button at depth 10
-    auto* deep_btn = current->template emplace_child<button>("Deep");
+    // Add panel at depth 10 (testing CSS inheritance)
+    auto* deep_panel = current->template emplace_child<panel>();
 
-    auto style = deep_btn->resolve_style();
+    auto style = deep_panel->resolve_style();
 
     // Should successfully resolve even at depth 10
     CHECK(style.background_color.r == 10);
@@ -407,7 +407,7 @@ TEST_CASE("Style Resolution - Detached widget has no parent reference") {
 
     // Should still resolve correctly
     auto style = widget->resolve_style();
-    CHECK(style.foreground_color.r == 255);  // Uses button theme (button.fg_normal, not text_fg)
+    CHECK(style.foreground_color.r == 255);  // Uses button theme (button.normal.foreground, not text_fg)
 }
 
 TEST_CASE("Style Resolution - Widget removed from parent has no dangling ref") {
@@ -468,10 +468,10 @@ TEST_CASE("Style Resolution - Performance: Deep hierarchy resolution") {
         current = current->template emplace_child<panel>();
     }
 
-    auto* deep_btn = current->template emplace_child<button>("Deep");
+    auto* deep_panel = current->template emplace_child<panel>();
 
     // Should resolve in reasonable time even at depth 100
-    auto style = deep_btn->resolve_style();
+    auto style = deep_panel->resolve_style();
 
     CHECK(style.foreground_color.r >= 0);
 }
@@ -516,7 +516,7 @@ TEST_CASE("Style Resolution - Multiple resolutions are independent") {
     style1.foreground_color = {100, 200, 150};
 
     // Style2 should still have original button colors (not modified by style1 change)
-    CHECK(style2.foreground_color.r == 255);  // button.fg_normal
+    CHECK(style2.foreground_color.r == 255);  // button.normal.foreground
     CHECK(style2.foreground_color.g == 255);
     CHECK(style2.foreground_color.b == 255);
 }

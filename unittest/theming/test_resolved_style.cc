@@ -431,14 +431,14 @@ namespace {
         theme.name = "Extraction Test";
 
         // Button states
-        theme.button.fg_normal = {255, 255, 255, 255};
-        theme.button.bg_normal = {0, 0, 170, 255};
-        theme.button.fg_hover = {255, 255, 0, 255};
-        theme.button.bg_hover = {0, 170, 170, 255};
-        theme.button.fg_pressed = {0, 0, 0, 255};
-        theme.button.bg_pressed = {170, 170, 170, 255};
-        theme.button.fg_disabled = {128, 128, 128, 255};
-        theme.button.bg_disabled = {64, 64, 64, 255};
+        theme.button.normal.foreground = {255, 255, 255, 255};
+        theme.button.normal.background = {0, 0, 170, 255};
+        theme.button.hover.foreground = {255, 255, 0, 255};
+        theme.button.hover.background = {0, 170, 170, 255};
+        theme.button.pressed.foreground = {0, 0, 0, 255};
+        theme.button.pressed.background = {170, 170, 170, 255};
+        theme.button.disabled.foreground = {128, 128, 128, 255};
+        theme.button.disabled.background = {64, 64, 64, 255};
 
         // Label styling
         theme.label.text = {255, 255, 0, 255};
@@ -457,8 +457,8 @@ TEST_CASE("resolved_style - From theme (button normal state)") {
 
     // Extract style for button normal state
     resolved_style<test_backend> style;
-    style.foreground_color = theme.button.fg_normal;
-    style.background_color = theme.button.bg_normal;
+    style.foreground_color = theme.button.normal.foreground;
+    style.background_color = theme.button.normal.background;
 
     CHECK(style.foreground_color.r == 255);
     CHECK(style.foreground_color.g == 255);
@@ -472,8 +472,8 @@ TEST_CASE("resolved_style - From theme (button hover state)") {
     auto theme = create_extraction_test_theme();
 
     resolved_style<test_backend> style;
-    style.foreground_color = theme.button.fg_hover;
-    style.background_color = theme.button.bg_hover;
+    style.foreground_color = theme.button.hover.foreground;
+    style.background_color = theme.button.hover.background;
 
     CHECK(style.foreground_color.r == 255);
     CHECK(style.foreground_color.g == 255);
@@ -485,8 +485,8 @@ TEST_CASE("resolved_style - From theme (button pressed state)") {
     auto theme = create_extraction_test_theme();
 
     resolved_style<test_backend> style;
-    style.foreground_color = theme.button.fg_pressed;
-    style.background_color = theme.button.bg_pressed;
+    style.foreground_color = theme.button.pressed.foreground;
+    style.background_color = theme.button.pressed.background;
 
     CHECK(style.foreground_color.r == 0);
     CHECK(style.foreground_color.g == 0);
@@ -498,8 +498,8 @@ TEST_CASE("resolved_style - From theme (button disabled state)") {
     auto theme = create_extraction_test_theme();
 
     resolved_style<test_backend> style;
-    style.foreground_color = theme.button.fg_disabled;
-    style.background_color = theme.button.bg_disabled;
+    style.foreground_color = theme.button.disabled.foreground;
+    style.background_color = theme.button.disabled.background;
 
     CHECK(style.foreground_color.r == 128);
     CHECK(style.background_color.r == 64);
@@ -536,14 +536,14 @@ TEST_CASE("resolved_style - State-based extraction preserves other properties") 
 
     // Extract normal state
     resolved_style<test_backend> normal_style;
-    normal_style.foreground_color = theme.button.fg_normal;
-    normal_style.background_color = theme.button.bg_normal;
+    normal_style.foreground_color = theme.button.normal.foreground;
+    normal_style.background_color = theme.button.normal.background;
     normal_style.opacity = 1.0F;
 
     // Extract hover state
     resolved_style<test_backend> hover_style;
-    hover_style.foreground_color = theme.button.fg_hover;
-    hover_style.background_color = theme.button.bg_hover;
+    hover_style.foreground_color = theme.button.hover.foreground;
+    hover_style.background_color = theme.button.hover.background;
     hover_style.opacity = 1.0F;
 
     // Both should have same opacity (not affected by state)
@@ -558,8 +558,8 @@ TEST_CASE("resolved_style - Widget type affects extraction") {
 
     // Button gets button colors
     resolved_style<test_backend> button_style;
-    button_style.foreground_color = theme.button.fg_normal;
-    button_style.background_color = theme.button.bg_normal;
+    button_style.foreground_color = theme.button.normal.foreground;
+    button_style.background_color = theme.button.normal.background;
 
     // Label gets label colors
     resolved_style<test_backend> label_style;

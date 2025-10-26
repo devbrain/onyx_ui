@@ -29,8 +29,8 @@ namespace {
         theme.text_fg = {200, 200, 200};
         theme.border_color = {100, 100, 100};
 
-        theme.button.fg_normal = {255, 255, 255};
-        theme.button.bg_normal = {0, 120, 215};
+        theme.button.normal.foreground = {255, 255, 255};
+        theme.button.normal.background = {0, 120, 215};
 
         return theme;
     }
@@ -115,7 +115,7 @@ TEST_CASE("Edge Cases - Partial theme with missing widget styles") {
 
     auto style = btn->resolve_style();
 
-    // Button uses button.bg_normal (defaults to {0,0,0}), not window_bg
+    // Button uses button.normal.background (defaults to {0,0,0}), not window_bg
     CHECK(style.background_color.r == 0);
 }
 
@@ -138,21 +138,21 @@ TEST_CASE("Edge Cases - Rapid theme switching") {
         btn->apply_theme("Theme C", ctx.themes());
     }
 
-    // Should still work correctly - button uses button.bg_normal = {0, 120, 215}
+    // Should still work correctly - button uses button.normal.background = {0, 120, 215}
     auto style = btn->resolve_style();
-    CHECK(style.background_color.r == 0);  // button.bg_normal.r
-    CHECK(style.background_color.g == 120);  // button.bg_normal.g
+    CHECK(style.background_color.r == 0);  // button.normal.background.r
+    CHECK(style.background_color.g == 120);  // button.normal.background.g
 }
 
 TEST_CASE("Edge Cases - Theme switching during style resolution") {
     scoped_ui_context<Backend> ctx;
 
     auto theme_a = create_edge_case_theme("A");
-    theme_a.button.bg_normal = {100, 0, 0};  // Red button
+    theme_a.button.normal.background = {100, 0, 0};  // Red button
     ctx.themes().register_theme(std::move(theme_a));
 
     auto theme_b = create_edge_case_theme("B");
-    theme_b.button.bg_normal = {0, 100, 0};  // Green button
+    theme_b.button.normal.background = {0, 100, 0};  // Green button
     ctx.themes().register_theme(std::move(theme_b));
 
     auto btn = std::make_unique<button<Backend>>("Test");
@@ -178,7 +178,7 @@ TEST_CASE("Edge Cases - Theme switch from valid to invalid") {
     btn->apply_theme("Valid", ctx.themes());
 
     auto style1 = btn->resolve_style();
-    CHECK(style1.background_color.g == 120);  // button.bg_normal.g
+    CHECK(style1.background_color.g == 120);  // button.normal.background.g
 
     // Try to switch to nonexistent theme
     bool success = btn->apply_theme("Nonexistent", ctx.themes());
@@ -207,11 +207,11 @@ TEST_CASE("Edge Cases - 100-widget linear hierarchy") {
         current = current->template emplace_child<panel>();
     }
 
-    // Add button at depth 100
-    auto* deep_btn = current->template emplace_child<button>("Deep");
+    // Add panel at depth 100 (testing CSS inheritance)
+    auto* deep_panel = current->template emplace_child<panel>();
 
     // Should resolve without hanging
-    auto style = deep_btn->resolve_style();
+    auto style = deep_panel->resolve_style();
     CHECK(style.background_color.r == 100);
 }
 
@@ -223,10 +223,10 @@ TEST_CASE("Edge Cases - Wide tree with 100 children") {
     root->apply_theme("Edge Case Theme", ctx.themes());
     root->set_foreground_color({150, 150, 150});
 
-    // Add 100 children
-    std::vector<button<Backend>*> children;
+    // Add 100 children (testing CSS inheritance with panels)
+    std::vector<panel<Backend>*> children;
     for (int i = 0; i < 100; ++i) {
-        auto* child = root->template emplace_child<button>("Child");
+        auto* child = root->template emplace_child<panel>();
         children.push_back(child);
     }
 
@@ -370,7 +370,7 @@ TEST_CASE("Edge Cases - Widget not yet measured or arranged") {
 
     // No measure() or arrange() called
 
-    // Should still resolve style - button uses button.fg_normal = {255, 255, 255}
+    // Should still resolve style - button uses button.normal.foreground = {255, 255, 255}
     auto style = widget->resolve_style();
     CHECK(style.foreground_color.r == 255);
 }
@@ -391,9 +391,9 @@ TEST_CASE("Edge Cases - 10000 sequential style resolutions") {
         [[maybe_unused]] auto style = btn->resolve_style();
     }
 
-    // Should complete without hanging or corruption - button uses button.bg_normal
+    // Should complete without hanging or corruption - button uses button.normal.background
     auto final_style = btn->resolve_style();
-    CHECK(final_style.background_color.g == 120);  // button.bg_normal = {0, 120, 215}
+    CHECK(final_style.background_color.g == 120);  // button.normal.background = {0, 120, 215}
 }
 
 TEST_CASE("Edge Cases - Alternating resolution and modification") {
@@ -450,11 +450,11 @@ TEST_CASE("Edge Cases - Duplicate theme registration") {
     scoped_ui_context<Backend> ctx;
 
     auto theme1 = create_edge_case_theme("Duplicate");
-    theme1.button.bg_normal = {100, 0, 0};
+    theme1.button.normal.background = {100, 0, 0};
     ctx.themes().register_theme(std::move(theme1));
 
     auto theme2 = create_edge_case_theme("Duplicate");
-    theme2.button.bg_normal = {0, 100, 0};
+    theme2.button.normal.background = {0, 100, 0};
     ctx.themes().register_theme(std::move(theme2));  // Overwrites first
 
     auto btn = std::make_unique<button<Backend>>("Test");
@@ -478,7 +478,7 @@ TEST_CASE("Edge Cases - Theme name with special characters") {
     CHECK(success == true);
 
     auto style = btn->resolve_style();
-    CHECK(style.background_color.g == 120);  // button.bg_normal = {0, 120, 215}
+    CHECK(style.background_color.g == 120);  // button.normal.background = {0, 120, 215}
 }
 
 } // TEST_SUITE

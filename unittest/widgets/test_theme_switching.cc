@@ -20,14 +20,14 @@ namespace {
         theme.window_bg = {0, 0, 100};      // Dark blue
         theme.text_fg = {100, 100, 255};    // Light blue
 
-        theme.button.bg_normal = {0, 0, 255};     // Bright blue
-        theme.button.fg_normal = {255, 255, 255}; // White
-        theme.button.bg_hover = {0, 0, 200};
-        theme.button.fg_hover = {255, 255, 255};
-        theme.button.bg_pressed = {0, 0, 150};
-        theme.button.fg_pressed = {255, 255, 255};
-        theme.button.bg_disabled = {50, 50, 100};
-        theme.button.fg_disabled = {150, 150, 200};
+        theme.button.normal.background = {0, 0, 255};     // Bright blue
+        theme.button.normal.foreground = {255, 255, 255}; // White
+        theme.button.hover.background = {0, 0, 200};
+        theme.button.hover.foreground = {255, 255, 255};
+        theme.button.pressed.background = {0, 0, 150};
+        theme.button.pressed.foreground = {255, 255, 255};
+        theme.button.disabled.background = {50, 50, 100};
+        theme.button.disabled.foreground = {150, 150, 200};
 
         theme.label.text = {100, 100, 255};
         theme.label.background = {0, 0, 100};
@@ -43,14 +43,14 @@ namespace {
         theme.window_bg = {100, 0, 0};      // Dark red
         theme.text_fg = {255, 100, 100};    // Light red
 
-        theme.button.bg_normal = {255, 0, 0};     // Bright red
-        theme.button.fg_normal = {255, 255, 0};   // Yellow (different from blue theme's white)
-        theme.button.bg_hover = {200, 0, 0};
-        theme.button.fg_hover = {255, 255, 0};
-        theme.button.bg_pressed = {150, 0, 0};
-        theme.button.fg_pressed = {255, 255, 0};
-        theme.button.bg_disabled = {100, 50, 50};
-        theme.button.fg_disabled = {200, 150, 150};
+        theme.button.normal.background = {255, 0, 0};     // Bright red
+        theme.button.normal.foreground = {255, 255, 0};   // Yellow (different from blue theme's white)
+        theme.button.hover.background = {200, 0, 0};
+        theme.button.hover.foreground = {255, 255, 0};
+        theme.button.pressed.background = {150, 0, 0};
+        theme.button.pressed.foreground = {255, 255, 0};
+        theme.button.disabled.background = {100, 50, 50};
+        theme.button.disabled.foreground = {200, 150, 150};
 
         theme.label.text = {255, 100, 100};
         theme.label.background = {100, 0, 0};
@@ -77,7 +77,7 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Button with blue theme gets blue background") {
             btn->apply_theme(std::move(blue_theme));
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
 
             // Button should get background from theme (window_bg or panel bg, depending on inheritance)
             // The important thing is it should be from the blue theme
@@ -87,7 +87,7 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Button with red theme gets red background") {
             btn->apply_theme(std::move(red_theme));
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
 
             // Should get colors from red theme
             CHECK((bg.r >= 100));  // High red component
@@ -97,11 +97,11 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("Theme switch changes button colors") {
             // Start with blue theme
             btn->apply_theme(std::move(blue_theme));
-            auto bg_blue = btn->get_effective_background_color();
+            auto bg_blue = btn->resolve_style().background_color;
 
             // Switch to red theme
             btn->apply_theme(std::move(red_theme));
-            auto bg_red = btn->get_effective_background_color();
+            auto bg_red = btn->resolve_style().background_color;
 
             // Colors MUST be different
             bool const colors_changed = (bg_blue.r != bg_red.r) ||
@@ -129,8 +129,8 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("Child inherits blue theme from parent") {
             root->apply_theme(std::move(blue_theme));
 
-            auto root_bg = root->get_effective_background_color();
-            auto btn_bg = btn->get_effective_background_color();
+            auto root_bg = root->resolve_style().background_color;
+            auto btn_bg = btn->resolve_style().background_color;
 
             // Both should have blue theme colors
             CHECK(root_bg.b >= 100);  // High blue
@@ -140,11 +140,11 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("Theme switch on parent propagates to child") {
             // Apply blue theme
             root->apply_theme(std::move(blue_theme));
-            auto btn_bg_blue = btn->get_effective_background_color();
+            auto btn_bg_blue = btn->resolve_style().background_color;
 
             // Switch to red theme
             root->apply_theme(std::move(red_theme));
-            auto btn_bg_red = btn->get_effective_background_color();
+            auto btn_bg_red = btn->resolve_style().background_color;
 
             // Child's colors MUST change
             bool const child_colors_changed = (btn_bg_blue.r != btn_bg_red.r) ||
@@ -180,9 +180,9 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("All children get blue theme") {
             root->apply_theme(std::move(blue_theme));
 
-            auto btn1_bg = btn1->get_effective_background_color();
-            auto btn2_bg = btn2->get_effective_background_color();
-            auto lbl_bg = lbl->get_effective_background_color();
+            auto btn1_bg = btn1->resolve_style().background_color;
+            auto btn2_bg = btn2->resolve_style().background_color;
+            auto lbl_bg = lbl->resolve_style().background_color;
 
             // All should have high blue component
             CHECK(btn1_bg.b >= 50);
@@ -192,14 +192,14 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Theme switch updates ALL children") {
             root->apply_theme(std::move(blue_theme));
-            auto btn1_blue = btn1->get_effective_background_color();
-            auto btn2_blue = btn2->get_effective_background_color();
-            auto lbl_blue = lbl->get_effective_background_color();
+            auto btn1_blue = btn1->resolve_style().background_color;
+            auto btn2_blue = btn2->resolve_style().background_color;
+            auto lbl_blue = lbl->resolve_style().background_color;
 
             root->apply_theme(std::move(red_theme));
-            auto btn1_red = btn1->get_effective_background_color();
-            auto btn2_red = btn2->get_effective_background_color();
-            auto lbl_red = lbl->get_effective_background_color();
+            auto btn1_red = btn1->resolve_style().background_color;
+            auto btn2_red = btn2->resolve_style().background_color;
+            auto lbl_red = lbl->resolve_style().background_color;
 
             // Every child must have different colors
             CHECK((btn1_blue.r != btn1_red.r || btn1_blue.b != btn1_red.b));
@@ -230,9 +230,9 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("Theme propagates through nesting") {
             root->apply_theme(std::move(blue_theme));
 
-            auto root_bg = root->get_effective_background_color();
-            auto container_bg = container->get_effective_background_color();
-            auto btn_bg = btn->get_effective_background_color();
+            auto root_bg = root->resolve_style().background_color;
+            auto container_bg = container->resolve_style().background_color;
+            auto btn_bg = btn->resolve_style().background_color;
 
             // All levels should have blue theme
             CHECK(root_bg.b >= 50);
@@ -242,10 +242,10 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Theme switch propagates through all nesting levels") {
             root->apply_theme(std::move(blue_theme));
-            auto btn_blue = btn->get_effective_background_color();
+            auto btn_blue = btn->resolve_style().background_color;
 
             root->apply_theme(std::move(red_theme));
-            auto btn_red = btn->get_effective_background_color();
+            auto btn_red = btn->resolve_style().background_color;
 
             // Deep child must get updated
             CHECK((btn_blue.r != btn_red.r || btn_blue.b != btn_red.b));
@@ -264,16 +264,16 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("Multiple rapid switches maintain consistency") {
             // Switch multiple times - create fresh themes for each switch
             btn->apply_theme(create_blue_theme());
-            auto bg1 = btn->get_effective_background_color();
+            auto bg1 = btn->resolve_style().background_color;
 
             btn->apply_theme(create_red_theme());
-            auto bg2 = btn->get_effective_background_color();
+            auto bg2 = btn->resolve_style().background_color;
 
             btn->apply_theme(create_blue_theme());
-            auto bg3 = btn->get_effective_background_color();
+            auto bg3 = btn->resolve_style().background_color;
 
             btn->apply_theme(create_red_theme());
-            auto bg4 = btn->get_effective_background_color();
+            auto bg4 = btn->resolve_style().background_color;
 
             // First and third should match (both blue)
             CHECK(bg1.r == bg3.r);
@@ -313,7 +313,7 @@ TEST_SUITE("Theme Switching") {
             // Child should inherit via get_theme() even without apply_theme() call
             CHECK(btn->has_theme());  // Should find theme via parent chain
 
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
             CHECK(bg.b >= 100);  // Should have blue theme colors
             CHECK(bg.r < 50);    // Low red component for blue theme
         }
@@ -328,7 +328,7 @@ TEST_SUITE("Theme Switching") {
             auto* btn = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
-            auto bg_blue = btn->get_effective_background_color();
+            auto bg_blue = btn->resolve_style().background_color;
             CHECK(bg_blue.b >= 100);  // Should have blue
 
             // 3. Theme switch on parent - THIS WAS THE BUG
@@ -336,7 +336,7 @@ TEST_SUITE("Theme Switching") {
             // After fix: btn->get_theme() walks parent chain, finds theme
             root->apply_theme(std::move(red_theme));
 
-            auto bg_red = btn->get_effective_background_color();
+            auto bg_red = btn->resolve_style().background_color;
 
             // CRITICAL ASSERTION: First switch MUST work
             CHECK(bg_red.r >= 100);   // Should have red theme
@@ -363,17 +363,17 @@ TEST_SUITE("Theme Switching") {
             root->add_child(std::move(lbl_ptr));
 
             // All should have blue theme
-            CHECK(btn1->get_effective_background_color().b >= 100);
-            CHECK(btn2->get_effective_background_color().b >= 100);
-            CHECK(lbl->get_effective_background_color().b >= 100);
+            CHECK(btn1->resolve_style().background_color.b >= 100);
+            CHECK(btn2->resolve_style().background_color.b >= 100);
+            CHECK(lbl->resolve_style().background_color.b >= 100);
 
             // Switch theme
             root->apply_theme(std::move(red_theme));
 
             // ALL children must update on first switch
-            CHECK(btn1->get_effective_background_color().r >= 100);
-            CHECK(btn2->get_effective_background_color().r >= 100);
-            CHECK(lbl->get_effective_background_color().r >= 100);
+            CHECK(btn1->resolve_style().background_color.r >= 100);
+            CHECK(btn2->resolve_style().background_color.r >= 100);
+            CHECK(lbl->resolve_style().background_color.r >= 100);
         }
     }
 
@@ -385,10 +385,10 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Foreground color changes with theme") {
             btn->apply_theme(std::move(blue_theme));
-            auto fg_blue = btn->get_effective_foreground_color();
+            auto fg_blue = btn->resolve_style().foreground_color;
 
             btn->apply_theme(std::move(red_theme));
-            auto fg_red = btn->get_effective_foreground_color();
+            auto fg_red = btn->resolve_style().foreground_color;
 
             // Foreground colors should change between themes
             bool const fg_changed = (fg_blue.r != fg_red.r) ||
@@ -404,10 +404,10 @@ TEST_SUITE("Theme Switching") {
             root->add_child(std::move(btn_ptr));
 
             root->apply_theme(std::move(blue_theme));
-            auto fg_blue = btn_child->get_effective_foreground_color();
+            auto fg_blue = btn_child->resolve_style().foreground_color;
 
             root->apply_theme(std::move(red_theme));
-            auto fg_red = btn_child->get_effective_foreground_color();
+            auto fg_red = btn_child->resolve_style().foreground_color;
 
             // Child's foreground should change when parent theme changes
             CHECK((fg_blue.r != fg_red.r || fg_blue.g != fg_red.g || fg_blue.b != fg_red.b));
@@ -458,7 +458,7 @@ TEST_SUITE("Theme Switching") {
 
             // Apply theme - should NOT override explicit color
             btn->apply_theme(std::move(blue_theme));
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
 
             CHECK(bg.g == 255);  // Should still be green
             CHECK(bg.r == 0);
@@ -473,12 +473,12 @@ TEST_SUITE("Theme Switching") {
             btn->set_background_color(green);
             btn->apply_theme(std::move(blue_theme));
 
-            auto bg_override = btn->get_effective_background_color();
+            auto bg_override = btn->resolve_style().background_color;
             CHECK(bg_override.g == 255);  // Green override
 
             // Clear override
             btn->clear_background_color();
-            auto bg_theme = btn->get_effective_background_color();
+            auto bg_theme = btn->resolve_style().background_color;
 
             // Now should get theme color (blue)
             CHECK(bg_theme.b >= 100);
@@ -515,16 +515,16 @@ TEST_SUITE("Theme Switching") {
             CHECK(btn->has_theme());
 
             // Deepest child should have blue theme
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
             CHECK(bg.b >= 50);
         }
 
         SUBCASE("Theme switch propagates to deepest child") {
             root->apply_theme(std::move(blue_theme));
-            auto bg_blue = btn->get_effective_background_color();
+            auto bg_blue = btn->resolve_style().background_color;
 
             root->apply_theme(std::move(red_theme));
-            auto bg_red = btn->get_effective_background_color();
+            auto bg_red = btn->resolve_style().background_color;
 
             // Deepest child must update
             CHECK((bg_blue.r != bg_red.r || bg_blue.b != bg_red.b));
@@ -545,7 +545,7 @@ TEST_SUITE("Theme Switching") {
             // Apply theme AFTER child added
             root->apply_theme(std::move(blue_theme));
 
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
             CHECK(bg.b >= 100);
         }
 
@@ -559,7 +559,7 @@ TEST_SUITE("Theme Switching") {
             auto* btn = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
-            auto bg = btn->get_effective_background_color();
+            auto bg = btn->resolve_style().background_color;
             CHECK(bg.b >= 100);
         }
 
@@ -570,7 +570,7 @@ TEST_SUITE("Theme Switching") {
             auto* btn1 = btn1_ptr.get();
             root1->add_child(std::move(btn1_ptr));
             root1->apply_theme(create_blue_theme());  // Fresh theme for comparison
-            auto bg1 = btn1->get_effective_background_color();
+            auto bg1 = btn1->resolve_style().background_color;
 
             // Scenario 2: theme first, child second (should produce identical results)
             auto root2 = std::make_unique<panel<Backend>>();
@@ -578,7 +578,7 @@ TEST_SUITE("Theme Switching") {
             auto btn2_ptr = std::make_unique<button<Backend>>("Btn");
             auto* btn2 = btn2_ptr.get();
             root2->add_child(std::move(btn2_ptr));
-            auto bg2 = btn2->get_effective_background_color();
+            auto bg2 = btn2->resolve_style().background_color;
 
             // Results should be identical
             CHECK(bg1.r == bg2.r);
