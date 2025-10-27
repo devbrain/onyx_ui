@@ -13,19 +13,33 @@
  */
 
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <onyxui/layer_manager.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_handle.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/panel.hh>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
+using namespace onyxui::testing;
 using Backend = test_backend;
 
 TEST_SUITE("Layer Dirty Region Tracking") {
 
-TEST_CASE("Layer removal marks area as dirty") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layer removal marks area as dirty") {
+    // Setup ui_context with theme for measurement
+    ui_theme<Backend> theme;
+    theme.name = "Test";
     scoped_ui_context<Backend> ctx;
+    ctx.themes().register_theme(std::move(theme));
+    ctx.themes().set_current_theme("Test");
+
     auto* layer_mgr = ui_services<Backend>::layers();
     REQUIRE(layer_mgr != nullptr);
 
@@ -161,8 +175,13 @@ TEST_CASE("Layer removal marks area as dirty") {
     }
 }
 
-TEST_CASE("UI handle integrates removed layer dirty regions") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "UI handle integrates removed layer dirty regions") {
+    // Setup ui_context with theme for measurement
+    ui_theme<Backend> theme;
+    theme.name = "Test";
     scoped_ui_context<Backend> ctx;
+    ctx.themes().register_theme(std::move(theme));
+    ctx.themes().set_current_theme("Test");
 
     // Create root widget
     auto root = std::make_unique<panel<Backend>>();

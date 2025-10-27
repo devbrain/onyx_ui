@@ -13,23 +13,26 @@
 #include <string>
 #include <vector>
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/rect_like.hh"
 using namespace onyxui;
+using namespace onyxui::testing;
 
-TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Absolute positioning layout widget") {
     SUBCASE("Construction") {
-        absolute_panel<test_backend> const panel;
+        absolute_panel<test_canvas_backend> const panel;
 
         CHECK_FALSE(panel.is_focusable());
     }
 
     SUBCASE("Add children with default positioning") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Children without explicit positions default to (0, 0)
-        auto btn1 = std::make_unique<button<test_backend>>("Button 1");
-        auto btn2 = std::make_unique<button<test_backend>>("Button 2");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Button 1");
+        auto btn2 = std::make_unique<button<test_canvas_backend>>("Button 2");
 
         panel.add_child(std::move(btn1));
         panel.add_child(std::move(btn2));
@@ -39,21 +42,21 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         // Should not crash
         CHECK_NOTHROW((void)panel.measure(400, 400));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
         CHECK_NOTHROW(panel.arrange(bounds));
     }
 
     SUBCASE("Explicit positioning with auto-size") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Position buttons at specific coordinates
-        auto btn1 = std::make_unique<button<test_backend>>("Top-Left");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Top-Left");
         auto* btn1_ptr = btn1.get();
         panel.add_child(std::move(btn1));
         panel.set_position(btn1_ptr, 10, 10);
 
-        auto btn2 = std::make_unique<button<test_backend>>("Bottom-Right");
+        auto btn2 = std::make_unique<button<test_canvas_backend>>("Bottom-Right");
         auto* btn2_ptr = btn2.get();
         panel.add_child(std::move(btn2));
         panel.set_position(btn2_ptr, 200, 150);
@@ -61,50 +64,50 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         CHECK(panel.children().size() == 2);
         CHECK_NOTHROW((void)panel.measure(300, 200));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
         CHECK_NOTHROW(panel.arrange(bounds));
     }
 
     SUBCASE("Explicit positioning with size override") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Position button with fixed size
-        auto btn = std::make_unique<button<test_backend>>("Fixed Size");
+        auto btn = std::make_unique<button<test_canvas_backend>>("Fixed Size");
         auto* btn_ptr = btn.get();
         panel.add_child(std::move(btn));
         panel.set_position(btn_ptr, 50, 50, 120, 40);
 
         CHECK_NOTHROW((void)panel.measure(300, 300));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 300);
         CHECK_NOTHROW(panel.arrange(bounds));
     }
 
     SUBCASE("Custom dialog layout") {
-        absolute_panel<test_backend> dialog;
+        absolute_panel<test_canvas_backend> dialog;
 
         // Title at top
-        auto title = std::make_unique<label<test_backend>>("Confirm Action");
+        auto title = std::make_unique<label<test_canvas_backend>>("Confirm Action");
         auto* title_ptr = title.get();
         dialog.add_child(std::move(title));
         dialog.set_position(title_ptr, 20, 10, 260, 30);
 
         // Message in middle
-        auto message = std::make_unique<label<test_backend>>("Are you sure?");
+        auto message = std::make_unique<label<test_canvas_backend>>("Are you sure?");
         auto* message_ptr = message.get();
         dialog.add_child(std::move(message));
         dialog.set_position(message_ptr, 20, 50, 260, 80);
 
         // OK button
-        auto ok = std::make_unique<button<test_backend>>("OK");
+        auto ok = std::make_unique<button<test_canvas_backend>>("OK");
         auto* ok_ptr = ok.get();
         dialog.add_child(std::move(ok));
         dialog.set_position(ok_ptr, 50, 150, 80, 30);
 
         // Cancel button
-        auto cancel = std::make_unique<button<test_backend>>("Cancel");
+        auto cancel = std::make_unique<button<test_canvas_backend>>("Cancel");
         auto* cancel_ptr = cancel.get();
         dialog.add_child(std::move(cancel));
         dialog.set_position(cancel_ptr, 170, 150, 80, 30);
@@ -112,56 +115,56 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         CHECK(dialog.children().size() == 4);
         CHECK_NOTHROW((void)dialog.measure(300, 200));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
         CHECK_NOTHROW(dialog.arrange(bounds));
     }
 
     SUBCASE("Tooltip positioning") {
-        absolute_panel<test_backend> overlay;
+        absolute_panel<test_canvas_backend> overlay;
 
         // Position tooltip at specific location
         int const mouse_x = 150;
         int const mouse_y = 200;
 
-        auto tooltip = std::make_unique<label<test_backend>>("Click to continue");
+        auto tooltip = std::make_unique<label<test_canvas_backend>>("Click to continue");
         auto* tooltip_ptr = tooltip.get();
         overlay.add_child(std::move(tooltip));
         overlay.set_position(tooltip_ptr, mouse_x + 10, mouse_y - 30);
 
         CHECK_NOTHROW((void)overlay.measure(400, 400));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
         CHECK_NOTHROW(overlay.arrange(bounds));
     }
 
     SUBCASE("Negative coordinates") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Position element with negative coordinates (outside panel)
-        auto lbl = std::make_unique<label<test_backend>>("Outside");
+        auto lbl = std::make_unique<label<test_canvas_backend>>("Outside");
         auto* lbl_ptr = lbl.get();
         panel.add_child(std::move(lbl));
         panel.set_position(lbl_ptr, -10, -10);
 
         CHECK_NOTHROW((void)panel.measure(200, 200));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 200);
         CHECK_NOTHROW(panel.arrange(bounds));
     }
 
     SUBCASE("Overlapping children") {
-        absolute_panel<test_backend> canvas;
+        absolute_panel<test_canvas_backend> canvas;
 
         // Multiple elements at same position (overlapping)
-        auto bg = std::make_unique<panel<test_backend>>();
+        auto bg = std::make_unique<panel<test_canvas_backend>>();
         auto* bg_ptr = bg.get();
         canvas.add_child(std::move(bg));
         canvas.set_position(bg_ptr, 0, 0, 200, 200);
 
-        auto fg = std::make_unique<label<test_backend>>("Overlay");
+        auto fg = std::make_unique<label<test_canvas_backend>>("Overlay");
         auto* fg_ptr = fg.get();
         canvas.add_child(std::move(fg));
         canvas.set_position(fg_ptr, 50, 50);
@@ -171,7 +174,7 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
     }
 
     SUBCASE("Node editor layout") {
-        absolute_panel<test_backend> node_canvas;
+        absolute_panel<test_canvas_backend> node_canvas;
 
         // Position nodes at specific coordinates
         struct Node {
@@ -186,7 +189,7 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         };
 
         for (auto& node : nodes) {
-            auto widget = std::make_unique<button<test_backend>>(node.name);
+            auto widget = std::make_unique<button<test_canvas_backend>>(node.name);
             auto* widget_ptr = widget.get();
             node_canvas.add_child(std::move(widget));
             node_canvas.set_position(widget_ptr, node.x, node.y, 80, 40);
@@ -195,22 +198,22 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
         CHECK(node_canvas.children().size() == 3);
         CHECK_NOTHROW((void)node_canvas.measure(500, 300));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 500, 300);
         CHECK_NOTHROW(node_canvas.arrange(bounds));
     }
 
     SUBCASE("Mixed auto and fixed sizing") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Element with auto-size
-        auto auto_sized = std::make_unique<label<test_backend>>("Auto");
+        auto auto_sized = std::make_unique<label<test_canvas_backend>>("Auto");
         auto* auto_ptr = auto_sized.get();
         panel.add_child(std::move(auto_sized));
         panel.set_position(auto_ptr, 10, 10);  // No size override
 
         // Element with fixed size
-        auto fixed_sized = std::make_unique<label<test_backend>>("Fixed");
+        auto fixed_sized = std::make_unique<label<test_canvas_backend>>("Fixed");
         auto* fixed_ptr = fixed_sized.get();
         panel.add_child(std::move(fixed_sized));
         panel.set_position(fixed_ptr, 10, 50, 100, 30);  // Width and height override
@@ -220,16 +223,16 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
     }
 
     SUBCASE("Zero size hiding") {
-        absolute_panel<test_backend> panel;
+        absolute_panel<test_canvas_backend> panel;
 
         // Element with zero width (effectively hidden)
-        auto hidden = std::make_unique<label<test_backend>>("Hidden");
+        auto hidden = std::make_unique<label<test_canvas_backend>>("Hidden");
         auto* hidden_ptr = hidden.get();
         panel.add_child(std::move(hidden));
         panel.set_position(hidden_ptr, 50, 50, 0, 0);
 
         // Visible element
-        auto visible = std::make_unique<label<test_backend>>("Visible");
+        auto visible = std::make_unique<label<test_canvas_backend>>("Visible");
         auto* visible_ptr = visible.get();
         panel.add_child(std::move(visible));
         panel.set_position(visible_ptr, 100, 100);
@@ -239,30 +242,30 @@ TEST_CASE("AbsolutePanel - Absolute positioning layout widget") {
     }
 
     // Rule of Five tests - using generic framework
-    onyxui::testing::test_rule_of_five<absolute_panel<test_backend>>(
+    onyxui::testing::test_rule_of_five<absolute_panel<test_canvas_backend>>(
         [](auto& panel) {
-            panel.add_child(std::make_unique<button<test_backend>>("Test"));
+            panel.add_child(std::make_unique<button<test_canvas_backend>>("Test"));
         },
         [](const auto& panel) { return panel.children().size() == 1; }
     );
 
     SUBCASE("Rule of Five - Dangling pointer fix verification") {
         // This test specifically verifies that the dangling pointer bug is fixed
-        absolute_panel<test_backend> panel1;
+        absolute_panel<test_canvas_backend> panel1;
 
-        auto btn = std::make_unique<button<test_backend>>("Button");
+        auto btn = std::make_unique<button<test_canvas_backend>>("Button");
         auto* btn_ptr = btn.get();
         panel1.add_child(std::move(btn));
         panel1.set_position(btn_ptr, 100, 100, 80, 40);
 
         // Move construct - this should NOT leave dangling pointer
-        absolute_panel<test_backend> panel2(std::move(panel1));
+        absolute_panel<test_canvas_backend> panel2(std::move(panel1));
 
         // panel2's layout pointer should be valid, not dangling
         CHECK_NOTHROW((void)panel2.measure(300, 200));
 
         // Arranging should work without crashes
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
         CHECK_NOTHROW(panel2.arrange(bounds));
     }

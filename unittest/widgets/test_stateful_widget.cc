@@ -9,17 +9,28 @@
 //
 
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/stateful_widget.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/button.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/theme.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_services.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/render_context.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/measure_context.hh>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
-using Backend = test_backend;
+using namespace onyxui::testing;
+using Backend = test_canvas_backend;
 
 namespace {
     // Test helper: resolve style with given theme
@@ -174,7 +185,7 @@ TEST_SUITE("stateful_widget") {
 // State Detection Tests
 // ============================================================================
 
-TEST_CASE("stateful_widget - Initial state is normal") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Initial state is normal") {
     test_stateful_widget<Backend> widget;
 
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
@@ -184,7 +195,7 @@ TEST_CASE("stateful_widget - Initial state is normal") {
     CHECK(widget.check_is_disabled() == false);
 }
 
-TEST_CASE("stateful_widget - State transitions work correctly") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State transitions work correctly") {
     test_stateful_widget<Backend> widget;
 
     SUBCASE("Normal to hover") {
@@ -220,7 +231,7 @@ TEST_CASE("stateful_widget - State transitions work correctly") {
     }
 }
 
-TEST_CASE("stateful_widget - State queries are mutually exclusive") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State queries are mutually exclusive") {
     test_stateful_widget<Backend> widget;
 
     SUBCASE("Only normal is true in normal state") {
@@ -256,7 +267,7 @@ TEST_CASE("stateful_widget - State queries are mutually exclusive") {
     }
 }
 
-TEST_CASE("stateful_widget - enable() and disable() methods") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - enable() and disable() methods") {
     test_stateful_widget<Backend> widget;
 
     SUBCASE("disable() sets disabled state") {
@@ -285,7 +296,7 @@ TEST_CASE("stateful_widget - enable() and disable() methods") {
     }
 }
 
-TEST_CASE("stateful_widget - State changes are reflected immediately") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State changes are reflected immediately") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -352,7 +363,7 @@ TEST_CASE("stateful_widget - State changes are reflected immediately") {
 // Style Resolution Tests
 // ============================================================================
 
-TEST_CASE("stateful_widget - get_state_background() returns correct colors") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - get_state_background() returns correct colors") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -389,7 +400,7 @@ TEST_CASE("stateful_widget - get_state_background() returns correct colors") {
     }
 }
 
-TEST_CASE("stateful_widget - get_state_foreground() returns correct colors") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - get_state_foreground() returns correct colors") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -426,7 +437,7 @@ TEST_CASE("stateful_widget - get_state_foreground() returns correct colors") {
     }
 }
 
-TEST_CASE("stateful_widget - State-based colors work with different widget themes") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State-based colors work with different widget themes") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -454,7 +465,7 @@ TEST_CASE("stateful_widget - State-based colors work with different widget theme
     CHECK(label_bg.g != button_bg.g);
 }
 
-TEST_CASE("stateful_widget - Color resolution is consistent across calls") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Color resolution is consistent across calls") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -478,7 +489,7 @@ TEST_CASE("stateful_widget - Color resolution is consistent across calls") {
 // Integration Tests
 // ============================================================================
 
-TEST_CASE("stateful_widget - Multiple state transitions maintain correctness") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Multiple state transitions maintain correctness") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -505,7 +516,7 @@ TEST_CASE("stateful_widget - Multiple state transitions maintain correctness") {
     CHECK(bg1.b == bg4.b);
 }
 
-TEST_CASE("stateful_widget - Disabled state is sticky") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Disabled state is sticky") {
     test_stateful_widget<Backend> widget;
 
     widget.do_disable();
@@ -520,7 +531,7 @@ TEST_CASE("stateful_widget - Disabled state is sticky") {
     CHECK(widget.check_is_normal() == true);
 }
 
-TEST_CASE("stateful_widget - State transitions are reversible") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State transitions are reversible") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -538,7 +549,7 @@ TEST_CASE("stateful_widget - State transitions are reversible") {
 // Additional Edge Case Tests
 // ============================================================================
 
-TEST_CASE("stateful_widget - State persists across measure/arrange") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State persists across measure/arrange") {
     test_stateful_widget<Backend> widget;
     widget.set_state(test_stateful_widget<Backend>::state_type::hover);
 
@@ -550,7 +561,7 @@ TEST_CASE("stateful_widget - State persists across measure/arrange") {
     CHECK(widget.is_in_hover_state() == true);
 }
 
-TEST_CASE("stateful_widget - State doesn't affect layout size") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State doesn't affect layout size") {
     test_stateful_widget<Backend> widget;
 
     // Measure in normal state
@@ -571,7 +582,7 @@ TEST_CASE("stateful_widget - State doesn't affect layout size") {
     CHECK(size_utils::get_height(hover_size) == size_utils::get_height(pressed_size));
 }
 
-TEST_CASE("stateful_widget - Default constructor initializes state") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Default constructor initializes state") {
     test_stateful_widget<Backend> widget1;
     test_stateful_widget<Backend> widget2;
     test_stateful_widget<Backend> widget3;
@@ -582,7 +593,7 @@ TEST_CASE("stateful_widget - Default constructor initializes state") {
     CHECK(widget3.check_is_normal() == true);
 }
 
-TEST_CASE("stateful_widget - State change is idempotent") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State change is idempotent") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -603,7 +614,7 @@ TEST_CASE("stateful_widget - State change is idempotent") {
     CHECK(initial_bg.b == final_bg.b);
 }
 
-TEST_CASE("stateful_widget - Rapid state changes are handled correctly") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Rapid state changes are handled correctly") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -621,7 +632,7 @@ TEST_CASE("stateful_widget - Rapid state changes are handled correctly") {
     CHECK(bg.b == 170);  // Blue (normal)
 }
 
-TEST_CASE("stateful_widget - All four states are distinct") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - All four states are distinct") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -647,7 +658,7 @@ TEST_CASE("stateful_widget - All four states are distinct") {
 // Automatic Event-Based State Transitions (NEW)
 // ============================================================================
 
-TEST_CASE("stateful_widget - Mouse enter triggers hover state") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mouse enter triggers hover state") {
     test_stateful_widget<Backend> widget;
 
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
@@ -659,7 +670,7 @@ TEST_CASE("stateful_widget - Mouse enter triggers hover state") {
     CHECK(widget.is_in_hover_state() == true);
 }
 
-TEST_CASE("stateful_widget - Mouse leave returns to normal state") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mouse leave returns to normal state") {
     test_stateful_widget<Backend> widget;
 
     // First enter hover state
@@ -672,7 +683,7 @@ TEST_CASE("stateful_widget - Mouse leave returns to normal state") {
     CHECK(widget.check_is_normal() == true);
 }
 
-TEST_CASE("stateful_widget - Mouse down while hovering triggers pressed state") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mouse down while hovering triggers pressed state") {
     test_stateful_widget<Backend> widget;
 
     // Enter hover state
@@ -685,7 +696,7 @@ TEST_CASE("stateful_widget - Mouse down while hovering triggers pressed state") 
     CHECK(widget.is_in_pressed_state() == true);
 }
 
-TEST_CASE("stateful_widget - Mouse up returns to hover if still hovering") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mouse up returns to hover if still hovering") {
     test_stateful_widget<Backend> widget;
 
     // Simulate hover → press sequence
@@ -701,7 +712,7 @@ TEST_CASE("stateful_widget - Mouse up returns to hover if still hovering") {
     CHECK(widget.is_in_pressed_state() == false);
 }
 
-TEST_CASE("stateful_widget - Complete click sequence (enter → down → up → leave)") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Complete click sequence (enter → down → up → leave)") {
     test_stateful_widget<Backend> widget;
 
     // 1. Start: normal
@@ -724,7 +735,7 @@ TEST_CASE("stateful_widget - Complete click sequence (enter → down → up → 
     CHECK(widget.check_is_normal() == true);
 }
 
-TEST_CASE("stateful_widget - Disabled widget ignores mouse events") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Disabled widget ignores mouse events") {
     test_stateful_widget<Backend> widget;
 
     // Disable the widget
@@ -745,7 +756,7 @@ TEST_CASE("stateful_widget - Disabled widget ignores mouse events") {
     CHECK(widget.check_is_disabled() == true);  // Still disabled
 }
 
-TEST_CASE("stateful_widget - Re-enabling widget returns to normal state") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Re-enabling widget returns to normal state") {
     test_stateful_widget<Backend> widget;
 
     // Disable widget
@@ -765,7 +776,7 @@ TEST_CASE("stateful_widget - Re-enabling widget returns to normal state") {
     CHECK(widget.is_in_hover_state() == true);
 }
 
-TEST_CASE("stateful_widget - State affects color resolution from theme") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State affects color resolution from theme") {
     test_stateful_widget<Backend> widget;
     auto theme = create_state_test_theme();
 
@@ -797,7 +808,7 @@ TEST_CASE("stateful_widget - State affects color resolution from theme") {
     CHECK(disabled_fg.r == 128); // Light gray foreground
 }
 
-TEST_CASE("stateful_widget - Button integration with automatic state syncing") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Button integration with automatic state syncing") {
     test_button<Backend> btn("Test");
     scoped_ui_context<Backend> ctx;
     ctx.themes().register_theme(create_state_test_theme());

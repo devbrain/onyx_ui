@@ -12,14 +12,17 @@
 #include <vector>
 #include <string>
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "../utils/rule_of_five_tests.hh"
 #include "onyxui/concepts/size_like.hh"
 #include "onyxui/concepts/rect_like.hh"
 using namespace onyxui;
+using namespace onyxui::testing;
 
-TEST_CASE("Grid - Grid layout widget") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout widget") {
     SUBCASE("Construction") {
-        grid<test_backend> const g(3);  // 3 columns
+        grid<test_canvas_backend> const g(3);  // 3 columns
 
         CHECK_FALSE(g.is_focusable());
         CHECK(g.num_columns() == 3);
@@ -27,12 +30,12 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     SUBCASE("Add children with auto-assignment") {
-        grid<test_backend> g(2);  // 2 columns
+        grid<test_canvas_backend> g(2);  // 2 columns
 
-        auto btn1 = std::make_unique<button<test_backend>>("1");
-        auto btn2 = std::make_unique<button<test_backend>>("2");
-        auto btn3 = std::make_unique<button<test_backend>>("3");
-        auto btn4 = std::make_unique<button<test_backend>>("4");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("1");
+        auto btn2 = std::make_unique<button<test_canvas_backend>>("2");
+        auto btn3 = std::make_unique<button<test_canvas_backend>>("3");
+        auto btn4 = std::make_unique<button<test_canvas_backend>>("4");
 
         g.add_child(std::move(btn1));
         g.add_child(std::move(btn2));
@@ -46,9 +49,9 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     SUBCASE("Explicit cell assignment") {
-        grid<test_backend> g(3, 3);  // 3x3 grid
+        grid<test_canvas_backend> g(3, 3);  // 3x3 grid
 
-        auto header = std::make_unique<label<test_backend>>("Header");
+        auto header = std::make_unique<label<test_canvas_backend>>("Header");
         auto* header_ptr = header.get();
         g.add_child(std::move(header));
 
@@ -64,7 +67,7 @@ TEST_CASE("Grid - Grid layout widget") {
         std::vector<int> const col_widths = {100, 150, 100};
         std::vector<int> const row_heights = {50, 50};
 
-        grid<test_backend> g(
+        grid<test_canvas_backend> g(
             3,              // 3 columns
             2,              // 2 rows
             5,              // column spacing
@@ -76,7 +79,7 @@ TEST_CASE("Grid - Grid layout widget") {
 
         // Add some children
         for (int i = 0; i < 6; i++) {
-            g.add_child(std::make_unique<label<test_backend>>(std::to_string(i)));
+            g.add_child(std::make_unique<label<test_canvas_backend>>(std::to_string(i)));
         }
 
         auto size = g.measure(500, 500);
@@ -90,37 +93,37 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     SUBCASE("Grid with spacing") {
-        grid<test_backend> g(2, 2, 10, 10);  // 2x2 grid with 10px spacing
+        grid<test_canvas_backend> g(2, 2, 10, 10);  // 2x2 grid with 10px spacing
 
         for (int i = 0; i < 4; i++) {
-            g.add_child(std::make_unique<button<test_backend>>(std::to_string(i)));
+            g.add_child(std::make_unique<button<test_canvas_backend>>(std::to_string(i)));
         }
 
         CHECK_NOTHROW((void)g.measure(200, 200));
 
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 200);
         CHECK_NOTHROW(g.arrange(bounds));
     }
 
     SUBCASE("Cell spanning") {
-        grid<test_backend> g(4, 3);  // 4x3 grid
+        grid<test_canvas_backend> g(4, 3);  // 4x3 grid
 
         // Header spans all 4 columns
-        auto header = std::make_unique<label<test_backend>>("Header");
+        auto header = std::make_unique<label<test_canvas_backend>>("Header");
         auto* header_ptr = header.get();
         g.add_child(std::move(header));
         CHECK(g.set_cell(header_ptr, 0, 0, 1, 4));  // row 0, col 0, span 1x4
 
         // Sidebar spans 2 rows
-        auto sidebar = std::make_unique<label<test_backend>>("Sidebar");
+        auto sidebar = std::make_unique<label<test_canvas_backend>>("Sidebar");
         auto* sidebar_ptr = sidebar.get();
         g.add_child(std::move(sidebar));
         CHECK(g.set_cell(sidebar_ptr, 1, 0, 2, 1));  // row 1, col 0, span 2x1
 
         // Other items auto-assigned
         for (int i = 0; i < 6; i++) {
-            g.add_child(std::make_unique<button<test_backend>>(std::to_string(i)));
+            g.add_child(std::make_unique<button<test_canvas_backend>>(std::to_string(i)));
         }
 
         CHECK(g.children().size() == 8);
@@ -128,9 +131,9 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     SUBCASE("Invalid cell assignment") {
-        grid<test_backend> g(3, 3);  // 3x3 grid
+        grid<test_canvas_backend> g(3, 3);  // 3x3 grid
 
-        auto item = std::make_unique<label<test_backend>>("Item");
+        auto item = std::make_unique<label<test_canvas_backend>>("Item");
         auto* item_ptr = item.get();
         g.add_child(std::move(item));
 
@@ -145,19 +148,19 @@ TEST_CASE("Grid - Grid layout widget") {
     }
 
     // Rule of Five tests - using generic framework
-    onyxui::testing::test_rule_of_five<grid<test_backend>>(
+    onyxui::testing::test_rule_of_five<grid<test_canvas_backend>>(
         [](auto& g) {
-            g.add_child(std::make_unique<button<test_backend>>("1"));
-            g.add_child(std::make_unique<button<test_backend>>("2"));
+            g.add_child(std::make_unique<button<test_canvas_backend>>("1"));
+            g.add_child(std::make_unique<button<test_canvas_backend>>("2"));
         },
         [](const auto& g) { return g.children().size() == 2; }
     );
 
     SUBCASE("Rule of Five - Dangling pointer fix verification") {
         // This test specifically verifies that the dangling pointer bug is fixed
-        grid<test_backend> g1(2);
+        grid<test_canvas_backend> g1(2);
 
-        auto btn1 = std::make_unique<button<test_backend>>("Button");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Button");
         auto* btn1_ptr = btn1.get();
         g1.add_child(std::move(btn1));
 
@@ -165,13 +168,13 @@ TEST_CASE("Grid - Grid layout widget") {
         g1.set_cell(btn1_ptr, 0, 0);
 
         // Move construct - this should NOT leave dangling pointer
-        grid<test_backend> g2(std::move(g1));
+        grid<test_canvas_backend> g2(std::move(g1));
 
         // g2's layout pointer should be valid, not dangling
         CHECK_NOTHROW((void)g2.measure(100, 100));
 
         // Arranging should work without crashes
-        test_backend::rect bounds;
+        test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 100, 100);
         CHECK_NOTHROW(g2.arrange(bounds));
     }

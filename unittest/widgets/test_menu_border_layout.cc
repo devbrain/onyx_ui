@@ -12,18 +12,24 @@
  */
 
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/menu.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/menu_item.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
-using Backend = test_backend;
+using namespace onyxui::testing;
+using Backend = test_canvas_backend;
 
 TEST_SUITE("Menu Border Layout") {
 
-TEST_CASE("Menu border contains all items") {
-    scoped_ui_context<Backend> ctx;
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains all items") {
 
     // Create menu with 5 items
     auto test_menu = std::make_unique<menu<Backend>>();
@@ -125,8 +131,7 @@ TEST_CASE("Menu border contains all items") {
     }
 }
 
-TEST_CASE("Menu with many items (stress test)") {
-    scoped_ui_context<Backend> ctx;
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with many items (stress test)") {
 
     auto test_menu = std::make_unique<menu<Backend>>();
 

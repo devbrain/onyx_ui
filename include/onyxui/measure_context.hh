@@ -77,30 +77,19 @@ namespace onyxui {
 
         /**
          * @brief Construct measure context with resolved style
-         * @param style Resolved visual style (for consistency with draw_context)
+         * @param style Resolved visual style (ensures measurement matches rendering)
          *
          * @details
          * Initializes bounding box tracking. The bounding box expands as draw
          * operations are performed, tracking min/max extents to calculate final size.
+         *
+         * IMPORTANT: measure_context MUST be constructed with a resolved_style to
+         * ensure measurement uses the same theme properties (padding, fonts, etc.)
+         * as rendering. This prevents measurement/rendering inconsistencies.
          */
         explicit measure_context(const resolved_style<Backend>& style)
             : base(style)
             , m_min_x(INT_MAX)
-            , m_min_y(INT_MAX)
-            , m_max_right(INT_MIN)
-            , m_max_bottom(INT_MIN)
-            , m_has_content(false) {
-        }
-
-        /**
-         * @brief Construct measure context (default style)
-         *
-         * @details
-         * Initializes bounding box tracking with default-constructed style.
-         * The bounding box expands as draw operations are performed.
-         */
-        measure_context()
-            : m_min_x(INT_MAX)
             , m_min_y(INT_MAX)
             , m_max_right(INT_MIN)
             , m_max_bottom(INT_MIN)

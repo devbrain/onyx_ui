@@ -6,11 +6,12 @@
 
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "../utils/rule_of_five_tests.hh"
 #include "onyxui/concepts/size_like.hh"
 using namespace onyxui;
 
-TEST_CASE("Label - Text display widget") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Label - Text display widget") {
     SUBCASE("Construction with text") {
         label<test_backend> const lbl("Hello World");
 

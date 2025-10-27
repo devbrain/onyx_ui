@@ -3,14 +3,25 @@
 //
 
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <memory>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/group_box.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
+#include "../utils/test_helpers.hh"
+#include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include <utility>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/size_like.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
+using namespace onyxui::testing;
 
 TEST_SUITE("group_box") {
     using Backend = test_backend;
@@ -96,6 +107,13 @@ TEST_SUITE("group_box") {
     }
 
     TEST_CASE("Group box size includes border") {
+        // Setup ui_context with theme for measurement
+        ui_theme<Backend> theme;
+        theme.name = "Test";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test");
+
         auto group = std::make_unique<group_box<Backend>>();
         group->set_title("Box");
 

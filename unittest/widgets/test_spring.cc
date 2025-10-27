@@ -10,14 +10,17 @@
 #include <onyxui/widgets/vbox.hh>
 #include <utility>
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
+using namespace onyxui::testing;
 
-TEST_CASE("Spring - Flexible expanding spacing widget") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible expanding spacing widget") {
     SUBCASE("Construction with default weight") {
-        spring<test_backend> const s;
+        spring<test_canvas_backend> const s;
 
         CHECK(s.weight() == 1.0F);
         CHECK(s.is_horizontal());
@@ -25,26 +28,26 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Construction with custom weight") {
-        spring<test_backend> const s(2.5F);
+        spring<test_canvas_backend> const s(2.5F);
 
         CHECK(s.weight() == 2.5F);
     }
 
     SUBCASE("Construction with vertical orientation") {
-        spring<test_backend> const s(1.0F, false);
+        spring<test_canvas_backend> const s(1.0F, false);
 
         CHECK_FALSE(s.is_horizontal());
     }
 
     SUBCASE("Set weight") {
-        spring<test_backend> s;
+        spring<test_canvas_backend> s;
 
         s.set_weight(3.0F);
         CHECK(s.weight() == 3.0F);
     }
 
     SUBCASE("Set min/max size") {
-        spring<test_backend> s;
+        spring<test_canvas_backend> s;
 
         s.set_min_size(10);
         s.set_max_size(100);
@@ -54,7 +57,7 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Spring with min size constraint") {
-        spring<test_backend> s;
+        spring<test_canvas_backend> s;
         s.set_min_size(50);
 
         auto size = s.measure(100, 100);
@@ -65,11 +68,11 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Push buttons to edges in toolbar") {
-        hbox<test_backend> toolbar;
+        hbox<test_canvas_backend> toolbar;
 
-        auto left_btn = std::make_unique<button<test_backend>>("File");
-        auto expanding_space = std::make_unique<spring<test_backend>>();
-        auto right_btn = std::make_unique<button<test_backend>>("Help");
+        auto left_btn = std::make_unique<button<test_canvas_backend>>("File");
+        auto expanding_space = std::make_unique<spring<test_canvas_backend>>();
+        auto right_btn = std::make_unique<button<test_canvas_backend>>("Help");
 
         toolbar.add_child(std::move(left_btn));
         toolbar.add_child(std::move(expanding_space));
@@ -80,11 +83,11 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Center content with springs on both sides") {
-        hbox<test_backend> centered;
+        hbox<test_canvas_backend> centered;
 
-        auto left_spring = std::make_unique<spring<test_backend>>();
-        auto content = std::make_unique<button<test_backend>>("Centered");
-        auto right_spring = std::make_unique<spring<test_backend>>();
+        auto left_spring = std::make_unique<spring<test_canvas_backend>>();
+        auto content = std::make_unique<button<test_canvas_backend>>("Centered");
+        auto right_spring = std::make_unique<spring<test_canvas_backend>>();
 
         centered.add_child(std::move(left_spring));
         centered.add_child(std::move(content));
@@ -95,13 +98,13 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Weighted springs (proportional distribution)") {
-        vbox<test_backend> layout;
+        vbox<test_canvas_backend> layout;
 
-        auto header = std::make_unique<button<test_backend>>("Header");
-        auto spring1 = std::make_unique<spring<test_backend>>(3.0F, false); // 3x weight vertical
-        auto content = std::make_unique<button<test_backend>>("Content");
-        auto spring2 = std::make_unique<spring<test_backend>>(1.0F, false); // 1x weight vertical
-        auto footer = std::make_unique<button<test_backend>>("Footer");
+        auto header = std::make_unique<button<test_canvas_backend>>("Header");
+        auto spring1 = std::make_unique<spring<test_canvas_backend>>(3.0F, false); // 3x weight vertical
+        auto content = std::make_unique<button<test_canvas_backend>>("Content");
+        auto spring2 = std::make_unique<spring<test_canvas_backend>>(1.0F, false); // 1x weight vertical
+        auto footer = std::make_unique<button<test_canvas_backend>>("Footer");
 
         layout.add_child(std::move(header));
         layout.add_child(std::move(spring1));
@@ -114,24 +117,24 @@ TEST_CASE("Spring - Flexible expanding spacing widget") {
     }
 
     SUBCASE("Multiple springs with different weights") {
-        hbox<test_backend> box;
+        hbox<test_canvas_backend> box;
 
-        box.add_child(std::make_unique<spring<test_backend>>(2.0F));
-        box.add_child(std::make_unique<button<test_backend>>("Button"));
-        box.add_child(std::make_unique<spring<test_backend>>(1.0F));
+        box.add_child(std::make_unique<spring<test_canvas_backend>>(2.0F));
+        box.add_child(std::make_unique<button<test_canvas_backend>>("Button"));
+        box.add_child(std::make_unique<spring<test_canvas_backend>>(1.0F));
 
         CHECK(box.children().size() == 3);
         CHECK_NOTHROW((void)box.measure(400, 50));
     }
 
     SUBCASE("Spring is not focusable") {
-        spring<test_backend> const s;
+        spring<test_canvas_backend> const s;
 
         CHECK_FALSE(s.is_focusable());
     }
 
     // Rule of Five tests - using generic framework
-    onyxui::testing::test_rule_of_five<spring<test_backend>>(
+    onyxui::testing::test_rule_of_five<spring<test_canvas_backend>>(
         [](auto& s) { s.set_weight(2.5F); s.set_min_size(20); },
         [](const auto& s) { return s.weight() == 2.5F && s.min_size() == 20; }
     );

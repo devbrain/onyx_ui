@@ -8,11 +8,52 @@
 #include <doctest/doctest.h>
 #include <onyxui/element.hh>
 #include <onyxui/ui_services.hh>
+#include <onyxui/ui_context.hh>
 #include "test_backend.hh"
 #include <vector>
 #include <iostream>
 
 using namespace onyxui;
+
+// ============================================================================
+// Test Fixture for UI Context (RAII pattern for theme initialization)
+// ============================================================================
+
+/**
+ * @brief Test fixture that automatically sets up ui_context with theme
+ *
+ * @details
+ * Use this fixture in any TEST_CASE that needs to measure or render widgets.
+ * It ensures that a valid theme is available for measurement, preventing
+ * "widget::get_content_size() called without theme" errors.
+ *
+ * @example
+ * TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "My test") {
+ *     // Theme is already set up - widgets can be measured
+ *     button<test_backend> btn("Test");
+ *     auto size = btn.measure(100, 100);  // Works!
+ * }
+ */
+template<UIBackend Backend>
+struct ui_context_fixture {
+    ui_context_fixture() {
+        // Setup theme with minimal required properties
+        ui_theme<Backend> theme;
+        theme.name = "TestTheme";
+        theme.window_bg = typename Backend::color_type{50, 50, 50};
+        theme.text_fg = typename Backend::color_type{255, 255, 255};
+        theme.border_color = typename Backend::color_type{100, 100, 100};
+
+        // Register and activate theme
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("TestTheme");
+    }
+
+    ~ui_context_fixture() = default;
+
+    // Make context accessible to tests if needed
+    scoped_ui_context<Backend> ctx;
+};
 
 // Use the test_backend for all tests
 using TestBackend = test_backend;

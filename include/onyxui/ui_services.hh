@@ -137,9 +137,11 @@ namespace onyxui {
     template<UIBackend Backend>
     class ui_services {
     private:
-        // Thread-local context stack
-        // Each thread maintains its own independent stack
-        static inline thread_local std::vector<ui_context<Backend>*> s_context_stack;
+        // Thread-local context stack - use getter function to avoid template conflicts
+        static std::vector<ui_context<Backend>*>& context_stack() {
+            static thread_local std::vector<ui_context<Backend>*> stack;
+            return stack;
+        }
 
     public:
         // ================================================================
@@ -158,7 +160,7 @@ namespace onyxui {
          */
         static void push_context(ui_context<Backend>* ctx) noexcept {
             assert(ctx != nullptr && "Cannot push null context");
-            s_context_stack.push_back(ctx);
+            context_stack().push_back(ctx);
         }
 
         /**
@@ -171,8 +173,9 @@ namespace onyxui {
          * @note Use scoped_ui_context for automatic push/pop management
          */
         static void pop_context() noexcept {
-            if (!s_context_stack.empty()) {
-                s_context_stack.pop_back();
+            auto& stack = context_stack();
+            if (!stack.empty()) {
+                stack.pop_back();
             }
         }
 
@@ -185,7 +188,8 @@ namespace onyxui {
          * Returns nullptr if no context has been pushed.
          */
         [[nodiscard]] static ui_context<Backend>* current() noexcept {
-            return s_context_stack.empty() ? nullptr : s_context_stack.back();
+            auto& stack = context_stack();
+            return stack.empty() ? nullptr : stack.back();
         }
 
         // ================================================================
@@ -337,7 +341,7 @@ namespace onyxui {
          * - depth() > 1: Nested contexts
          */
         [[nodiscard]] static size_t depth() noexcept {
-            return s_context_stack.size();
+            return context_stack().size();
         }
 
         /**
@@ -345,7 +349,7 @@ namespace onyxui {
          * @return true if at least one context is on the stack
          */
         [[nodiscard]] static bool has_context() noexcept {
-            return !s_context_stack.empty();
+            return !context_stack().empty();
         }
     };
 

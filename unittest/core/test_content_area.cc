@@ -6,14 +6,23 @@
 //
 
 #include <climits>
+#include "../utils/test_helpers.hh"
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <onyxui/element.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/panel.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/rect_like.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -105,19 +114,9 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     }
 
     // Tests using actual panel widget with canvas backend for theme support
-    struct test_fixture {
-        scoped_ui_context<test_canvas_backend> ctx;
 
-        template<typename Widget>
-        void apply_default_theme([[maybe_unused]] Widget& w) {
-            // With global theme approach, widgets automatically get the current theme
-            // No need to explicitly apply - theme is already registered in ctx
-        }
-    };
-
-    TEST_CASE_FIXTURE(test_fixture, "Panel - get_content_area() accounts for border") {
+    TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Panel - get_content_area() accounts for border") {
         panel<test_canvas_backend> p;
-        apply_default_theme(p);
         p.set_has_border(true);
         p.set_vbox_layout(0);
 
@@ -133,9 +132,8 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         CHECK(rect_utils::get_y(child_bounds) == 1);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Panel - border + padding compound offset") {
+    TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Panel - border + padding compound offset") {
         panel<test_canvas_backend> p;
-        apply_default_theme(p);
         p.set_has_border(true);      // +1
         p.set_padding({2, 3, 2, 3});  // L,T,R,B
         p.set_vbox_layout(0);

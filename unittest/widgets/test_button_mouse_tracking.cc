@@ -5,17 +5,26 @@
  */
 
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/button.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/widgets/vbox.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_handle.hh>
+#include "../utils/test_helpers.hh"
 #include <onyxui/ui_context.hh>
+#include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "widgets.hh"
+#include "../utils/test_helpers.hh"
 
 using namespace onyxui;
-using Backend = test_backend;
+using namespace onyxui::testing;
+using Backend = test_canvas_backend;
 
-TEST_CASE("Button - Mouse tracking and state management") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse tracking and state management") {
     SUBCASE("Press then drag away - visual state should persist if pressed") {
         test_button<Backend> btn("Test");
 
@@ -148,7 +157,7 @@ TEST_CASE("Button - Mouse tracking and state management") {
     }
 }
 
-TEST_CASE("Button - Bug: is_hovered() returns false after mouse up") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hovered() returns false after mouse up") {
     SUBCASE("Mouse enter, press, release - is_hovered() should stay true") {
         test_button<Backend> btn("Test");
 
@@ -179,6 +188,13 @@ TEST_CASE("Button - Bug: is_hovered() returns false after mouse up") {
     }
 
     SUBCASE("Real event sequence: mouse move, click, release (Demo Bug Reproduction)") {
+        // Setup ui_context with theme for measurement
+        ui_theme<test_canvas_backend> theme;
+        theme.name = "Test";
+        scoped_ui_context<test_canvas_backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test");
+
         test_button<Backend> btn("Test");
 
         // Position button at specific location
@@ -218,6 +234,13 @@ TEST_CASE("Button - Bug: is_hovered() returns false after mouse up") {
     }
 
     SUBCASE("Click button 1, then click button 2 sequence") {
+        // Setup ui_context with theme for measurement
+        ui_theme<test_canvas_backend> theme;
+        theme.name = "Test";
+        scoped_ui_context<test_canvas_backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test");
+
         test_button<Backend> btn1("Normal");
         test_button<Backend> btn2("Quit");
 

@@ -11,14 +11,17 @@
 #include <onyxui/widgets/vbox.hh>
 #include <utility>
 #include "../utils/test_backend.hh"
+#include "../utils/test_canvas_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/size_like.hh"
 
 using namespace onyxui;
+using namespace onyxui::testing;
 
-TEST_CASE("Spacer - Fixed-size spacing widget") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size spacing widget") {
     SUBCASE("Construction with zero size") {
-        spacer<test_backend> const s;
+        spacer<test_canvas_backend> const s;
 
         CHECK(s.width() == 0);
         CHECK(s.height() == 0);
@@ -26,7 +29,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Construction with horizontal spacing") {
-        spacer<test_backend> s(20, 0);
+        spacer<test_canvas_backend> s(20, 0);
 
         CHECK(s.width() == 20);
         CHECK(s.height() == 0);
@@ -36,7 +39,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Construction with vertical spacing") {
-        spacer<test_backend> s(0, 30);
+        spacer<test_canvas_backend> s(0, 30);
 
         CHECK(s.width() == 0);
         CHECK(s.height() == 30);
@@ -46,7 +49,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Construction with both dimensions") {
-        spacer<test_backend> s(50, 40);
+        spacer<test_canvas_backend> s(50, 40);
 
         CHECK(s.width() == 50);
         CHECK(s.height() == 40);
@@ -57,7 +60,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Set width") {
-        spacer<test_backend> s;
+        spacer<test_canvas_backend> s;
 
         s.set_width(25);
         CHECK(s.width() == 25);
@@ -67,7 +70,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Set height") {
-        spacer<test_backend> s;
+        spacer<test_canvas_backend> s;
 
         s.set_height(35);
         CHECK(s.height() == 35);
@@ -77,7 +80,7 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Change dimensions invalidates layout") {
-        spacer<test_backend> s(10, 10);
+        spacer<test_canvas_backend> s(10, 10);
 
         s.set_width(20);
         CHECK(s.width() == 20);
@@ -91,11 +94,11 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Spacer in horizontal layout") {
-        hbox<test_backend> box;
+        hbox<test_canvas_backend> box;
 
-        auto btn1 = std::make_unique<button<test_backend>>("Left");
-        auto gap = std::make_unique<spacer<test_backend>>(20, 0);
-        auto btn2 = std::make_unique<button<test_backend>>("Right");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Left");
+        auto gap = std::make_unique<spacer<test_canvas_backend>>(20, 0);
+        auto btn2 = std::make_unique<button<test_canvas_backend>>("Right");
 
         box.add_child(std::move(btn1));
         box.add_child(std::move(gap));
@@ -106,11 +109,11 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Spacer in vertical layout") {
-        vbox<test_backend> box;
+        vbox<test_canvas_backend> box;
 
-        auto btn1 = std::make_unique<button<test_backend>>("Top");
-        auto gap = std::make_unique<spacer<test_backend>>(0, 30);
-        auto btn2 = std::make_unique<button<test_backend>>("Bottom");
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Top");
+        auto gap = std::make_unique<spacer<test_canvas_backend>>(0, 30);
+        auto btn2 = std::make_unique<button<test_canvas_backend>>("Bottom");
 
         box.add_child(std::move(btn1));
         box.add_child(std::move(gap));
@@ -121,26 +124,26 @@ TEST_CASE("Spacer - Fixed-size spacing widget") {
     }
 
     SUBCASE("Multiple spacers with different sizes") {
-        hbox<test_backend> box;
+        hbox<test_canvas_backend> box;
 
-        box.add_child(std::make_unique<button<test_backend>>("A"));
-        box.add_child(std::make_unique<spacer<test_backend>>(10, 0));
-        box.add_child(std::make_unique<button<test_backend>>("B"));
-        box.add_child(std::make_unique<spacer<test_backend>>(20, 0));
-        box.add_child(std::make_unique<button<test_backend>>("C"));
+        box.add_child(std::make_unique<button<test_canvas_backend>>("A"));
+        box.add_child(std::make_unique<spacer<test_canvas_backend>>(10, 0));
+        box.add_child(std::make_unique<button<test_canvas_backend>>("B"));
+        box.add_child(std::make_unique<spacer<test_canvas_backend>>(20, 0));
+        box.add_child(std::make_unique<button<test_canvas_backend>>("C"));
 
         CHECK(box.children().size() == 5);
         CHECK_NOTHROW((void)box.measure(400, 50));
     }
 
     SUBCASE("Spacer is not focusable") {
-        spacer<test_backend> const s(10, 10);
+        spacer<test_canvas_backend> const s(10, 10);
 
         CHECK_FALSE(s.is_focusable());
     }
 
     // Rule of Five tests - using generic framework for sized widgets
-    onyxui::testing::test_rule_of_five_sized_widget<spacer<test_backend>>(40, 30);
+    onyxui::testing::test_rule_of_five_sized_widget<spacer<test_canvas_backend>>(40, 30);
 }
 
 

@@ -308,15 +308,24 @@ namespace onyxui {
             const icon_type& icon,
             const point_type& position
         ) override {
-            // TODO: Icon rendering not yet implemented in most renderers
-            // This is a placeholder for future implementation
-            (void)icon;
-            (void)position;
+            if (m_renderer) {
+                // Get icon size to construct bounds
+                auto icon_size = renderer_type::get_icon_size(icon);
 
-            // Return minimal size for now
-            size_type size{};
-            size_utils::set_size(size, 1, 1);
-            return size;
+                // Construct rect from position and size
+                rect_type icon_bounds;
+                rect_utils::set_bounds(
+                    icon_bounds,
+                    point_utils::get_x(position),
+                    point_utils::get_y(position),
+                    size_utils::get_width(icon_size),
+                    size_utils::get_height(icon_size)
+                );
+
+                // Call renderer with rect and icon
+                m_renderer->draw_icon(icon_bounds, icon);
+            }
+            return renderer_type::get_icon_size(icon);
         }
 
         /**

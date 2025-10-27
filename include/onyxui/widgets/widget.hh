@@ -42,6 +42,7 @@
 #include <onyxui/scoped_layer.hh>
 #include <onyxui/layer_manager.hh>
 #include <memory>
+#include <stdexcept>
 
 namespace onyxui {
     // Forward declarations
@@ -494,12 +495,14 @@ namespace onyxui {
          * to implement get_content_size() separately.
          *
          * **How it works:**
-         * 1. Creates a measure_context
-         * 2. Calls do_render(ctx) - same rendering code used for drawing
-         * 3. Returns the measured size from the context
+         * 1. Gets current theme and resolves style (same as rendering does)
+         * 2. Creates a measure_context with resolved style
+         * 3. Calls do_render(ctx) - same rendering code used for drawing
+         * 4. Returns the measured size from the context
          *
          * **Benefits:**
          * - Single source of truth (do_render handles both measurement and rendering)
+         * - Measurement uses same resolved style as rendering (prevents inconsistencies)
          * - Impossible for measurement and rendering to get out of sync
          * - ~50-70% less code in widget implementations
          *
@@ -508,8 +511,33 @@ namespace onyxui {
          * that differs from rendering (rare).
          */
         [[nodiscard]] typename base::size_type get_content_size() const override {
-            measure_context<Backend> ctx;
+            // Get current theme from ui_services (same as rendering does)
+            auto* theme = ui_services<Backend>::themes()
+                ? ui_services<Backend>::themes()->get_current_theme()
+                : nullptr;
+
+            // Theme is required for measurement - if missing, it's a programming error
+            if (!theme) {
+                throw std::runtime_error(
+                    "widget::get_content_size() called without theme - "
+                    "ui_context not initialized or no theme set"
+                );
+            }
+
+            // Create default parent style from theme
+            // This mimics what ui_element::render() does for top-level rendering
+            resolved_style<Backend> parent_style = resolved_style<Backend>::from_theme(*theme);
+
+            // Resolve my style by merging parent_style with my overrides (same as rendering)
+            auto style = this->resolve_style(theme, parent_style);
+
+            // Create measure_context with resolved style (ensures measurement = rendering)
+            // The theme is already set via the resolved_style, accessible via ctx.theme()
+            measure_context<Backend> ctx(style);
+
+            // "Render" for measurement (same code path as actual rendering)
             this->do_render(ctx);
+
             return ctx.get_size();
         }
 

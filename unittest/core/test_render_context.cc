@@ -9,6 +9,7 @@
 #include <onyxui/render_context.hh>
 #include <onyxui/draw_context.hh>
 #include <onyxui/measure_context.hh>
+#include <onyxui/resolved_style.hh>
 #include <onyxui/concepts/size_like.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <utility>
@@ -17,23 +18,39 @@
 using namespace onyxui;
 using Backend = test_backend;
 
+// Helper function to create a default resolved_style for tests
+inline resolved_style<Backend> make_default_style() {
+    return resolved_style<Backend>{
+        .background_color = Backend::color_type{},
+        .foreground_color = Backend::color_type{},
+        .border_color = Backend::color_type{},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
+}
+
 TEST_CASE("measure_context - Basic functionality") {
     SUBCASE("Initial state is zero size") {
-        measure_context<Backend> const ctx;
+        measure_context<Backend> const ctx(make_default_style());
         auto size = ctx.get_size();
         CHECK(size_utils::get_width(size) == 0);
         CHECK(size_utils::get_height(size) == 0);
     }
 
     SUBCASE("renderer() returns nullptr") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
         CHECK(ctx.renderer() == nullptr);
     }
 }
 
 TEST_CASE("measure_context - Text measurement") {
     SUBCASE("Single text at origin") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
 
         Backend::point_type const pos{0, 0};
         Backend::renderer_type::font const font;
@@ -53,7 +70,7 @@ TEST_CASE("measure_context - Text measurement") {
     }
 
     SUBCASE("Text at offset position") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
 
         Backend::point_type const pos{10, 5};
         Backend::renderer_type::font const font;
@@ -72,7 +89,7 @@ TEST_CASE("measure_context - Text measurement") {
 
 TEST_CASE("measure_context - Rectangle measurement") {
     SUBCASE("Single rectangle at origin") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
 
         Backend::rect_type rect;
         rect_utils::set_bounds(rect, 0, 0, 10, 5);
@@ -87,7 +104,7 @@ TEST_CASE("measure_context - Rectangle measurement") {
     }
 
     SUBCASE("Rectangle at offset position") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
 
         Backend::rect_type rect;
         rect_utils::set_bounds(rect, 5, 3, 8, 4);  // (x, y, w, h)
@@ -105,7 +122,7 @@ TEST_CASE("measure_context - Rectangle measurement") {
 
 TEST_CASE("measure_context - Reset functionality") {
     SUBCASE("Reset clears tracked size") {
-        measure_context<Backend> ctx;
+        measure_context<Backend> ctx(make_default_style());
 
         // Measure some text
         Backend::point_type const pos{0, 0};
@@ -171,7 +188,7 @@ TEST_CASE("draw_context - Rectangle rendering") {
 
 TEST_CASE("Polymorphic usage") {
     SUBCASE("Can use render_context* to point to measure_context") {
-        auto ctx = std::make_unique<measure_context<Backend>>();
+        auto ctx = std::make_unique<measure_context<Backend>>(make_default_style());
         render_context<Backend>* base = ctx.get();
 
         // measure_context has no renderer
@@ -190,7 +207,7 @@ TEST_CASE("Polymorphic usage") {
 
 TEST_CASE("Context lifetimes") {
     SUBCASE("measure_context is moveable") {
-        measure_context<Backend> ctx1;
+        measure_context<Backend> ctx1(make_default_style());
 
         Backend::point_type const pos{0, 0};
         Backend::renderer_type::font const font;

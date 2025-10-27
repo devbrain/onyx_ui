@@ -19,7 +19,8 @@
 #include "../utils/layout_assertions.hh"
 
 using namespace onyxui;
-using Backend = test_backend;
+using namespace onyxui::testing;
+using Backend = test_canvas_backend;
 
 namespace {
     // Helper to create a test theme with default values
@@ -57,7 +58,7 @@ namespace {
     }
 }
 
-TEST_CASE("Menu Item - Measurement includes padding") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurement includes padding") {
     SUBCASE("Short text like 'About' needs padding space") {
         // Setup context (for theme registry)
         scoped_ui_context<Backend> ctx;
@@ -120,7 +121,7 @@ TEST_CASE("Menu Item - Measurement includes padding") {
     }
 }
 
-TEST_CASE("Menu Item - Text is not truncated when rendered") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Text is not truncated when rendered") {
     SUBCASE("Menu item displays full text with padding") {
         scoped_ui_context<Backend> ctx;
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
@@ -152,7 +153,7 @@ TEST_CASE("Menu Item - Text is not truncated when rendered") {
     }
 }
 
-TEST_CASE("Menu Item - Theme changes don't break measurement") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme changes don't break measurement") {
     SUBCASE("Changing theme invalidates cached measurement") {
         scoped_ui_context<Backend> ctx;
 
@@ -216,7 +217,7 @@ TEST_CASE("Menu Item - Theme changes don't break measurement") {
     }
 }
 
-TEST_CASE("Menu Item - Visual rendering consistency") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual rendering consistency") {
     using CanvasBackend = onyxui::testing::test_canvas_backend;
     using namespace onyxui::testing;
 
