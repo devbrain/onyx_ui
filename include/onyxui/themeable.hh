@@ -13,6 +13,10 @@
 #include <failsafe/logger.hh>
 
 namespace onyxui {
+
+    // Forward declarations to break circular dependency
+    template<UIBackend Backend>
+    class ui_services;
     /**
      * @class themeable
      * @brief Provides CSS-style property inheritance for visual styling
@@ -29,12 +33,13 @@ namespace onyxui {
      *
      * These inherit from parent to child:
      * - **Colors**: background, foreground/text
-     * - **Renderer styles**: box_style (borders), font, icon_style
+     * - **Renderer styles**: font, icon_style
      * - **Effects**: opacity/alpha (multiplicative)
      *
      * ## Non-Inheritable Properties
      *
-     * Layout properties don't inherit:
+     * These do NOT inherit from parent (CSS-compliant):
+     * - **box_style (borders)** - Each widget has independent borders
      * - Padding, margin, size constraints
      * - State colors (hover, pressed) - widget-specific
      *
@@ -65,13 +70,9 @@ namespace onyxui {
             themeable(const themeable&) = delete;
             themeable& operator=(const themeable&) = delete;
 
-            // Move operations (safe: transfers theme ownership and overrides)
+            // Move operations (safe: transfers overrides only, theme is global)
             themeable(themeable&& other) noexcept
-                : m_theme_raw(std::exchange(other.m_theme_raw, nullptr))
-                , m_owned_theme(std::move(other.m_owned_theme))
-                , m_theme_ptr(std::move(other.m_theme_ptr))
-                , m_theme_name(std::move(other.m_theme_name))
-                , m_background_override(std::move(other.m_background_override))
+                : m_background_override(std::move(other.m_background_override))
                 , m_foreground_override(std::move(other.m_foreground_override))
                 , m_box_style_override(std::move(other.m_box_style_override))
                 , m_font_override(std::move(other.m_font_override))
@@ -80,10 +81,6 @@ namespace onyxui {
 
             themeable& operator=(themeable&& other) noexcept {
                 if (this != &other) {
-                    m_theme_raw = std::exchange(other.m_theme_raw, nullptr);
-                    m_owned_theme = std::move(other.m_owned_theme);
-                    m_theme_ptr = std::move(other.m_theme_ptr);
-                    m_theme_name = std::move(other.m_theme_name);
                     m_background_override = std::move(other.m_background_override);
                     m_foreground_override = std::move(other.m_foreground_override);
                     m_box_style_override = std::move(other.m_box_style_override);
@@ -97,124 +94,6 @@ namespace onyxui {
             // ===================================================================
             // Theme Application - Three Safe Options
             // ===================================================================
-
-            /**
-             * @brief Apply theme by name from registry (Option 1 - Recommended)
-             *
-             * @param name Theme name (must be registered in theme_registry)
-             * @param registry Theme registry to look up the theme
-             * @return true if theme was found and applied, false otherwise
-             *
-             * @details
-             * This is the safest and most efficient option:
-             * - Zero overhead (registry owns the theme)
-             * - Automatic lifetime management
-             * - Perfect for app-wide standard themes
-             *
-             * @example
-             * @code
-             * if (widget->apply_theme("Norton Blue", ctx.themes())) {
-             *     // Theme applied successfully
-             * } else {
-             *     std::cerr << "Theme not found\n";
-             * }
-             * @endcode
-             */
-            template<typename ThemeRegistry>
-            bool apply_theme(const std::string& name, ThemeRegistry& registry) {
-                const theme_type* theme = registry.get_theme(name);
-                if (!theme) {
-                    LOG_WARN("Theme not found in registry: ", name);
-                    return false;
-                }
-
-                LOG_DEBUG("Applying theme by name: ", name);
-                before_apply_theme(*theme);
-
-                // Clear owned/shared themes (switching to registry theme)
-                m_owned_theme.reset();
-                m_theme_ptr.reset();
-                m_theme_raw = theme;
-                m_theme_name = name;
-
-                this->do_apply_theme(*theme);
-                after_apply_theme(*theme);
-                return true;
-            }
-
-            /**
-             * @brief Apply theme by value (Option 2 - Copy)
-             *
-             * @param theme Theme to apply (will be copied/moved)
-             *
-             * @details
-             * Widget takes ownership of a copy:
-             * - Pass by value (use std::move for zero-copy)
-             * - Widget owns its own theme copy
-             * - Perfect for per-widget customization
-             *
-             * @example
-             * @code
-             * // Copy
-             * auto my_theme = create_theme();
-             * widget->apply_theme(my_theme);
-             *
-             * // Move (zero-copy)
-             * widget->apply_theme(std::move(my_theme));
-             * @endcode
-             */
-            void apply_theme(theme_type theme) {  // Pass by value!
-                // Note: No logging here - this is primarily used for recursive propagation
-                // to children. Logging would create excessive output (one per widget in tree).
-                // User-facing theme application uses apply_theme(name, registry) which logs.
-                before_apply_theme(theme);
-
-                // Clear shared theme (switching to owned theme)
-                m_theme_ptr.reset();
-                m_owned_theme = std::make_unique<theme_type>(std::move(theme));
-                m_theme_raw = m_owned_theme.get();
-                m_theme_name = m_theme_raw->name;
-
-                this->do_apply_theme(*m_owned_theme);
-                after_apply_theme(*m_owned_theme);
-            }
-
-            /**
-             * @brief Apply theme by shared_ptr (Option 3 - Shared)
-             *
-             * @param theme Shared pointer to theme
-             *
-             * @details
-             * Multiple widgets share the same theme:
-             * - Shared ownership with reference counting
-             * - Efficient memory usage for shared themes
-             * - Perfect for sharing custom themes across few widgets
-             *
-             * @example
-             * @code
-             * auto shared_theme = std::make_shared<ui_theme<Backend>>(create_theme());
-             * widget1->apply_theme(shared_theme);
-             * widget2->apply_theme(shared_theme);  // Both share same instance
-             * @endcode
-             */
-            void apply_theme(std::shared_ptr<const theme_type> theme) {
-                if (!theme) {
-                    LOG_WARN("Cannot apply null shared_ptr theme");
-                    return;
-                }
-
-                LOG_DEBUG("Applying theme by shared_ptr: ", theme->name.empty() ? "(unnamed)" : theme->name);
-                before_apply_theme(*theme);
-
-                // Clear owned theme (switching to shared theme)
-                m_owned_theme.reset();
-                m_theme_ptr = theme;
-                m_theme_raw = theme.get();
-                m_theme_name = m_theme_raw->name;
-
-                this->do_apply_theme(*theme);
-                after_apply_theme(*theme);
-            }
 
             // ===================================================================
             // Background Color (Inheritable)
@@ -270,16 +149,16 @@ namespace onyxui {
                 invalidate_visual();
             }
 
-            [[nodiscard]] box_style_type get_effective_box_style() const {
+            [[nodiscard]] box_style_type get_effective_box_style(const theme_type* theme) const {
                 if (m_box_style_override) {
                     return *m_box_style_override;
                 }
 
                 if (auto* p = get_themeable_parent()) {
-                    return p->get_effective_box_style();
+                    return p->get_effective_box_style(theme);
                 }
 
-                if (auto* theme = get_theme()) {
+                if (theme) {
                     return get_theme_box_style(*theme);
                 }
 
@@ -306,16 +185,16 @@ namespace onyxui {
                 invalidate_visual();
             }
 
-            [[nodiscard]] font_type get_effective_font() const {
+            [[nodiscard]] font_type get_effective_font(const theme_type* theme) const {
                 if (m_font_override) {
                     return *m_font_override;
                 }
 
                 if (auto* p = get_themeable_parent()) {
-                    return p->get_effective_font();
+                    return p->get_effective_font(theme);
                 }
 
-                if (auto* theme = get_theme()) {
+                if (theme) {
                     return get_theme_font(*theme);
                 }
 
@@ -341,16 +220,16 @@ namespace onyxui {
                 invalidate_visual();
             }
 
-            [[nodiscard]] icon_style_type get_effective_icon_style() const {
+            [[nodiscard]] icon_style_type get_effective_icon_style(const theme_type* theme) const {
                 if (m_icon_style_override) {
                     return *m_icon_style_override;
                 }
 
                 if (auto* p = get_themeable_parent()) {
-                    return p->get_effective_icon_style();
+                    return p->get_effective_icon_style(theme);
                 }
 
-                if (auto* theme = get_theme()) {
+                if (theme) {
                     return get_theme_icon_style(*theme);
                 }
 
@@ -382,50 +261,13 @@ namespace onyxui {
              * @details Opacity is multiplicative in CSS: parent=0.5, child=0.8 → effective=0.4
              *          This represents the VISUAL opacity, not just the CSS property value.
              */
-            [[nodiscard]] float get_effective_opacity() const {
+            [[nodiscard]] float get_effective_opacity(const resolved_style<Backend>& parent_style) const {
                 float opacity = m_opacity_override.value_or(1.0F);
 
-                // Multiply with parent's opacity (CSS-style multiplicative composition)
-                if (auto* p = get_themeable_parent()) {
-                    opacity *= p->get_effective_opacity();
-                }
+                // Multiply with parent's opacity (CSS-style multiplicative composition, NO RECURSION!)
+                opacity *= parent_style.opacity.value;
 
                 return opacity;
-            }
-
-            // ===================================================================
-            // Theme Access (Public API)
-            // ===================================================================
-
-            /**
-             * @brief Get the effective theme for this element
-             *
-             * @details Implements CSS-style inheritance by walking up the parent
-             *          chain to find the nearest theme. This ensures widgets without
-             *          an explicitly set theme can still access theme data.
-             *
-             * @return Pointer to theme, or nullptr if no theme in hierarchy
-             */
-            [[nodiscard]] const theme_type* get_theme() const {
-                // First check if we have a theme directly set
-                if (m_theme_raw) {
-                    return m_theme_raw;
-                }
-
-                // Walk up the parent chain to find a theme
-                if (auto* parent = get_themeable_parent()) {
-                    return parent->get_theme();
-                }
-
-                // No theme found in hierarchy
-                return nullptr;
-            }
-
-            /**
-             * @brief Check if this element has a theme (either direct or inherited)
-             */
-            [[nodiscard]] bool has_theme() const {
-                return get_theme() != nullptr;
             }
 
             // ===================================================================
@@ -455,63 +297,98 @@ namespace onyxui {
              * @code
              * // In ui_element::render()
              * void render(renderer_type& r) {
-             *     auto style = resolve_style();     // CSS inheritance happens HERE
-             *     draw_context ctx(r, style);       // Pass resolved style
-             *     this->do_render(ctx);             // Widget just draws!
+             *     auto* theme = get_global_theme();  // Get once at entry point
+             *     auto style = resolve_style(theme); // Pass down tree
+             *     draw_context ctx(r, style);        // Pass resolved style
+             *     this->do_render(ctx);              // Widget just draws!
              * }
              * @endcode
              *
+             * @param theme Global theme pointer (passed down from root), defaults to nullptr
+             * @param parent_style Parent's resolved style (accumulated top-down), default-constructed if not provided
              * @return Fully-resolved style ready for rendering
              */
-            [[nodiscard]] virtual resolved_style<Backend> resolve_style() const {
-                resolved_style<Backend> style;
+            /**
+             * @brief Resolve complete style from theme, parent, and overrides
+             *
+             * @param theme Theme pointer (can be nullptr for no theme)
+             * @param parent_style Parent's resolved style (passed down from root)
+             * @return Fully resolved style with all properties
+             *
+             * @details
+             * Resolution order per-property:
+             * 1. Explicit override (set_background_color, etc.) - highest priority
+             * 2. Parent inheritance (CSS-style, passed down top-to-bottom)
+             * 3. Theme default (widget-specific via get_theme_style())
+             *
+             * Special case: Opacity is multiplicative through the hierarchy.
+             *
+             * @note Zero recursion! Parent style is passed down, not looked up.
+             */
+            [[nodiscard]] virtual resolved_style<Backend> resolve_style(
+                const theme_type* theme,
+                const resolved_style<Backend>& parent_style
+            ) const {
+                // Start with theme style (widget-specific via polymorphism)
+                resolved_style<Backend> style = theme ? get_theme_style(*theme) : resolved_style<Backend>{
+                    .background_color = typename Backend::color_type{},
+                    .foreground_color = typename Backend::color_type{},
+                    .border_color = typename Backend::color_type{},
+                    .box_style = typename Backend::renderer_type::box_style{},
+                    .font = typename Backend::renderer_type::font{},
+                    .opacity = 1.0f,
+                    .icon_style = std::optional<typename Backend::renderer_type::icon_style>(std::nullopt),
+                    .padding_horizontal = std::optional<int>{},
+                    .padding_vertical = std::optional<int>{},
+                    .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
+                };
 
-                // Resolve background color: override → parent → theme → default
+                // Apply parent inheritance per-property (CSS-style)
+                // Parent values override theme values (parent already accumulated from ancestors)
+                // Note: We don't check for "default" because backend types are opaque and may not have operator==
+                // The root element gets theme values, so this always works correctly.
+                style.background_color = parent_style.background_color.value;
+                style.foreground_color = parent_style.foreground_color.value;
+                // box_style is NOT inherited (borders don't inherit in CSS)
+                // style.box_style = parent_style.box_style.value;  // REMOVED - breaks CSS compliance
+                style.font = parent_style.font.value;
+
+                // Icon style is optional - only inherit if parent has one
+                if (parent_style.icon_style.value.has_value()) {
+                    style.icon_style = std::make_optional(parent_style.icon_style.value.value());  // Wrap in optional for assignment
+                }
+
+                // Layout properties are NOT inherited (widget-specific, set by get_theme_style())
+                // padding_horizontal, padding_vertical, mnemonic_font stay as-is from get_theme_style()
+
+                // Apply explicit overrides (highest priority)
                 if (m_background_override) {
                     style.background_color = *m_background_override;
-                } else if (auto* p = get_themeable_parent()) {
-                    style.background_color = p->resolve_style().background_color;
-                } else if (auto* theme = get_theme()) {
-                    style.background_color = get_theme_background_color(*theme);
-                } else {
-                    style.background_color = color_type{};
                 }
-
-                // Resolve foreground color: override → parent → theme → default
                 if (m_foreground_override) {
                     style.foreground_color = *m_foreground_override;
-                } else if (auto* p = get_themeable_parent()) {
-                    style.foreground_color = p->resolve_style().foreground_color;
-                } else if (auto* theme = get_theme()) {
-                    style.foreground_color = get_theme_foreground_color(*theme);
-                } else {
-                    style.foreground_color = color_type{};
+                }
+                if (m_box_style_override) {
+                    style.box_style = *m_box_style_override;
+                }
+                if (m_font_override) {
+                    style.font = *m_font_override;
+                }
+                if (m_icon_style_override) {
+                    style.icon_style = std::make_optional(*m_icon_style_override);
                 }
 
-                // Resolve other properties
-                style.box_style = get_effective_box_style();
-                style.font = get_effective_font();
-                style.opacity = get_effective_opacity();
-                style.icon_style = get_effective_icon_style();
+                // Opacity is multiplicative through hierarchy
+                style.opacity = get_effective_opacity(parent_style);
 
-                // Border color (defaults to foreground)
-                style.border_color = style.foreground_color;
+                // Border color defaults to foreground
+                style.border_color = style.foreground_color.value;
 
                 return style;
             }
 
         protected:
             themeable() = default;
-
-            // Internal theme setter (for apply_theme only - deprecated, kept for compatibility)
-            void set_theme_internal(const theme_type* theme) {
-                m_theme_raw = theme;
-            }
-
-            // Theme application hooks
-            virtual void do_apply_theme(const theme_type& theme) = 0;
-            virtual void before_apply_theme([[maybe_unused]] const theme_type& theme) {}
-            virtual void after_apply_theme([[maybe_unused]] const theme_type& theme) {}
 
             // ===================================================================
             // Inheritance Hooks (override in derived classes)
@@ -527,31 +404,32 @@ namespace onyxui {
             }
 
             /**
-             * @brief Get widget-type-specific background from theme
+             * @brief Get widget-type-specific complete style from theme
              *
-             * @details Override in widgets:
-             * - button: theme.button.bg_normal
-             * - panel: theme.panel.background
-             * - label: theme.label.background
+             * @details Override in widgets to return widget-specific theme properties:
+             * - button: returns theme.button colors, box_style, font
+             * - panel: returns theme.panel colors, box_style
+             * - label: returns theme.label colors, font
+             *
+             * @param theme Theme to extract properties from
+             * @return Complete resolved_style with all widget-specific theme values
+             *
+             * @note Base implementation returns generic panel/label defaults
              */
-            [[nodiscard]] virtual color_type get_theme_background_color(const theme_type& theme) const {
-                return theme.window_bg;
-            }
-
-            [[nodiscard]] virtual color_type get_theme_foreground_color(const theme_type& theme) const {
-                return theme.text_fg;
-            }
-
-            [[nodiscard]] virtual box_style_type get_theme_box_style(const theme_type& theme) const {
-                return theme.panel.box_style;  // Reasonable default
-            }
-
-            [[nodiscard]] virtual font_type get_theme_font(const theme_type& theme) const {
-                return theme.label.font;  // Most widgets display text
-            }
-
-            [[nodiscard]] virtual icon_style_type get_theme_icon_style([[maybe_unused]] const theme_type& theme) const {
-                return icon_style_type{};  // Not all widgets use icons
+            [[nodiscard]] virtual resolved_style<Backend> get_theme_style(const theme_type& theme) const {
+                // Base implementation: generic widget style from theme
+                return resolved_style<Backend>{
+                    .background_color = theme.window_bg,
+                    .foreground_color = theme.text_fg,
+                    .border_color = theme.border_color,
+                    .box_style = theme.panel.box_style,   // Default to panel
+                    .font = theme.label.font,              // Default to label
+                    .opacity = 1.0f,
+                    .icon_style = std::optional<icon_style_type>(std::nullopt),  // No icon by default
+                    .padding_horizontal = std::optional<int>{},  // No padding by default
+                    .padding_vertical = std::optional<int>{},
+                    .mnemonic_font = std::optional<font_type>{}  // No mnemonic by default
+                };
             }
 
             /**
@@ -566,11 +444,8 @@ namespace onyxui {
             // Derived classes (ui_element) need direct access for CSS-style inheritance.
 
         private:
-            // Theme ownership (three-way API)
-            const theme_type* m_theme_raw = nullptr;              ///< Non-owning pointer (always points to active theme)
-            std::unique_ptr<theme_type> m_owned_theme;            ///< Option 2: owned copy
-            std::shared_ptr<const theme_type> m_theme_ptr;        ///< Option 3: shared ownership
-            std::string m_theme_name;                             ///< Track applied theme name
+            // Note: Theme is passed from the outside (via render pipeline)
+            // No per-widget theme storage (zero overhead)
 
         protected:
 
@@ -584,4 +459,5 @@ namespace onyxui {
 
             // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
     };
-}
+
+} // namespace onyxui

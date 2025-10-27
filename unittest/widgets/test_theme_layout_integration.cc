@@ -32,7 +32,7 @@ TEST_SUITE("Theme - Layout Integration") {
         template<typename Widget>
         void apply_default_theme(Widget& w) {
             // Use v2.0 by-name API (recommended)
-            w.apply_theme("Test Theme", ctx.themes());
+//             w.apply_theme("Test Theme", ctx.themes());  // No longer needed - widgets use global theme
         }
     };
 

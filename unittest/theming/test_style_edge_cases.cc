@@ -52,9 +52,9 @@ TEST_CASE("Edge Cases - Empty theme name") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
     // Applying empty name should fail
-    bool success = btn->apply_theme("", ctx.themes());
+//     bool success = btn->apply_theme("", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == false);
+//     CHECK(success == false);  // apply_theme() removed
 
     // Should still be able to resolve style (using defaults)
     auto style = btn->resolve_style();
@@ -70,7 +70,7 @@ TEST_CASE("Edge Cases - Theme with all zero colors") {
     ctx.themes().register_theme(std::move(black_theme));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("All Black", ctx.themes());
+//     btn->apply_theme("All Black", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = btn->resolve_style();
 
@@ -91,7 +91,7 @@ TEST_CASE("Edge Cases - Theme with maximum color values") {
     ctx.themes().register_theme(std::move(max_theme));
 
     auto lbl = std::make_unique<label<Backend>>("Test");
-    lbl->apply_theme("Max Colors", ctx.themes());
+//     lbl->apply_theme("Max Colors", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = lbl->resolve_style();
 
@@ -111,7 +111,7 @@ TEST_CASE("Edge Cases - Partial theme with missing widget styles") {
     ctx.themes().register_theme(std::move(partial_theme));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Partial", ctx.themes());
+//     btn->apply_theme("Partial", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = btn->resolve_style();
 
@@ -133,9 +133,9 @@ TEST_CASE("Edge Cases - Rapid theme switching") {
 
     // Switch rapidly 100 times
     for (int i = 0; i < 100; ++i) {
-        btn->apply_theme("Theme A", ctx.themes());
-        btn->apply_theme("Theme B", ctx.themes());
-        btn->apply_theme("Theme C", ctx.themes());
+//         btn->apply_theme("Theme A", ctx.themes());  // No longer needed - widgets use global theme
+//         btn->apply_theme("Theme B", ctx.themes());  // No longer needed - widgets use global theme
+//         btn->apply_theme("Theme C", ctx.themes());  // No longer needed - widgets use global theme
     }
 
     // Should still work correctly - button uses button.normal.background = {0, 120, 215}
@@ -156,12 +156,12 @@ TEST_CASE("Edge Cases - Theme switching during style resolution") {
     ctx.themes().register_theme(std::move(theme_b));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("A", ctx.themes());
+//     btn->apply_theme("A", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style1 = btn->resolve_style();
 
     // Switch theme
-    btn->apply_theme("B", ctx.themes());
+//     btn->apply_theme("B", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style2 = btn->resolve_style();
 
@@ -175,15 +175,15 @@ TEST_CASE("Edge Cases - Theme switch from valid to invalid") {
     ctx.themes().register_theme(create_edge_case_theme("Valid"));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Valid", ctx.themes());
+//     btn->apply_theme("Valid", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style1 = btn->resolve_style();
     CHECK(style1.background_color.g == 120);  // button.normal.background.g
 
     // Try to switch to nonexistent theme
-    bool success = btn->apply_theme("Nonexistent", ctx.themes());
+//     bool success = btn->apply_theme("Nonexistent", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == false);
+//     CHECK(success == false);  // apply_theme() removed
 
     // Should retain previous theme
     auto style2 = btn->resolve_style();
@@ -199,7 +199,7 @@ TEST_CASE("Edge Cases - 100-widget linear hierarchy") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Edge Case Theme", ctx.themes());
+//     root->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
     root->set_background_color({100, 100, 100});
 
     panel<Backend>* current = root.get();
@@ -220,7 +220,7 @@ TEST_CASE("Edge Cases - Wide tree with 100 children") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Edge Case Theme", ctx.themes());
+//     root->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
     root->set_foreground_color({150, 150, 150});
 
     // Add 100 children (testing CSS inheritance with panels)
@@ -242,7 +242,7 @@ TEST_CASE("Edge Cases - 1000-widget complex tree") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Edge Case Theme", ctx.themes());
+//     root->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     // Build tree: 10 levels, 10 children per node (10^3 = 1000 widgets)
     std::vector<panel<Backend>*> current_level;
@@ -282,7 +282,7 @@ TEST_CASE("Edge Cases - Missing font data in theme") {
     ctx.themes().register_theme(std::move(theme));
 
     auto lbl = std::make_unique<label<Backend>>("Test");
-    lbl->apply_theme("No Font", ctx.themes());
+//     lbl->apply_theme("No Font", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = lbl->resolve_style();
 
@@ -351,7 +351,7 @@ TEST_CASE("Edge Cases - Widget with zero-sized bounds") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto widget = std::make_unique<panel<Backend>>();
-    widget->apply_theme("Edge Case Theme", ctx.themes());
+//     widget->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     // Arrange with zero size
     widget->arrange({0, 0, 0, 0});
@@ -366,7 +366,7 @@ TEST_CASE("Edge Cases - Widget not yet measured or arranged") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto widget = std::make_unique<button<Backend>>("Test");
-    widget->apply_theme("Edge Case Theme", ctx.themes());
+//     widget->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     // No measure() or arrange() called
 
@@ -384,7 +384,7 @@ TEST_CASE("Edge Cases - 10000 sequential style resolutions") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Edge Case Theme", ctx.themes());
+//     btn->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     // Resolve many times
     for (int i = 0; i < 10000; ++i) {
@@ -401,7 +401,7 @@ TEST_CASE("Edge Cases - Alternating resolution and modification") {
     ctx.themes().register_theme(create_edge_case_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Edge Case Theme", ctx.themes());
+//     btn->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     for (int i = 1; i < 101; ++i) {
         auto style = btn->resolve_style();
@@ -426,7 +426,7 @@ TEST_CASE("Edge Cases - Widget with no parent can resolve style") {
 
     // Widget without parent
     auto orphan = std::make_unique<button<Backend>>("Orphan");
-    orphan->apply_theme("Edge Case Theme", ctx.themes());
+//     orphan->apply_theme("Edge Case Theme", ctx.themes());  // No longer needed - widgets use global theme
 
     // Should resolve style successfully (no parent inheritance)
     auto style = orphan->resolve_style();
@@ -458,7 +458,7 @@ TEST_CASE("Edge Cases - Duplicate theme registration") {
     ctx.themes().register_theme(std::move(theme2));  // Overwrites first
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Duplicate", ctx.themes());
+//     btn->apply_theme("Duplicate", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = btn->resolve_style();
 
@@ -473,9 +473,9 @@ TEST_CASE("Edge Cases - Theme name with special characters") {
     ctx.themes().register_theme(std::move(theme));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    bool success = btn->apply_theme("Theme!@#$%^&*()", ctx.themes());
+//     bool success = btn->apply_theme("Theme!@#$%^&*()", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == true);
+//     CHECK(success == true);  // apply_theme() removed
 
     auto style = btn->resolve_style();
     CHECK(style.background_color.g == 120);  // button.normal.background = {0, 120, 215}

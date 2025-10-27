@@ -19,6 +19,7 @@
 #include <onyxui/widgets/mnemonic_parser.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
+#include <onyxui/ui_context.hh>
 #include "onyxui/theme.hh"
 #include "utils/test_backend.hh"
 
@@ -386,21 +387,24 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button set_mnemonic_text without theme") {
         auto btn = std::make_unique<button<Backend>>();
 
-        // No theme yet, so mnemonic won't be fully parsed
+        // Mnemonic can be set even without theme (theme only needed for rendering fonts)
         btn->set_mnemonic_text("&Save");
 
         // Plain text is stored
         CHECK(btn->text() == "Save");
-        // But mnemonic isn't active (needs theme)
-        CHECK(!btn->has_mnemonic());
+        // Mnemonic character is available (extracted from markup, no theme needed)
+        CHECK(btn->has_mnemonic());
+        CHECK(btn->get_mnemonic_char() == 's');
     }
 
     TEST_CASE("Button set_mnemonic_text with theme") {
-        auto btn = std::make_unique<button<Backend>>();
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
-        // Apply theme first
-        ui_theme<Backend> const theme{};
-        btn->apply_theme(theme);
+        auto btn = std::make_unique<button<Backend>>();
 
         // Now set mnemonic text
         btn->set_mnemonic_text("&Save");
@@ -411,10 +415,13 @@ TEST_SUITE("button::mnemonics") {
     }
 
     TEST_CASE("Button mnemonic with different positions") {
-        auto btn = std::make_unique<button<Backend>>();
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
-        ui_theme<Backend> const theme{};
-        btn->apply_theme(theme);
+        auto btn = std::make_unique<button<Backend>>();
 
         // Start
         btn->set_mnemonic_text("&File");
@@ -430,32 +437,19 @@ TEST_SUITE("button::mnemonics") {
     }
 
     TEST_CASE("Button mnemonic with escape sequence") {
-        auto btn = std::make_unique<button<Backend>>();
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
-        ui_theme<Backend> const theme{};
-        btn->apply_theme(theme);
+        auto btn = std::make_unique<button<Backend>>();
 
         btn->set_mnemonic_text("Save && Exit");
 
         CHECK(btn->text() == "Save & Exit");
         CHECK(!btn->has_mnemonic());  // Escape, not mnemonic
         CHECK(btn->get_mnemonic_char() == '\0');
-    }
-
-    TEST_CASE("Button mnemonic cleared on theme change") {
-        auto btn = std::make_unique<button<Backend>>();
-
-        ui_theme<Backend> const theme{};
-        btn->apply_theme(theme);
-        btn->set_mnemonic_text("&Save");
-
-        CHECK(btn->has_mnemonic());
-
-        // Reapply theme (simulates theme change)
-        btn->apply_theme(theme);
-
-        // Mnemonic is cleared (needs re-parsing)
-        CHECK(!btn->has_mnemonic());
     }
 }
 
@@ -476,17 +470,23 @@ TEST_SUITE("label::mnemonics") {
     TEST_CASE("Label set_mnemonic_text without theme") {
         auto lbl = std::make_unique<label<Backend>>();
 
+        // Mnemonic can be set even without theme (theme only needed for rendering fonts)
         lbl->set_mnemonic_text("&Name:");
 
         CHECK(lbl->text() == "Name:");
-        CHECK(!lbl->has_mnemonic());  // Needs theme
+        // Mnemonic character is available (extracted from markup, no theme needed)
+        CHECK(lbl->has_mnemonic());
+        CHECK(lbl->get_mnemonic_char() == 'n');
     }
 
     TEST_CASE("Label set_mnemonic_text with theme") {
-        auto lbl = std::make_unique<label<Backend>>();
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
-        ui_theme<Backend> const theme{};
-        lbl->apply_theme(theme);
+        auto lbl = std::make_unique<label<Backend>>();
 
         lbl->set_mnemonic_text("&Name:");
 
@@ -496,32 +496,20 @@ TEST_SUITE("label::mnemonics") {
     }
 
     TEST_CASE("Label form field labels") {
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
+
         auto lbl1 = std::make_unique<label<Backend>>();
         auto lbl2 = std::make_unique<label<Backend>>();
-
-        ui_theme<Backend> const theme{};
-        lbl1->apply_theme(theme);
-        lbl2->apply_theme(theme);
 
         lbl1->set_mnemonic_text("&Username:");
         lbl2->set_mnemonic_text("&Password:");
 
         CHECK(lbl1->get_mnemonic_char() == 'u');
         CHECK(lbl2->get_mnemonic_char() == 'p');
-    }
-
-    TEST_CASE("Label mnemonic cleared on theme change") {
-        auto lbl = std::make_unique<label<Backend>>();
-
-        ui_theme<Backend> const theme{};
-        lbl->apply_theme(theme);
-        lbl->set_mnemonic_text("&Name:");
-
-        CHECK(lbl->has_mnemonic());
-
-        lbl->apply_theme(theme);
-
-        CHECK(!lbl->has_mnemonic());  // Cleared
     }
 }
 
@@ -533,19 +521,17 @@ TEST_SUITE("mnemonics::scenarios") {
     using Backend = test_backend;
 
     TEST_CASE("File menu with mnemonics") {
-        ui_theme<Backend> const theme{};
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         auto file_btn = std::make_unique<button<Backend>>();
         auto new_btn = std::make_unique<button<Backend>>();
         auto open_btn = std::make_unique<button<Backend>>();
         auto save_btn = std::make_unique<button<Backend>>();
         auto exit_btn = std::make_unique<button<Backend>>();
-
-        file_btn->apply_theme(theme);
-        new_btn->apply_theme(theme);
-        open_btn->apply_theme(theme);
-        save_btn->apply_theme(theme);
-        exit_btn->apply_theme(theme);
 
         file_btn->set_mnemonic_text("&File");
         new_btn->set_mnemonic_text("&New");
@@ -561,15 +547,15 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Form with labeled inputs") {
-        ui_theme<Backend> const theme{};
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         auto name_label = std::make_unique<label<Backend>>();
         auto email_label = std::make_unique<label<Backend>>();
         auto password_label = std::make_unique<label<Backend>>();
-
-        name_label->apply_theme(theme);
-        email_label->apply_theme(theme);
-        password_label->apply_theme(theme);
 
         name_label->set_mnemonic_text("&Name:");
         email_label->set_mnemonic_text("&Email:");
@@ -585,10 +571,13 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Buttons with literal ampersands") {
-        ui_theme<Backend> const theme{};
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         auto btn = std::make_unique<button<Backend>>();
-        btn->apply_theme(theme);
 
         btn->set_mnemonic_text("Save && Exit");
 
@@ -597,13 +586,14 @@ TEST_SUITE("mnemonics::scenarios") {
     }
 
     TEST_CASE("Mixed plain text and mnemonic text") {
-        ui_theme<Backend> const theme{};
+        ui_theme<Backend> theme{};
+        theme.name = "Test Theme";
+        scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         auto btn1 = std::make_unique<button<Backend>>();
         auto btn2 = std::make_unique<button<Backend>>();
-
-        btn1->apply_theme(theme);
-        btn2->apply_theme(theme);
 
         btn1->set_text("Cancel");           // Plain text
         btn2->set_mnemonic_text("&OK");     // Mnemonic text

@@ -30,7 +30,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         void apply_default_theme(Widget& w) {
             // Use "Canvas Test Theme" which is guaranteed to have border settings
             if (auto* theme = ctx.themes().get_theme("Canvas Test Theme")) {
-                w.apply_theme(*theme);
+//                 w.apply_theme(*theme);  // No longer needed - widgets use global theme
             }
         }
     };
@@ -55,6 +55,9 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel with border - VISUAL verification") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);
@@ -90,6 +93,9 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel with border AND padding - compound spacing") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);           // +1 on each side
@@ -123,6 +129,9 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
     TEST_CASE_FIXTURE(test_fixture, "REGRESSION: Border bug that caused y=65541 overflow") {
         // This test recreates the exact scenario from dos_theme_showcase
         // that caused the VRAM out-of-range error
+
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
 
         panel<Backend> main_panel;
         apply_default_theme(main_panel);

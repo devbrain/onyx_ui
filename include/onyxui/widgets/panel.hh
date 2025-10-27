@@ -112,20 +112,25 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Get theme-specific box style
-         * @return Panel box style from theme
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with panel-specific theme values
          */
-        [[nodiscard]] typename Backend::renderer_type::box_style get_theme_box_style(const theme_type& theme) const override {
-            return theme.panel.box_style;
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            return resolved_style<Backend>{
+                .background_color = theme.panel.background,
+                .foreground_color = theme.text_fg,  // Use default text color
+                .border_color = theme.panel.border_color,
+                .box_style = theme.panel.box_style,
+                .font = theme.label.font,  // Use default label font
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},  // Panel has no padding
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}  // Panel has no mnemonics
+            };
         }
 
-        /**
-         * @brief Apply theme to panel
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Would cache theme panel style here
-            // Note: Children without explicit theme will inherit via CSS-style inheritance
-        }
 
     private:
         box_style_type m_border_style{};  // m_has_border is in widget_container base class

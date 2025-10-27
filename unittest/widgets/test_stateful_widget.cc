@@ -13,6 +13,7 @@
 #include <onyxui/widgets/button.hh>
 #include <onyxui/theme.hh>
 #include <onyxui/ui_context.hh>
+#include <onyxui/ui_services.hh>
 #include <onyxui/render_context.hh>
 #include <onyxui/measure_context.hh>
 #include "../utils/test_backend.hh"
@@ -21,6 +22,24 @@ using namespace onyxui;
 using Backend = test_backend;
 
 namespace {
+    // Test helper: resolve style with given theme
+    template<typename Widget>
+    resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>* theme) {
+        auto parent_style = theme ? resolved_style<Backend>::from_theme(*theme) : resolved_style<Backend>{
+            .background_color = Backend::color_type{0, 0, 0},
+            .foreground_color = Backend::color_type{255, 255, 255},
+            .border_color = Backend::color_type{128, 128, 128},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>(std::nullopt),
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
+        return widget.resolve_style(theme, parent_style);
+    }
+
     // Test widget that exposes stateful_widget protected interface
     template<UIBackend TBackend>
     class test_stateful_widget : public stateful_widget<TBackend> {
@@ -128,6 +147,9 @@ namespace {
     ui_theme<Backend> create_state_test_theme() {
         ui_theme<Backend> theme;
         theme.name = "State Test";
+
+        // Generic widget colors (used by resolve_style)
+        theme.text_fg = {255, 255, 255};  // White
 
         // Button states with distinct colors
         theme.button.normal.background = {0, 0, 170};      // Blue
@@ -779,10 +801,13 @@ TEST_CASE("stateful_widget - Button integration with automatic state syncing") {
     test_button<Backend> btn("Test");
     scoped_ui_context<Backend> ctx;
     ctx.themes().register_theme(create_state_test_theme());
-    btn.apply_theme("State Test", ctx.themes());
+//     btn.apply_theme("State Test", ctx.themes());  // No longer needed - widgets use global theme
+
+    // Get the registered theme
+    auto* test_theme = ctx.themes().get_theme("State Test");
 
     // Normal state initially
-    auto normal_fg = btn.resolve_style().foreground_color;
+    Backend::color_type normal_fg = resolve_with_theme(btn, test_theme).foreground_color;
     CHECK(normal_fg.r == 255);  // White (normal state)
 
     // Trigger hover via event

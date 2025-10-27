@@ -146,17 +146,9 @@ namespace onyxui {
          * They use menu bar theme colors and compact padding.
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->get_theme();
-            if (!theme) return;
-
-            // DEBUG: Log menu bar item state
-            std::cerr << "[menu_bar_item::do_render] text=\"" << m_text << "\" "
-                      << "hover=" << this->is_hovered() << " "
-                      << "open=" << m_is_menu_open << std::endl;
-
-            // Get padding from theme (configurable!)
-            int const horizontal_padding = theme->menu_bar.item_padding_horizontal;
-            int const vertical_padding = theme->menu_bar.item_padding_vertical;
+            // Get padding from resolved style (with defaults)
+            int const horizontal_padding = ctx.style().padding_horizontal.value.value_or(2);
+            int const vertical_padding = ctx.style().padding_vertical.value.value_or(0);
 
             // Get position from context
             auto const& pos = ctx.position();
@@ -166,10 +158,6 @@ namespace onyxui {
             // Use pre-resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
-
-            // DEBUG: Log resolved colors
-            std::cerr << "[menu_bar_item::do_render] ctx.style() fg=("
-                      << static_cast<int>(fg.r) << "," << static_cast<int>(fg.g) << "," << static_cast<int>(fg.b) << ")" << std::endl;
 
             // Menu bar items render ONLY text (no background, no border)
             // The menu bar itself provides the background
@@ -182,64 +170,44 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get theme-specific foreground color
-         * @return Menu bar item foreground color from theme (state-dependent)
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with menu_bar_item-specific theme values
          * @details Uses menu_bar_item-specific states (normal/hover/open)
          */
-        [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
-            // Map menu_bar_item states to visual_state
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            // Determine which menu_bar_item state to use
+            typename Backend::color_type bg, fg;
+            typename Backend::renderer_type::font font;
+
             if (m_is_menu_open) {
-                return theme.menu_bar_item.open.foreground;
+                bg = theme.menu_bar_item.open.background;
+                fg = theme.menu_bar_item.open.foreground;
+                font = theme.menu_bar_item.open.font;
+            } else if (this->is_hovered()) {
+                bg = theme.menu_bar_item.hover.background;
+                fg = theme.menu_bar_item.hover.foreground;
+                font = theme.menu_bar_item.hover.font;
+            } else {
+                bg = theme.menu_bar_item.normal.background;
+                fg = theme.menu_bar_item.normal.foreground;
+                font = theme.menu_bar_item.normal.font;
             }
-            if (this->is_hovered()) {
-                return theme.menu_bar_item.hover.foreground;
-            }
-            return theme.menu_bar_item.normal.foreground;
+
+            return resolved_style<Backend>{
+                .background_color = bg,
+                .foreground_color = fg,
+                .border_color = theme.border_color,
+                .box_style = typename Backend::renderer_type::box_style{},  // Menu bar items NEVER have borders!
+                .font = font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::make_optional(theme.menu_bar.item_padding_horizontal),  // Menu bar item has padding
+                .padding_vertical = std::make_optional(theme.menu_bar.item_padding_vertical),
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}  // Menu bar item has no mnemonics (unused)
+            };
         }
 
-        /**
-         * @brief Get theme-specific background color
-         * @return Menu bar item background color from theme (state-dependent)
-         * @details Uses menu_bar_item-specific states (normal/hover/open)
-         */
-        [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
-            // Map menu_bar_item states to visual_state
-            if (m_is_menu_open) {
-                return theme.menu_bar_item.open.background;
-            }
-            if (this->is_hovered()) {
-                return theme.menu_bar_item.hover.background;
-            }
-            return theme.menu_bar_item.normal.background;
-        }
-
-        /**
-         * @brief Get theme-specific box style
-         * @return ALWAYS returns no-border style for menu bar items
-         *
-         * @details
-         * Menu bar items NEVER have borders. This overrides any inheritance.
-         */
-        [[nodiscard]] typename Backend::renderer_type::box_style get_theme_box_style([[maybe_unused]] const theme_type& theme) const override {
-            // Menu bar items NEVER have borders!
-            // Return default-constructed box_style (no border)
-            return typename Backend::renderer_type::box_style{};
-        }
-
-        /**
-         * @brief Get theme-specific font
-         * @return Menu bar item font from theme
-         */
-        [[nodiscard]] typename Backend::renderer_type::font get_theme_font(const theme_type& theme) const override {
-            return theme.menu_bar_item.normal.font;
-        }
-
-        /**
-         * @brief Apply theme to menu bar item
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            this->invalidate_arrange();  // Redraw with new theme
-        }
 
     private:
         std::string m_text;                       ///< Plain item text

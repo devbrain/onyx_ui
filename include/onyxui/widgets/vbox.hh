@@ -136,11 +136,6 @@ namespace onyxui {
          */
         [[nodiscard]] vertical_alignment child_v_align() const noexcept { return m_v_align; }
 
-    protected:
-        void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // VBox is a layout container - children inherit via CSS-style inheritance
-        }
-
     private:
         /**
          * @brief Recreate the layout strategy with current settings

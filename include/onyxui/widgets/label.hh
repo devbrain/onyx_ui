@@ -105,18 +105,11 @@ namespace onyxui {
             // Store plain text for backwards compatibility
             m_text = strip_mnemonic(mnemonic_text);
 
-            // Parse mnemonic if theme is available
-            if (auto* theme = this->get_theme()) {
-                m_mnemonic_info = parse_mnemonic<Backend>(
-                    mnemonic_text,
-                    theme->label.font,
-                    theme->label.mnemonic_font
-                );
-                m_has_mnemonic = true;
-            } else {
-                // No theme yet - just store plain text
-                m_has_mnemonic = false;
-            }
+            // Store raw markup for lazy parsing during render
+            m_mnemonic_markup = std::string(mnemonic_text);
+
+            // Invalidate cache (will be parsed on next render using ctx.theme())
+            m_cached_theme_ptr = nullptr;
 
             this->invalidate_measure();  // Size may change
         }
@@ -126,7 +119,7 @@ namespace onyxui {
          * @return Mnemonic character (lowercase), or '\0' if none
          */
         [[nodiscard]] char get_mnemonic_char() const noexcept {
-            return m_has_mnemonic ? m_mnemonic_info.mnemonic_char : '\0';
+            return extract_mnemonic_char_from_markup(m_mnemonic_markup);
         }
 
         /**
@@ -134,7 +127,36 @@ namespace onyxui {
          * @return True if mnemonic is set
          */
         [[nodiscard]] bool has_mnemonic() const noexcept {
-            return m_has_mnemonic && m_mnemonic_info.mnemonic_char != '\0';
+            return get_mnemonic_char() != '\0';
+        }
+
+    private:
+        /**
+         * @brief Extract mnemonic character from markup text
+         * @param markup Markup string like "&Name:" or "&Password:"
+         * @return Mnemonic character (lowercase), or '\0' if none
+         *
+         * @details
+         * Finds the first non-escaped '&' and returns the next character.
+         * - "&Name:" -> 'n'
+         * - "&Password:" -> 'p'
+         * - "Save && Exit" -> '\0' (escaped ampersand)
+         */
+        static char extract_mnemonic_char_from_markup(std::string_view markup) noexcept {
+            for (size_t i = 0; i < markup.length(); ++i) {
+                if (markup[i] == '&') {
+                    if (i + 1 < markup.length()) {
+                        if (markup[i + 1] == '&') {
+                            // Escaped ampersand "&&" - skip both
+                            ++i;
+                        } else {
+                            // Found mnemonic - return lowercase character
+                            return static_cast<char>(std::tolower(static_cast<unsigned char>(markup[i + 1])));
+                        }
+                    }
+                }
+            }
+            return '\0';
         }
 
     protected:
@@ -147,50 +169,70 @@ namespace onyxui {
          * eliminating the need for a separate get_content_size() implementation.
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->get_theme();
+            // Use pre-resolved style from context (respects CSS inheritance!)
+            auto const& fg = ctx.style().foreground_color;
+            auto const& font = ctx.style().font;
+            auto* theme = ctx.theme();
 
             // Use bounds for positioning (measure_context tracks bounding box, ignores position)
             const auto& bounds = this->bounds();
             int x = rect_utils::get_x(bounds);
             int y = rect_utils::get_y(bounds);
 
-            if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
+            // Parse mnemonic on-demand if needed (lazy initialization with cache)
+            if (!m_mnemonic_markup.empty() && theme && m_cached_theme_ptr != theme) {
+                // Theme changed or first render - parse mnemonic with current theme fonts
+                m_mnemonic_info = parse_mnemonic<Backend>(
+                    m_mnemonic_markup,
+                    theme->label.font,
+                    theme->label.mnemonic_font
+                );
+                m_cached_theme_ptr = theme;
+            }
+
+            // Render text (mnemonic segments if available, otherwise plain text)
+            if (!m_mnemonic_markup.empty() && !m_mnemonic_info.text.empty()) {
                 // Render styled text with mnemonic (multi-segment)
                 for (const auto& segment : m_mnemonic_info.text) {
                     typename Backend::point_type const pos{x, y};
-                    // Use segment font, or default if no theme
-                    typename Backend::color_type const color = theme ? theme->label.text : typename Backend::color_type{};
-                    auto text_size = ctx.draw_text(segment.text, pos, segment.font, color);
+                    // Use segment-specific font, but inherited foreground color
+                    auto text_size = ctx.draw_text(segment.text, pos, segment.font, fg);
                     x += size_utils::get_width(text_size);
                 }
             } else {
-                // Render plain text
+                // Render plain text using pre-resolved style
                 typename Backend::point_type const pos{x, y};
-                typename renderer_type::font const default_font{};
-                typename Backend::color_type const color = theme ? theme->label.text : typename Backend::color_type{};
-                ctx.draw_text(m_text, pos, theme ? theme->label.font : default_font, color);
+                ctx.draw_text(m_text, pos, font, fg);
             }
         }
 
-        // Note: get_content_size() is automatically handled by base widget class
-        // via measure_context, eliminating ~50 lines of duplicated code!
 
         /**
-         * @brief Apply theme to label
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with label-specific theme values
          */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Reparse mnemonic if we have one (fonts may have changed)
-            if (m_has_mnemonic) {
-                m_has_mnemonic = false;  // Clear until set_mnemonic_text is called again
-            }
-
-            this->invalidate_arrange();  // Redraw with new colors
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            return resolved_style<Backend>{
+                .background_color = theme.label.background,
+                .foreground_color = theme.label.text,
+                .border_color = theme.label.text,  // Use text color for border
+                .box_style = theme.panel.box_style,  // Labels use panel box style
+                .font = theme.label.font,
+                .opacity = 1.0F,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},  // Label has no padding
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::make_optional(theme.label.mnemonic_font)  // Label has mnemonics
+            };
         }
 
+
     private:
-        std::string m_text;
-        mnemonic_info<Backend> m_mnemonic_info;  ///< Parsed mnemonic text with styling
-        bool m_has_mnemonic = false;              ///< Whether mnemonic is active
+        std::string m_text;                       ///< Plain text without markup
+        std::string m_mnemonic_markup;            ///< Raw markup like "&Name:" (empty if no mnemonic)
+        mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
+        mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
     };
 
     // =========================================================================

@@ -69,7 +69,7 @@ TEST_CASE("Menu Item - Measurement includes padding") {
         item.set_text("About");  // 5 characters
 
         // Apply the theme
-        item.apply_theme("Test Theme", ctx.themes());
+//         item.apply_theme("Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure the menu item
         auto size = item.measure(100, 100);
@@ -83,15 +83,10 @@ TEST_CASE("Menu Item - Measurement includes padding") {
 
     SUBCASE("Menu item with shortcut needs padding on both sides") {
         scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         menu_item<Backend> item;
         item.set_text("Open");  // 4 characters
-
-        // Apply default theme
-        auto* themes = ui_services<Backend>::themes();
-        if (themes && !themes->list_theme_names().empty()) {
-            item.apply_theme(themes->list_theme_names()[0], *themes);
-        }
 
         // Create an action with a shortcut
         auto action = std::make_shared<onyxui::action<Backend>>();
@@ -112,14 +107,9 @@ TEST_CASE("Menu Item - Measurement includes padding") {
 
     SUBCASE("Separator has fixed minimum width") {
         scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         auto separator = menu_item<Backend>::make_separator();
-
-        // Apply default theme
-        auto* themes = ui_services<Backend>::themes();
-        if (themes && !themes->list_theme_names().empty()) {
-            separator->apply_theme(themes->list_theme_names()[0], *themes);
-        }
 
         // Measure the separator
         auto size = separator->measure(100, 100);
@@ -133,15 +123,10 @@ TEST_CASE("Menu Item - Measurement includes padding") {
 TEST_CASE("Menu Item - Text is not truncated when rendered") {
     SUBCASE("Menu item displays full text with padding") {
         scoped_ui_context<Backend> ctx;
+        ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         menu_item<Backend> item;
         item.set_text("About");
-
-        // Apply default theme
-        auto* themes = ui_services<Backend>::themes();
-        if (themes && !themes->list_theme_names().empty()) {
-            item.apply_theme(themes->list_theme_names()[0], *themes);
-        }
 
         // Measure and arrange with the measured size
         auto measured_size = item.measure(100, 100);
@@ -181,14 +166,14 @@ TEST_CASE("Menu Item - Theme changes don't break measurement") {
         item.set_text("About");
 
         // Apply first theme and measure
-        item.apply_theme("Theme 1", ctx.themes());
+//         item.apply_theme("Theme 1", ctx.themes());  // No longer needed - widgets use global theme
         auto size1 = item.measure(100, 100);
         int width1 = size_utils::get_width(size1);
 
         CHECK(width1 >= 9);  // Should have padding
 
         // Change to second theme
-        item.apply_theme("Theme 2", ctx.themes());
+//         item.apply_theme("Theme 2", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure again - should still have correct width
         auto size2 = item.measure(100, 100);
@@ -214,14 +199,14 @@ TEST_CASE("Menu Item - Theme changes don't break measurement") {
         item.set_action(action);
 
         // Apply first theme and measure
-        item.apply_theme("Theme 1", ctx.themes());
+//         item.apply_theme("Theme 1", ctx.themes());  // No longer needed - widgets use global theme
         auto size1 = item.measure(100, 100);
         int width1 = size_utils::get_width(size1);
 
         CHECK(width1 >= 14);  // Text + shortcut + padding
 
         // Change theme
-        item.apply_theme("Theme 2", ctx.themes());
+//         item.apply_theme("Theme 2", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure again
         auto size2 = item.measure(100, 100);
@@ -267,19 +252,20 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.panel.box_style.vertical = '|';
 
         ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Canvas Test Theme");
 
         // Create three menu items like in the menu bar
         menu_item<CanvasBackend> file_item;
         file_item.set_text("File");
-        file_item.apply_theme("Canvas Test Theme", ctx.themes());
+//         file_item.apply_theme("Canvas Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         menu_item<CanvasBackend> theme_item;
         theme_item.set_text("Theme");
-        theme_item.apply_theme("Canvas Test Theme", ctx.themes());
+//         theme_item.apply_theme("Canvas Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         menu_item<CanvasBackend> help_item;
         help_item.set_text("Help");
-        help_item.apply_theme("Canvas Test Theme", ctx.themes());
+//         help_item.apply_theme("Canvas Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         // Render each to canvas
         auto file_canvas = render_to_canvas(file_item, 10, 3);
@@ -312,16 +298,17 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.button.normal.foreground = {255, 255, 255};
         theme.button.normal.font = {};
         ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Border Test Theme");
 
         // Create three buttons like in menu bar
         button<CanvasBackend> file_btn("File");
-        file_btn.apply_theme("Border Test Theme", ctx.themes());
+//         file_btn.apply_theme("Border Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         button<CanvasBackend> theme_btn("Theme");
-        theme_btn.apply_theme("Border Test Theme", ctx.themes());
+//         theme_btn.apply_theme("Border Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         button<CanvasBackend> help_btn("Help");
-        help_btn.apply_theme("Border Test Theme", ctx.themes());
+//         help_btn.apply_theme("Border Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         // Render each
         auto file_canvas = render_to_canvas(file_btn, 10, 3);
@@ -360,6 +347,7 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         theme.button.normal.foreground = {255, 255, 255};
         theme.button.normal.font = {};
         ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Widget Demo Theme");
 
         // Create a panel as the parent (simulating main_widget)
         panel<CanvasBackend> root;
@@ -387,7 +375,7 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         root.add_child(std::move(menu_bar_ptr));
 
         // NOW apply theme to root (simulating what widget_demo does)
-        root.apply_theme("Widget Demo Theme", ctx.themes());
+//         root.apply_theme("Widget Demo Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure and arrange
         root.measure(100, 100);
@@ -434,6 +422,9 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         using namespace onyxui;
         scoped_ui_context<CanvasBackend> ctx;
 
+        // Set Canvas Test Theme as current (auto-registered by backend)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         // Create main panel (like main_widget in demo.hh)
         auto root = std::make_unique<panel<CanvasBackend>>();
         root->set_vbox_layout(0);
@@ -453,8 +444,8 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
         // NOW apply theme by name (line 53 of demo.hh)
-        bool applied = root->apply_theme("Canvas Test Theme", ctx.themes());
-        REQUIRE(applied);
+//         bool applied = root->apply_theme("Canvas Test Theme", ctx.themes());  // No longer needed - widgets use global theme
+//         REQUIRE(applied);
 
         // Measure and arrange
         root->measure(80, 25);
@@ -464,7 +455,25 @@ TEST_CASE("Menu Item - Visual rendering consistency") {
         auto canvas = std::make_shared<test_canvas>(80, 25);
         canvas_renderer renderer(canvas);
         std::vector<canvas_rect> dirty_regions = {{0, 0, 80, 25}};
-        root->render(renderer, dirty_regions);
+        auto* theme = ctx.themes().get_current_theme();
+
+        // Create root parent_style from theme
+        auto parent_style = theme
+            ? resolved_style<CanvasBackend>::from_theme(*theme)
+            : resolved_style<CanvasBackend>{
+                .background_color = typename CanvasBackend::color_type{},
+                .foreground_color = typename CanvasBackend::color_type{},
+                .border_color = typename CanvasBackend::color_type{},
+                .box_style = typename CanvasBackend::renderer_type::box_style{},
+                .font = typename CanvasBackend::renderer_type::font{},
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename CanvasBackend::renderer_type::icon_style>(std::nullopt),
+                .padding_horizontal = std::optional<int>{},
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename CanvasBackend::renderer_type::font>{}
+            };
+
+        root->render(renderer, dirty_regions, theme, parent_style);
 
         // Visual inspection
         INFO("Rendered menu bar:\n", debug_canvas(*canvas));

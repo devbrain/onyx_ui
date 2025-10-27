@@ -62,7 +62,7 @@ TEST_CASE("Style Resolution - resolve_style() returns populated style") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Resolve style
     auto style = btn->resolve_style();
@@ -77,7 +77,7 @@ TEST_CASE("Style Resolution - resolve_style() is const-correct") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Should be callable on const reference
     const button<Backend>& const_btn = *btn;
@@ -91,7 +91,7 @@ TEST_CASE("Style Resolution - resolve_style() is idempotent") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Call multiple times
     auto style1 = btn->resolve_style();
@@ -114,7 +114,7 @@ TEST_CASE("Style Resolution - Override takes precedence over all") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Resolution Test", ctx.themes());
+//     parent->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({50, 50, 50});  // Parent override
 
     auto btn = std::make_unique<button<Backend>>("Test");
@@ -136,7 +136,7 @@ TEST_CASE("Style Resolution - Parent fallback when no override") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Resolution Test", ctx.themes());
+//     parent->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_foreground_color({200, 200, 100});  // Parent override
 
     auto lbl = std::make_unique<label<Backend>>("Test");
@@ -158,7 +158,7 @@ TEST_CASE("Style Resolution - Theme fallback when no parent or override") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     // No parent, no override
 
     auto style = btn->resolve_style();
@@ -200,7 +200,7 @@ TEST_CASE("Style Resolution - Partial theme fills gaps with defaults") {
     ctx.themes().register_theme(std::move(incomplete_theme));
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Incomplete", ctx.themes());
+//     btn->apply_theme("Incomplete", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = btn->resolve_style();
 
@@ -223,7 +223,7 @@ TEST_CASE("Style Resolution - Missing properties use defaults") {
     ctx.themes().register_theme(std::move(minimal_theme));
 
     auto lbl = std::make_unique<label<Backend>>("Test");
-    lbl->apply_theme("Minimal", ctx.themes());
+//     lbl->apply_theme("Minimal", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = lbl->resolve_style();
 
@@ -261,9 +261,9 @@ TEST_CASE("Style Resolution - Theme not found falls back to default") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    bool success = btn->apply_theme("Nonexistent Theme", ctx.themes());
+//     bool success = btn->apply_theme("Nonexistent Theme", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == false);
+//     CHECK(success == false);  // apply_theme() removed
 
     auto style = btn->resolve_style();
 
@@ -281,7 +281,7 @@ TEST_CASE("Style Resolution - Null parent (root widget) works correctly") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Resolution Test", ctx.themes());
+//     root->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     // Root has no parent (nullptr)
 
     auto style = root->resolve_style();
@@ -296,7 +296,7 @@ TEST_CASE("Style Resolution - Orphan widget with theme resolves correctly") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto orphan = std::make_unique<button<Backend>>("Test");
-    orphan->apply_theme("Resolution Test", ctx.themes());
+//     orphan->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     // No parent
 
     auto style = orphan->resolve_style();
@@ -316,7 +316,7 @@ TEST_CASE("Style Resolution - Five-level inheritance chain") {
 
     // Build deep hierarchy: L1 → L2 → L3 → L4 → L5
     auto l1 = std::make_unique<panel<Backend>>();
-    l1->apply_theme("Resolution Test", ctx.themes());
+//     l1->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     l1->set_foreground_color({255, 0, 0});  // Red at root
 
     auto* l2 = l1->template emplace_child<panel>();
@@ -345,7 +345,7 @@ TEST_CASE("Style Resolution - Ten-level inheritance chain") {
 
     // Build very deep hierarchy
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Resolution Test", ctx.themes());
+//     root->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_background_color({10, 10, 10});
 
     panel<Backend>* current = root.get();
@@ -370,7 +370,7 @@ TEST_CASE("Style Resolution - Deep chain with override at each level") {
 
     // Build chain with override at each level
     auto l1 = std::make_unique<panel<Backend>>();
-    l1->apply_theme("Resolution Test", ctx.themes());
+//     l1->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
     l1->set_opacity(1.0F);
 
     auto* l2 = l1->template emplace_child<panel>();
@@ -400,7 +400,7 @@ TEST_CASE("Style Resolution - Detached widget has no parent reference") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto widget = std::make_unique<button<Backend>>("Test");
-    widget->apply_theme("Resolution Test", ctx.themes());
+//     widget->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Verify no parent
     CHECK(widget->parent() == nullptr);
@@ -415,7 +415,7 @@ TEST_CASE("Style Resolution - Widget removed from parent has no dangling ref") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Resolution Test", ctx.themes());
+//     parent->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto child = std::make_unique<button<Backend>>("Test");
     child->set_foreground_color({100, 100, 100});
@@ -444,7 +444,7 @@ TEST_CASE("Style Resolution - Performance: 1000 resolutions") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Resolve 1000 times
     for (int i = 0; i < 1000; ++i) {
@@ -461,7 +461,7 @@ TEST_CASE("Style Resolution - Performance: Deep hierarchy resolution") {
 
     // Build 100-level deep hierarchy
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Resolution Test", ctx.themes());
+//     root->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     panel<Backend>* current = root.get();
     for (int i = 0; i < 99; ++i) {
@@ -485,7 +485,7 @@ TEST_CASE("Style Resolution - Resolved style is independent of source") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style1 = btn->resolve_style();
     auto original_fg = style1.foreground_color;
@@ -507,7 +507,7 @@ TEST_CASE("Style Resolution - Multiple resolutions are independent") {
     ctx.themes().register_theme(create_resolution_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Resolution Test", ctx.themes());
+//     btn->apply_theme("Resolution Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style1 = btn->resolve_style();
     auto style2 = btn->resolve_style();

@@ -92,7 +92,69 @@ Let's break down the key parts of this example:
 
 -   **Factory Function:** It's a good practice to provide a factory function like `create_circle()` to make it easier to create instances of your widget.
 
-### 3. Using the Custom Widget
+### 3. Accessing Theme Properties (Two-Tier Pattern)
+
+When implementing custom widgets, you need to access visual properties from the theme. OnyxUI uses a **two-tier property access pattern** that balances performance and flexibility:
+
+**Tier 1: Common Properties via `ctx.style()`**
+
+Use the pre-resolved style for common visual properties that all widgets share:
+
+```cpp
+void do_render(render_context_type& ctx) const override {
+    // Common properties (O(1) access, no theme lookup)
+    auto const& background_color = ctx.style().background_color;
+    auto const& foreground_color = ctx.style().foreground_color;
+    auto const& border_color = ctx.style().border_color;
+    auto const& font = ctx.style().font;
+    auto const& box_style = ctx.style().box_style;
+    float opacity = ctx.style().opacity;
+
+    // Optional common properties with explicit defaults
+    int horizontal_padding = ctx.style().padding_horizontal.value.value_or(2);
+    int vertical_padding = ctx.style().padding_vertical.value.value_or(0);
+
+    // Use these properties for rendering...
+}
+```
+
+**Tier 2: Rare Widget-Specific Properties via `ctx.theme()`**
+
+For widget-specific properties that don't belong in the common `resolved_style`, access the theme directly:
+
+```cpp
+void do_render(render_context_type& ctx) const override {
+    // Common properties from Tier 1
+    auto const& fg = ctx.style().foreground_color;
+
+    // Rare widget-specific properties (nullable)
+    if (auto* theme = ctx.theme()) {
+        // Access widget-specific theme structure
+        auto text_align = theme->my_widget.text_align;
+        auto line_style = theme->my_widget.line_style;
+        // ... use these properties
+    } else {
+        // Fallback if no theme available (rare)
+        auto text_align = text_alignment::left;  // Default
+    }
+}
+```
+
+**Why Two Tiers?**
+
+- **Performance**: Common properties are resolved once per frame via CSS inheritance, cached in `resolved_style`
+- **Memory Efficiency**: Rare properties don't bloat the `resolved_style` structure
+- **Type Safety**: Optional properties use `.value.value_or(default)` pattern to enforce explicit defaults
+- **Clarity**: Clear separation between common and widget-specific properties
+
+**Important Rules:**
+
+❌ **NEVER** directly access `ui_services::themes()` from widget code
+✅ **ALWAYS** use `ctx.style()` for common properties
+✅ **ALWAYS** use `ctx.theme()` for rare widget-specific properties
+✅ **ALWAYS** provide explicit defaults for optional properties
+
+### 4. Using the Custom Widget
 
 Now that we've created our custom widget, we can use it in our application just like any other widget:
 

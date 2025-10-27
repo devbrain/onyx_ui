@@ -173,9 +173,6 @@ namespace onyxui {
          * @brief Render the separator line
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->get_theme();
-            if (!theme) return;
-
             // Get bounds from context
             auto const& pos = ctx.position();
             int const x = point_utils::get_x(pos);
@@ -188,8 +185,11 @@ namespace onyxui {
             typename Backend::rect_type line_rect;
             rect_utils::set_bounds(line_rect, x, y, width, height);
 
-            // Get line style from theme
-            line_style_type line_style = theme->separator.line_style;
+            // Get line style from theme (rare property accessed via ctx.theme())
+            line_style_type line_style{};
+            if (auto* theme = ctx.theme()) {
+                line_style = theme->separator.line_style;
+            }
 
             // Draw line based on orientation
             if (m_orientation == orientation::horizontal) {
@@ -199,12 +199,6 @@ namespace onyxui {
             }
         }
 
-        /**
-         * @brief Apply theme to separator
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            this->invalidate_arrange();  // Redraw with new theme
-        }
 
     private:
         orientation m_orientation;  ///< Line orientation

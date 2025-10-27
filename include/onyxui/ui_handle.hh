@@ -185,9 +185,15 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
+            // Get global theme ONCE at rendering entry point
+            auto* theme = ui_services<Backend>::themes()
+                ? ui_services<Backend>::themes()->get_current_theme()
+                : nullptr;
+
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            m_root->render(m_renderer, dirty_regions);
+            // Theme is passed down through the widget tree
+            m_root->render(m_renderer, theme);
 
             // Render all overlay layers from current context
             if (auto* layers = ui_services<Backend>::layers()) {
@@ -227,9 +233,15 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
+            // Get global theme ONCE at rendering entry point
+            auto* theme = ui_services<Backend>::themes()
+                ? ui_services<Backend>::themes()->get_current_theme()
+                : nullptr;
+
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            m_root->render(m_renderer, dirty_regions);
+            // Theme is passed down through the widget tree
+            m_root->render(m_renderer, theme);
 
             // Render all overlay layers from current context
             if (auto* layers = ui_services<Backend>::layers()) {

@@ -226,103 +226,203 @@ TEST_CASE("Context lifetimes") {
 
 TEST_CASE("render_context - Style accessor returns resolved_style") {
     SUBCASE("measure_context with style") {
-        resolved_style<Backend> style;
-        style.foreground_color = {255, 0, 0};
-        style.background_color = {0, 255, 0};
+        resolved_style<Backend> style{
+            .background_color = Backend::color_type{0, 255, 0},
+            .foreground_color = Backend::color_type{255, 0, 0},
+            .border_color = Backend::color_type{0, 0, 0},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
 
         measure_context<Backend> ctx(style);
 
-        CHECK(ctx.style().foreground_color.r == 255);
-        CHECK(ctx.style().background_color.g == 255);
+        CHECK(ctx.style().foreground_color.value.r == 255);
+        CHECK(ctx.style().background_color.value.g == 255);
     }
 
     SUBCASE("draw_context with style") {
         Backend::renderer_type renderer;
-        resolved_style<Backend> style;
-        style.foreground_color = {100, 100, 100};
-        style.background_color = {200, 200, 200};
+        resolved_style<Backend> style{
+            .background_color = Backend::color_type{200, 200, 200},
+            .foreground_color = Backend::color_type{100, 100, 100},
+            .border_color = Backend::color_type{0, 0, 0},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
 
         draw_context<Backend> ctx(renderer, style);
 
-        CHECK(ctx.style().foreground_color.r == 100);
-        CHECK(ctx.style().background_color.r == 200);
+        CHECK(ctx.style().foreground_color.value.r == 100);
+        CHECK(ctx.style().background_color.value.r == 200);
     }
 }
 
 TEST_CASE("draw_context - Constructor accepts resolved_style") {
     Backend::renderer_type renderer;
-    resolved_style<Backend> style;
-    style.foreground_color = {100, 100, 100};
+    resolved_style<Backend> style{
+        .background_color = Backend::color_type{0, 0, 0},
+        .foreground_color = Backend::color_type{100, 100, 100},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
     draw_context<Backend> ctx(renderer, style);
 
-    CHECK(ctx.style().foreground_color.r == 100);
+    CHECK(ctx.style().foreground_color.value.r == 100);
     CHECK(ctx.renderer() != nullptr);
 }
 
 TEST_CASE("measure_context - Constructor accepts resolved_style") {
-    resolved_style<Backend> style;
-    style.foreground_color = {50, 50, 50};
-    style.background_color = {200, 200, 200};
+    resolved_style<Backend> style{
+        .background_color = Backend::color_type{200, 200, 200},
+        .foreground_color = Backend::color_type{50, 50, 50},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
     measure_context<Backend> ctx(style);
 
-    CHECK(ctx.style().foreground_color.r == 50);
-    CHECK(ctx.style().background_color.r == 200);
+    CHECK(ctx.style().foreground_color.value.r == 50);
+    CHECK(ctx.style().background_color.value.r == 200);
     CHECK(ctx.renderer() == nullptr);
 }
 
 TEST_CASE("render_context - Style is passed to context") {
-    resolved_style<Backend> style1;
-    style1.foreground_color = {100, 100, 100};
-    style1.background_color = {50, 50, 50};
+    resolved_style<Backend> style1{
+        .background_color = Backend::color_type{50, 50, 50},
+        .foreground_color = Backend::color_type{100, 100, 100},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
-    resolved_style<Backend> style2;
-    style2.foreground_color = {200, 200, 200};
-    style2.background_color = {150, 150, 150};
+    resolved_style<Backend> style2{
+        .background_color = Backend::color_type{150, 150, 150},
+        .foreground_color = Backend::color_type{200, 200, 200},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
     measure_context<Backend> ctx1(style1);
     measure_context<Backend> ctx2(style2);
 
     // Each context should have its own style
-    CHECK(ctx1.style().foreground_color.r == 100);
-    CHECK(ctx2.style().foreground_color.r == 200);
-    CHECK(ctx1.style().background_color.r == 50);
-    CHECK(ctx2.style().background_color.r == 150);
+    CHECK(ctx1.style().foreground_color.value.r == 100);
+    CHECK(ctx2.style().foreground_color.value.r == 200);
+    CHECK(ctx1.style().background_color.value.r == 50);
+    CHECK(ctx2.style().background_color.value.r == 150);
 }
 
 TEST_CASE("render_context - Style default construction") {
-    SUBCASE("measure_context without style uses defaults") {
-        measure_context<Backend> ctx;
+    SUBCASE("measure_context with default-valued style") {
+        resolved_style<Backend> style{
+            .background_color = Backend::color_type{0, 0, 0},
+            .foreground_color = Backend::color_type{0, 0, 0},
+            .border_color = Backend::color_type{0, 0, 0},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
+        measure_context<Backend> ctx(style);
 
-        // Should have default style
-        CHECK(ctx.style().foreground_color.r == 0);
-        CHECK(ctx.style().foreground_color.g == 0);
-        CHECK(ctx.style().foreground_color.b == 0);
+        // Should have default values
+        CHECK(ctx.style().foreground_color.value.r == 0);
+        CHECK(ctx.style().foreground_color.value.g == 0);
+        CHECK(ctx.style().foreground_color.value.b == 0);
     }
 
-    SUBCASE("draw_context without style uses defaults") {
+    SUBCASE("draw_context with default-valued style") {
         Backend::renderer_type renderer;
-        draw_context<Backend> ctx(renderer);
+        resolved_style<Backend> style{
+            .background_color = Backend::color_type{0, 0, 0},
+            .foreground_color = Backend::color_type{0, 0, 0},
+            .border_color = Backend::color_type{0, 0, 0},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
+        draw_context<Backend> ctx(renderer, style);
 
-        // Should have default style
-        CHECK(ctx.style().background_color.r == 0);
-        CHECK(ctx.style().background_color.g == 0);
-        CHECK(ctx.style().background_color.b == 0);
+        // Should have default values
+        CHECK(ctx.style().background_color.value.r == 0);
+        CHECK(ctx.style().background_color.value.g == 0);
+        CHECK(ctx.style().background_color.value.b == 0);
     }
 }
 
 TEST_CASE("render_context - Style is copied on construction") {
-    resolved_style<Backend> style;
-    style.foreground_color = {123, 45, 67};
+    resolved_style<Backend> style{
+        .background_color = Backend::color_type{0, 0, 0},
+        .foreground_color = Backend::color_type{123, 45, 67},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
     measure_context<Backend> ctx(style);
 
-    // Modify original style
-    style.foreground_color = {255, 255, 255};
+    // Create new style with different values
+    resolved_style<Backend> modified_style{
+        .background_color = Backend::color_type{0, 0, 0},
+        .foreground_color = Backend::color_type{255, 255, 255},
+        .border_color = Backend::color_type{0, 0, 0},
+        .box_style = Backend::renderer_type::box_style{},
+        .font = Backend::renderer_type::font{},
+        .opacity = 1.0f,
+        .icon_style = std::optional<Backend::renderer_type::icon_style>{},
+        .padding_horizontal = std::optional<int>{},
+        .padding_vertical = std::optional<int>{},
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+    };
 
     // Context should retain original values
-    CHECK(ctx.style().foreground_color.r == 123);
-    CHECK(ctx.style().foreground_color.g == 45);
-    CHECK(ctx.style().foreground_color.b == 67);
+    CHECK(ctx.style().foreground_color.value.r == 123);
+    CHECK(ctx.style().foreground_color.value.g == 45);
+    CHECK(ctx.style().foreground_color.value.b == 67);
 }

@@ -114,18 +114,11 @@ namespace onyxui {
             // Store plain text for backwards compatibility
             m_text = strip_mnemonic(mnemonic_text);
 
-            // Parse mnemonic if theme is available
-            if (auto* theme = this->get_theme()) {
-                m_mnemonic_info = parse_mnemonic<Backend>(
-                    mnemonic_text,
-                    theme->button.normal.font,
-                    theme->button.mnemonic_font
-                );
-                m_has_mnemonic = true;
-            } else {
-                // No theme yet - just store plain text
-                m_has_mnemonic = false;
-            }
+            // Store raw markup for lazy parsing during render
+            m_mnemonic_markup = std::string(mnemonic_text);
+
+            // Invalidate cache (will be parsed on next render using ctx.theme())
+            m_cached_theme_ptr = nullptr;
 
             this->invalidate_measure();  // Size may change
         }
@@ -139,7 +132,7 @@ namespace onyxui {
          * Returns '\0' if no mnemonic was set or text has no mnemonic.
          */
         [[nodiscard]] char get_mnemonic_char() const noexcept {
-            return m_has_mnemonic ? m_mnemonic_info.mnemonic_char : '\0';
+            return extract_mnemonic_char_from_markup(m_mnemonic_markup);
         }
 
         /**
@@ -147,7 +140,36 @@ namespace onyxui {
          * @return True if mnemonic is set
          */
         [[nodiscard]] bool has_mnemonic() const noexcept {
-            return m_has_mnemonic && m_mnemonic_info.mnemonic_char != '\0';
+            return get_mnemonic_char() != '\0';
+        }
+
+    private:
+        /**
+         * @brief Extract mnemonic character from markup text
+         * @param markup Markup string like "&Save" or "E&xit"
+         * @return Mnemonic character (lowercase), or '\0' if none
+         *
+         * @details
+         * Finds the first non-escaped '&' and returns the next character.
+         * - "&Save" -> 's'
+         * - "E&xit" -> 'x'
+         * - "Save && Exit" -> '\0' (escaped ampersand)
+         */
+        static char extract_mnemonic_char_from_markup(std::string_view markup) noexcept {
+            for (size_t i = 0; i < markup.length(); ++i) {
+                if (markup[i] == '&') {
+                    if (i + 1 < markup.length()) {
+                        if (markup[i + 1] == '&') {
+                            // Escaped ampersand "&&" - skip both
+                            ++i;
+                        } else {
+                            // Found mnemonic - return lowercase character
+                            return static_cast<char>(std::tolower(static_cast<unsigned char>(markup[i + 1])));
+                        }
+                    }
+                }
+            }
+            return '\0';
         }
 
     protected:
@@ -165,12 +187,12 @@ namespace onyxui {
          * - **Rendering**: ctx.available_size() = bounds.size → use assigned size
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->get_theme();
+            auto* theme = ctx.theme();
 
-            // Use default values if no theme
-            int const padding_horizontal = theme ? theme->button.padding_horizontal : 2;
-            int const padding_vertical = theme ? theme->button.padding_vertical : 1;
-            int const border = theme ? renderer_type::get_border_thickness(theme->button.box_style) : 1;
+            // Get padding from resolved style (with defaults)
+            int const padding_horizontal = ctx.style().padding_horizontal.value.value_or(2);
+            int const padding_vertical = ctx.style().padding_vertical.value.value_or(2);
+            int const border = renderer_type::get_border_thickness(ctx.style().box_style);
 
             // Measure text size
             typename renderer_type::font const default_font{};
@@ -233,7 +255,19 @@ namespace onyxui {
             int const text_x = x + border + padding_horizontal + align_offset;
             int const text_y = y + border + padding_vertical;
 
-            if (m_has_mnemonic && !m_mnemonic_info.text.empty()) {
+            // Parse mnemonic on-demand if needed (lazy initialization with cache)
+            if (!m_mnemonic_markup.empty() && theme && m_cached_theme_ptr != theme) {
+                // Theme changed or first render - parse mnemonic with current theme fonts
+                m_mnemonic_info = parse_mnemonic<Backend>(
+                    m_mnemonic_markup,
+                    theme->button.normal.font,
+                    theme->button.mnemonic_font
+                );
+                m_cached_theme_ptr = theme;
+            }
+
+            // Render text (mnemonic segments if available, otherwise plain text)
+            if (!m_mnemonic_markup.empty() && !m_mnemonic_info.text.empty()) {
                 // Render styled text with multiple fonts (multi-segment)
                 int segment_x = text_x;
                 for (const auto& segment : m_mnemonic_info.text) {
@@ -249,95 +283,26 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get theme-specific background color
-         * @return Button background color from theme (state-dependent)
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with button-specific theme values
+         * @details Uses state-aware colors (normal/hover/pressed/disabled)
          */
-        [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
-            return this->get_state_background(theme.button);
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            return resolved_style<Backend>{
+                .background_color = this->get_state_background(theme.button),
+                .foreground_color = this->get_state_foreground(theme.button),
+                .border_color = theme.border_color,
+                .box_style = theme.button.box_style,
+                .font = theme.button.normal.font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::make_optional(theme.button.padding_horizontal),  // Button has padding
+                .padding_vertical = std::make_optional(theme.button.padding_vertical),
+                .mnemonic_font = std::make_optional(theme.button.mnemonic_font)  // Button has mnemonics
+            };
         }
 
-        /**
-         * @brief Get theme-specific foreground color
-         * @return Button foreground color from theme (state-dependent)
-         */
-        [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
-            return this->get_state_foreground(theme.button);
-        }
-
-    public:
-        /**
-         * @brief Resolve style with state-dependent colors (NO parent color inheritance)
-         *
-         * @details
-         * Buttons use STATE-DEPENDENT colors that should NOT be inherited from parents.
-         * We override resolve_style() to use our own state colors directly instead of
-         * inheriting parent colors.
-         *
-         * Priority: explicit override → state-dependent theme color → default
-         */
-        [[nodiscard]] resolved_style<Backend> resolve_style() const override {
-            resolved_style<Backend> style;
-
-            // Resolve background color: explicit override OR state-dependent theme color
-            if (this->m_background_override) {
-                style.background_color = *this->m_background_override;
-            } else if (auto* theme = this->get_theme()) {
-                style.background_color = get_theme_background_color(*theme);
-            } else {
-                style.background_color = typename Backend::color_type{};
-            }
-
-            // Resolve foreground color: explicit override OR state-dependent theme color
-            if (this->m_foreground_override) {
-                style.foreground_color = *this->m_foreground_override;
-            } else if (auto* theme = this->get_theme()) {
-                style.foreground_color = get_theme_foreground_color(*theme);
-            } else {
-                style.foreground_color = typename Backend::color_type{};
-            }
-
-            // Resolve other properties normally (these can inherit from parent)
-            style.box_style = this->get_effective_box_style();
-            style.font = this->get_effective_font();
-            style.opacity = this->get_effective_opacity();
-            style.icon_style = this->get_effective_icon_style();
-            style.border_color = style.foreground_color;
-
-            return style;
-        }
-
-        /**
-         * @brief Get theme-specific box style
-         * @return Button box style from theme
-         */
-        [[nodiscard]] typename Backend::renderer_type::box_style get_theme_box_style(const theme_type& theme) const override {
-            return theme.button.box_style;
-        }
-
-        /**
-         * @brief Get theme-specific font
-         * @return Button font from theme (normal state)
-         */
-        [[nodiscard]] typename Backend::renderer_type::font get_theme_font(const theme_type& theme) const override {
-            return theme.button.normal.font;
-        }
-
-        /**
-         * @brief Apply theme to button
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Reparse mnemonic text with new theme fonts if we have mnemonic text
-            // We need to reconstruct the mnemonic_info because fonts changed
-            if (m_has_mnemonic) {
-                // Reconstruct original mnemonic text from stored data
-                // For now, if we have a mnemonic, just invalidate
-                // In a real implementation, we'd store the original mnemonic text
-                // or rebuild it from m_text and m_mnemonic_info.mnemonic_char
-                m_has_mnemonic = false;  // Clear until set_mnemonic_text is called again
-            }
-
-            this->invalidate_arrange();  // Redraw with new theme
-        }
 
         /**
          * @brief Handle action association
@@ -400,9 +365,10 @@ namespace onyxui {
         }
 
     private:
-        std::string m_text;
-        mnemonic_info<Backend> m_mnemonic_info;  ///< Parsed mnemonic text with styling
-        bool m_has_mnemonic = false;              ///< Whether mnemonic is active
+        std::string m_text;                       ///< Plain text without markup
+        std::string m_mnemonic_markup;            ///< Raw markup like "&Save" (empty if no mnemonic)
+        mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
+        mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
     };
 
     // =========================================================================

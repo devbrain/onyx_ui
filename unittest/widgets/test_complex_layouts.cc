@@ -31,15 +31,37 @@ TEST_SUITE("Layout - Complex Scenarios") {
     struct test_fixture {
         scoped_ui_context<Backend> ctx;
 
+        test_fixture() {
+            setup_theme();
+        }
+
+        void setup_theme() {
+            // Ensure theme exists and is set as current
+            auto* theme = ctx.themes().get_theme("Canvas Test Theme");
+            if (!theme) {
+                // Backend auto-registration didn't happen - register manually
+                onyxui::ui_theme<Backend> test_theme;
+                test_theme.name = "Canvas Test Theme";
+                test_theme.panel.box_style.draw_border = true;
+                test_theme.panel.box_style.corner = '+';
+                test_theme.panel.box_style.horizontal = '-';
+                test_theme.panel.box_style.vertical = '|';
+                ctx.themes().register_theme(test_theme);
+            }
+            ctx.themes().set_current_theme("Canvas Test Theme");
+        }
+
         template<typename Widget>
         void apply_default_theme(Widget& w) {
-            if (auto* theme = ctx.themes().get_theme("Test Theme")) {
-                w.apply_theme(*theme);
-            }
+            // No longer needed - widgets automatically use current theme
+            (void)w;
         }
     };
 
     TEST_CASE_FIXTURE(test_fixture, "Three-level nesting - panel -> group_box -> vbox") {
+        // Ensure theme is set (workaround for fixture constructor timing issue)
+        setup_theme();
+
         panel<Backend> outer;
         apply_default_theme(outer);
         outer.set_has_border(true);      // +1 per side
@@ -256,6 +278,9 @@ TEST_SUITE("Layout - Complex Scenarios") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Deep nesting - 5 levels with mixed borders") {
+        // Ensure theme is set (workaround for fixture constructor timing issue)
+        setup_theme();
+
         panel<Backend> l1;
         apply_default_theme(l1);
         l1.set_has_border(true);

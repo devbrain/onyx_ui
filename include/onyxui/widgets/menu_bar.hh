@@ -350,23 +350,6 @@ namespace onyxui {
         // Note: Keyboard handling would be implemented in derived classes
         // that know the specific event type from Backend
 
-        /**
-         * @brief Apply theme to menu bar and all owned menus
-         */
-        void do_apply_theme(const typename base::theme_type& theme) override {
-            // Apply spacing from theme
-            this->set_spacing(theme.menu_bar.item_spacing);
-
-            // Apply to base (hbox) which propagates to title items
-            base::do_apply_theme(theme);
-
-            // Also apply to all owned menus (not part of normal child tree)
-            for (auto& entry : m_menus) {
-                if (entry.dropdown_menu) {
-                    entry.dropdown_menu->apply_theme(theme);
-                }
-            }
-        }
 
         /**
          * @brief Initialize semantic action handlers for menu bar

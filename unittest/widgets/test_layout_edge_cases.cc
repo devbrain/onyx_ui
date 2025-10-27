@@ -32,7 +32,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         template<typename Widget>
         void apply_default_theme(Widget& w) {
             if (auto* theme = ctx.themes().get_theme("Test Theme")) {
-                w.apply_theme(*theme);
+//                 w.apply_theme(*theme);  // No longer needed - widgets use global theme
             }
         }
     };

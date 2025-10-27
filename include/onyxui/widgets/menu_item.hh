@@ -116,7 +116,6 @@ namespace onyxui {
         explicit menu_item(std::string text = "", ui_element<Backend>* parent = nullptr)
             : base(parent)
             , m_text(std::move(text))
-            , m_has_mnemonic(false)
             , m_item_type(menu_item_type::normal) {
             this->set_focusable(true);  // Menu items are focusable
         }
@@ -151,7 +150,8 @@ namespace onyxui {
         void set_text(const std::string& text) {
             if (m_text != text) {
                 m_text = text;
-                m_has_mnemonic = false;
+                m_mnemonic_markup.clear();  // Clear mnemonic markup when setting plain text
+                m_cached_theme_ptr = nullptr;
                 this->invalidate_measure();
             }
         }
@@ -181,16 +181,11 @@ namespace onyxui {
         void set_mnemonic_text(std::string_view mnemonic_text) {
             m_text = strip_mnemonic(mnemonic_text);
 
-            if (auto* theme = this->get_theme()) {
-                m_mnemonic_info = parse_mnemonic<Backend>(
-                    mnemonic_text,
-                    theme->menu_item.normal.font,
-                    theme->menu_item.mnemonic_font
-                );
-                m_has_mnemonic = true;
-            } else {
-                m_has_mnemonic = false;
-            }
+            // Store raw markup for lazy parsing during render
+            m_mnemonic_markup = std::string(mnemonic_text);
+
+            // Invalidate cache (will be parsed on next render using ctx.theme())
+            m_cached_theme_ptr = nullptr;
 
             this->invalidate_measure();
         }
@@ -200,14 +195,14 @@ namespace onyxui {
          * @return Mnemonic character (lowercase), or '\0' if none
          */
         [[nodiscard]] char get_mnemonic_char() const noexcept {
-            return m_has_mnemonic ? m_mnemonic_info.mnemonic_char : '\0';
+            return extract_mnemonic_char_from_markup(m_mnemonic_markup);
         }
 
         /**
          * @brief Check if item has a mnemonic
          */
         [[nodiscard]] bool has_mnemonic() const noexcept {
-            return m_has_mnemonic && m_mnemonic_info.mnemonic_char != '\0';
+            return get_mnemonic_char() != '\0';
         }
 
         /**
@@ -232,21 +227,39 @@ namespace onyxui {
             if (auto action_ptr = this->get_action()) {
                 const auto& shortcut_opt = action_ptr->shortcut();
                 if (shortcut_opt.has_value()) {
-                    // Format shortcut for display
-                    const auto& seq = *shortcut_opt;
-                    std::string result;
-                    if ((seq.modifiers & key_modifier::ctrl) != key_modifier::none) result += "Ctrl+";
-                    if ((seq.modifiers & key_modifier::alt) != key_modifier::none) result += "Alt+";
-                    if ((seq.modifiers & key_modifier::shift) != key_modifier::none) result += "Shift+";
-                    if (seq.f_key != 0) {
-                        result += "F" + std::to_string(seq.f_key);
-                    } else {
-                        result += static_cast<char>(std::toupper(static_cast<unsigned char>(seq.key)));
-                    }
-                    return result;
+                    return format_key_sequence(shortcut_opt.value());
                 }
             }
             return "";
+        }
+
+    private:
+        /**
+         * @brief Extract mnemonic character from markup text
+         * @param markup Markup string like "&File" or "E&xit"
+         * @return Mnemonic character (lowercase), or '\0' if none
+         *
+         * @details
+         * Finds the first non-escaped '&' and returns the next character.
+         * - "&File" -> 'f'
+         * - "E&xit" -> 'x'
+         * - "Save && Close" -> '\0' (escaped ampersand)
+         */
+        static char extract_mnemonic_char_from_markup(std::string_view markup) noexcept {
+            for (size_t i = 0; i < markup.length(); ++i) {
+                if (markup[i] == '&') {
+                    if (i + 1 < markup.length()) {
+                        if (markup[i + 1] == '&') {
+                            // Escaped ampersand "&&" - skip both
+                            ++i;
+                        } else {
+                            // Found mnemonic - return lowercase character
+                            return static_cast<char>(std::tolower(static_cast<unsigned char>(markup[i + 1])));
+                        }
+                    }
+                }
+            }
+            return '\0';
         }
 
     protected:
@@ -259,25 +272,11 @@ namespace onyxui {
          * During rendering: draws background, text, and shortcut with state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto* theme = this->get_theme();
-            if (!theme) return;
-
-            // DEBUG: Log menu item state
-            std::cerr << "[menu_item::do_render] text=\"" << m_text << "\" "
-                      << "hover=" << this->is_hovered() << " "
-                      << "focus=" << this->has_focus() << " "
-                      << "enabled=" << this->is_enabled() << std::endl;
-
             // Use resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
 
             // DEBUG: Log resolved colors
-            std::cerr << "[menu_item::do_render] ctx.style() bg=("
-                      << static_cast<int>(ctx.style().background_color.r) << ","
-                      << static_cast<int>(ctx.style().background_color.g) << ","
-                      << static_cast<int>(ctx.style().background_color.b) << ") fg=("
-                      << static_cast<int>(fg.r) << "," << static_cast<int>(fg.g) << "," << static_cast<int>(fg.b) << ")" << std::endl;
 
             // Calculate sizes (needed for both measurement and rendering)
             std::string const shortcut = get_shortcut_text();
@@ -304,16 +303,26 @@ namespace onyxui {
             int const base_y = rect_utils::get_y(item_bounds);
             int const item_width = rect_utils::get_width(item_bounds);
 
-            // Separator has fixed size
+            // Separator uses horizontal line drawing (like separator widget)
             if (is_separator()) {
                 int const min_width = 20;
+                int const height = 1;  // Separators are 1 pixel tall
+
                 // During measurement (item_width == 0), use minimum width
                 // During rendering, use actual width
                 int const width = item_width > 0 ? std::max(min_width, item_width) : min_width;
-                std::string const sep_line(static_cast<size_t>(width), '-');
-                typename Backend::point_type const pos{base_x, base_y};
-                ctx.draw_text(sep_line, pos, typename renderer_type::font{},
-                             theme->label.text);
+
+                // Draw horizontal line using renderer's line drawing
+                typename Backend::rect_type line_rect;
+                rect_utils::set_bounds(line_rect, base_x, base_y, width, height);
+
+                // Get line style from theme (use separator's line_style)
+                // Default to empty line_style{} if no theme available
+                typename renderer_type::line_style line_style{};
+                if (auto* theme = ctx.theme()) {
+                    line_style = theme->separator.line_style;
+                }
+                ctx.draw_horizontal_line(line_rect, line_style);
                 return;
             }
 
@@ -361,100 +370,45 @@ namespace onyxui {
             ctx.draw_text(" ", right_marker, text_font, fg);
         }
 
-    public:
         /**
-         * @brief Resolve style with state-dependent colors (NO parent color inheritance)
-         *
-         * @details
-         * Menu items use STATE-DEPENDENT colors that should NOT be inherited from parents.
-         * We override resolve_style() to use our own state colors directly instead of
-         * inheriting parent colors.
-         *
-         * Priority: explicit override → state-dependent theme color → default
-         */
-        [[nodiscard]] resolved_style<Backend> resolve_style() const override {
-            resolved_style<Backend> style;
-
-            // Resolve background color: explicit override OR state-dependent theme color
-            if (this->m_background_override) {
-                style.background_color = *this->m_background_override;
-            } else if (auto* theme = this->get_theme()) {
-                style.background_color = get_theme_background_color(*theme);
-                std::cerr << "[menu_item::resolve_style] Using state-dependent bg" << std::endl;
-            } else {
-                style.background_color = typename Backend::color_type{};
-            }
-
-            // Resolve foreground color: explicit override OR state-dependent theme color
-            if (this->m_foreground_override) {
-                style.foreground_color = *this->m_foreground_override;
-            } else if (auto* theme = this->get_theme()) {
-                style.foreground_color = get_theme_foreground_color(*theme);
-            } else {
-                style.foreground_color = typename Backend::color_type{};
-            }
-
-            // Resolve other properties normally (these can inherit from parent)
-            style.box_style = this->get_effective_box_style();
-            style.font = this->get_effective_font();
-            style.opacity = this->get_effective_opacity();
-            style.icon_style = this->get_effective_icon_style();
-            style.border_color = style.foreground_color;
-
-            return style;
-        }
-
-        /**
-         * @brief Get theme-specific foreground color
-         * @return Menu item foreground color from theme (state-dependent)
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with menu_item-specific theme values
          * @details Uses menu_item-specific states (normal/highlighted/disabled)
          */
-        [[nodiscard]] typename Backend::color_type get_theme_foreground_color(const theme_type& theme) const override {
-            // Map menu_item states to visual_state
-            if (!this->is_enabled()) {
-                return theme.menu_item.disabled.foreground;
-            }
-            if (this->is_hovered() || this->has_focus()) {
-                return theme.menu_item.highlighted.foreground;
-            }
-            return theme.menu_item.normal.foreground;
-        }
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            // Determine which menu_item state to use
+            typename Backend::color_type bg, fg;
+            typename Backend::renderer_type::font font;
 
-        /**
-         * @brief Get theme-specific background color
-         * @return Menu item background color from theme (state-dependent)
-         * @details Uses menu_item-specific states (normal/highlighted/disabled)
-         */
-        [[nodiscard]] typename Backend::color_type get_theme_background_color(const theme_type& theme) const override {
-            // Map menu_item states to visual_state
-            typename Backend::color_type bg;
             if (!this->is_enabled()) {
                 bg = theme.menu_item.disabled.background;
-                std::cerr << "[menu_item::get_theme_background_color] DISABLED bg=("
-                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+                fg = theme.menu_item.disabled.foreground;
+                font = theme.menu_item.disabled.font;
             } else if (this->is_hovered() || this->has_focus()) {
                 bg = theme.menu_item.highlighted.background;
-                std::cerr << "[menu_item::get_theme_background_color] HIGHLIGHTED bg=("
-                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+                fg = theme.menu_item.highlighted.foreground;
+                font = theme.menu_item.highlighted.font;
             } else {
                 bg = theme.menu_item.normal.background;
-                std::cerr << "[menu_item::get_theme_background_color] NORMAL bg=("
-                          << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
+                fg = theme.menu_item.normal.foreground;
+                font = theme.menu_item.normal.font;
             }
-            return bg;
+
+            return resolved_style<Backend>{
+                .background_color = bg,
+                .foreground_color = fg,
+                .border_color = theme.border_color,
+                .box_style = theme.menu.box_style,  // Use menu's box_style
+                .font = font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::make_optional(theme.menu_item.padding_horizontal),  // Menu item has padding
+                .padding_vertical = std::make_optional(theme.menu_item.padding_vertical),
+                .mnemonic_font = std::make_optional(theme.menu_item.mnemonic_font)  // Menu item has mnemonics
+            };
         }
 
-        /**
-         * @brief Apply theme to menu item
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Reparse mnemonic if we have one
-            if (m_has_mnemonic) {
-                m_has_mnemonic = false;  // Clear until set_mnemonic_text is called again
-            }
-            // Invalidate measurement because font changes affect text size
-            this->invalidate_measure();
-        }
 
         /**
          * @brief Handle mouse enter (hover)
@@ -532,8 +486,9 @@ namespace onyxui {
 
     private:
         std::string m_text;                       ///< Plain item text
-        mnemonic_info<Backend> m_mnemonic_info;   ///< Parsed mnemonic with styling
-        bool m_has_mnemonic;                      ///< Whether mnemonic is active
+        std::string m_mnemonic_markup;            ///< Raw markup like "&Save" (empty if no mnemonic)
+        mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
+        mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
         menu_item_type m_item_type;               ///< Type of item
     };
 

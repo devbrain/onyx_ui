@@ -105,24 +105,57 @@ ctx.set_dirty_regions(compute_dirty_regions());  // Automatic move
 - **Strong guarantee:** Text rendering has no allocations in critical path
 - **Basic guarantee:** Copy operations are well-defined and documented
 
-### Accessing the Resolved Style
+### Accessing Visual Properties (Two-Tier Pattern)
 
-The render context carries a pre-resolved style that includes all visual properties after CSS inheritance:
+The render context provides a **two-tier property access pattern** for optimal performance:
+
+**Tier 1: Common Properties via `ctx.style()`**
+
+The render context carries a pre-resolved style that includes common visual properties after CSS inheritance:
 
 ```cpp
 void do_render(render_context<Backend>& ctx) const override {
-    // Access the resolved style
+    // Access common properties (O(1), no theme lookup)
     const auto& style = ctx.style();
 
     // Use pre-resolved properties
     ctx.draw_text(m_text, position, style.font, style.foreground_color);
     ctx.draw_rect(bounds, style.box_style);
 
-    // No repeated theme lookups needed!
+    // Optional properties with explicit defaults
+    int padding = style.padding_horizontal.value.value_or(2);
 }
 ```
 
-The style is resolved **once per frame** through the theme hierarchy, eliminating the need for repeated `get_effective_*()` calls and improving performance.
+The style is resolved **once per frame** through the theme hierarchy, eliminating the need for repeated `get_effective_*()` calls.
+
+**Tier 2: Rare Widget-Specific Properties via `ctx.theme()`**
+
+For properties that are specific to certain widgets and don't belong in the common `resolved_style`, access the theme directly:
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // Common properties (Tier 1)
+    const auto& fg = ctx.style().foreground_color;
+
+    // Rare widget-specific properties (Tier 2)
+    if (auto* theme = ctx.theme()) {
+        auto text_align = theme->label.text_align;
+        auto line_style = theme->separator.line_style;
+        // Use these properties for rendering...
+    } else {
+        // Fallback defaults if no theme available
+        auto text_align = text_alignment::left;
+    }
+}
+```
+
+**Why Two Tiers?**
+
+- **Performance**: Common properties cached in `resolved_style`, no repeated lookups
+- **Memory Efficiency**: Rare properties don't bloat the pre-resolved style structure
+- **Type Safety**: Optional properties enforce explicit defaults via `.value.value_or(default)`
+- **Clarity**: Clear separation between common and widget-specific properties
 
 ### Dirty Region Optimization
 

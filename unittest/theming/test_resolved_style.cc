@@ -12,24 +12,36 @@ using namespace onyxui;
 
 TEST_CASE("resolved_style - Default construction") {
     SUBCASE("Default-constructed style has zero-initialized values") {
-        resolved_style<test_backend> style;
+        test_backend::color default_color{0, 0, 0, 255};
+        test_backend::renderer::box_style default_box{false};
+        test_backend::renderer::font default_font;
+
+        resolved_style<test_backend> style{
+            .background_color = default_color,
+            .foreground_color = default_color,
+            .border_color = default_color,
+            .box_style = default_box,
+            .font = default_font,
+            .opacity = 1.0F,
+            .icon_style = std::optional<test_backend::renderer::icon_style>(std::nullopt)
+        };
 
         // Default color values (depends on backend defaults)
-        CHECK(style.background_color.r == 0);
-        CHECK(style.background_color.g == 0);
-        CHECK(style.background_color.b == 0);
-        CHECK(style.foreground_color.r == 0);
-        CHECK(style.foreground_color.g == 0);
-        CHECK(style.foreground_color.b == 0);
-        CHECK(style.border_color.r == 0);
-        CHECK(style.border_color.g == 0);
-        CHECK(style.border_color.b == 0);
+        CHECK(style.background_color.value.r == 0);
+        CHECK(style.background_color.value.g == 0);
+        CHECK(style.background_color.value.b == 0);
+        CHECK(style.foreground_color.value.r == 0);
+        CHECK(style.foreground_color.value.g == 0);
+        CHECK(style.foreground_color.value.b == 0);
+        CHECK(style.border_color.value.r == 0);
+        CHECK(style.border_color.value.g == 0);
+        CHECK(style.border_color.value.b == 0);
 
         // Default opacity (1.0 = fully opaque)
-        CHECK(style.opacity == 1.0F);
+        CHECK(style.opacity.value == 1.0F);
 
         // Default box_style (no border)
-        CHECK(style.box_style.draw_border == false);
+        CHECK(style.box_style.value.draw_border == false);
     }
 }
 

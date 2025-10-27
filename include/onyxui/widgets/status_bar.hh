@@ -191,14 +191,6 @@ namespace onyxui {
             // 3. Draw right text at right edge (right-aligned)
         }
 
-        /**
-         * @brief Apply theme to status bar
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Theme colors would be applied here
-            // e.g., foreground_color = theme.status_bar.text_fg
-            this->invalidate_arrange();
-        }
 
     private:
         std::string m_left_text;   ///< Text displayed on left side

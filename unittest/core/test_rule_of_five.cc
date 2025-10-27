@@ -29,9 +29,8 @@ public:
 
 protected:
     // Implement required pure virtual from themeable
-    void do_apply_theme([[maybe_unused]] const ui_theme<test_backend>& theme) override {
         // Test element - no theme application needed
-    }
+
 };
 
 // Test event target with tracking

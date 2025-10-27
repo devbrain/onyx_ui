@@ -178,11 +178,6 @@ namespace onyxui {
             m_anchor_layout->set_anchor(child, point, offset_x, offset_y);
         }
 
-    protected:
-        void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // Anchor panel is a layout container - children inherit via CSS-style inheritance
-        }
-
     private:
         anchor_layout<Backend>* m_anchor_layout = nullptr;  ///< Non-owning pointer to layout
     };

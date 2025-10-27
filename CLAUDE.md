@@ -319,31 +319,49 @@ All operations are logged via failsafe logging (DEBUG level in debug builds):
 - Theme lookup: `LOG_DEBUG("Found theme: {name}")`
 - Theme application: `LOG_DEBUG("Applying theme: {name}")`
 
-**2. Three-Way Theme API (Safe Ownership)**
+**2. Global Theming Architecture**
 
-The old unsafe `apply_theme(const theme_type&)` has been removed. Use one of three safe options:
+Themes are **global** and applied at the **root level only**, not on individual widgets. This simplifies the architecture and ensures consistent styling throughout the UI tree.
+
+```cpp
+// Apply theme ONCE at the root (RECOMMENDED)
+scoped_ui_context<Backend> ctx;
+auto root = std::make_unique<panel<Backend>>();
+root->apply_theme("Norton Blue", ctx.themes());  // Global theme!
+
+// All children inherit from the global theme via CSS inheritance
+auto button = root->template emplace_child<button>();
+auto label = root->template emplace_child<label>();
+// Both button and label use "Norton Blue" theme automatically
+```
+
+**Three safe ownership options** (use at root only):
 
 ```cpp
 // Option 1: By name (registry-based) - RECOMMENDED
-// Zero overhead, registry owns the theme
-element->apply_theme("Norton Blue", registry);
+root->apply_theme("Norton Blue", registry);  // Zero overhead
 
 // Option 2: By value (copy/move)
-// Element takes ownership via unique_ptr
 ui_theme<Backend> my_theme = create_custom_theme();
-element->apply_theme(std::move(my_theme));  // Moved!
+root->apply_theme(std::move(my_theme));  // Element owns theme
 
 // Option 3: By shared_ptr
-// Reference-counted shared ownership
 auto theme_ptr = std::make_shared<ui_theme<Backend>>(my_theme);
-element->apply_theme(theme_ptr);
+root->apply_theme(theme_ptr);  // Reference-counted
 ```
 
+**CSS Inheritance Chain** (priority order):
+1. **Explicit override** on widget (`set_background_color()`)
+2. **Parent's resolved style** (CSS inheritance)
+3. **Global theme** (via `get_theme()` walk-up)
+4. **Default value** (fallback)
+
 **Benefits:**
-- No dangling pointer risk (old API removed)
-- Clear ownership semantics
-- Flexible for different use cases
-- Type-safe and explicit
+- **Simplicity**: One theme for entire UI tree
+- **Performance**: O(depth) style resolution with single parent cache
+- **Consistency**: Uniform styling across all widgets
+- **Safety**: No dangling pointer risk
+- **Flexibility**: Individual widgets can still override colors via `set_background_color()`
 
 **3. Style-Based Rendering Architecture**
 
@@ -401,9 +419,80 @@ class render_context {
 - **Consistency**: Single source of truth for visual properties
 - **Immutability**: `resolved_style` is POD-like with copy semantics
 
+**Complete resolved_style structure:**
+
+The `resolved_style` includes optional widget-specific properties wrapped in strong-typed containers:
+
+```cpp
+template<UIBackend Backend>
+struct resolved_style {
+    // Required properties (always present)
+    color_type background_color;
+    color_type foreground_color;
+    color_type border_color;
+    box_style_type box_style;
+    font_type font;
+    float opacity;
+    std::optional<icon_style_type> icon_style;
+
+    // Optional widget-specific properties (strong-typed wrappers)
+    padding_horizontal_t padding_horizontal;  // std::optional<int> internally
+    padding_vertical_t padding_vertical;      // std::optional<int> internally
+    mnemonic_font_t mnemonic_font;            // std::optional<font_type> internally
+
+    // Access optional values with .value.value_or(default)
+    int h_pad = style.padding_horizontal.value.value_or(2);
+};
+```
+
+**Theme pointer in render_context:**
+
+For rare widget-specific properties not in `resolved_style` (like `text_align`, `line_style`), widgets access the theme via `ctx.theme()`:
+
+```cpp
+template<UIBackend Backend>
+class render_context {
+    // Access resolved style (common properties)
+    [[nodiscard]] const resolved_style<Backend>& style() const noexcept;
+
+    // Access theme for rare properties (nullable)
+    [[nodiscard]] const ui_theme<Backend>* theme() const noexcept;
+};
+```
+
+**Widget property access pattern:**
+
+Widgets follow a two-tier access pattern:
+
+```cpp
+template<UIBackend Backend>
+class button : public stateful_widget<Backend> {
+    void do_render(render_context<Backend>& ctx) const override {
+        // Common properties: Use pre-resolved style (fast, O(1))
+        auto const& fg = ctx.style().foreground_color;
+        auto const& font = ctx.style().font;
+        int padding = ctx.style().padding_horizontal.value.value_or(2);
+
+        // Rare properties: Access via theme pointer (nullable)
+        if (auto* theme = ctx.theme()) {
+            auto text_align = theme->button.text_align;
+        }
+
+        // NEVER directly access ui_services::themes() from widgets!
+    }
+};
+```
+
+**Why two-tier access?**
+
+- **Common properties** (colors, fonts, padding) → `resolved_style` → O(1) access
+- **Rare properties** (text_align, line_style) → `ctx.theme()` → Minimal overhead
+- **Performance**: Avoids bloating `resolved_style` with rarely-used fields
+- **Type safety**: Optional properties enforce explicit default handling
+
 **4. Stateful Widget Helper**
 
-New base class for interactive widgets with visual states:
+New base class for interactive widgets with visual states that automatically integrates with the global theme:
 
 ```cpp
 template<UIBackend Backend>
@@ -418,7 +507,7 @@ protected:
     void set_interaction_state(interaction_state state);
     [[nodiscard]] interaction_state get_interaction_state() const noexcept;
 
-    // State-based color helpers
+    // State-based color helpers (use global theme automatically)
     template<typename WidgetTheme>
     [[nodiscard]] color_type get_state_background(const WidgetTheme& widget_theme) const noexcept;
 
@@ -441,15 +530,13 @@ protected:
 ```cpp
 template<UIBackend Backend>
 class button : public stateful_widget<Backend> {
-    void do_render(render_context<Backend>& ctx) const override {
-        auto* theme = this->get_theme();
-        if (theme) {
-            // Get state-appropriate colors automatically
-            auto bg = this->get_state_background(theme->button);
-            auto fg = this->get_state_foreground(theme->button);
+    // Override theme accessors to return state-dependent colors
+    [[nodiscard]] color_type get_theme_background_color(const theme_type& theme) const override {
+        return this->get_state_background(theme.button);  // Uses global theme!
+    }
 
-            // Render with state colors...
-        }
+    [[nodiscard]] color_type get_theme_foreground_color(const theme_type& theme) const override {
+        return this->get_state_foreground(theme.button);  // Uses global theme!
     }
 
     void on_mouse_enter() override {
@@ -459,15 +546,25 @@ class button : public stateful_widget<Backend> {
 };
 ```
 
-**Theme structure expects:**
+**Global theme structure:**
 ```cpp
-struct button_theme {
-    color_type bg_normal, fg_normal;
-    color_type bg_hover, fg_hover;
-    color_type bg_pressed, fg_pressed;
-    color_type bg_disabled, fg_disabled;
+struct ui_theme {
+    struct button_theme {
+        color_type bg_normal, fg_normal;
+        color_type bg_hover, fg_hover;
+        color_type bg_pressed, fg_pressed;
+        color_type bg_disabled, fg_disabled;
+    } button;
+
+    // Other widget themes...
 };
 ```
+
+**How it works:**
+1. Global theme applied at root contains `button_theme` settings
+2. Button overrides `get_theme_background_color()` to select color based on state
+3. `resolve_style()` calls `get_theme_background_color()` during CSS inheritance
+4. Result: buttons automatically use correct state colors from global theme
 
 **Architecture Summary:**
 
@@ -477,10 +574,11 @@ struct button_theme {
 4. **Widgets** → Use pre-resolved style, no repeated lookups
 
 **Performance characteristics:**
-- Style resolution: O(depth) once per frame
-- Widget rendering: O(1) style access
-- Thread-safe: Reader-writer locking on registry
-- Memory: POD-like resolved_style (~50-100 bytes)
+- **Style resolution**: O(depth) once per frame with single parent cache
+- **Widget rendering**: O(1) style access via pre-resolved context
+- **Thread-safe**: Reader-writer locking on registry
+- **Memory**: POD-like resolved_style (~50-100 bytes)
+- **Scalability**: Tested with 100+ widget trees (both wide and deep)
 
 **See also:**
 - `include/onyxui/resolved_style.hh` - Style structure
@@ -489,8 +587,10 @@ struct button_theme {
 - `include/onyxui/measure_context.hh` - Measurement implementation
 - `include/onyxui/widgets/stateful_widget.hh` - Interactive widget helper
 - `include/onyxui/theme_registry.hh` - Thread-safe registry
-- `include/onyxui/themeable.hh` - Three-way theme API
-- `unittest/theming/test_resolved_style.cc` - Comprehensive tests (11 test cases, 88 assertions)
+- `include/onyxui/themeable.hh` - Global theming implementation
+- `unittest/theming/test_resolved_style.cc` - Style resolution tests
+- `unittest/theming/test_style_inheritance.cc` - CSS inheritance tests
+- `unittest/theming/test_style_edge_cases.cc` - Edge case coverage (100+ widgets)
 
 ### Widget Library
 
@@ -996,8 +1096,15 @@ TEST_CASE("Widget - Basic functionality") {
 - **Phase 3**: Style-based rendering architecture with `resolved_style`
 - **Phase 4**: Comprehensive testing (11 new test cases, 88 assertions)
 - **Phase 5**: Documentation and polish
+- **Phase 6**: Widget refactoring to enforce style-based rendering
+  - Extended `resolved_style` with optional properties (padding, mnemonic_font)
+  - Added theme pointer to `render_context` for rare widget-specific properties
+  - Refactored all widgets (button, label, menu_item, menu_bar_item, separator, stateful_widget)
+  - Eliminated all direct theme access from widgets (zero `ui_services::themes()` calls)
+  - Implemented lazy mnemonic parsing for button, label, and menu_item
+  - All 736 tests passing, 4660 assertions, zero breaking changes
 - Removed unsafe `apply_theme(const theme_type&)` API
-- All 653 tests passing (was 642), zero warnings
+- All 736 tests passing (was 653), zero warnings
 
 **Key architectural improvements:**
 - **Thread Safety**: Reader-writer locking on theme registry
@@ -1005,6 +1112,9 @@ TEST_CASE("Widget - Basic functionality") {
 - **Safety**: No dangling pointer risk with new ownership semantics
 - **Simplicity**: Widgets receive pre-resolved style via render_context
 - **Stateful Widgets**: New helper base class for interactive widgets
+- **Two-Tier Access**: Common properties via `ctx.style()`, rare properties via `ctx.theme()`
+- **Lazy Parsing**: Mnemonics parsed on-demand during render with caching
+- **Type Safety**: Optional properties enforce explicit default handling
 
 **Previous work:** Comprehensive layout testing implementation (2025)
 - Implemented 57 new layout tests across all priority levels

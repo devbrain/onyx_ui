@@ -28,7 +28,6 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
         explicit test_element_accessor() : ui_element<Backend>(nullptr) {}
 
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {}
     };
 
     TEST_CASE("Content area - no margin or padding") {
@@ -110,10 +109,9 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         scoped_ui_context<test_canvas_backend> ctx;
 
         template<typename Widget>
-        void apply_default_theme(Widget& w) {
-            if (auto* theme = ctx.themes().get_theme("Test Theme")) {
-                w.apply_theme(*theme);
-            }
+        void apply_default_theme([[maybe_unused]] Widget& w) {
+            // With global theme approach, widgets automatically get the current theme
+            // No need to explicitly apply - theme is already registered in ctx
         }
     };
 

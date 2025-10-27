@@ -72,7 +72,8 @@
 #include <algorithm>
 #include <iostream>  // For debug output
 #include <onyxui/concepts/backend.hh>
-#include <onyxui/element.hh>
+#include <onyxui/concepts/event_like.hh>  // For event_traits
+#include <onyxui/element_fwd.hh>  // Forward declaration only (breaks circular dependency)
 
 namespace onyxui {
 

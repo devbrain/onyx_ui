@@ -484,13 +484,6 @@ namespace onyxui {
         std::weak_ptr<action<Backend>> m_action;                     ///< Associated action (weak reference)
         std::vector<scoped_connection> m_action_connections;         ///< Auto-cleanup connections
 
-        /**
-         * @brief Apply theme to this widget (must be implemented by derived classes)
-         */
-        void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // Base widget has no visual representation to theme
-            // Derived classes should override this
-        }
 
         /**
          * @brief Automatic content size calculation via measure_context

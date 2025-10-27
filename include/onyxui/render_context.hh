@@ -14,6 +14,10 @@
 #include <onyxui/resolved_style.hh>
 
 namespace onyxui {
+    // Forward declaration
+    template<UIBackend Backend>
+    struct ui_theme;
+
     /**
      * @class render_context
      * @brief Abstract visitor base class for widget rendering and measurement
@@ -92,6 +96,9 @@ namespace onyxui {
         using font_type = typename renderer_type::font;
         using box_style = typename renderer_type::box_style;
         using icon_type = typename renderer_type::icon_style;
+
+        // Theme type
+        using theme_type = ui_theme<Backend>;
 
         /**
          * @brief Virtual destructor
@@ -347,6 +354,36 @@ namespace onyxui {
             return m_available_size;
         }
 
+        /**
+         * @brief Get the theme pointer for accessing rare widget-specific properties
+         *
+         * @return Pointer to theme (can be nullptr if no theme is set)
+         *
+         * @details
+         * Provides access to rare widget-specific properties that aren't common enough
+         * to include in resolved_style, such as:
+         * - button's text_align
+         * - separator's line_style
+         * - menu_item's separator line_style
+         *
+         * **Note**: Most widgets should use ctx.style() for common properties.
+         * Only access theme directly for rare properties specific to your widget type.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     if (auto* theme = ctx.theme()) {
+         *         auto text_align = theme->button.text_align;  // Rare property
+         *     }
+         *     // Use ctx.style() for common properties
+         *     ctx.draw_text(m_text, pos, ctx.style().font, ctx.style().foreground_color);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] const theme_type* theme() const noexcept {
+            return m_theme;
+        }
+
         // ===================================================================
         // Convenience Methods (Using Context Style)
         // ===================================================================
@@ -450,6 +487,7 @@ namespace onyxui {
          * @param style The resolved style for this rendering pass
          * @param position Top-left corner where widget should draw
          * @param available_size Size assigned by parent layout (0,0 during measurement)
+         * @param theme Theme pointer for rare widget-specific properties (can be nullptr)
          *
          * @details
          * The style is resolved by the caller (typically ui_element::render())
@@ -461,24 +499,28 @@ namespace onyxui {
         explicit render_context(
             const resolved_style<Backend>& style,
             const point_type& position,
-            const size_type& available_size
+            const size_type& available_size,
+            const theme_type* theme = nullptr
         )
             : m_style(style)
             , m_position(position)
-            , m_available_size(available_size) {
+            , m_available_size(available_size)
+            , m_theme(theme) {
         }
 
         /**
          * @brief Constructor with resolved style only (zero position/size)
          *
          * @param style The resolved style for this rendering pass
+         * @param theme Theme pointer for rare widget-specific properties (can be nullptr)
          *
          * @details
          * Position and size are initialized to zero.
          * Use this for measurement contexts.
          */
-        explicit render_context(const resolved_style<Backend>& style)
-            : m_style(style) {
+        explicit render_context(const resolved_style<Backend>& style, const theme_type* theme = nullptr)
+            : m_style(style)
+            , m_theme(theme) {
             // Initialize position and size to zero (measurement defaults)
             size_utils::set_size(m_available_size, 0, 0);
         }
@@ -487,10 +529,22 @@ namespace onyxui {
          * @brief Default constructor (for backward compatibility)
          *
          * @details
-         * Creates context with default-constructed style, zero position/size.
+         * Creates context with default-valued style, zero position/size.
          * Prefer the style-based constructors for new code.
          */
-        render_context() {
+        render_context()
+            : m_style{
+                .background_color = typename Backend::color_type{},
+                .foreground_color = typename Backend::color_type{},
+                .border_color = typename Backend::color_type{},
+                .box_style = typename Backend::renderer_type::box_style{},
+                .font = typename Backend::renderer_type::font{},
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
+            } {
             // Member variables are default-initialized to zero
             size_utils::set_size(m_available_size, 0, 0);
         }
@@ -499,5 +553,6 @@ namespace onyxui {
         resolved_style<Backend> m_style;        ///< Resolved visual style for this pass
         point_type m_position{};                ///< Top-left position where widget draws
         size_type m_available_size{};           ///< Size assigned by parent (0,0 during measurement)
+        const theme_type* m_theme = nullptr;    ///< Theme pointer for rare widget-specific properties
     };
 }

@@ -501,27 +501,52 @@ namespace onyxui {
        * @brief Render this element and its children with proper clipping
        * @param renderer The backend renderer instance
        */
-            void render(renderer_type& renderer) {
-                render(renderer, {});  // Empty vector means "render everything"
+            void render(renderer_type& renderer, const theme_type* theme = nullptr) {
+                // Create default parent style from theme (or empty if no theme)
+                resolved_style<Backend> default_style = theme
+                    ? resolved_style<Backend>::from_theme(*theme)
+                    : resolved_style<Backend>{
+                        .background_color = typename Backend::color_type{},
+                        .foreground_color = typename Backend::color_type{},
+                        .border_color = typename Backend::color_type{},
+                        .box_style = typename Backend::renderer_type::box_style{},
+                        .font = typename Backend::renderer_type::font{},
+                        .opacity = 1.0f,
+                        .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                        .padding_horizontal = std::optional<int>{},
+                        .padding_vertical = std::optional<int>{},
+                        .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
+                    };
+                render(renderer, {}, theme, default_style);  // Empty vector means "render everything"
             }
 
             /**
        * @brief Render this element and its children with dirty rectangle optimization
        * @param renderer The backend renderer instance
        * @param dirty_regions Regions that need redrawing (empty = render everything)
+       * @param theme Global theme (fetched once by ui_handle and passed down tree)
+       * @param parent_style Parent's resolved style (accumulated top-down, no recursion!)
        *
        * @details
        * Uses dirty rectangle optimization to skip rendering elements that don't
        * intersect with any dirty region. This significantly improves performance
        * when only small portions of the UI change.
+       *
+       * The theme is fetched once at the top level (ui_handle::display()) and
+       * passed down through the widget tree to avoid repeated lookups.
+       *
+       * Parent style is passed down during top-down traversal, eliminating the need
+       * for recursive parent lookups during style resolution. This is O(1) per widget
+       * instead of O(depth), following the same pattern used by browser rendering engines.
        */
-            void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
+            void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions,
+                       const theme_type* theme, const resolved_style<Backend>& parent_style) {
                 if (!m_visible) {
                     return;
                 }
 
-                // Resolve style ONCE through CSS inheritance (v2.0)
-                auto style = this->resolve_style();
+                // Resolve style by merging parent_style with my overrides (no recursion!)
+                auto style = this->resolve_style(theme, parent_style);
 
                 // Extract position and size from bounds for render context
                 point_type pos{rect_utils::get_x(m_bounds), rect_utils::get_y(m_bounds)};
@@ -531,9 +556,10 @@ namespace onyxui {
                     rect_utils::get_width(m_bounds),
                     rect_utils::get_height(m_bounds));
 
-                // Create draw context with resolved style, position, size, and dirty regions
+                // Create draw context with resolved style, position, size, dirty regions, and theme
                 // Passing position/size decouples widgets from element state (pure visitor pattern)
-                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions);
+                // Theme pointer allows widgets to access rare properties (text_align, line_style, etc.)
+                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions, theme);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
                 if (!ctx.should_render(m_bounds)) {
@@ -551,9 +577,9 @@ namespace onyxui {
                 renderer.push_clip(content_area);
 
                 // Render children in z-order (they're already clipped)
-                // Pass dirty regions down to children for continued optimization
+                // Pass my resolved style down to children (top-down accumulation, no recursion!)
                 for (const auto& child : m_children) {
-                    child->render(renderer, dirty_regions);
+                    child->render(renderer, dirty_regions, theme, style);
                 }
 
                 // Restore previous clip rect
@@ -649,22 +675,11 @@ namespace onyxui {
             /**
              * @brief Get parent for CSS-style theme inheritance
              *
-             * @details Enables get_theme() to walk up the parent chain to find
-             *          the nearest theme. This allows children to inherit themes
-             *          without having apply_theme() called directly on them.
+             * @details Enables inherited properties (background_color, font, etc.)
+             *          to walk up the parent chain.
              */
             [[nodiscard]] const themeable<Backend>* get_themeable_parent() const override {
                 return m_parent;
-            }
-
-            void after_apply_theme([[maybe_unused]] const theme_type& theme) override {
-                // Propagate theme to all children
-                for (auto& child : m_children) {
-                    child->apply_theme(theme);
-                }
-                // Invalidate arrangement to ensure visual update with new theme
-                // Theme changes can affect colors, borders, fonts, etc.
-                invalidate_arrange();
             }
 
             /**

@@ -72,9 +72,10 @@ TEST_SUITE("menu_item") {
     TEST_CASE("Mnemonic character extraction") {
         auto item = std::make_unique<menu_item<Backend>>();
 
-        // Without theme, no mnemonic is active
+        // Mnemonic can be extracted even without theme (theme only needed for rendering fonts)
         item->set_mnemonic_text("&File");
-        CHECK(!item->has_mnemonic());  // No theme yet
+        CHECK(item->has_mnemonic());  // Mnemonic character available from markup
+        CHECK(item->get_mnemonic_char() == 'f');  // Extracted from "&File"
     }
 
     TEST_CASE("Get shortcut text from action") {

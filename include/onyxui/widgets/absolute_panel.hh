@@ -204,11 +204,6 @@ namespace onyxui {
             m_absolute_layout->set_position(child, x, y, width, height);
         }
 
-    protected:
-        void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // Absolute panel is a layout container - children inherit via CSS-style inheritance
-        }
-
     private:
         absolute_layout<Backend>* m_absolute_layout = nullptr;  ///< Non-owning pointer to layout
     };

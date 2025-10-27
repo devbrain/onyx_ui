@@ -266,8 +266,82 @@ namespace onyxui {
             return m_themes.empty();
         }
 
+        /**
+         * @brief Set the currently active theme by name
+         * @param name Theme name (must be registered)
+         * @return True if theme was found and set, false otherwise
+         *
+         * @details
+         * Sets the global active theme for all widgets in this context.
+         * The theme must already be registered in the registry.
+         *
+         * @example
+         * @code
+         * ctx.themes().register_theme(norton_blue_theme);
+         * ctx.themes().set_current_theme("Norton Blue");  // All widgets now use this
+         * @endcode
+         */
+        bool set_current_theme(const std::string& name) {
+            std::unique_lock lock(m_mutex);
+
+            auto it = m_themes.find(name);
+            if (it != m_themes.end()) {
+                m_current_theme = std::make_shared<const theme_type>(it->second);
+                LOG_DEBUG("Set current theme: ", name);
+                return true;
+            }
+
+            LOG_WARN("Cannot set current theme (not found): ", name);
+            return false;
+        }
+
+        /**
+         * @brief Set the currently active theme by value
+         * @param theme Theme to set as current
+         *
+         * @details
+         * Sets the global active theme for all widgets in this context.
+         * The theme does NOT need to be registered first.
+         *
+         * @example
+         * @code
+         * ui_theme<Backend> custom_theme = create_my_theme();
+         * ctx.themes().set_current_theme(std::move(custom_theme));
+         * @endcode
+         */
+        void set_current_theme(std::shared_ptr<const theme_type> theme) {
+            std::unique_lock lock(m_mutex);
+            m_current_theme = std::move(theme);
+            if (m_current_theme) {
+                LOG_DEBUG("Set current theme: ", m_current_theme->name);
+            } else {
+                LOG_DEBUG("Cleared current theme");
+            }
+        }
+
+        /**
+         * @brief Get the currently active theme
+         * @return Pointer to current theme, or nullptr if none set
+         *
+         * @details
+         * Returns the theme that was set via set_current_theme().
+         * This is used by widgets to resolve their styles.
+         *
+         * @example
+         * @code
+         * if (auto* theme = ctx.themes().get_current_theme()) {
+         *     // Use theme colors
+         * }
+         * @endcode
+         */
+        [[nodiscard]] const theme_type* get_current_theme() const noexcept {
+            std::shared_lock lock(m_mutex);
+            return m_current_theme.get();
+        }
+
     private:
         std::unordered_map<std::string, theme_type> m_themes;
+        std::shared_ptr<const theme_type> m_current_theme;  ///< Currently active theme
         mutable std::shared_mutex m_mutex;  ///< Reader-writer lock for thread safety
     };
 

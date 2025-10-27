@@ -123,22 +123,25 @@ namespace onyxui {
          * @param position Top-left corner where widget should draw
          * @param available_size Size assigned by parent layout
          * @param dirty_regions List of rectangles that need redrawing
+         * @param theme Optional theme pointer for rare widget-specific properties (nullptr if none)
          *
          * @throws std::bad_alloc if dirty_regions copy fails
          *
          * @details
          * This is the complete constructor with all parameters for full visitor pattern support.
          * Position and size decouple widgets from element state, and dirty regions enable
-         * optimized incremental rendering.
+         * optimized incremental rendering. The theme pointer allows widgets to access rare
+         * properties not included in resolved_style (e.g., text_align, line_style).
          */
         draw_context(
             renderer_type& renderer,
             const resolved_style<Backend>& style,
             const point_type& position,
             const size_type& available_size,
-            const std::vector<rect_type>& dirty_regions
+            const std::vector<rect_type>& dirty_regions,
+            const typename base::theme_type* theme = nullptr
         )
-            : base(style, position, available_size)
+            : base(style, position, available_size, theme)
             , m_renderer(&renderer)
             , m_dirty_regions(dirty_regions) {
         }
@@ -258,12 +261,6 @@ namespace onyxui {
         void fill_rect(const rect_type& bounds) override {
             // Set background color from resolved style
             auto const& bg = this->style().background_color;
-
-            // DEBUG: Log fill_rect call
-            std::cerr << "[draw_context::fill_rect] bounds=("
-                      << rect_utils::get_x(bounds) << "," << rect_utils::get_y(bounds) << ","
-                      << rect_utils::get_width(bounds) << "," << rect_utils::get_height(bounds) << ") "
-                      << "bg=(" << static_cast<int>(bg.r) << "," << static_cast<int>(bg.g) << "," << static_cast<int>(bg.b) << ")" << std::endl;
 
             m_renderer->set_background(bg);
 

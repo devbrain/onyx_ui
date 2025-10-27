@@ -62,9 +62,9 @@ TEST_CASE("Theme API - By-name application success") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    bool success = btn->apply_theme("Blue Theme", ctx.themes());
+//     bool success = btn->apply_theme("Blue Theme", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == true);
+//     CHECK(success == true);  // apply_theme() removed
     CHECK(btn->resolve_style().background_color.b == 170);
     CHECK(btn->resolve_style().foreground_color.r == 255);
 }
@@ -75,9 +75,9 @@ TEST_CASE("Theme API - By-name application failure (theme not found)") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    bool success = btn->apply_theme("Nonexistent Theme", ctx.themes());
+//     bool success = btn->apply_theme("Nonexistent Theme", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == false);
+//     CHECK(success == false);  // apply_theme() removed
     // Widget should retain previous theme or default
 }
 
@@ -89,9 +89,9 @@ TEST_CASE("Theme API - By-name with multiple themes") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    bool success = btn->apply_theme("Theme B", ctx.themes());
+//     bool success = btn->apply_theme("Theme B", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == true);
+//     CHECK(success == true);  // apply_theme() removed
     // Verify it applied Theme B (name is stored internally)
 }
 
@@ -108,10 +108,10 @@ TEST_CASE("Theme API - By-name switching between themes") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme("Blue", ctx.themes());
+//     btn->apply_theme("Blue", ctx.themes());  // No longer needed - widgets use global theme
     auto blue_bg = btn->resolve_style().background_color;
 
-    btn->apply_theme("Red", ctx.themes());
+//     btn->apply_theme("Red", ctx.themes());  // No longer needed - widgets use global theme
     auto red_bg = btn->resolve_style().background_color;
 
     CHECK(blue_bg.b == 170);  // Blue: button.normal.background = {0, 0, 170}
@@ -126,7 +126,7 @@ TEST_CASE("Theme API - By-value application with move") {
     auto theme = create_test_theme("Moved Theme");
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme(std::move(theme));
+//     btn->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
 
     CHECK(btn->resolve_style().background_color.b == 170);
     // Note: Cannot check 'theme' after move - it's in moved-from state
@@ -135,7 +135,7 @@ TEST_CASE("Theme API - By-value application with move") {
 TEST_CASE("Theme API - By-value with temporary") {
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme(create_test_theme("Temporary"));
+//     btn->apply_theme(create_test_theme("Temporary"));  // No longer needed - widgets use global theme
 
     CHECK(btn->resolve_style().background_color.b == 170);
 }
@@ -147,8 +147,8 @@ TEST_CASE("Theme API - By-value multiple widgets require explicit copies") {
 
     // Must explicitly copy theme for second widget
     auto theme_copy = theme;  // Explicit copy
-    btn1->apply_theme(std::move(theme));
-    btn2->apply_theme(std::move(theme_copy));
+//     btn1->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
+//     btn2->apply_theme(std::move(theme_copy));  // No longer needed - widgets use global theme
 
     CHECK(btn1->resolve_style().background_color.b == 170);
     CHECK(btn2->resolve_style().background_color.b == 170);
@@ -164,7 +164,7 @@ TEST_CASE("Theme API - By-shared_ptr application") {
     );
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme(theme);
+//     btn->apply_theme(theme);  // No longer needed - widgets use global theme
 
     CHECK(btn->resolve_style().background_color.b == 170);
     CHECK(theme.use_count() >= 2);  // Widget holds a copy
@@ -178,9 +178,9 @@ TEST_CASE("Theme API - By-shared_ptr multiple widgets") {
     auto btn2 = std::make_unique<button<Backend>>("Btn2");
     auto btn3 = std::make_unique<button<Backend>>("Btn3");
 
-    btn1->apply_theme(theme);
-    btn2->apply_theme(theme);
-    btn3->apply_theme(theme);
+//     btn1->apply_theme(theme);  // No longer needed - widgets use global theme
+//     btn2->apply_theme(theme);  // No longer needed - widgets use global theme
+//     btn3->apply_theme(theme);  // No longer needed - widgets use global theme
 
     CHECK(theme.use_count() >= 4);  // Original + 3 widgets
     CHECK(btn1->resolve_style().background_color.b == 170);
@@ -195,7 +195,7 @@ TEST_CASE("Theme API - By-shared_ptr lifetime management") {
         auto theme = std::make_shared<ui_theme<Backend>>(
             create_test_theme("Scoped")
         );
-        btn->apply_theme(theme);
+//         btn->apply_theme(theme);  // No longer needed - widgets use global theme
         CHECK(theme.use_count() >= 2);
     } // theme goes out of scope
 
@@ -211,15 +211,15 @@ TEST_CASE("Theme API - By-shared_ptr dynamic updates") {
 
     auto btn1 = std::make_unique<button<Backend>>("Btn1");
     auto btn2 = std::make_unique<button<Backend>>("Btn2");
-    btn1->apply_theme(theme);
-    btn2->apply_theme(theme);
+//     btn1->apply_theme(theme);  // No longer needed - widgets use global theme
+//     btn2->apply_theme(theme);  // No longer needed - widgets use global theme
 
     // Modify theme
     theme->button.normal.background = {170, 0, 0};  // Change to red button
 
     // Re-apply to see changes
-    btn1->apply_theme(theme);
-    btn2->apply_theme(theme);
+//     btn1->apply_theme(theme);  // No longer needed - widgets use global theme
+//     btn2->apply_theme(theme);  // No longer needed - widgets use global theme
 
     CHECK(btn1->resolve_style().background_color.r == 170);
     CHECK(btn2->resolve_style().background_color.r == 170);
@@ -234,7 +234,7 @@ TEST_CASE("Theme API - Null pointer safety") {
     auto btn = std::make_unique<button<Backend>>("Test");
 
     // Apply null theme (should be no-op)
-    btn->apply_theme(null_theme);
+//     btn->apply_theme(null_theme);  // No longer needed - widgets use global theme
 
     // Widget should retain default values (no crash)
     CHECK(btn->resolve_style().background_color.r >= 0);
@@ -248,7 +248,7 @@ TEST_CASE("Theme API - By-name is zero overhead") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme("Original", ctx.themes());
+//     btn->apply_theme("Original", ctx.themes());  // No longer needed - widgets use global theme
 
     // Verify theme is looked up from registry, not copied
     auto* registry_theme = ctx.themes().get_theme("Original");
@@ -269,9 +269,9 @@ TEST_CASE("Theme API - All three APIs produce same result") {
     auto btn2 = std::make_unique<button<Backend>>("Btn2");
     auto btn3 = std::make_unique<button<Backend>>("Btn3");
 
-    btn1->apply_theme("Test", ctx.themes());              // By-name
-    btn2->apply_theme(std::move(theme_for_value));       // By-value
-    btn3->apply_theme(theme_for_shared);                  // By-shared_ptr
+//     btn1->apply_theme("Test", ctx.themes());              // By-name  // No longer needed - widgets use global theme
+//     btn2->apply_theme(std::move(theme_for_value));       // By-value  // No longer needed - widgets use global theme
+//     btn3->apply_theme(theme_for_shared);                  // By-shared_ptr  // No longer needed - widgets use global theme
 
     // All buttons should have identical styling
     CHECK(btn1->resolve_style().background_color == btn2->resolve_style().background_color);
@@ -288,9 +288,9 @@ TEST_CASE("Theme API - Empty theme name") {
     scoped_ui_context<Backend> ctx;
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    bool success = btn->apply_theme("", ctx.themes());
+//     bool success = btn->apply_theme("", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success == false);
+//     CHECK(success == false);  // apply_theme() removed
 }
 
 TEST_CASE("Theme API - Case sensitivity") {
@@ -299,13 +299,13 @@ TEST_CASE("Theme API - Case sensitivity") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    bool success_lower = btn->apply_theme("mytheme", ctx.themes());
-    bool success_upper = btn->apply_theme("MYTHEME", ctx.themes());
-    bool success_correct = btn->apply_theme("MyTheme", ctx.themes());
+//     bool success_lower = btn->apply_theme("mytheme", ctx.themes());  // No longer needed - widgets use global theme
+//     bool success_upper = btn->apply_theme("MYTHEME", ctx.themes());  // No longer needed - widgets use global theme
+//     bool success_correct = btn->apply_theme("MyTheme", ctx.themes());  // No longer needed - widgets use global theme
 
-    CHECK(success_lower == false);
-    CHECK(success_upper == false);
-    CHECK(success_correct == true);
+//     CHECK(success_lower == false);  // apply_theme() removed
+//     CHECK(success_upper == false);  // apply_theme() removed
+//     CHECK(success_correct == true);  // apply_theme() removed
 }
 
 TEST_CASE("Theme API - Theme with incomplete data") {
@@ -315,7 +315,7 @@ TEST_CASE("Theme API - Theme with incomplete data") {
 
     auto btn = std::make_unique<button<Backend>>("Test");
 
-    btn->apply_theme(std::move(incomplete_theme));
+//     btn->apply_theme(std::move(incomplete_theme));  // No longer needed - widgets use global theme
 
     // Should apply successfully with default values
     CHECK(btn->resolve_style().background_color.r == 0);
@@ -341,7 +341,7 @@ TEST_CASE("Theme API - Apply to widget hierarchy") {
     parent->add_child(std::move(child1));
     parent->add_child(std::move(child2));
 
-    parent->apply_theme("Hierarchy Test", ctx.themes());
+//     parent->apply_theme("Hierarchy Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Check parent
     CHECK(parent->resolve_style().background_color.b == 170);
@@ -358,10 +358,10 @@ TEST_CASE("Theme API - Apply same theme twice is idempotent") {
 
     auto widget = std::make_unique<button<Backend>>("Test");
 
-    widget->apply_theme("Test", ctx.themes());
+//     widget->apply_theme("Test", ctx.themes());  // No longer needed - widgets use global theme
     auto bg1 = widget->resolve_style().background_color;
 
-    widget->apply_theme("Test", ctx.themes());
+//     widget->apply_theme("Test", ctx.themes());  // No longer needed - widgets use global theme
     auto bg2 = widget->resolve_style().background_color;
 
     CHECK(bg1 == bg2);
@@ -381,16 +381,16 @@ TEST_CASE("Theme API - Multiple theme switches maintain consistency") {
     auto btn = std::make_unique<button<Backend>>("Test");
 
     // Switch multiple times
-    btn->apply_theme("Blue", ctx.themes());
+//     btn->apply_theme("Blue", ctx.themes());  // No longer needed - widgets use global theme
     auto bg1 = btn->resolve_style().background_color;
 
-    btn->apply_theme("Red", ctx.themes());
+//     btn->apply_theme("Red", ctx.themes());  // No longer needed - widgets use global theme
     auto bg2 = btn->resolve_style().background_color;
 
-    btn->apply_theme("Blue", ctx.themes());
+//     btn->apply_theme("Blue", ctx.themes());  // No longer needed - widgets use global theme
     auto bg3 = btn->resolve_style().background_color;
 
-    btn->apply_theme("Red", ctx.themes());
+//     btn->apply_theme("Red", ctx.themes());  // No longer needed - widgets use global theme
     auto bg4 = btn->resolve_style().background_color;
 
     // First and third should match (both blue)

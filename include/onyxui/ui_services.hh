@@ -53,6 +53,8 @@
 
 #pragma once
 
+#define ONYXUI_UI_SERVICES_HH_INCLUDED
+
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/ui_context.hh>
 #include <vector>

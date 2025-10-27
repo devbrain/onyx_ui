@@ -33,8 +33,8 @@ namespace onyxui {
      * template<UIBackend Backend>
      * class button : public stateful_widget<Backend> {
      *     void do_render(render_context<Backend>& ctx) const override {
-     *         // Get state-appropriate colors from theme
-     *         auto* theme = this->get_theme();
+     *         // Get state-appropriate colors from theme via ctx.theme()
+     *         auto* theme = ctx.theme();
      *         if (theme) {
      *             auto bg = this->get_state_background(theme->button);
      *             auto fg = this->get_state_foreground(theme->button);

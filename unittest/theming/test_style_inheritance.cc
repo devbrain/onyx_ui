@@ -57,7 +57,7 @@ TEST_CASE("CSS Inheritance - Background color inherits from parent") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({100, 150, 200});  // Parent override
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -79,7 +79,7 @@ TEST_CASE("CSS Inheritance - Foreground color inherits from parent") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_foreground_color({255, 128, 0});  // Orange
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -99,7 +99,7 @@ TEST_CASE("CSS Inheritance - Border color exists in resolved style") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto child = std::make_unique<panel<Backend>>();
     parent->add_child(std::move(child));
@@ -117,7 +117,7 @@ TEST_CASE("CSS Inheritance - Multiple color properties inherit independently") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({10, 20, 30});
     parent->set_foreground_color({100, 110, 120});
 
@@ -145,7 +145,7 @@ TEST_CASE("CSS Inheritance - Font inherits from parent") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     typename Backend::renderer_type::font parent_font;
     parent->set_font(parent_font);
@@ -166,7 +166,7 @@ TEST_CASE("CSS Inheritance - Font propagates through multiple levels") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Inheritance Test", ctx.themes());
+//     root->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     typename Backend::renderer_type::font root_font;
     root->set_font(root_font);
@@ -193,7 +193,7 @@ TEST_CASE("CSS Inheritance - Box style inherits from parent") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     typename Backend::renderer_type::box_style parent_box;
     parent->set_box_style(parent_box);
@@ -214,7 +214,7 @@ TEST_CASE("CSS Inheritance - Box style propagates deeply") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto l1 = std::make_unique<panel<Backend>>();
-    l1->apply_theme("Inheritance Test", ctx.themes());
+//     l1->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     typename Backend::renderer_type::box_style l1_box;
     l1->set_box_style(l1_box);
@@ -239,7 +239,7 @@ TEST_CASE("CSS Inheritance - Opacity multiplies through hierarchy") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_opacity(0.8f);  // 80% opacity
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -259,7 +259,7 @@ TEST_CASE("CSS Inheritance - Opacity cascades through multiple levels") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto l1 = std::make_unique<panel<Backend>>();
-    l1->apply_theme("Inheritance Test", ctx.themes());
+//     l1->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     l1->set_opacity(0.9f);
 
     auto* l2 = l1->template emplace_child<panel>();
@@ -279,7 +279,7 @@ TEST_CASE("CSS Inheritance - Opacity inheritance without override") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_opacity(0.6f);
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -303,7 +303,7 @@ TEST_CASE("CSS Inheritance - Child override blocks parent background") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({100, 100, 100});  // Parent override
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -325,7 +325,7 @@ TEST_CASE("CSS Inheritance - Child override blocks parent foreground") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_foreground_color({255, 255, 0});  // Yellow
 
     auto child = std::make_unique<label<Backend>>("Child");
@@ -347,7 +347,7 @@ TEST_CASE("CSS Inheritance - Child override blocks grandparent") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto grandparent = std::make_unique<panel<Backend>>();
-    grandparent->apply_theme("Inheritance Test", ctx.themes());
+//     grandparent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     grandparent->set_background_color({10, 10, 10});
 
     auto* parent = grandparent->template emplace_child<panel>();
@@ -373,7 +373,7 @@ TEST_CASE("CSS Inheritance - No parent, uses theme background") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto widget = std::make_unique<panel<Backend>>();
-    widget->apply_theme("Inheritance Test", ctx.themes());
+//     widget->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     // No parent, no override
 
     auto style = widget->resolve_style();
@@ -389,7 +389,7 @@ TEST_CASE("CSS Inheritance - No parent, uses theme foreground") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto widget = std::make_unique<label<Backend>>("Test");
-    widget->apply_theme("Inheritance Test", ctx.themes());
+//     widget->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     // No parent, no override
 
     auto style = widget->resolve_style();
@@ -405,7 +405,7 @@ TEST_CASE("CSS Inheritance - Orphan widget uses theme") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto orphan = std::make_unique<button<Backend>>("Orphan");
-    orphan->apply_theme("Inheritance Test", ctx.themes());
+//     orphan->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto style = orphan->resolve_style();
 
@@ -462,7 +462,7 @@ TEST_CASE("CSS Inheritance - Inherit background, override foreground") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({50, 50, 50});
     parent->set_foreground_color({200, 200, 200});
 
@@ -490,7 +490,7 @@ TEST_CASE("CSS Inheritance - Override background, inherit foreground") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({60, 60, 60});
     parent->set_foreground_color({180, 180, 180});
 
@@ -518,7 +518,7 @@ TEST_CASE("CSS Inheritance - Mixed overrides in deep hierarchy") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto l1 = std::make_unique<panel<Backend>>();
-    l1->apply_theme("Inheritance Test", ctx.themes());
+//     l1->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     l1->set_background_color({10, 10, 10});
     l1->set_foreground_color({200, 200, 200});
 
@@ -545,7 +545,7 @@ TEST_CASE("CSS Inheritance - Partial property inheritance") {
     ctx.themes().register_theme(create_inheritance_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Inheritance Test", ctx.themes());
+//     parent->apply_theme("Inheritance Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_background_color({100, 100, 100});
     parent->set_foreground_color({200, 200, 200});
     parent->set_opacity(0.8f);

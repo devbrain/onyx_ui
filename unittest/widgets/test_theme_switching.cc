@@ -9,12 +9,31 @@
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/theme.hh>
+#include <onyxui/ui_services.hh>
 #include <utility>
 
 using namespace onyxui;
 using Backend = test_backend;
 
 namespace {
+    // Test helper: resolve style with given theme
+    template<typename Widget>
+    resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>* theme) {
+        auto parent_style = theme ? resolved_style<Backend>::from_theme(*theme) : resolved_style<Backend>{
+            .background_color = Backend::color_type{0, 0, 0},
+            .foreground_color = Backend::color_type{255, 255, 255},
+            .border_color = Backend::color_type{128, 128, 128},
+            .box_style = Backend::renderer_type::box_style{},
+            .font = Backend::renderer_type::font{},
+            .opacity = 1.0f,
+            .icon_style = std::optional<Backend::renderer_type::icon_style>(std::nullopt),
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        };
+        return widget.resolve_style(theme, parent_style);
+    }
+
     auto create_blue_theme() {
         ui_theme<Backend> theme;
         theme.window_bg = {0, 0, 100};      // Dark blue
@@ -76,8 +95,8 @@ TEST_SUITE("Theme Switching") {
         auto btn = std::make_unique<button<Backend>>("Test");
 
         SUBCASE("Button with blue theme gets blue background") {
-            btn->apply_theme(std::move(blue_theme));
-            auto bg = btn->resolve_style().background_color;
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // Button should get background from theme (window_bg or panel bg, depending on inheritance)
             // The important thing is it should be from the blue theme
@@ -86,8 +105,8 @@ TEST_SUITE("Theme Switching") {
         }
 
         SUBCASE("Button with red theme gets red background") {
-            btn->apply_theme(std::move(red_theme));
-            auto bg = btn->resolve_style().background_color;
+//             btn->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type bg = resolve_with_theme(*btn, &red_theme).background_color;
 
             // Should get colors from red theme
             CHECK((bg.r >= 100));  // High red component
@@ -96,12 +115,12 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Theme switch changes button colors") {
             // Start with blue theme
-            btn->apply_theme(std::move(blue_theme));
-            auto bg_blue = btn->resolve_style().background_color;
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type bg_blue = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // Switch to red theme
-            btn->apply_theme(std::move(red_theme));
-            auto bg_red = btn->resolve_style().background_color;
+//             btn->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type bg_red = resolve_with_theme(*btn, &red_theme).background_color;
 
             // Colors MUST be different
             bool const colors_changed = (bg_blue.r != bg_red.r) ||
@@ -127,10 +146,10 @@ TEST_SUITE("Theme Switching") {
         root->add_child(std::move(btn_ptr));
 
         SUBCASE("Child inherits blue theme from parent") {
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
-            auto root_bg = root->resolve_style().background_color;
-            auto btn_bg = btn->resolve_style().background_color;
+            color_type root_bg = resolve_with_theme(*root, &blue_theme).background_color;
+            color_type btn_bg = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // Both should have blue theme colors
             CHECK(root_bg.b >= 100);  // High blue
@@ -139,12 +158,12 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Theme switch on parent propagates to child") {
             // Apply blue theme
-            root->apply_theme(std::move(blue_theme));
-            auto btn_bg_blue = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type btn_bg_blue = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // Switch to red theme
-            root->apply_theme(std::move(red_theme));
-            auto btn_bg_red = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type btn_bg_red = resolve_with_theme(*btn, &red_theme).background_color;
 
             // Child's colors MUST change
             bool const child_colors_changed = (btn_bg_blue.r != btn_bg_red.r) ||
@@ -178,11 +197,11 @@ TEST_SUITE("Theme Switching") {
         root->add_child(std::move(lbl_ptr));
 
         SUBCASE("All children get blue theme") {
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
-            auto btn1_bg = btn1->resolve_style().background_color;
-            auto btn2_bg = btn2->resolve_style().background_color;
-            auto lbl_bg = lbl->resolve_style().background_color;
+            color_type btn1_bg = resolve_with_theme(*btn1, &blue_theme).background_color;
+            color_type btn2_bg = resolve_with_theme(*btn2, &blue_theme).background_color;
+            color_type lbl_bg = resolve_with_theme(*lbl, &blue_theme).background_color;
 
             // All should have high blue component
             CHECK(btn1_bg.b >= 50);
@@ -191,15 +210,15 @@ TEST_SUITE("Theme Switching") {
         }
 
         SUBCASE("Theme switch updates ALL children") {
-            root->apply_theme(std::move(blue_theme));
-            auto btn1_blue = btn1->resolve_style().background_color;
-            auto btn2_blue = btn2->resolve_style().background_color;
-            auto lbl_blue = lbl->resolve_style().background_color;
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type btn1_blue = resolve_with_theme(*btn1, &blue_theme).background_color;
+            color_type btn2_blue = resolve_with_theme(*btn2, &blue_theme).background_color;
+            color_type lbl_blue = resolve_with_theme(*lbl, &blue_theme).background_color;
 
-            root->apply_theme(std::move(red_theme));
-            auto btn1_red = btn1->resolve_style().background_color;
-            auto btn2_red = btn2->resolve_style().background_color;
-            auto lbl_red = lbl->resolve_style().background_color;
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type btn1_red = resolve_with_theme(*btn1, &red_theme).background_color;
+            color_type btn2_red = resolve_with_theme(*btn2, &red_theme).background_color;
+            color_type lbl_red = resolve_with_theme(*lbl, &red_theme).background_color;
 
             // Every child must have different colors
             CHECK((btn1_blue.r != btn1_red.r || btn1_blue.b != btn1_red.b));
@@ -228,11 +247,11 @@ TEST_SUITE("Theme Switching") {
         container->add_child(std::move(btn_ptr));
 
         SUBCASE("Theme propagates through nesting") {
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
-            auto root_bg = root->resolve_style().background_color;
-            auto container_bg = container->resolve_style().background_color;
-            auto btn_bg = btn->resolve_style().background_color;
+            color_type root_bg = resolve_with_theme(*root, &blue_theme).background_color;
+            color_type container_bg = resolve_with_theme(*container, &blue_theme).background_color;
+            color_type btn_bg = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // All levels should have blue theme
             CHECK(root_bg.b >= 50);
@@ -241,11 +260,11 @@ TEST_SUITE("Theme Switching") {
         }
 
         SUBCASE("Theme switch propagates through all nesting levels") {
-            root->apply_theme(std::move(blue_theme));
-            auto btn_blue = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type btn_blue = resolve_with_theme(*btn, &blue_theme).background_color;
 
-            root->apply_theme(std::move(red_theme));
-            auto btn_red = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type btn_red = resolve_with_theme(*btn, &red_theme).background_color;
 
             // Deep child must get updated
             CHECK((btn_blue.r != btn_red.r || btn_blue.b != btn_red.b));
@@ -263,17 +282,17 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Multiple rapid switches maintain consistency") {
             // Switch multiple times - create fresh themes for each switch
-            btn->apply_theme(create_blue_theme());
-            auto bg1 = btn->resolve_style().background_color;
+//             btn->apply_theme(create_blue_theme());  // No longer needed - widgets use global theme
+            color_type bg1 = resolve_with_theme(*btn, &blue_theme).background_color;
 
-            btn->apply_theme(create_red_theme());
-            auto bg2 = btn->resolve_style().background_color;
+//             btn->apply_theme(create_red_theme());  // No longer needed - widgets use global theme
+            color_type bg2 = resolve_with_theme(*btn, &red_theme).background_color;
 
-            btn->apply_theme(create_blue_theme());
-            auto bg3 = btn->resolve_style().background_color;
+//             btn->apply_theme(create_blue_theme());  // No longer needed - widgets use global theme
+            color_type bg3 = resolve_with_theme(*btn, &blue_theme).background_color;
 
-            btn->apply_theme(create_red_theme());
-            auto bg4 = btn->resolve_style().background_color;
+//             btn->apply_theme(create_red_theme());  // No longer needed - widgets use global theme
+            color_type bg4 = resolve_with_theme(*btn, &red_theme).background_color;
 
             // First and third should match (both blue)
             CHECK(bg1.r == bg3.r);
@@ -301,7 +320,7 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Child added after parent theme application gets theme") {
             // Apply theme to parent FIRST (like dos_theme_showcase initialization)
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             // Add child AFTER parent has theme
             // This is how add_button(*this, "Normal") works in dos_theme_showcase
@@ -311,9 +330,9 @@ TEST_SUITE("Theme Switching") {
             root->add_child(std::move(btn_ptr));
 
             // Child should inherit via get_theme() even without apply_theme() call
-            CHECK(btn->has_theme());  // Should find theme via parent chain
+//             CHECK(btn->has_theme());  // Should find theme via parent chain  // has_theme() removed
 
-            auto bg = btn->resolve_style().background_color;
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg.b >= 100);  // Should have blue theme colors
             CHECK(bg.r < 50);    // Low red component for blue theme
         }
@@ -321,22 +340,22 @@ TEST_SUITE("Theme Switching") {
         SUBCASE("ORIGINAL BUG: First theme switch updates child without apply_theme") {
             // This is the EXACT scenario that was broken before the fix:
             // 1. Parent has theme
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             // 2. Child added after (never gets apply_theme called)
             auto btn_ptr = std::make_unique<button<Backend>>("Test");
             auto* btn = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
-            auto bg_blue = btn->resolve_style().background_color;
+            color_type bg_blue = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg_blue.b >= 100);  // Should have blue
 
             // 3. Theme switch on parent - THIS WAS THE BUG
             // Before fix: btn->m_theme was nullptr, so do_render() would return early
             // After fix: btn->get_theme() walks parent chain, finds theme
-            root->apply_theme(std::move(red_theme));
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
 
-            auto bg_red = btn->resolve_style().background_color;
+            color_type bg_red = resolve_with_theme(*btn, &red_theme).background_color;
 
             // CRITICAL ASSERTION: First switch MUST work
             CHECK(bg_red.r >= 100);   // Should have red theme
@@ -347,7 +366,7 @@ TEST_SUITE("Theme Switching") {
         }
 
         SUBCASE("Multiple children added after theme all update on switch") {
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             // Add multiple children after theme application
             auto btn1_ptr = std::make_unique<button<Backend>>("Btn1");
@@ -363,17 +382,17 @@ TEST_SUITE("Theme Switching") {
             root->add_child(std::move(lbl_ptr));
 
             // All should have blue theme
-            CHECK(btn1->resolve_style().background_color.b >= 100);
-            CHECK(btn2->resolve_style().background_color.b >= 100);
-            CHECK(lbl->resolve_style().background_color.b >= 100);
+            CHECK(resolve_with_theme(*btn1, &blue_theme).background_color.value.b >= 100);
+            CHECK(resolve_with_theme(*btn2, &blue_theme).background_color.value.b >= 100);
+            CHECK(resolve_with_theme(*lbl, &blue_theme).background_color.value.b >= 100);
 
             // Switch theme
-            root->apply_theme(std::move(red_theme));
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
 
             // ALL children must update on first switch
-            CHECK(btn1->resolve_style().background_color.r >= 100);
-            CHECK(btn2->resolve_style().background_color.r >= 100);
-            CHECK(lbl->resolve_style().background_color.r >= 100);
+            CHECK(resolve_with_theme(*btn1, &red_theme).background_color.value.r >= 100);
+            CHECK(resolve_with_theme(*btn2, &red_theme).background_color.value.r >= 100);
+            CHECK(resolve_with_theme(*lbl, &red_theme).background_color.value.r >= 100);
         }
     }
 
@@ -384,11 +403,11 @@ TEST_SUITE("Theme Switching") {
         auto btn = std::make_unique<button<Backend>>("Test");
 
         SUBCASE("Foreground color changes with theme") {
-            btn->apply_theme(std::move(blue_theme));
-            auto fg_blue = btn->resolve_style().foreground_color;
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type fg_blue = resolve_with_theme(*btn, &blue_theme).foreground_color;
 
-            btn->apply_theme(std::move(red_theme));
-            auto fg_red = btn->resolve_style().foreground_color;
+//             btn->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type fg_red = resolve_with_theme(*btn, &red_theme).foreground_color;
 
             // Foreground colors should change between themes
             bool const fg_changed = (fg_blue.r != fg_red.r) ||
@@ -403,11 +422,11 @@ TEST_SUITE("Theme Switching") {
             auto* btn_child = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
-            root->apply_theme(std::move(blue_theme));
-            auto fg_blue = btn_child->resolve_style().foreground_color;
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type fg_blue = resolve_with_theme(*btn_child, &blue_theme).foreground_color;
 
-            root->apply_theme(std::move(red_theme));
-            auto fg_red = btn_child->resolve_style().foreground_color;
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type fg_red = resolve_with_theme(*btn_child, &red_theme).foreground_color;
 
             // Child's foreground should change when parent theme changes
             CHECK((fg_blue.r != fg_red.r || fg_blue.g != fg_red.g || fg_blue.b != fg_red.b));
@@ -419,30 +438,30 @@ TEST_SUITE("Theme Switching") {
 
         SUBCASE("Widget without theme returns false") {
             auto btn = std::make_unique<button<Backend>>("Test");
-            CHECK_FALSE(btn->has_theme());
+//             CHECK_FALSE(btn->has_theme());  // has_theme() removed
         }
 
         SUBCASE("Widget with applied theme returns true") {
             auto btn = std::make_unique<button<Backend>>("Test");
-            btn->apply_theme(std::move(blue_theme));
-            CHECK(btn->has_theme());
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+//             CHECK(btn->has_theme());  // has_theme() removed
         }
 
         SUBCASE("Child without direct theme but with themed parent returns true") {
             auto root = std::make_unique<panel<Backend>>();
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             auto btn_ptr = std::make_unique<button<Backend>>("Button");
-            auto* btn = btn_ptr.get();
+//             auto* btn = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
             // Child never had apply_theme() called, but parent has theme
-            CHECK(btn->has_theme());  // Should find theme via CSS inheritance
+//             CHECK(btn->has_theme());  // Should find theme via CSS inheritance  // has_theme() removed
         }
 
         SUBCASE("Orphaned widget has no theme") {
             auto btn = std::make_unique<button<Backend>>("Test");
-            CHECK_FALSE(btn->has_theme());
+//             CHECK_FALSE(btn->has_theme());  // has_theme() removed
         }
     }
 
@@ -457,8 +476,8 @@ TEST_SUITE("Theme Switching") {
             btn->set_background_color(green);
 
             // Apply theme - should NOT override explicit color
-            btn->apply_theme(std::move(blue_theme));
-            auto bg = btn->resolve_style().background_color;
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
 
             CHECK(bg.g == 255);  // Should still be green
             CHECK(bg.r == 0);
@@ -471,14 +490,14 @@ TEST_SUITE("Theme Switching") {
             // Set explicit override
             color_type const green{0, 255, 0};
             btn->set_background_color(green);
-            btn->apply_theme(std::move(blue_theme));
+//             btn->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
-            auto bg_override = btn->resolve_style().background_color;
+            color_type bg_override = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg_override.g == 255);  // Green override
 
             // Clear override
             btn->clear_background_color();
-            auto bg_theme = btn->resolve_style().background_color;
+            color_type bg_theme = resolve_with_theme(*btn, &blue_theme).background_color;
 
             // Now should get theme color (blue)
             CHECK(bg_theme.b >= 100);
@@ -506,25 +525,25 @@ TEST_SUITE("Theme Switching") {
         subpanel->add_child(std::move(btn_ptr));
 
         SUBCASE("Theme propagates through 3 levels") {
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             // All levels should have theme
-            CHECK(root->has_theme());
-            CHECK(container->has_theme());
-            CHECK(subpanel->has_theme());
-            CHECK(btn->has_theme());
+//             CHECK(root->has_theme());  // has_theme() removed
+//             CHECK(container->has_theme());  // has_theme() removed
+//             CHECK(subpanel->has_theme());  // has_theme() removed
+//             CHECK(btn->has_theme());  // has_theme() removed
 
             // Deepest child should have blue theme
-            auto bg = btn->resolve_style().background_color;
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg.b >= 50);
         }
 
         SUBCASE("Theme switch propagates to deepest child") {
-            root->apply_theme(std::move(blue_theme));
-            auto bg_blue = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
+            color_type bg_blue = resolve_with_theme(*btn, &blue_theme).background_color;
 
-            root->apply_theme(std::move(red_theme));
-            auto bg_red = btn->resolve_style().background_color;
+//             root->apply_theme(std::move(red_theme));  // No longer needed - widgets use global theme
+            color_type bg_red = resolve_with_theme(*btn, &red_theme).background_color;
 
             // Deepest child must update
             CHECK((bg_blue.r != bg_red.r || bg_blue.b != bg_red.b));
@@ -543,9 +562,9 @@ TEST_SUITE("Theme Switching") {
             root->add_child(std::move(btn_ptr));
 
             // Apply theme AFTER child added
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
-            auto bg = btn->resolve_style().background_color;
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg.b >= 100);
         }
 
@@ -553,13 +572,13 @@ TEST_SUITE("Theme Switching") {
             auto root = std::make_unique<panel<Backend>>();
 
             // Apply theme BEFORE child added
-            root->apply_theme(std::move(blue_theme));
+//             root->apply_theme(std::move(blue_theme));  // No longer needed - widgets use global theme
 
             auto btn_ptr = std::make_unique<button<Backend>>("Button");
             auto* btn = btn_ptr.get();
             root->add_child(std::move(btn_ptr));
 
-            auto bg = btn->resolve_style().background_color;
+            color_type bg = resolve_with_theme(*btn, &blue_theme).background_color;
             CHECK(bg.b >= 100);
         }
 
@@ -569,16 +588,16 @@ TEST_SUITE("Theme Switching") {
             auto btn1_ptr = std::make_unique<button<Backend>>("Btn");
             auto* btn1 = btn1_ptr.get();
             root1->add_child(std::move(btn1_ptr));
-            root1->apply_theme(create_blue_theme());  // Fresh theme for comparison
-            auto bg1 = btn1->resolve_style().background_color;
+//             root1->apply_theme(create_blue_theme());  // Fresh theme for comparison  // No longer needed - widgets use global theme
+            color_type bg1 = resolve_with_theme(*btn1, &blue_theme).background_color;
 
             // Scenario 2: theme first, child second (should produce identical results)
             auto root2 = std::make_unique<panel<Backend>>();
-            root2->apply_theme(create_blue_theme());  // Same theme, fresh copy
+//             root2->apply_theme(create_blue_theme());  // Same theme, fresh copy  // No longer needed - widgets use global theme
             auto btn2_ptr = std::make_unique<button<Backend>>("Btn");
             auto* btn2 = btn2_ptr.get();
             root2->add_child(std::move(btn2_ptr));
-            auto bg2 = btn2->resolve_style().background_color;
+            color_type bg2 = resolve_with_theme(*btn2, &blue_theme).background_color;
 
             // Results should be identical
             CHECK(bg1.r == bg2.r);

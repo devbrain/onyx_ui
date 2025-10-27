@@ -272,17 +272,6 @@ namespace onyxui {
             // For now, title is just set but not rendered visually
         }
 
-        /**
-         * @brief Apply theme to group box
-         */
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-            // Apply theme to base panel
-            base::do_apply_theme(theme);
-
-            // Group box specific theming would go here
-            // e.g., border_color = theme.group_box.border
-            this->invalidate_arrange();
-        }
 
     private:
         std::string m_title;              ///< Title text

@@ -188,11 +188,6 @@ namespace onyxui {
             return m_grid_layout ? m_grid_layout->num_rows() : 0;
         }
 
-    protected:
-        void do_apply_theme([[maybe_unused]] const typename base::theme_type& theme) override {
-            // Grid is a layout container - children inherit via CSS-style inheritance
-        }
-
     private:
         grid_layout<Backend>* m_grid_layout = nullptr;  ///< Non-owning pointer to layout
     };

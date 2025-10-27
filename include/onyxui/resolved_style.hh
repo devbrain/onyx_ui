@@ -6,7 +6,9 @@
 
 #pragma once
 
+#include <optional>
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/theme.hh>  // For from_theme() method
 
 namespace onyxui {
 
@@ -56,48 +58,177 @@ namespace onyxui {
         using icon_style_type = typename Backend::renderer_type::icon_style;
 
         // ===================================================================
-        // Visual Properties (All Resolved)
+        // Strong Type Wrappers (Enforce Explicit Initialization)
         // ===================================================================
 
-        color_type background_color{};   ///< Background color (inherited)
-        color_type foreground_color{};   ///< Text/foreground color (inherited)
-        color_type border_color{};       ///< Border color (if applicable)
-        box_style_type box_style{};      ///< Border style (inherited)
-        font_type font{};                ///< Font (inherited)
-        float opacity = 1.0F;            ///< Opacity 0.0-1.0 (multiplicative)
-        icon_style_type icon_style{};    ///< Icon rendering style (if applicable)
+        /**
+         * @brief Strong type for background color - prevents parameter confusion
+         * @details Default constructor deleted - must be explicitly initialized
+         */
+        struct background_color_t {
+            color_type value;
+            background_color_t() = delete;
+            background_color_t(color_type c) : value(c) {}
+            operator const color_type&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for foreground color - prevents swapping with background
+         */
+        struct foreground_color_t {
+            color_type value;
+            foreground_color_t() = delete;
+            foreground_color_t(color_type c) : value(c) {}
+            operator const color_type&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for border color
+         */
+        struct border_color_t {
+            color_type value;
+            border_color_t() = delete;
+            border_color_t(color_type c) : value(c) {}
+            operator const color_type&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for box style - backend-specific type
+         */
+        struct box_style_t {
+            box_style_type value;
+            box_style_t() = delete;
+            box_style_t(box_style_type b) : value(b) {}
+            operator const box_style_type&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for font - backend-specific type
+         */
+        struct font_t {
+            font_type value;
+            font_t() = delete;
+            font_t(font_type f) : value(f) {}
+            operator const font_type&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for opacity
+         */
+        struct opacity_t {
+            float value;
+            opacity_t() = delete;
+            opacity_t(float o) : value(o) {}
+            operator float() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for icon style - optional but must be explicit
+         * @details Even if widget has no icon, must pass std::nullopt explicitly
+         */
+        struct icon_style_t {
+            std::optional<icon_style_type> value;
+            icon_style_t() = delete;
+            icon_style_t(std::optional<icon_style_type> i) : value(i) {}
+            operator const std::optional<icon_style_type>&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for horizontal padding - optional, widget-specific
+         * @details Used by button, menu_item, menu_bar_item (~37% of widgets)
+         */
+        struct padding_horizontal_t {
+            std::optional<int> value;
+            padding_horizontal_t() = delete;
+            padding_horizontal_t(std::optional<int> v) : value(v) {}
+            operator const std::optional<int>&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for vertical padding - optional, widget-specific
+         * @details Used by button, menu_item, menu_bar_item (~37% of widgets)
+         */
+        struct padding_vertical_t {
+            std::optional<int> value;
+            padding_vertical_t() = delete;
+            padding_vertical_t(std::optional<int> v) : value(v) {}
+            operator const std::optional<int>&() const { return value; }
+        };
+
+        /**
+         * @brief Strong type for mnemonic font - optional, widget-specific
+         * @details Used by button, label, menu_item, menu_bar_item (~50% of widgets)
+         */
+        struct mnemonic_font_t {
+            std::optional<font_type> value;
+            mnemonic_font_t() = delete;
+            mnemonic_font_t(std::optional<font_type> f) : value(f) {}
+            operator const std::optional<font_type>&() const { return value; }
+        };
+
+        // ===================================================================
+        // Visual Properties (Inherited, Always Present)
+        // ===================================================================
+
+        background_color_t background_color;   ///< Background color (not inherited in CSS)
+        foreground_color_t foreground_color;   ///< Text/foreground color (inherited)
+        border_color_t border_color;           ///< Border color (inherited)
+        box_style_t box_style;                 ///< Border style (not inherited in CSS)
+        font_t font;                           ///< Font (inherited)
+        opacity_t opacity;                     ///< Opacity 0.0-1.0 (multiplicative, inherited)
+        icon_style_t icon_style;               ///< Icon rendering style (inherited, optional)
+
+        // ===================================================================
+        // Layout Properties (Widget-Specific, Optional, Not Inherited)
+        // ===================================================================
+
+        padding_horizontal_t padding_horizontal; ///< Horizontal padding (widget-specific)
+        padding_vertical_t padding_vertical;     ///< Vertical padding (widget-specific)
+        mnemonic_font_t mnemonic_font;           ///< Font for mnemonic character (widget-specific)
 
         // ===================================================================
         // Construction
         // ===================================================================
 
         /**
-         * @brief Default constructor (zero-initialized)
+         * @brief Aggregate initialization - use designated initializers
+         * @details No explicit constructors to maintain aggregate status for C++20 designated initializers
+         *
+         * @example
+         * @code
+         * resolved_style style{
+         *     .background_color = theme.window_bg,
+         *     .foreground_color = theme.text_fg,
+         *     // ... all fields required
+         * };
+         * @endcode
          */
-        resolved_style() = default;
 
         /**
-         * @brief Construct from individual properties
+         * @brief Create initial style from theme (for root element)
          *
-         * @note All parameters have sensible defaults for flexibility
+         * @param theme Theme to extract base properties from
+         * @return Resolved style with theme's default properties
+         *
+         * @details
+         * Uses designated initializers with strong types.
+         * Widget-specific properties (box_style, font) use panel defaults.
+         * Optional layout properties initialized to std::nullopt (widget-specific).
          */
-        explicit resolved_style(
-            color_type bg,
-            color_type fg,
-            color_type border = color_type{},
-            box_style_type box = box_style_type{},
-            font_type f = font_type{},
-            float op = 1.0F,
-            icon_style_type icon = icon_style_type{}
-        ) noexcept
-            : background_color(bg)
-            , foreground_color(fg)
-            , border_color(border)
-            , box_style(box)
-            , font(f)
-            , opacity(op)
-            , icon_style(icon)
-        {}
+        static resolved_style from_theme(const ui_theme<Backend>& theme) noexcept {
+            return resolved_style{
+                .background_color = theme.window_bg,
+                .foreground_color = theme.text_fg,
+                .border_color = theme.border_color,
+                .box_style = theme.panel.box_style,     // Default to panel style
+                .font = theme.label.font,                // Default to label font
+                .opacity = 1.0F,
+                .icon_style = std::optional<icon_style_type>{},
+                .padding_horizontal = std::optional<int>{},      // Optional layout properties
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<font_type>{}
+            };
+        }
 
         // ===================================================================
         // Comparison (for testing)
@@ -107,15 +238,19 @@ namespace onyxui {
          * @brief Equality comparison
          *
          * @note Used primarily in tests to verify style resolution
+         * @details Compares the .value members of strong types (including optionals)
          */
         bool operator==(const resolved_style& other) const noexcept {
-            return background_color == other.background_color
-                && foreground_color == other.foreground_color
-                && border_color == other.border_color
-                && box_style == other.box_style
-                && font == other.font
-                && opacity == other.opacity
-                && icon_style == other.icon_style;
+            return background_color.value == other.background_color.value
+                && foreground_color.value == other.foreground_color.value
+                && border_color.value == other.border_color.value
+                && box_style.value == other.box_style.value
+                && font.value == other.font.value
+                && opacity.value == other.opacity.value
+                && icon_style.value == other.icon_style.value
+                && padding_horizontal.value == other.padding_horizontal.value
+                && padding_vertical.value == other.padding_vertical.value
+                && mnemonic_font.value == other.mnemonic_font.value;
         }
 
         bool operator!=(const resolved_style& other) const noexcept {
@@ -134,9 +269,18 @@ namespace onyxui {
          * @return New style with adjusted opacity
          */
         [[nodiscard]] resolved_style with_opacity(float new_opacity) const noexcept {
-            resolved_style result = *this;
-            result.opacity = new_opacity;
-            return result;
+            return resolved_style{
+                .background_color = background_color.value,
+                .foreground_color = foreground_color.value,
+                .border_color = border_color.value,
+                .box_style = box_style.value,
+                .font = font.value,
+                .opacity = new_opacity,
+                .icon_style = icon_style.value,
+                .padding_horizontal = padding_horizontal.value,
+                .padding_vertical = padding_vertical.value,
+                .mnemonic_font = mnemonic_font.value
+            };
         }
 
         /**
@@ -148,10 +292,18 @@ namespace onyxui {
          * @return New style with adjusted colors
          */
         [[nodiscard]] resolved_style with_colors(color_type bg, color_type fg) const noexcept {
-            resolved_style result = *this;
-            result.background_color = bg;
-            result.foreground_color = fg;
-            return result;
+            return resolved_style{
+                .background_color = bg,
+                .foreground_color = fg,
+                .border_color = border_color.value,
+                .box_style = box_style.value,
+                .font = font.value,
+                .opacity = opacity.value,
+                .icon_style = icon_style.value,
+                .padding_horizontal = padding_horizontal.value,
+                .padding_vertical = padding_vertical.value,
+                .mnemonic_font = mnemonic_font.value
+            };
         }
 
         /**
@@ -161,9 +313,18 @@ namespace onyxui {
          * @return New style with adjusted font
          */
         [[nodiscard]] resolved_style with_font(font_type new_font) const noexcept {
-            resolved_style result = *this;
-            result.font = new_font;
-            return result;
+            return resolved_style{
+                .background_color = background_color.value,
+                .foreground_color = foreground_color.value,
+                .border_color = border_color.value,
+                .box_style = box_style.value,
+                .font = new_font,
+                .opacity = opacity.value,
+                .icon_style = icon_style.value,
+                .padding_horizontal = padding_horizontal.value,
+                .padding_vertical = padding_vertical.value,
+                .mnemonic_font = mnemonic_font.value
+            };
         }
     };
 

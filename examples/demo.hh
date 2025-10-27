@@ -239,12 +239,12 @@ private:
     }
 
     /**
-     * @brief Apply theme by name using theme registry
+     * @brief Apply theme globally by name
      * @param theme_name Name of theme to apply
      *
      * @details
-     * Uses the v2.0 three-way theme API with by-name registration.
-     * This is the recommended approach: zero overhead, registry owns the theme.
+     * Uses the global theming API: themes.set_current_theme(name).
+     * This sets the theme for the entire application (all widgets inherit via CSS).
      */
     void apply_theme_by_name(const std::string& theme_name) {
         auto* themes = onyxui::ui_services<Backend>::themes();
@@ -253,19 +253,19 @@ private:
             return;
         }
 
-        // Use the v2.0 by-name API (recommended)
-        if (this->apply_theme(theme_name, *themes)) {
-            // Theme applied successfully
-            if (auto* theme = themes->get_theme(theme_name)) {
-                // Log theme switch with description
-                std::cerr << "Switched to: " << theme->name;
-                if (!theme->description.empty()) {
-                    std::cerr << " - " << theme->description;
-                }
-                std::cerr << std::endl;
-            }
-        } else {
+        // Use the global theming API (sets theme for entire application)
+        if (!themes->set_current_theme(theme_name)) {
             std::cerr << "Error: Theme '" << theme_name << "' not found!" << std::endl;
+            return;
+        }
+
+        // Log theme switch with description
+        if (auto* theme = themes->get_theme(theme_name)) {
+            std::cerr << "Switched to: " << theme->name;
+            if (!theme->description.empty()) {
+                std::cerr << " - " << theme->description;
+            }
+            std::cerr << std::endl;
         }
     }
 

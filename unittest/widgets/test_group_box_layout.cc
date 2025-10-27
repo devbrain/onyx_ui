@@ -27,13 +27,16 @@ TEST_SUITE("Group Box - Layout Integration") {
 
         template<typename Widget>
         void apply_default_theme(Widget& w) {
-            if (auto* theme = ctx.themes().get_theme("Test Theme")) {
-                w.apply_theme(*theme);
+            if (auto* theme = ctx.themes().get_theme("Canvas Test Theme")) {
+//                 w.apply_theme(*theme);  // No longer needed - widgets use global theme
             }
         }
     };
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - child positioned inside border") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_vbox_layout(0);
@@ -61,6 +64,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box with title - layout not affected by title") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_title("Settings");
@@ -90,6 +96,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box with padding - child positioned inside border and padding") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding(thickness::all(3));
@@ -137,6 +146,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - multiple children with spacing") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_title("Options");
@@ -272,6 +284,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - nested inside panel") {
+        // Set Canvas Test Theme as current (needed for render_to_canvas)
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         panel<Backend> outer;
         apply_default_theme(outer);
         outer.set_has_border(true);

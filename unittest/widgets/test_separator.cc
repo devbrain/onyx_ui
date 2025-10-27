@@ -117,17 +117,17 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Visual rendering (horizontal)") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Create theme with separator line style
         ui_theme<CanvasBackend> theme;
         theme.name = "Test Theme";
         theme.separator.line_style.horizontal = '-';
         theme.separator.line_style.vertical = '|';
+
+        scoped_ui_context<CanvasBackend> ctx;
         ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         separator<CanvasBackend> sep(orientation::horizontal);
-        sep.apply_theme("Test Theme", ctx.themes());
 
         // Render to canvas (render_to_canvas does measure/arrange automatically)
         auto canvas = render_to_canvas(sep, 10, 5);
@@ -142,17 +142,17 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Visual rendering (vertical)") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Create theme with separator line style
         ui_theme<CanvasBackend> theme;
         theme.name = "Test Theme";
         theme.separator.line_style.horizontal = '-';
         theme.separator.line_style.vertical = '|';
+
+        scoped_ui_context<CanvasBackend> ctx;
         ctx.themes().register_theme(std::move(theme));
+        ctx.themes().set_current_theme("Test Theme");
 
         separator<CanvasBackend> sep(orientation::vertical);
-        sep.apply_theme("Test Theme", ctx.themes());
 
         // Render to canvas (render_to_canvas does measure/arrange automatically)
         auto canvas = render_to_canvas(sep, 5, 10);
@@ -167,12 +167,12 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - In menu context (horizontal divider)") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Create theme
         ui_theme<CanvasBackend> theme;
         theme.name = "Menu Theme";
         theme.separator.line_style.horizontal = '-';
+
+        scoped_ui_context<CanvasBackend> ctx;
         ctx.themes().register_theme(std::move(theme));
 
         // Simulate menu with items and separator
@@ -188,8 +188,6 @@ TEST_SUITE("Separator Widget") {
         menu.add_child(std::move(item2));
         menu.add_child(std::move(sep));
         menu.add_child(std::move(item3));
-
-        menu.apply_theme("Menu Theme", ctx.themes());
 
         // Measure and arrange
         [[maybe_unused]] auto menu_size = menu.measure(20, 50);
@@ -208,12 +206,12 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - In toolbar context (vertical divider)") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Create theme
         ui_theme<CanvasBackend> theme;
         theme.name = "Toolbar Theme";
         theme.separator.line_style.vertical = '|';
+
+        scoped_ui_context<CanvasBackend> ctx;
         ctx.themes().register_theme(std::move(theme));
 
         // Simulate toolbar with buttons and separator
@@ -229,8 +227,6 @@ TEST_SUITE("Separator Widget") {
         toolbar.add_child(std::move(btn2));
         toolbar.add_child(std::move(sep));
         toolbar.add_child(std::move(btn3));
-
-        toolbar.apply_theme("Toolbar Theme", ctx.themes());
 
         // Measure and arrange
         [[maybe_unused]] auto toolbar_size = toolbar.measure(50, 3);
@@ -249,30 +245,30 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Theme application") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Create two themes with different line styles
         ui_theme<CanvasBackend> theme1;
         theme1.name = "Theme 1";
         theme1.separator.line_style.horizontal = '-';
 
-        ui_theme<CanvasBackend> theme2;
-        theme2.name = "Theme 2";
-        theme2.separator.line_style.horizontal = '=';
-
+        scoped_ui_context<CanvasBackend> ctx;
         ctx.themes().register_theme(std::move(theme1));
-        ctx.themes().register_theme(std::move(theme2));
+        ctx.themes().set_current_theme("Theme 1");
 
         separator<CanvasBackend> sep(orientation::horizontal);
 
-        // Apply first theme
-        sep.apply_theme("Theme 1", ctx.themes());
+        // Render with first theme
         [[maybe_unused]] auto size = sep.measure(10, 1);
         sep.arrange({0, 0, 10, 1});
         auto canvas1 = render_to_canvas(sep, 10, 1);
 
-        // Apply second theme
-        sep.apply_theme("Theme 2", ctx.themes());
+        // Register second theme
+        ui_theme<CanvasBackend> theme2;
+        theme2.name = "Theme 2";
+        theme2.separator.line_style.horizontal = '=';
+        ctx.themes().register_theme(std::move(theme2));
+        ctx.themes().set_current_theme("Theme 2");
+
+        // Render with second theme
         [[maybe_unused]] auto size2 = sep.measure(10, 1);
         sep.arrange({0, 0, 10, 1});
         auto canvas2 = render_to_canvas(sep, 10, 1);

@@ -87,7 +87,7 @@ TEST_CASE("Stateful Color Resolution - menu_item with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
 
         // Parent explicitly sets background color
         parent->set_background_color({100, 100, 200});  // Blue
@@ -110,7 +110,7 @@ TEST_CASE("Stateful Color Resolution - menu_item with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({100, 100, 200});  // Blue parent
 
         auto item = std::make_unique<menu_item<backend_type>>("Test");
@@ -118,7 +118,9 @@ TEST_CASE("Stateful Color Resolution - menu_item with parent background") {
         parent->add_child(std::move(item));
 
         // Check theme colors directly (theme should have highlighted state)
-        auto* t = item_ptr->get_theme();
+        auto* t = ui_services<backend_type>::themes()
+            ? ui_services<backend_type>::themes()->get_current_theme()
+            : nullptr;
         REQUIRE(t != nullptr);
 
         auto highlighted_bg = t->menu_item.highlighted.background;
@@ -133,7 +135,7 @@ TEST_CASE("Stateful Color Resolution - menu_item with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({200, 0, 0});  // Red parent
 
         auto item = std::make_unique<menu_item<backend_type>>("Test");
@@ -142,7 +144,9 @@ TEST_CASE("Stateful Color Resolution - menu_item with parent background") {
 
         item_ptr->set_enabled(false);
 
-        auto* t = item_ptr->get_theme();
+        auto* t = ui_services<backend_type>::themes()
+            ? ui_services<backend_type>::themes()->get_current_theme()
+            : nullptr;
         REQUIRE(t != nullptr);
 
         auto disabled_bg = t->menu_item.disabled.background;
@@ -162,7 +166,7 @@ TEST_CASE("Stateful Color Resolution - button with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({0, 200, 200});  // Cyan parent
 
         auto btn = std::make_unique<button<backend_type>>("Test");
@@ -184,14 +188,16 @@ TEST_CASE("Stateful Color Resolution - button with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({255, 0, 255});  // Magenta parent
 
         auto btn = std::make_unique<button<backend_type>>("Test");
         auto* btn_ptr = btn.get();
         parent->add_child(std::move(btn));
 
-        auto* t = btn_ptr->get_theme();
+        auto* t = ui_services<backend_type>::themes()
+            ? ui_services<backend_type>::themes()->get_current_theme()
+            : nullptr;
         REQUIRE(t != nullptr);
 
         // Check theme color directly (simulating hover)
@@ -207,14 +213,16 @@ TEST_CASE("Stateful Color Resolution - button with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({100, 100, 100});  // Gray parent
 
         auto btn = std::make_unique<button<backend_type>>("Test");
         auto* btn_ptr = btn.get();
         parent->add_child(std::move(btn));
 
-        auto* t = btn_ptr->get_theme();
+        auto* t = ui_services<backend_type>::themes()
+            ? ui_services<backend_type>::themes()->get_current_theme()
+            : nullptr;
         REQUIRE(t != nullptr);
 
         auto pressed_bg = t->button.pressed.background;
@@ -229,7 +237,7 @@ TEST_CASE("Stateful Color Resolution - button with parent background") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({200, 200, 0});  // Yellow parent
 
         auto btn = std::make_unique<button<backend_type>>("Test");
@@ -238,7 +246,9 @@ TEST_CASE("Stateful Color Resolution - button with parent background") {
 
         btn_ptr->set_enabled(false);
 
-        auto* t = btn_ptr->get_theme();
+        auto* t = ui_services<backend_type>::themes()
+            ? ui_services<backend_type>::themes()->get_current_theme()
+            : nullptr;
         REQUIRE(t != nullptr);
 
         auto disabled_bg = t->button.disabled.background;
@@ -259,7 +269,7 @@ TEST_CASE("Stateful Color Resolution - nested containers") {
 
         // Level 1: Root panel with background
         auto root = std::make_unique<panel<backend_type>>();
-        root->apply_theme(std::move(theme));
+//         root->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         root->set_background_color({50, 0, 0});  // Dark red
 
         // Level 2: Menu with different background
@@ -289,7 +299,7 @@ TEST_CASE("Stateful Color Resolution - nested containers") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto root = std::make_unique<panel<backend_type>>();
-        root->apply_theme(std::move(theme));
+//         root->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         root->set_background_color({100, 0, 0});  // Red
 
         auto container = std::make_unique<panel<backend_type>>();
@@ -320,7 +330,7 @@ TEST_CASE("Stateful Color Resolution - CSS override still works") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
 
         auto item = std::make_unique<menu_item<backend_type>>("Test");
         auto* item_ptr = item.get();
@@ -342,7 +352,7 @@ TEST_CASE("Stateful Color Resolution - CSS override still works") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
 
         auto btn = std::make_unique<button<backend_type>>("Test");
         auto* btn_ptr = btn.get();
@@ -367,7 +377,7 @@ TEST_CASE("Stateful Color Resolution - foreground colors") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_foreground_color({255, 0, 0});  // Red text
 
         auto item = std::make_unique<menu_item<backend_type>>("Test");
@@ -388,7 +398,7 @@ TEST_CASE("Stateful Color Resolution - foreground colors") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_foreground_color({0, 255, 0});  // Green text
 
         auto btn = std::make_unique<button<backend_type>>("Test");
@@ -412,7 +422,7 @@ TEST_CASE("Stateful Color Resolution - resolve_style integration") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({100, 100, 100});  // Gray parent
 
         auto item = std::make_unique<menu_item<backend_type>>("Test");
@@ -433,7 +443,7 @@ TEST_CASE("Stateful Color Resolution - resolve_style integration") {
         auto theme = create_test_theme_with_states<backend_type>();
 
         auto parent = std::make_unique<panel<backend_type>>();
-        parent->apply_theme(std::move(theme));
+//         parent->apply_theme(std::move(theme));  // No longer needed - widgets use global theme
         parent->set_background_color({200, 50, 50});  // Red parent
 
         auto btn = std::make_unique<button<backend_type>>("Test");

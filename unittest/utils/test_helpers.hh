@@ -7,6 +7,7 @@
 
 #include <doctest/doctest.h>
 #include <onyxui/element.hh>
+#include <onyxui/ui_services.hh>
 #include "test_backend.hh"
 #include <vector>
 #include <iostream>
@@ -44,9 +45,6 @@ class TestElement : public ui_element <TestBackend> {
 
         // Expose bounds for testing
         const TestRect& test_bounds() const { return bounds(); }
-
-        void do_apply_theme([[maybe_unused]] const theme_type& theme) override {
-        }
 };
 
 // Custom element with content size
@@ -117,8 +115,17 @@ namespace onyxui::testing {
         canvas_rect bounds{0, 0, width, height};
         element.arrange(bounds);
 
-        // Render
-        element.render(renderer);
+        // Render with current theme (if available)
+        auto* themes_registry = ui_services<test_canvas_backend>::themes();
+        if (!themes_registry) {
+            throw std::runtime_error(
+                "render_to_canvas() requires an active UI context on the stack. "
+                "Ensure your test creates a scoped_ui_context<Backend> before calling render_to_canvas()."
+            );
+        }
+
+        auto* theme = themes_registry->get_current_theme();
+        element.render(renderer, theme);
 
         return canvas;
     }

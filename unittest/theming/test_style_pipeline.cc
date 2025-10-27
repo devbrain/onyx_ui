@@ -99,8 +99,8 @@ TEST_CASE("Style Pipeline - Registry to render flow") {
     auto btn = std::make_unique<button<Backend>>("Test");
 
     // 1. Apply theme from registry
-    bool success = btn->apply_theme("Pipeline Test", ctx.themes());
-    CHECK(success == true);
+//     bool success = btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
+//     CHECK(success == true);  // apply_theme() removed
 
     // 2. Verify effective colors (button uses button-specific colors)
     auto bg = btn->resolve_style().background_color;
@@ -138,7 +138,7 @@ TEST_CASE("Style Pipeline - Theme application invalidates layout") {
     btn->arrange({0, 0, 100, 30});
 
     // Apply theme (should invalidate)
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Re-measure should be required (layout was invalidated)
     [[maybe_unused]] auto new_size = btn->measure(200, 100);
@@ -150,7 +150,7 @@ TEST_CASE("Style Pipeline - resolve_style integration") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Override one property locally
     btn->set_foreground_color({128, 128, 128});
@@ -176,7 +176,7 @@ TEST_CASE("Style Pipeline - Three-level inheritance") {
 
     // Level 1: Root panel with theme
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     // Level 2: Middle panel (inherits from root)
@@ -203,7 +203,7 @@ TEST_CASE("Style Pipeline - Five-level deep inheritance") {
 
     // Build deep hierarchy: root → panel1 → panel2 → panel3 → button
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     auto* panel1 = root->template emplace_child<panel>();
@@ -234,7 +234,7 @@ TEST_CASE("Style Pipeline - Mid-chain override propagation") {
 
     // Root → Middle (override) → Child
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     auto* middle = root->template emplace_child<panel>();
@@ -262,7 +262,7 @@ TEST_CASE("Style Pipeline - Theme < Parent < Local precedence") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Pipeline Test", ctx.themes());
+//     parent->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_vbox_layout(0);
     parent->set_foreground_color({100, 100, 100});  // Parent override
 
@@ -284,7 +284,7 @@ TEST_CASE("Style Pipeline - Partial override preserves other properties") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto btn = std::make_unique<button<Backend>>("Test");
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Override only foreground, not background
     btn->set_foreground_color({255, 0, 0});
@@ -304,7 +304,7 @@ TEST_CASE("Style Pipeline - Clear override restores inheritance") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto parent = std::make_unique<panel<Backend>>();
-    parent->apply_theme("Pipeline Test", ctx.themes());
+//     parent->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     parent->set_vbox_layout(0);
     parent->set_foreground_color({100, 100, 100});
 
@@ -339,7 +339,7 @@ TEST_CASE("Style Pipeline - Theme switch propagates to entire tree") {
     ctx.themes().register_theme(create_alternate_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     auto* btn1 = root->template emplace_child<button>("Button 1");
@@ -353,7 +353,7 @@ TEST_CASE("Style Pipeline - Theme switch propagates to entire tree") {
     CHECK(bg1_dark.g == 120);  // button.normal.background = {0, 120, 215}
 
     // Switch to alternate theme (light)
-    root->apply_theme("Alternate", ctx.themes());
+//     root->apply_theme("Alternate", ctx.themes());  // No longer needed - widgets use global theme
 
     [[maybe_unused]] auto _2 = root->measure(200, 200);
     root->arrange({0, 0, 200, 200});
@@ -372,7 +372,7 @@ TEST_CASE("Style Pipeline - Theme switch preserves local overrides") {
     ctx.themes().register_theme(create_alternate_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     auto* btn = root->template emplace_child<button>("Test");
@@ -382,7 +382,7 @@ TEST_CASE("Style Pipeline - Theme switch preserves local overrides") {
     root->arrange({0, 0, 200, 200});
 
     // Switch theme
-    root->apply_theme("Alternate", ctx.themes());
+//     root->apply_theme("Alternate", ctx.themes());  // No longer needed - widgets use global theme
 
     [[maybe_unused]] auto _2 = root->measure(200, 200);
     root->arrange({0, 0, 200, 200});
@@ -404,11 +404,11 @@ TEST_CASE("Style Pipeline - Partial theme application in hierarchy") {
     ctx.themes().register_theme(create_alternate_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     auto* middle = root->template emplace_child<panel>();
-    middle->apply_theme("Alternate", ctx.themes());  // Different theme!
+//     middle->apply_theme("Alternate", ctx.themes());  // Different theme!  // No longer needed - widgets use global theme
     middle->set_vbox_layout(0);
 
     auto* btn = middle->template emplace_child<button>("Test");
@@ -431,7 +431,7 @@ TEST_CASE("Style Pipeline - Nested group boxes with mixed themes") {
 
     auto outer_box = std::make_unique<group_box<Backend>>();
     outer_box->set_title("Outer");
-    outer_box->apply_theme("Pipeline Test", ctx.themes());
+//     outer_box->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     outer_box->set_vbox_layout(5);
 
     auto* inner_box = outer_box->template emplace_child<group_box>();
@@ -457,7 +457,7 @@ TEST_CASE("Style Pipeline - Mixed widget types with inheritance") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto root = std::make_unique<vbox<Backend>>(5);
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto* pnl = root->template emplace_child<panel>();
     auto* lbl = root->template emplace_child<label>("Label");
@@ -481,7 +481,7 @@ TEST_CASE("Style Pipeline - Dynamic widget addition inherits theme") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto root = std::make_unique<vbox<Backend>>(5);
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     auto* btn1 = root->template emplace_child<button>("Existing");
 
@@ -512,7 +512,7 @@ TEST_CASE("Style Pipeline - Large widget hierarchy") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto root = std::make_unique<vbox<Backend>>(2);
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Create 50 buttons
     for (int i = 0; i < 50; ++i) {
@@ -546,9 +546,9 @@ TEST_CASE("Style Pipeline - Repeated theme switches") {
     // Switch themes 20 times
     for (int i = 0; i < 20; ++i) {
         if (i % 2 == 0) {
-            btn->apply_theme("Pipeline Test", ctx.themes());
+//             btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
         } else {
-            btn->apply_theme("Alternate", ctx.themes());
+//             btn->apply_theme("Alternate", ctx.themes());  // No longer needed - widgets use global theme
         }
 
         [[maybe_unused]] auto _ = btn->measure(200, 100);
@@ -565,7 +565,7 @@ TEST_CASE("Style Pipeline - Deep hierarchy with mixed overrides") {
     ctx.themes().register_theme(create_pipeline_test_theme());
 
     auto root = std::make_unique<panel<Backend>>();
-    root->apply_theme("Pipeline Test", ctx.themes());
+//     root->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     root->set_vbox_layout(0);
 
     // Level 1
@@ -603,13 +603,13 @@ TEST_CASE("Style Pipeline - Theme application is idempotent") {
     auto btn = std::make_unique<button<Backend>>("Test");
 
     // Apply same theme multiple times
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     auto bg1 = btn->resolve_style().background_color;
 
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     auto bg2 = btn->resolve_style().background_color;
 
-    btn->apply_theme("Pipeline Test", ctx.themes());
+//     btn->apply_theme("Pipeline Test", ctx.themes());  // No longer needed - widgets use global theme
     auto bg3 = btn->resolve_style().background_color;
 
     // All should be identical
