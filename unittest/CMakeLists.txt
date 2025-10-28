@@ -51,6 +51,7 @@ add_executable(ui_unittest
         widgets/test_mnemonics.cc
         widgets/test_menus.cc
         widgets/test_submenu_infrastructure.cc
+        widgets/test_menu_system.cc
         widgets/test_menu_item_measurement.cc
         widgets/test_menu_border_layout.cc
         widgets/test_menu_hotkey_integration.cc
