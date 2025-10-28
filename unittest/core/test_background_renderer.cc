@@ -104,6 +104,10 @@ namespace {
         using mouse_wheel_event_type = test_backend::test_mouse_event;
         using renderer_type = mock_renderer;
 
+        [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const test_backend::test_keyboard_event&) noexcept {
+            return std::nullopt;
+        }
+
         static void register_themes(theme_registry<mock_test_backend>&) {}
     };
 }

@@ -429,7 +429,7 @@ namespace onyxui {
              * @endcode
              */
             void set_shortcut_f(int f_key, key_modifier mods = key_modifier::none) noexcept {
-                set_shortcut(key_sequence{f_key, mods});
+                set_shortcut(key_sequence{function_key_from_number(f_key), mods});
             }
 
             /**

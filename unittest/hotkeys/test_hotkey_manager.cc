@@ -513,7 +513,7 @@ TEST_SUITE("hotkey_manager::scenarios") {
         // Verify all registered
         CHECK(manager.is_registered(key_sequence{'s', key_modifier::ctrl}));
         CHECK(manager.is_registered(key_sequence{'q', key_modifier::ctrl}));
-        CHECK(manager.is_registered(key_sequence{1, key_modifier::none}));
+        CHECK(manager.is_registered(key_sequence{key_code::f1, key_modifier::none}));
     }
 
     TEST_CASE("Text editor with formatting shortcuts") {

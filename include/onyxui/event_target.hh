@@ -44,8 +44,10 @@
 #pragma once
 
 #include <functional>
+#include <variant>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
+#include <onyxui/events/ui_event.hh>
 
 namespace onyxui {
     // Forward declarations for friend declarations
@@ -155,6 +157,47 @@ namespace onyxui {
              */
             template<typename E>
             bool process_event_impl(const E& event);
+
+            /**
+             * @brief Handle framework-level ui_event (Phase 3 API)
+             * @param evt Framework event (from backend's create_event())
+             * @return true if the event was handled
+             *
+             * @details
+             * New unified event API that accepts ui_event variant directly.
+             * Dispatches to type-specific handlers:
+             * - keyboard_event → handle_keyboard()
+             * - mouse_event → handle_mouse()
+             * - resize_event → handle_resize()
+             *
+             * This is the preferred API for new code using the unified event system.
+             * The old template-based process_event_impl() is maintained for backward
+             * compatibility with event_traits-based code.
+             *
+             * ## Type Dispatch
+             *
+             * Uses std::visit to dispatch to the appropriate handler:
+             * - keyboard_event: Extracted and passed to handle_keyboard()
+             * - mouse_event: Coordinates/button/action passed to handle_mouse_*()
+             * - resize_event: Dimensions passed to handle_resize()
+             *
+             * @example
+             * @code
+             * // Backend converts native event to ui_event
+             * std::optional<ui_event> evt = Backend::create_event(native_event);
+             * if (!evt) return false;
+             *
+             * // Process with event target
+             * if (widget->handle_event(evt.value())) {
+             *     return true;  // Event consumed
+             * }
+             * @endcode
+             *
+             * @see handle_keyboard For keyboard event handling
+             * @see handle_mouse For mouse event handling
+             * @see handle_resize For resize event handling
+             */
+            virtual bool handle_event(const ui_event& evt);
 
             // -----------------------------------------------------------------------
             // Callback Setters
@@ -320,6 +363,55 @@ namespace onyxui {
             // -----------------------------------------------------------------------
         protected:
             event_target() = default;
+
+            /**
+             * @brief Handle keyboard event (Phase 3 API)
+             * @param kbd Framework-level keyboard event
+             * @return true if event was consumed
+             *
+             * @details
+             * Override this method to handle keyboard events in derived classes.
+             * Default implementation forwards to old handle_key_down/up methods
+             * for backward compatibility.
+             *
+             * @example
+             * @code
+             * bool handle_keyboard(const keyboard_event& kbd) override {
+             *     if (kbd.type == keyboard_event::key_type::character) {
+             *         if (kbd.character == '\n' && !kbd.modifiers.ctrl) {
+             *             activate();
+             *             return true;
+             *         }
+             *     }
+             *     return false;
+             * }
+             * @endcode
+             */
+            virtual bool handle_keyboard(const keyboard_event& kbd);
+
+            /**
+             * @brief Handle mouse event (Phase 3 API)
+             * @param mouse Framework-level mouse event
+             * @return true if event was consumed
+             *
+             * @details
+             * Override this method to handle mouse events in derived classes.
+             * Default implementation forwards to old handle_mouse_* methods
+             * for backward compatibility.
+             */
+            virtual bool handle_mouse(const mouse_event& mouse);
+
+            /**
+             * @brief Handle resize event (Phase 3 API)
+             * @param resize Framework-level resize event
+             * @return true if event was consumed
+             *
+             * @details
+             * Override this method to handle resize events in derived classes.
+             * Default implementation returns false (most widgets don't care about resize).
+             */
+            virtual bool handle_resize(const resize_event& resize);
+
             /**
              * @brief Handle mouse enter event
              */
@@ -679,5 +771,128 @@ namespace onyxui {
         }
     }
 
+    // ===============================================================================
+    // Phase 3 Event Handling - Unified ui_event API
+    // ===============================================================================
+
+    template<UIBackend Backend>
+    bool event_target<Backend>::handle_event(const ui_event& evt) {
+        if (!m_enabled) {
+            return false;
+        }
+
+        // Dispatch based on event type using std::visit
+        return std::visit([this](auto&& e) -> bool {
+            using T = std::decay_t<decltype(e)>;
+            if constexpr (std::is_same_v<T, keyboard_event>) {
+                return this->handle_keyboard(e);
+            } else if constexpr (std::is_same_v<T, mouse_event>) {
+                return this->handle_mouse(e);
+            } else if constexpr (std::is_same_v<T, resize_event>) {
+                return this->handle_resize(e);
+            }
+            return false;  // Unknown event type
+        }, evt);
+    }
+
+    template<UIBackend Backend>
+    bool event_target<Backend>::handle_keyboard(const keyboard_event& kbd) {
+        // For backward compatibility, forward to old handle_key_down/up API
+        // Derived classes can override this method for cleaner code
+
+        // Extract modifier flags for old API
+        bool const shift = (kbd.modifiers & key_modifier::shift) != key_modifier::none;
+        bool const ctrl = (kbd.modifiers & key_modifier::ctrl) != key_modifier::none;
+        bool const alt = (kbd.modifiers & key_modifier::alt) != key_modifier::none;
+
+        // Dispatch based on key type
+        if (is_function_key(kbd.key)) {
+            // F-keys: Convert to number for old API
+            int f_num = function_key_to_number(kbd.key);
+            return handle_key_down(f_num, shift, ctrl, alt);
+        } else if (is_arrow_key(kbd.key) || is_navigation_key(kbd.key)) {
+            // Special keys (arrows, navigation): Use int cast for old API
+            return handle_key_down(static_cast<int>(kbd.key), shift, ctrl, alt);
+        } else if (is_ascii(kbd.key)) {
+            // ASCII character (includes Enter, Tab, Escape)
+            char ch = static_cast<char>(kbd.key);
+            return handle_key_down(ch, shift, ctrl, alt);
+        }
+
+        return false;
+    }
+
+    template<UIBackend Backend>
+    bool event_target<Backend>::handle_mouse(const mouse_event& mouse) {
+        // For backward compatibility, forward to old handle_mouse_* API
+        // IMPORTANT: Also includes click generation logic from process_event_impl
+
+        int const x = mouse.x;
+        int const y = mouse.y;
+        bool const in_bounds = is_inside(x, y);
+
+        // Dispatch based on action type
+        switch (mouse.act) {
+            case mouse_event::action::press: {
+                // Map button enum to int for old API
+                int button_code = 0;
+                if (mouse.btn == mouse_event::button::left) button_code = 1;
+                else if (mouse.btn == mouse_event::button::right) button_code = 2;
+                else if (mouse.btn == mouse_event::button::middle) button_code = 3;
+
+                // Track press state for click generation
+                m_is_pressed = true;
+                m_press_started_inside = in_bounds;
+
+                if (in_bounds) {
+                    return handle_mouse_down(x, y, button_code);
+                }
+                return false;
+            }
+
+            case mouse_event::action::release: {
+                int button_code = 0;
+                if (mouse.btn == mouse_event::button::left) button_code = 1;
+                else if (mouse.btn == mouse_event::button::right) button_code = 2;
+                else if (mouse.btn == mouse_event::button::middle) button_code = 3;
+
+                bool const was_pressed = m_is_pressed;
+                m_is_pressed = false;
+
+                bool handled = false;
+
+                // Call mouse up if we're inside or were pressed
+                if (in_bounds || was_pressed) {
+                    handled = handle_mouse_up(x, y, button_code);
+                }
+
+                // Generate click if pressed and released inside (CRITICAL FOR BUTTONS!)
+                if (was_pressed && m_press_started_inside && in_bounds) {
+                    handled |= handle_click(x, y);
+                }
+
+                m_press_started_inside = false;
+                return handled;
+            }
+
+            case mouse_event::action::move:
+                return handle_mouse_move(x, y);
+
+            case mouse_event::action::wheel_up:
+                return handle_wheel(0.0f, 1.0f);  // Positive = up
+
+            case mouse_event::action::wheel_down:
+                return handle_wheel(0.0f, -1.0f);  // Negative = down
+        }
+
+        return false;
+    }
+
+    template<UIBackend Backend>
+    bool event_target<Backend>::handle_resize([[maybe_unused]] const resize_event& resize) {
+        // Most widgets don't care about resize events
+        // Root elements and containers can override this
+        return false;
+    }
 
 }

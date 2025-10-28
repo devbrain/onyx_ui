@@ -9,8 +9,11 @@
 #include <onyxui/conio/colors.hh>
 #include <onyxui/conio/conio_renderer.hh>
 #include <onyxui/conio/conio_events.hh>
+#include <onyxui/events/ui_event.hh>
 #include <onyxui/theme_registry.hh>
 #include <onyxui/backends/conio/onyxui_conio_export.h>
+#include <optional>
+#include <cctype>
 
 namespace onyxui::conio {
     // ======================================================================
@@ -60,6 +63,158 @@ namespace onyxui::conio {
 
         // Backend identification
         static constexpr const char* name() { return "Conio"; }
+
+        /**
+         * @brief Convert termbox2 event to framework-level ui_event
+         * @param native Termbox2 event from tb_poll_event()
+         * @return Framework event, or nullopt if unknown event type
+         *
+         * @details
+         * Performs full normalization of platform-specific quirks:
+         * - **Enter/Tab**: Removes spurious Ctrl modifier (terminal encoding)
+         * - **Uppercase letters**: Converts to lowercase with shift=true
+         * - **Mouse buttons**: Maps termbox2 button codes to framework enums
+         * - **Resize**: Queries current terminal dimensions
+         *
+         * @example Keyboard Event Conversion
+         * @code
+         * tb_event native;
+         * tb_poll_event(&native);
+         *
+         * if (auto evt = conio_backend::create_event(native)) {
+         *     if (auto* kbd = std::get_if<keyboard_event>(&evt.value())) {
+         *         // Handle keyboard event
+         *     }
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static std::optional<onyxui::ui_event> create_event(const tb_event& native) noexcept {
+            using namespace onyxui;
+
+            // ===== Keyboard Events =====
+            if (native.type == TB_EVENT_KEY) {
+                keyboard_event kbd{};
+
+                // Map termbox keys directly to key_code
+                if (native.key >= TB_KEY_F12 && native.key <= TB_KEY_F1) {
+                    // Function keys: F1-F12
+                    int f_num = (TB_KEY_F1 - native.key) + 1;
+                    kbd.key = function_key_from_number(f_num);
+                } else if (native.key == TB_KEY_ARROW_UP) {
+                    kbd.key = key_code::arrow_up;
+                } else if (native.key == TB_KEY_ARROW_DOWN) {
+                    kbd.key = key_code::arrow_down;
+                } else if (native.key == TB_KEY_ARROW_LEFT) {
+                    kbd.key = key_code::arrow_left;
+                } else if (native.key == TB_KEY_ARROW_RIGHT) {
+                    kbd.key = key_code::arrow_right;
+                } else if (native.key == TB_KEY_HOME) {
+                    kbd.key = key_code::home;
+                } else if (native.key == TB_KEY_END) {
+                    kbd.key = key_code::end;
+                } else if (native.key == TB_KEY_PGUP) {
+                    kbd.key = key_code::page_up;
+                } else if (native.key == TB_KEY_PGDN) {
+                    kbd.key = key_code::page_down;
+                } else if (native.key == TB_KEY_INSERT) {
+                    kbd.key = key_code::insert;
+                } else if (native.key == TB_KEY_DELETE) {
+                    kbd.key = key_code::delete_key;
+                } else if (native.key == TB_KEY_ENTER) {
+                    kbd.key = key_code::enter;
+                } else if (native.key == TB_KEY_TAB) {
+                    kbd.key = key_code::tab;
+                } else if (native.key == TB_KEY_ESC) {
+                    kbd.key = key_code::escape;
+                } else if (native.key == TB_KEY_SPACE || native.ch == ' ') {
+                    kbd.key = key_code::space;
+                } else if (native.ch != 0) {
+                    // Character input - normalize uppercase to lowercase
+                    if (native.ch >= 'A' && native.ch <= 'Z') {
+                        kbd.key = static_cast<key_code>(native.ch - 'A' + 'a');
+                    } else if (native.ch >= 'a' && native.ch <= 'z') {
+                        kbd.key = static_cast<key_code>(native.ch);
+                    } else if (native.ch >= 32 && native.ch <= 126) {
+                        // ASCII printable characters
+                        kbd.key = static_cast<key_code>(native.ch);
+                    } else {
+                        // Unknown character
+                        return std::nullopt;
+                    }
+                } else {
+                    // Unknown key
+                    return std::nullopt;
+                }
+
+                // Build modifiers (terminal reality: Enter=Ctrl+M, Tab=Ctrl+I)
+                bool is_enter_or_tab = (native.key == TB_KEY_ENTER || native.key == TB_KEY_TAB);
+
+                key_modifier mods = key_modifier::none;
+                if (!is_enter_or_tab && (native.mod & TB_MOD_CTRL)) mods |= key_modifier::ctrl;
+                if (native.mod & TB_MOD_ALT) mods |= key_modifier::alt;
+
+                // For uppercase letters, shift=true (already normalized to lowercase)
+                if (native.ch >= 'A' && native.ch <= 'Z') {
+                    mods |= key_modifier::shift;
+                } else if (!is_enter_or_tab && (native.mod & TB_MOD_SHIFT)) {
+                    mods |= key_modifier::shift;
+                }
+
+                kbd.modifiers = mods;
+                kbd.pressed = true;  // termbox2 doesn't distinguish press/release
+
+                return ui_event{kbd};
+            }
+
+            // ===== Mouse Events =====
+            if (native.type == TB_EVENT_MOUSE) {
+                mouse_event mouse{};
+                mouse.x = native.x;
+                mouse.y = native.y;
+
+                // Convert button/action
+                if (native.key == TB_KEY_MOUSE_LEFT) {
+                    mouse.btn = mouse_event::button::left;
+                    mouse.act = mouse_event::action::press;
+                } else if (native.key == TB_KEY_MOUSE_RIGHT) {
+                    mouse.btn = mouse_event::button::right;
+                    mouse.act = mouse_event::action::press;
+                } else if (native.key == TB_KEY_MOUSE_MIDDLE) {
+                    mouse.btn = mouse_event::button::middle;
+                    mouse.act = mouse_event::action::press;
+                } else if (native.key == TB_KEY_MOUSE_RELEASE) {
+                    mouse.btn = mouse_event::button::none;  // termbox2 doesn't track which button
+                    mouse.act = mouse_event::action::release;
+                } else if (native.key == TB_KEY_MOUSE_WHEEL_UP) {
+                    mouse.btn = mouse_event::button::none;
+                    mouse.act = mouse_event::action::wheel_up;
+                } else if (native.key == TB_KEY_MOUSE_WHEEL_DOWN) {
+                    mouse.btn = mouse_event::button::none;
+                    mouse.act = mouse_event::action::wheel_down;
+                } else {
+                    // Unknown mouse event
+                    return std::nullopt;
+                }
+
+                // Copy modifiers
+                mouse.modifiers.ctrl = (native.mod & TB_MOD_CTRL) != 0;
+                mouse.modifiers.alt = (native.mod & TB_MOD_ALT) != 0;
+                mouse.modifiers.shift = (native.mod & TB_MOD_SHIFT) != 0;
+
+                return ui_event{mouse};
+            }
+
+            // ===== Resize Events =====
+            if (native.type == TB_EVENT_RESIZE) {
+                resize_event resize{};
+                resize.width = conio_get_width();
+                resize.height = conio_get_height();
+                return ui_event{resize};
+            }
+
+            // Unknown event type
+            return std::nullopt;
+        }
 
         /**
          * @brief Register backend-provided themes

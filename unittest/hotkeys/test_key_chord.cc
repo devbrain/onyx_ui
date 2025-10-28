@@ -65,8 +65,8 @@ TEST_SUITE("Key Chords") {
 
             CHECK(chord.type == chord_type::modal_sequence);
             CHECK(chord.length() == 2);
-            CHECK(chord.sequence[0].key == 'd');
-            CHECK(chord.sequence[1].key == 'd');
+            CHECK(static_cast<char>(chord.sequence[0].key) == 'd');
+            CHECK(static_cast<char>(chord.sequence[1].key) == 'd');
             CHECK(chord.timeout_ms == std::chrono::milliseconds{500});
         }
 

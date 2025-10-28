@@ -15,6 +15,8 @@ add_executable(ui_unittest
         core/test_background_renderer.cc
         events/test_events.cc
         events/test_event_target.cc
+        events/test_ui_event.cc
+        events/test_event_target_ui_event.cc
         focus/test_focus_manager.cc
         layout/test_absolute.cc
         layout/test_anchor.cc
@@ -63,6 +65,7 @@ add_executable(ui_unittest
         widgets/test_separator.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
+        hotkeys/test_hotkey_ui_event.cc
         hotkeys/test_hotkey_scheme.cc
         hotkeys/test_key_chord.cc
         # YAML infrastructure tests (backend-agnostic, use test::test_types)

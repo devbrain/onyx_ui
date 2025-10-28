@@ -19,80 +19,80 @@ TEST_SUITE("Hotkey Scheme") {
     TEST_CASE("key_sequence - String parsing") {
         SUBCASE("Single character") {
             auto seq = parse_key_sequence("s");
-            CHECK(seq.key == 's');
-            CHECK(seq.f_key == 0);
+            CHECK(static_cast<char>(seq.key) == 's');
+            CHECK(function_key_to_number(seq.key) == 0);
             CHECK(seq.modifiers == key_modifier::none);
         }
 
         SUBCASE("Ctrl+character") {
             auto seq = parse_key_sequence("Ctrl+S");
-            CHECK(seq.key == 's');  // Normalized to lowercase
+            CHECK(static_cast<char>(seq.key) == 's');  // Normalized to lowercase
             CHECK((seq.modifiers & key_modifier::ctrl) != key_modifier::none);
         }
 
         SUBCASE("Alt+character") {
             auto seq = parse_key_sequence("Alt+Q");
-            CHECK(seq.key == 'q');
+            CHECK(static_cast<char>(seq.key) == 'q');
             CHECK((seq.modifiers & key_modifier::alt) != key_modifier::none);
         }
 
         SUBCASE("Shift+character") {
             auto seq = parse_key_sequence("Shift+A");
-            CHECK(seq.key == 'a');
+            CHECK(static_cast<char>(seq.key) == 'a');
             CHECK((seq.modifiers & key_modifier::shift) != key_modifier::none);
         }
 
         SUBCASE("Multiple modifiers") {
             auto seq = parse_key_sequence("Ctrl+Shift+S");
-            CHECK(seq.key == 's');
+            CHECK(static_cast<char>(seq.key) == 's');
             CHECK((seq.modifiers & key_modifier::ctrl) != key_modifier::none);
             CHECK((seq.modifiers & key_modifier::shift) != key_modifier::none);
         }
 
         SUBCASE("F-keys") {
             auto f1 = parse_key_sequence("F1");
-            CHECK(f1.f_key == 1);
-            CHECK(f1.key == '\0');
+            CHECK(function_key_to_number(f1.key) == 1);
+            CHECK(is_function_key(f1.key));
 
             auto f10 = parse_key_sequence("F10");
-            CHECK(f10.f_key == 10);
+            CHECK(function_key_to_number(f10.key) == 10);
 
             auto f12 = parse_key_sequence("F12");
-            CHECK(f12.f_key == 12);
+            CHECK(function_key_to_number(f12.key) == 12);
         }
 
         SUBCASE("F-keys with modifiers") {
             auto seq = parse_key_sequence("Alt+F4");
-            CHECK(seq.f_key == 4);
+            CHECK(function_key_to_number(seq.key) == 4);
             CHECK((seq.modifiers & key_modifier::alt) != key_modifier::none);
         }
 
         SUBCASE("Special keys") {
             auto down = parse_key_sequence("Down");
-            CHECK(down.key == -2);  // Down arrow code
+            CHECK(down.key == key_code::arrow_down);  // Down arrow code
 
             auto up = parse_key_sequence("Up");
-            CHECK(up.key == -1);  // Up arrow code
+            CHECK(up.key == key_code::arrow_up);  // Up arrow code
 
             auto left = parse_key_sequence("Left");
-            CHECK(left.key == -3);
+            CHECK(left.key == key_code::arrow_left);
 
             auto right = parse_key_sequence("Right");
-            CHECK(right.key == -4);
+            CHECK(right.key == key_code::arrow_right);
 
             auto enter = parse_key_sequence("Enter");
-            CHECK(enter.key == '\n');
+            CHECK(static_cast<char>(enter.key) == '\n');
 
             auto esc = parse_key_sequence("Escape");
-            CHECK(esc.key == 27);
+            CHECK(static_cast<int>(esc.key) == 27);
 
             auto tab = parse_key_sequence("Tab");
-            CHECK(tab.key == '\t');
+            CHECK(static_cast<char>(tab.key) == '\t');
         }
 
         SUBCASE("Special keys with modifiers") {
             auto seq = parse_key_sequence("Shift+Tab");
-            CHECK(seq.key == '\t');
+            CHECK(static_cast<char>(seq.key) == '\t');
             CHECK((seq.modifiers & key_modifier::shift) != key_modifier::none);
         }
 
@@ -133,18 +133,18 @@ TEST_SUITE("Hotkey Scheme") {
         }
 
         SUBCASE("Format F-keys") {
-            key_sequence f1{1};
+            key_sequence f1{key_code::f1};
             CHECK(format_key_sequence(f1) == "F1");
 
-            key_sequence f10{10};
+            key_sequence f10{key_code::f10};
             CHECK(format_key_sequence(f10) == "F10");
 
-            key_sequence f12{12};
+            key_sequence f12{key_code::f12};
             CHECK(format_key_sequence(f12) == "F12");
         }
 
         SUBCASE("Format F-key with modifier") {
-            key_sequence seq{4, key_modifier::alt};
+            key_sequence seq{key_code::f4, key_modifier::alt};
             CHECK(format_key_sequence(seq) == "Alt+F4");
         }
 
@@ -249,14 +249,14 @@ TEST_SUITE("Hotkey Scheme") {
 
             auto retrieved1 = scheme.get_binding(hotkey_action::activate_menu_bar);
             REQUIRE(retrieved1.has_value());
-            CHECK(retrieved1->f_key == 10);
+            CHECK(function_key_to_number(retrieved1->key) == 10);
 
             // Overwrite with F9
             scheme.set_binding(hotkey_action::activate_menu_bar, parse_key_sequence("F9"));
 
             auto retrieved2 = scheme.get_binding(hotkey_action::activate_menu_bar);
             REQUIRE(retrieved2.has_value());
-            CHECK(retrieved2->f_key == 9);
+            CHECK(function_key_to_number(retrieved2->key) == 9);
 
             CHECK(scheme.binding_count() == 1);  // Still only one binding
         }
@@ -453,7 +453,7 @@ TEST_SUITE("Hotkey Scheme") {
 
             auto binding = retrieved->get_binding(hotkey_action::activate_menu_bar);
             REQUIRE(binding.has_value());
-            CHECK(binding->f_key == 9);
+            CHECK(function_key_to_number(binding->key) == 9);
         }
     }
 
@@ -466,7 +466,7 @@ TEST_SUITE("Hotkey Scheme") {
         // Check F10 for menu activation
         auto menu_key = scheme.get_binding(hotkey_action::activate_menu_bar);
         REQUIRE(menu_key.has_value());
-        CHECK(menu_key->f_key == 10);
+        CHECK(function_key_to_number(menu_key->key) == 10);
 
         // Check all expected bindings
         CHECK(scheme.has_binding(hotkey_action::activate_menu_bar));
@@ -491,7 +491,7 @@ TEST_SUITE("Hotkey Scheme") {
         // Check F9 for menu activation (main difference from Windows)
         auto menu_key = scheme.get_binding(hotkey_action::activate_menu_bar);
         REQUIRE(menu_key.has_value());
-        CHECK(menu_key->f_key == 9);
+        CHECK(function_key_to_number(menu_key->key) == 9);
 
         // Should have same number of bindings as Windows scheme
         CHECK(scheme.binding_count() == 9);

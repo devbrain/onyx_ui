@@ -97,6 +97,7 @@
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/element.hh>
+#include <onyxui/events/ui_event.hh>
 // #include <failsafe/logger.hh>  // Not needed for dirty rectangle testing
 #include <map>
 #include <memory>
@@ -411,6 +412,80 @@ namespace onyxui {
         }
 
         /**
+         * @brief Handle framework-level ui_event (Phase 2 API)
+         * @param evt Framework-level event (from backend's create_event())
+         * @param focused_element Currently focused element (for scoped hotkeys)
+         * @return True if event was handled as a hotkey
+         *
+         * @details
+         * New event system API that accepts ui_event variant directly.
+         * Only processes keyboard events - mouse and resize events are ignored.
+         *
+         * This is the preferred API for new code using the unified event system.
+         * The old template-based handle_key_event() is maintained for backward
+         * compatibility with event_traits-based code.
+         *
+         * ## Priority Order (same as old API)
+         *
+         * 1. **Framework semantic actions** (menu_down, menu_up, etc.)
+         * 2. **Element-scoped application actions** (walk up tree)
+         * 3. **Global application actions**
+         * 4. **Widget keyboard handlers** (if not handled above)
+         *
+         * @example
+         * @code
+         * // Backend converts native event to ui_event
+         * std::optional<ui_event> evt = Backend::create_event(native_event);
+         * if (!evt) return false;
+         *
+         * // Process with hotkey manager
+         * if (hotkey_mgr.handle_ui_event(evt.value(), focused_widget)) {
+         *     return true;  // Handled as hotkey
+         * }
+         * @endcode
+         *
+         * @see handle_key_event For old event_traits-based API
+         */
+        bool handle_ui_event(
+            const ui_event& evt,
+            ui_element<Backend>* focused_element = nullptr
+        ) {
+            // Only process keyboard events
+            auto* kbd = std::get_if<keyboard_event>(&evt);
+            if (!kbd) {
+                return false;  // Not a keyboard event
+            }
+
+            // Convert keyboard_event to key_sequence
+            if (kbd->key == key_code::none) {
+                return false;  // Not a hotkey candidate
+            }
+            key_sequence seq{kbd->key, kbd->modifiers};
+
+            // PRIORITY 0.5: Check for multi-key chords (Emacs-style)
+            if (process_chord(seq)) {
+                return true;  // Chord completed or partial match
+            }
+
+            // PRIORITY 1: Framework semantic actions (from current scheme)
+            if (m_scheme_registry) {
+                if (try_semantic_action(seq)) {
+                    return true;
+                }
+            }
+
+            // PRIORITY 2: Element-scoped application actions
+            if (focused_element) {
+                if (try_scoped_hotkeys(seq, focused_element)) {
+                    return true;
+                }
+            }
+
+            // PRIORITY 3: Global application actions
+            return try_global_hotkeys(seq);
+        }
+
+        /**
          * @brief Set conflict handling policy
          *
          * @param policy The new policy
@@ -649,19 +724,46 @@ namespace onyxui {
                 return key_sequence{ascii, mods};
             }
 
-            // Try F-key
-            int const f_key = traits::to_f_key(event);
-            if (f_key != 0) {
-                return key_sequence{f_key, mods};
+            // Try F-key (1-12 → key_code::f1-f12)
+            int const f_key_num = traits::to_f_key(event);
+            if (f_key_num != 0) {
+                key_code code = function_key_from_number(f_key_num);
+                if (code != key_code::none) {
+                    return key_sequence{code, mods};
+                }
             }
 
-            // Try special key (arrow keys, etc.) - required by HotkeyCapable concept
+            // Try special key (arrow keys, etc.)
             int const special = traits::to_special_key(event);
-            if (special != 0) {
-                return key_sequence{static_cast<char>(special), mods};
+            switch (special) {
+                case -1: return key_sequence{key_code::arrow_up, mods};
+                case -2: return key_sequence{key_code::arrow_down, mods};
+                case -3: return key_sequence{key_code::arrow_left, mods};
+                case -4: return key_sequence{key_code::arrow_right, mods};
+                case -5: return key_sequence{key_code::home, mods};
+                case -6: return key_sequence{key_code::end, mods};
+                case -7: return key_sequence{key_code::page_up, mods};
+                case -8: return key_sequence{key_code::page_down, mods};
+                case -9: return key_sequence{key_code::insert, mods};
+                case -10: return key_sequence{key_code::delete_key, mods};
+                default: break;
             }
 
             return std::nullopt;
+        }
+
+        /**
+         * @brief Convert keyboard_event to key_sequence (trivial specialization)
+         *
+         * @details
+         * Since keyboard_event now uses key_code directly, conversion is trivial.
+         * This specialization takes precedence over the generic template for keyboard_event.
+         */
+        std::optional<key_sequence> event_to_sequence(const keyboard_event& event) {
+            if (event.key == key_code::none) {
+                return std::nullopt;
+            }
+            return key_sequence{event.key, event.modifiers};
         }
 
         /**
@@ -757,32 +859,8 @@ namespace onyxui {
             return false;
         }
 
-        /**
-         * @brief Format a key sequence for logging
-         */
-        [[nodiscard]] static std::string format_key_sequence(const key_sequence& seq) {
-            std::string result;
-
-            // Add modifiers
-            if ((seq.modifiers & key_modifier::ctrl) != key_modifier::none) {
-                result += "Ctrl+";
-            }
-            if ((seq.modifiers & key_modifier::alt) != key_modifier::none) {
-                result += "Alt+";
-            }
-            if ((seq.modifiers & key_modifier::shift) != key_modifier::none) {
-                result += "Shift+";
-            }
-
-            // Add key
-            if (seq.f_key != 0) {
-                result += "F" + std::to_string(seq.f_key);
-            } else {
-                result += static_cast<char>(std::toupper(static_cast<unsigned char>(seq.key)));
-            }
-
-            return result;
-        }
+        // NOTE: format_key_sequence() is now in key_sequence.hh
+        // (removed duplicate to avoid inconsistency)
 
         /**
          * @brief Format scope information for logging

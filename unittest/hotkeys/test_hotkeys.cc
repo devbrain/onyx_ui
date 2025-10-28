@@ -90,23 +90,23 @@ TEST_SUITE("key_sequence::construction") {
     TEST_CASE("Default constructor creates empty sequence") {
         key_sequence const seq;
         CHECK(seq.empty());
-        CHECK(seq.key == '\0');
-        CHECK(seq.f_key == 0);
+        CHECK(static_cast<char>(seq.key) == '\0');
+        CHECK(function_key_to_number(seq.key) == 0);
         CHECK(seq.modifiers == key_modifier::none);
     }
 
     TEST_CASE("ASCII key constructor normalizes to lowercase") {
         key_sequence const upper{'S', key_modifier::ctrl};
         key_sequence lower{'s', key_modifier::ctrl};
-        CHECK(upper.key == 's');
-        CHECK(lower.key == 's');
+        CHECK(static_cast<char>(upper.key) == 's');
+        CHECK(static_cast<char>(lower.key) == 's');
         CHECK(upper == lower);
     }
 
     TEST_CASE("ASCII key constructor with modifiers") {
         key_sequence const seq{'a', key_modifier::ctrl | key_modifier::shift};
-        CHECK(seq.key == 'a');
-        CHECK(seq.f_key == 0);
+        CHECK(static_cast<char>(seq.key) == 'a');
+        CHECK(function_key_to_number(seq.key) == 0);
         CHECK((seq.modifiers & key_modifier::ctrl) != key_modifier::none);
         CHECK((seq.modifiers & key_modifier::shift) != key_modifier::none);
         CHECK(!seq.empty());
@@ -114,34 +114,32 @@ TEST_SUITE("key_sequence::construction") {
 
     TEST_CASE("ASCII key constructor default modifiers") {
         key_sequence const seq{'x'};
-        CHECK(seq.key == 'x');
+        CHECK(static_cast<char>(seq.key) == 'x');
         CHECK(seq.modifiers == key_modifier::none);
         CHECK(!seq.empty());
     }
 
     TEST_CASE("F-key constructor") {
-        key_sequence const seq{9, key_modifier::alt};
-        CHECK(seq.key == '\0');
-        CHECK(seq.f_key == 9);
+        key_sequence const seq{key_code::f9, key_modifier::alt};
+        CHECK(function_key_to_number(seq.key) == 9);
         CHECK((seq.modifiers & key_modifier::alt) != key_modifier::none);
         CHECK(!seq.empty());
     }
 
     TEST_CASE("F-key constructor default modifiers") {
-        key_sequence const seq{1};
-        CHECK(seq.key == '\0');
-        CHECK(seq.f_key == 1);
+        key_sequence const seq{key_code::f1};
+        CHECK(function_key_to_number(seq.key) == 1);
         CHECK(seq.modifiers == key_modifier::none);
         CHECK(!seq.empty());
     }
 
     TEST_CASE("Various ASCII characters are normalized") {
-        CHECK(key_sequence{'A'}.key == 'a');
-        CHECK(key_sequence{'Z'}.key == 'z');
-        CHECK(key_sequence{'M'}.key == 'm');
-        CHECK(key_sequence{'0'}.key == '0');  // Digits unchanged
-        CHECK(key_sequence{'9'}.key == '9');
-        CHECK(key_sequence{'-'}.key == '-');  // Punctuation unchanged
+        CHECK(static_cast<char>(key_sequence{'A'}.key) == 'a');
+        CHECK(static_cast<char>(key_sequence{'Z'}.key) == 'z');
+        CHECK(static_cast<char>(key_sequence{'M'}.key) == 'm');
+        CHECK(static_cast<char>(key_sequence{'0'}.key) == '0');  // Digits unchanged
+        CHECK(static_cast<char>(key_sequence{'9'}.key) == '9');
+        CHECK(static_cast<char>(key_sequence{'-'}.key) == '-');  // Punctuation unchanged
     }
 }
 
@@ -166,8 +164,8 @@ TEST_SUITE("key_sequence::queries") {
     }
 
     TEST_CASE("is_f_key() detects F-keys") {
-        CHECK(key_sequence{1}.is_f_key());
-        CHECK(key_sequence{12}.is_f_key());
+        CHECK(key_sequence{key_code::f1}.is_f_key());
+        CHECK(key_sequence{key_code::f12}.is_f_key());
         CHECK(!key_sequence{'a'}.is_f_key());
         CHECK(!key_sequence{}.is_f_key());
     }
@@ -176,7 +174,7 @@ TEST_SUITE("key_sequence::queries") {
         CHECK(key_sequence{'a'}.is_ascii_key());
         CHECK(key_sequence{'z'}.is_ascii_key());
         CHECK(key_sequence{'0'}.is_ascii_key());
-        CHECK(!key_sequence{1}.is_ascii_key());
+        CHECK(!key_sequence{key_code::f1}.is_ascii_key());
         CHECK(!key_sequence{}.is_ascii_key());
     }
 
@@ -260,7 +258,7 @@ TEST_SUITE("key_sequence::comparison") {
 TEST_SUITE("key_sequence::helpers") {
     TEST_CASE("make_ctrl_key creates Ctrl+key") {
         auto seq = make_ctrl_key('s');
-        CHECK(seq.key == 's');
+        CHECK(static_cast<char>(seq.key) == 's');
         CHECK(seq.has_ctrl());
         CHECK(!seq.has_alt());
         CHECK(!seq.has_shift());
@@ -268,7 +266,7 @@ TEST_SUITE("key_sequence::helpers") {
 
     TEST_CASE("make_alt_key creates Alt+key") {
         auto seq = make_alt_key('q');
-        CHECK(seq.key == 'q');
+        CHECK(static_cast<char>(seq.key) == 'q');
         CHECK(!seq.has_ctrl());
         CHECK(seq.has_alt());
         CHECK(!seq.has_shift());
@@ -276,7 +274,7 @@ TEST_SUITE("key_sequence::helpers") {
 
     TEST_CASE("make_shift_key creates Shift+key") {
         auto seq = make_shift_key('t');
-        CHECK(seq.key == 't');
+        CHECK(static_cast<char>(seq.key) == 't');
         CHECK(!seq.has_ctrl());
         CHECK(!seq.has_alt());
         CHECK(seq.has_shift());
@@ -284,15 +282,15 @@ TEST_SUITE("key_sequence::helpers") {
 
     TEST_CASE("make_f_key creates F-key") {
         auto seq = make_f_key(9);
-        CHECK(seq.f_key == 9);
+        CHECK(function_key_to_number(seq.key) == 9);
         CHECK(seq.is_f_key());
         CHECK(seq.modifiers == key_modifier::none);
     }
 
     TEST_CASE("Helper functions normalize to lowercase") {
-        CHECK(make_ctrl_key('S').key == 's');
-        CHECK(make_alt_key('Q').key == 'q');
-        CHECK(make_shift_key('T').key == 't');
+        CHECK(static_cast<char>(make_ctrl_key('S').key) == 's');
+        CHECK(static_cast<char>(make_alt_key('Q').key) == 'q');
+        CHECK(static_cast<char>(make_shift_key('T').key) == 't');
     }
 }
 
@@ -526,7 +524,7 @@ TEST_SUITE("action::shortcuts::basic") {
 
         REQUIRE(act->has_shortcut());
         auto shortcut = (*act->shortcut());
-        CHECK(shortcut.key == 'q');
+        CHECK(static_cast<char>(shortcut.key) == 'q');
         CHECK(shortcut.has_alt());
     }
 
@@ -537,7 +535,7 @@ TEST_SUITE("action::shortcuts::basic") {
 
         REQUIRE(act->has_shortcut());
         auto shortcut = (*act->shortcut());
-        CHECK(shortcut.key == 'h');
+        CHECK(static_cast<char>(shortcut.key) == 'h');
         CHECK(shortcut.modifiers == key_modifier::none);
     }
 
@@ -548,7 +546,7 @@ TEST_SUITE("action::shortcuts::basic") {
 
         REQUIRE(act->has_shortcut());
         auto shortcut = (*act->shortcut());
-        CHECK(shortcut.f_key == 9);
+        CHECK(function_key_to_number(shortcut.key) == 9);
         CHECK(shortcut.is_f_key());
     }
 
@@ -559,7 +557,7 @@ TEST_SUITE("action::shortcuts::basic") {
 
         REQUIRE(act->has_shortcut());
         auto shortcut = (*act->shortcut());
-        CHECK(shortcut.f_key == 4);
+        CHECK(function_key_to_number(shortcut.key) == 4);
         CHECK(shortcut.has_alt());
     }
 
@@ -583,7 +581,7 @@ TEST_SUITE("action::shortcuts::basic") {
 
         REQUIRE(act->has_shortcut());
         auto shortcut = (*act->shortcut());
-        CHECK(shortcut.key == 'q');
+        CHECK(static_cast<char>(shortcut.key) == 'q');
         CHECK(shortcut.has_alt());
         CHECK(!shortcut.has_ctrl());
     }
@@ -609,7 +607,7 @@ TEST_SUITE("action::shortcuts::signals") {
 
         CHECK(signal_emitted);
         REQUIRE(received_shortcut.has_value());
-        CHECK(received_shortcut.value().key == 's');
+        CHECK(static_cast<char>(received_shortcut.value().key) == 's');
         CHECK(received_shortcut.value().has_ctrl());
     }
 
@@ -689,7 +687,7 @@ TEST_SUITE("action::shortcuts::scenarios") {
         REQUIRE(save_as_action->has_shortcut());
         REQUIRE(quit_action->has_shortcut());
 
-        CHECK((*save_action->shortcut()).key == 's');
+        CHECK(static_cast<char>((*save_action->shortcut()).key) == 's');
         CHECK((*save_as_action->shortcut()).has_shift());
         CHECK((*quit_action->shortcut()).has_alt());
     }
@@ -707,9 +705,9 @@ TEST_SUITE("action::shortcuts::scenarios") {
         menu_action->set_text("Menu");
         menu_action->set_shortcut_f(9);  // F9
 
-        CHECK((*help_action->shortcut()).f_key == 1);
-        CHECK((*rename_action->shortcut()).f_key == 6);
-        CHECK((*menu_action->shortcut()).f_key == 9);
+        CHECK(function_key_to_number((*help_action->shortcut()).key) == 1);
+        CHECK(function_key_to_number((*rename_action->shortcut()).key) == 6);
+        CHECK(function_key_to_number((*menu_action->shortcut()).key) == 9);
     }
 
     TEST_CASE("Shortcuts can be dynamically changed") {
@@ -717,11 +715,11 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         // Initial shortcut
         act->set_shortcut('n', key_modifier::ctrl);
-        CHECK((*act->shortcut()).key == 'n');
+        CHECK(static_cast<char>((*act->shortcut()).key) == 'n');
 
         // User changes shortcut preference
         act->set_shortcut('m', key_modifier::ctrl);
-        CHECK((*act->shortcut()).key == 'm');
+        CHECK(static_cast<char>((*act->shortcut()).key) == 'm');
 
         // User disables shortcut
         act->clear_shortcut();
@@ -735,7 +733,7 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         CHECK(copy_action->text() == "Copy");
         REQUIRE(copy_action->has_shortcut());
-        CHECK((*copy_action->shortcut()).key == 'c');
+        CHECK(static_cast<char>((*copy_action->shortcut()).key) == 'c');
         CHECK((*copy_action->shortcut()).has_ctrl());
     }
 
@@ -746,7 +744,7 @@ TEST_SUITE("action::shortcuts::scenarios") {
 
         CHECK(!act->is_enabled());
         CHECK(act->has_shortcut());
-        CHECK((*act->shortcut()).key == 'p');
+        CHECK(static_cast<char>((*act->shortcut()).key) == 'p');
     }
 }
 

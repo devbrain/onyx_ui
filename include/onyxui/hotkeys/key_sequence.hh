@@ -75,6 +75,7 @@
 
 #pragma once
 
+#include <onyxui/hotkeys/key_code.hh>
 #include <cstdint>
 #include <compare>
 #include <cctype>
@@ -208,8 +209,7 @@ namespace onyxui {
      * @note Only one of `key` or `f_key` should be set (non-zero)
      */
     struct key_sequence {
-        char key = '\0';                              ///< ASCII key (lowercase), or '\0' for F-key
-        int f_key = 0;                                ///< F1-F12 (1-12), or 0 for ASCII key
+        key_code key = key_code::none;               ///< Universal key code (ASCII, F-keys, arrows, etc.)
         key_modifier modifiers = key_modifier::none; ///< Modifier keys (Ctrl, Alt, Shift)
 
         /**
@@ -218,80 +218,85 @@ namespace onyxui {
         constexpr key_sequence() = default;
 
         /**
-         * @brief Construct from ASCII key and modifiers
+         * @brief Construct from key_code and modifiers
          *
-         * @param k ASCII character (will be normalized to lowercase)
+         * @param k Key code (any key from key_code enum)
          * @param mods Modifier keys (default: none)
-         *
-         * @details
-         * The key is automatically converted to lowercase for case-insensitive
-         * matching. If you need case sensitivity, use the Shift modifier.
          *
          * @example
          * ```cpp
-         * key_sequence save{'S', key_modifier::ctrl};  // Stored as 's'
-         * key_sequence shift_s{'s', key_modifier::shift};  // Explicit uppercase
+         * key_sequence save{key_code::s, key_modifier::ctrl};  // Ctrl+S
+         * key_sequence menu{key_code::f10};                     // F10
+         * key_sequence nav{key_code::arrow_down};               // Down arrow
          * ```
          */
-        constexpr key_sequence(char k, key_modifier mods = key_modifier::none) noexcept
-            : key(static_cast<char>(std::tolower(static_cast<unsigned char>(k))))
-            , f_key(0)
+        constexpr key_sequence(key_code k, key_modifier mods = key_modifier::none) noexcept
+            : key(k)
             , modifiers(mods) {}
 
         /**
-         * @brief Construct from F-key number and modifiers
+         * @brief Construct from ASCII character and modifiers (convenience)
          *
-         * @param f F-key number (1-12 for F1-F12)
+         * @param ch ASCII character (will be normalized to lowercase)
          * @param mods Modifier keys (default: none)
          *
          * @details
-         * Creates a function key shortcut. F-key numbers should be in range 1-12.
-         * Values outside this range are allowed but may not be supported by all
-         * backends.
+         * Convenience constructor for ASCII keys. The character is automatically
+         * converted to lowercase for case-insensitive matching. If you need case
+         * sensitivity, use the Shift modifier.
          *
          * @example
          * ```cpp
-         * key_sequence menu{9};                    // F9
-         * key_sequence help{1};                    // F1
-         * key_sequence alt_f4{4, key_modifier::alt};  // Alt+F4
+         * key_sequence save{'s', key_modifier::ctrl};  // Ctrl+S
+         * key_sequence{'S', key_modifier::ctrl};       // Same as above
          * ```
          */
-        constexpr key_sequence(int f, key_modifier mods = key_modifier::none) noexcept
-            : key('\0')
-            , f_key(f)
+        constexpr key_sequence(char ch, key_modifier mods = key_modifier::none) noexcept
+            : key(static_cast<key_code>(std::tolower(static_cast<unsigned char>(ch))))
             , modifiers(mods) {}
 
         /**
          * @brief Check if sequence is empty (no key assigned)
          *
-         * @return True if no key or f_key is set
+         * @return True if no key is set
          *
          * @note noexcept - guaranteed not to throw
          */
         [[nodiscard]] constexpr bool empty() const noexcept {
-            return key == '\0' && f_key == 0;
+            return key == key_code::none;
         }
 
         /**
          * @brief Check if this is an F-key sequence
          *
-         * @return True if f_key is set (non-zero)
+         * @return True if key is F1-F12
          *
          * @note noexcept - guaranteed not to throw
          */
         [[nodiscard]] constexpr bool is_f_key() const noexcept {
-            return f_key != 0;
+            return is_function_key(key);
         }
 
         /**
          * @brief Check if this is an ASCII key sequence
          *
-         * @return True if key is set (non-null)
+         * @return True if key is in ASCII range (0-127)
          *
          * @note noexcept - guaranteed not to throw
          */
         [[nodiscard]] constexpr bool is_ascii_key() const noexcept {
-            return key != '\0';
+            return !empty() && is_ascii(key);
+        }
+
+        /**
+         * @brief Check if this is an arrow key sequence
+         *
+         * @return True if key is an arrow key
+         *
+         * @note noexcept - guaranteed not to throw
+         */
+        [[nodiscard]] constexpr bool is_arrow_key() const noexcept {
+            return onyxui::is_arrow_key(key);
         }
 
         /**
@@ -417,8 +422,8 @@ namespace onyxui {
      * auto menu = make_f_key(9);   // F9 (Norton Commander)
      * ```
      */
-    constexpr key_sequence make_f_key(int f_num) noexcept {
-        return key_sequence{f_num, key_modifier::none};
+    inline key_sequence make_f_key(int f_num) noexcept {
+        return key_sequence{function_key_from_number(f_num), key_modifier::none};
     }
 
     // ================================================================
@@ -426,11 +431,19 @@ namespace onyxui {
     // ================================================================
 
     namespace detail {
-        // Special key name to code mapping
-        inline const std::map<std::string, int> special_keys = {
-            {"Up", -1}, {"Down", -2}, {"Left", -3}, {"Right", -4},
-            {"Enter", '\n'}, {"Escape", 27}, {"Tab", '\t'},
-            {"Space", ' '}, {"Backspace", '\b'},
+        // Special key name to key_code mapping
+        inline const std::map<std::string, key_code> special_keys = {
+            // Arrow keys
+            {"Up", key_code::arrow_up},
+            {"Down", key_code::arrow_down},
+            {"Left", key_code::arrow_left},
+            {"Right", key_code::arrow_right},
+            // Control characters
+            {"Enter", key_code::enter},
+            {"Escape", key_code::escape},
+            {"Tab", key_code::tab},
+            {"Space", key_code::space},
+            {"Backspace", key_code::backspace},
         };
     }
 
@@ -484,16 +497,17 @@ namespace onyxui {
                 if (f_num < 1 || f_num > 12) {
                     throw std::runtime_error("F-key out of range (1-12): " + remaining);
                 }
-                return key_sequence{f_num, mods};
+                key_code code = function_key_from_number(f_num);
+                return key_sequence{code, mods};
             } catch (const std::exception&) {
                 throw std::runtime_error("Invalid F-key format: " + remaining);
             }
         }
 
-        // Special keys
+        // Special keys (arrows, Enter, Escape, etc.)
         auto it = detail::special_keys.find(remaining);
         if (it != detail::special_keys.end()) {
-            return key_sequence{static_cast<char>(it->second), mods};
+            return key_sequence{it->second, mods};
         }
 
         // Single character
@@ -531,18 +545,26 @@ namespace onyxui {
         }
 
         // Add key
-        if (seq.f_key != 0) {
-            result += "F" + std::to_string(seq.f_key);
+        if (is_function_key(seq.key)) {
+            // F-keys (F1-F12)
+            int f_num = function_key_to_number(seq.key);
+            result += "F" + std::to_string(f_num);
         } else {
-            // Check if special key
+            // Check if named special key
             for (const auto& [name, code] : detail::special_keys) {
-                if (static_cast<int>(seq.key) == code) {
+                if (seq.key == code) {
                     result += name;
                     return result;
                 }
             }
-            // Regular character
-            result += static_cast<char>(std::toupper(static_cast<unsigned char>(seq.key)));
+            // Regular ASCII character
+            if (is_ascii(seq.key)) {
+                char ch = static_cast<char>(seq.key);
+                result += static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+            } else {
+                // Unknown key code
+                result += "Unknown(" + std::to_string(static_cast<int>(seq.key)) + ")";
+            }
         }
 
         return result;

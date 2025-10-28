@@ -322,6 +322,21 @@ namespace onyxui {
         using font_type = void*;
 
         static constexpr const char* name() { return "Test"; }
+
+        /**
+         * @brief Convert test backend event to unified ui_event
+         * @param native Test backend event
+         * @return Optional ui_event (nullopt if event can't be converted)
+         *
+         * @details
+         * Converts test_event to the unified ui_event variant system.
+         * Used for testing event routing through the unified event system.
+         */
+        [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const test_event& native) noexcept {
+            // Test backend events are minimal - just return empty keyboard event for testing
+            // Real tests will construct ui_events directly instead of using test_event
+            return std::nullopt;  // Test backend doesn't convert from test_event
+        }
     };
 
     // Event traits specializations for test backend

@@ -23,6 +23,7 @@
 #include <onyxui/render_context.hh>
 #include "../utils/test_helpers.hh"
 #include <onyxui/measure_context.hh>
+#include <onyxui/events/ui_event.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"
@@ -109,6 +110,11 @@ namespace {
 
         bool handle_mouse_up(int x, int y, int mouse_button) {
             return base::handle_mouse_up(x, y, mouse_button);
+        }
+
+        // Expose NEW Phase 4 API for testing
+        bool test_handle_mouse(const mouse_event& mouse) {
+            return base::handle_mouse(mouse);
         }
 
     protected:
@@ -827,6 +833,107 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Bu
     btn.handle_mouse_up(0, 0, 0);
     btn.handle_mouse_leave();
     // State should now be normal again
+}
+
+// ============================================================================
+// NEW Phase 4 API Tests - handle_mouse(mouse_event)
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NEW API: handle_mouse() with mouse_event press/release") {
+    test_stateful_widget<Backend> widget;
+
+    // Initially normal
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
+
+    // Enter widget (tracked by event_target)
+    widget.handle_mouse_enter();
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
+
+    // Press using NEW API
+    mouse_event press;
+    press.x = 5;
+    press.y = 5;
+    press.btn = mouse_event::button::left;
+    press.act = mouse_event::action::press;
+    press.modifiers = {.ctrl = false, .alt = false, .shift = false};
+
+    widget.test_handle_mouse(press);  // Call via test wrapper
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::pressed);
+    CHECK(widget.is_in_pressed_state() == true);
+
+    // Release using NEW API
+    mouse_event release;
+    release.x = 5;
+    release.y = 5;
+    release.btn = mouse_event::button::none;  // Platform may not report button on release
+    release.act = mouse_event::action::release;
+    release.modifiers = {.ctrl = false, .alt = false, .shift = false};
+
+    widget.test_handle_mouse(release);  // Call via test wrapper
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);  // Returns to hover
+
+    // Leave
+    widget.handle_mouse_leave();
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NEW API: handle_mouse() with mouse wheel and move") {
+    test_stateful_widget<Backend> widget;
+
+    // Enter widget
+    widget.handle_mouse_enter();
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
+
+    // Move event doesn't change state
+    mouse_event move;
+    move.x = 10;
+    move.y = 10;
+    move.btn = mouse_event::button::none;
+    move.act = mouse_event::action::move;
+    move.modifiers = {.ctrl = false, .alt = false, .shift = false};
+
+    widget.test_handle_mouse(move);  // Call via test wrapper
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);  // Still hover
+
+    // Wheel event doesn't change state
+    mouse_event wheel;
+    wheel.x = 10;
+    wheel.y = 10;
+    wheel.btn = mouse_event::button::none;
+    wheel.act = mouse_event::action::wheel_up;
+    wheel.modifiers = {.ctrl = false, .alt = false, .shift = false};
+
+    widget.test_handle_mouse(wheel);  // Call via test wrapper
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);  // Still hover
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NEW API: Complete ui_event integration") {
+    test_stateful_widget<Backend> widget;
+
+    // Enter
+    widget.handle_mouse_enter();
+
+    // Press via ui_event (the complete unified event system)
+    mouse_event press_evt;
+    press_evt.x = 5;
+    press_evt.y = 5;
+    press_evt.btn = mouse_event::button::left;
+    press_evt.act = mouse_event::action::press;
+
+    ui_event evt = press_evt;  // Wrap in variant
+    widget.handle_event(evt);  // event_target dispatches to handle_mouse()
+    CHECK(widget.is_in_pressed_state());
+
+    // Release via ui_event
+    mouse_event release_evt;
+    release_evt.x = 5;
+    release_evt.y = 5;
+    release_evt.btn = mouse_event::button::none;
+    release_evt.act = mouse_event::action::release;
+
+    evt = release_evt;
+    widget.handle_event(evt);
+    CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
 }
 
 } // TEST_SUITE

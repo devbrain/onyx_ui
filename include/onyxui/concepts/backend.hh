@@ -66,11 +66,13 @@
 #include <string_view>
 #include <type_traits>
 #include <variant>
+#include <optional>
 
 #include <onyxui/concepts/point_like.hh>
 #include <onyxui/concepts/size_like.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/concepts/render_like.hh>
+#include <onyxui/events/ui_event.hh>
 
 namespace onyxui {
     /**
@@ -105,7 +107,8 @@ namespace onyxui {
     template<typename T>
     concept UIBackend = requires(
         std::string_view text,
-        const typename T::renderer_type::font& font
+        const typename T::renderer_type::font& font,
+        const typename T::event_type& native_event
     )
     {
         // Required geometric types
@@ -124,6 +127,9 @@ namespace onyxui {
 
         // Static text measurement on renderer (for layout without renderer instance)
         { T::renderer_type::measure_text(text, font) } -> std::same_as<typename T::size_type>;
+
+        // Event conversion to unified ui_event (NEW Phase 5 requirement)
+        { T::create_event(native_event) } -> std::same_as<std::optional<ui_event>>;
 
         requires RenderLike<typename T::renderer_type, typename T::rect_type>;
         // The geometric types must satisfy our concepts

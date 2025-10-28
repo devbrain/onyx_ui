@@ -345,6 +345,21 @@ namespace onyxui::testing {
         using renderer_type = canvas_renderer;
 
         /**
+         * @brief Convert canvas backend event to unified ui_event
+         * @param native Canvas backend event
+         * @return Optional ui_event (nullopt if event can't be converted)
+         *
+         * @details
+         * Converts canvas_event to the unified ui_event variant system.
+         * Used for testing event routing through the unified event system.
+         */
+        [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const canvas_event& native) noexcept {
+            // Canvas backend events are minimal - just return nullopt
+            // Real tests will construct ui_events directly
+            return std::nullopt;
+        }
+
+        /**
          * @brief Register themes
          */
         static void register_themes(theme_registry<test_canvas_backend>& registry) {

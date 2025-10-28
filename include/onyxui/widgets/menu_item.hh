@@ -390,15 +390,22 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse down (click)
+         * @brief Handle mouse events (NEW Phase 4 API)
+         * @param mouse Mouse event containing action, position, button, and modifiers
+         * @return true if event was handled
          *
          * @details
-         * Clicking a menu item triggers its action.
-         * Disabled items and separators don't respond to clicks.
+         * Menu item uses base stateful_widget::handle_mouse() for state management.
+         * The base implementation handles:
+         * - Press: Sets pressed state
+         * - Release: Returns to hover or normal
+         *
+         * Menu item actions are triggered via the base widget's clicked signal,
+         * which is emitted automatically on press+release.
          */
-        bool handle_mouse_down(int x, int y, int button) override {
-            // Call base implementation first (sets pressed state and emits clicked signal)
-            return base::handle_mouse_down(x, y, button);
+        bool handle_mouse(const mouse_event& mouse) override {
+            // Use base implementation (stateful_widget handles state management)
+            return base::handle_mouse(mouse);
         }
 
         /**

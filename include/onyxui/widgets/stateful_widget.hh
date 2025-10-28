@@ -210,11 +210,11 @@ namespace onyxui {
         }
 
         // ===================================================================
-        // Event Handlers (Auto-sync m_state with event_target state)
+        // Event Handlers (Auto-sync m_state with mouse events)
         // ===================================================================
 
         /**
-         * @brief Handle mouse enter event
+         * @brief Handle mouse enter event (tracked by event_target)
          * @details Automatically sets state to hover if enabled
          */
         bool handle_mouse_enter() override {
@@ -225,7 +225,7 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse leave event
+         * @brief Handle mouse leave event (tracked by event_target)
          * @details Returns to normal state ONLY if not currently in pressed state
          *
          * If mouse button is still held down when leaving (visual state = pressed),
@@ -243,7 +243,7 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse down event
+         * @brief Handle mouse down event (OLD API - backward compatibility)
          * @details Automatically sets state to pressed if enabled
          */
         bool handle_mouse_down(int x, int y, int button) override {
@@ -254,7 +254,7 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse up event
+         * @brief Handle mouse up event (OLD API - backward compatibility)
          * @details Automatically sets state back to hover or normal
          */
         bool handle_mouse_up(int x, int y, int button) override {
@@ -263,6 +263,52 @@ namespace onyxui {
                 set_interaction_state(base::is_hovered() ? interaction_state::hover : interaction_state::normal);
             }
             return base::handle_mouse_up(x, y, button);
+        }
+
+        /**
+         * @brief Handle mouse events (NEW Phase 4 API)
+         * @param mouse Mouse event containing action, position, button, and modifiers
+         * @return true if event was handled
+         *
+         * @details
+         * Unified mouse event handler that automatically manages interaction state:
+         * - **Mouse press**: Sets pressed state if enabled
+         * - **Mouse release**: Returns to hover (if still hovering) or normal
+         * - **Mouse move**: Handled by base class
+         * - **Mouse wheel**: Handled by base class
+         *
+         * Note: Mouse enter/leave are tracked separately by event_target's internal
+         * is_inside() checking and call handle_mouse_enter/leave directly.
+         *
+         * This provides a cleaner API than handle_mouse_down/up (which are kept for
+         * backward compatibility with existing code and tests).
+         */
+        bool handle_mouse(const mouse_event& mouse) override {
+            if (!this->is_enabled()) {
+                return base::handle_mouse(mouse);
+            }
+
+            // Dispatch based on mouse action
+            switch (mouse.act) {
+                case mouse_event::action::press:
+                    // Mouse button pressed - set pressed state
+                    set_interaction_state(interaction_state::pressed);
+                    break;
+
+                case mouse_event::action::release:
+                    // Mouse button released - return to hover (if hovering) or normal
+                    set_interaction_state(base::is_hovered() ? interaction_state::hover : interaction_state::normal);
+                    break;
+
+                case mouse_event::action::move:
+                case mouse_event::action::wheel_up:
+                case mouse_event::action::wheel_down:
+                    // Move and wheel events don't affect state - pass to base
+                    break;
+            }
+
+            // Chain to base class for standard event processing
+            return base::handle_mouse(mouse);
         }
 
         // ===================================================================

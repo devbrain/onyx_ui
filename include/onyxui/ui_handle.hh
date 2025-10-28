@@ -320,8 +320,19 @@ namespace onyxui {
          * }
          * @endcode
          */
-        bool handle_event(const event_type& event) {
+        bool handle_event(const event_type& native_event) {
             if (!m_root) return false;
+
+            // ============================================================
+            // Event Conversion (NEW Phase 6)
+            // ============================================================
+            // Convert backend-specific event to unified ui_event
+            auto ui_evt_opt = Backend::create_event(native_event);
+            if (!ui_evt_opt) {
+                // Backend couldn't convert event (unsupported/malformed)
+                return false;
+            }
+            const ui_event& ui_evt = *ui_evt_opt;
 
             // ============================================================
             // Layer Event Routing - FIRST PRIORITY!
@@ -329,7 +340,7 @@ namespace onyxui {
             // Route event through layers first (top to bottom).
             // If a layer handles the event or a modal blocks it, don't route to base UI.
             if (auto* layers = ui_services<Backend>::layers()) {
-                if (layers->route_event(event)) {
+                if (layers->route_event(native_event)) {
                     return true;  // Layer handled the event
                 }
             }
@@ -337,82 +348,76 @@ namespace onyxui {
             // ============================================================
             // Window Event Handling (Resize) - CHECK FIRST!
             // ============================================================
-            // Important: Check resize BEFORE other event types because union-style
-            // event structures (like tb_event) may satisfy multiple concepts at
-            // compile-time, but only represent one event type at runtime.
-            if constexpr (WindowEvent<event_type>) {
-                // Runtime check: is this actually a resize event?
-                if (event_traits<event_type>::is_resize_event(event)) {
-                    // Notify renderer to resize its buffers
-                    m_renderer.on_resize();
+            // NEW Phase 6: Use variant dispatch instead of event_traits
+            if (auto* resize_evt = std::get_if<resize_event>(&ui_evt)) {
+                // Notify renderer to resize its buffers
+                m_renderer.on_resize();
 
-                    // Get new window dimensions
-                    int new_width = event_traits<event_type>::window_width(event);
-                    int new_height = event_traits<event_type>::window_height(event);
+                // Get new window dimensions from typed event
+                int new_width = resize_evt->width;
+                int new_height = resize_evt->height;
 
-                    // Remeasure and rearrange UI for new dimensions
-                    rect_type new_bounds;
-                    rect_utils::set_bounds(new_bounds, 0, 0, new_width, new_height);
+                // Remeasure and rearrange UI for new dimensions
+                rect_type new_bounds;
+                rect_utils::set_bounds(new_bounds, 0, 0, new_width, new_height);
 
-                    [[maybe_unused]] auto measured_size = m_root->measure(new_width, new_height);
-                    m_root->arrange(new_bounds);
+                [[maybe_unused]] auto measured_size = m_root->measure(new_width, new_height);
+                m_root->arrange(new_bounds);
 
-                    return true;  // Resize handled
-                }
+                return true;  // Resize handled
             }
 
             // ============================================================
             // Keyboard Event Handling
             // ============================================================
-            if constexpr (KeyboardEvent<event_type>) {
-                // Runtime check: is this actually a key press event?
-                if (event_traits<event_type>::is_key_press(event)) {
-                    // 1. Handle Tab navigation (input_manager traverses tree automatically)
-                    if (auto* input = ui_services<Backend>::input()) {
-                        if (input->handle_tab_navigation_in_tree(event, m_root.get())) {
-                            return true;  // Tab was handled, focus changed
-                        }
+            // NEW Phase 6: Use variant dispatch and direct ui_event routing
+            if (auto* kbd_evt = std::get_if<keyboard_event>(&ui_evt)) {
+                // 1. Handle Tab navigation (input_manager traverses tree automatically)
+                // NOTE: Still uses native_event for backward compatibility with input_manager
+                if (auto* input = ui_services<Backend>::input()) {
+                    if (input->handle_tab_navigation_in_tree(native_event, m_root.get())) {
+                        return true;  // Tab was handled, focus changed
                     }
+                }
 
-                    // 2. Try global hotkeys from service locator
-                    // Global hotkeys work regardless of focus
-                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
-                        if (hotkeys->handle_key_event(event, nullptr)) {
-                            return true;  // Global hotkey handled
-                        }
+                // 2. Try global hotkeys from service locator
+                // NEW Phase 6: Use ui_event API for hotkeys
+                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                    if (hotkeys->handle_ui_event(ui_evt, nullptr)) {
+                        return true;  // Global hotkey handled
                     }
+                }
 
-                    // 3. Get focused widget for forwarding
-                    widget_type* focused = nullptr;
-                    if (auto* input = ui_services<Backend>::input()) {
-                        auto* focused_target = input->get_focused();
-                        focused = static_cast<widget_type*>(focused_target);
-                    }
+                // 3. Get focused widget for forwarding
+                widget_type* focused = nullptr;
+                if (auto* input = ui_services<Backend>::input()) {
+                    auto* focused_target = input->get_focused();
+                    focused = static_cast<widget_type*>(focused_target);
+                }
 
-                    // 4. Forward keyboard event to focused widget
-                    if (focused) {
-                        return focused->process_event(event);
-                    }
+                // 4. Forward keyboard event to focused widget
+                // NEW Phase 6: Use handle_event() instead of process_event()
+                if (focused) {
+                    return focused->handle_event(ui_evt);
                 }
             }
 
             // ============================================================
             // Mouse Event Handling (Unified with Input Manager)
             // ============================================================
-            if constexpr (MousePositionEvent<event_type>) {
+            // NEW Phase 6: Use variant dispatch and direct mouse_event access
+            if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
                 auto* input = ui_services<Backend>::input();
                 if (!input) return false;  // No input manager available
 
-                int mouse_x = event_traits<event_type>::mouse_x(event);
-                int mouse_y = event_traits<event_type>::mouse_y(event);
+                // Get mouse position from typed event
+                int mouse_x = mouse_evt->x;
+                int mouse_y = mouse_evt->y;
 
                 // Check if this is a button press/release event
-                bool is_button_event = false;
-                bool is_press = false;
-                if constexpr (MouseButtonEvent<event_type>) {
-                    is_button_event = true;
-                    is_press = event_traits<event_type>::is_button_press(event);
-                }
+                bool is_button_event = (mouse_evt->act == mouse_event::action::press ||
+                                       mouse_evt->act == mouse_event::action::release);
+                bool is_press = (mouse_evt->act == mouse_event::action::press);
 
                 // Determine target widget:
                 // - If mouse is captured, route to captured widget
@@ -456,9 +461,9 @@ namespace onyxui {
                 }
 
                 // Route event to target widget (either captured or under mouse)
+                // NEW Phase 6: Use handle_event() instead of process_event()
                 if (target_widget) {
-                    // Route event through process_event to get proper click generation
-                    return target_widget->process_event(event);
+                    return target_widget->handle_event(ui_evt);
                 }
             }
 
