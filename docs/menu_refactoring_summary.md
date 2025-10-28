@@ -379,6 +379,8 @@ Last updated: 2025-10-28
 | Phase 3 | 🟢 DONE | 2025-10-28 | 2025-10-28 | Submenu API - Data structure only, 796 tests pass, 4951 assertions, rendering deferred |
 | Phase 4 | 🟢 DONE | 2025-10-28 | 2025-10-28 | Composite menu_system - 807 tests pass, 4984 assertions, zero registration churn |
 | Phase 5 | 🟢 DONE | 2025-10-28 | 2025-10-28 | Submenu navigation - 812 tests pass, 5005 assertions, full cascading menus |
+| **Post-Phase 5 Bug Fixes** | | | | |
+| ESC Key Fix | 🟢 DONE | 2025-10-28 | 2025-10-28 | On-demand hotkey registration - ESC propagates to app when no menu open, 812 tests pass, 5025 assertions |
 
 **Legend:**
 - 🔴 TODO - Not started
