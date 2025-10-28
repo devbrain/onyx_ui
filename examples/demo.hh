@@ -122,7 +122,8 @@ private:
 
         // Spacer and instructions
         add_label(*this, "");
-        add_label(*this, "Press 1-4 to switch themes | ESC, Ctrl+C, or Alt+F4 to quit");
+        add_label(*this, "Press 1-4 to switch themes | F10 for menu (try File->Open!)");
+        add_label(*this, "ESC, Ctrl+C, or Alt+F4 to quit");
     }
 
     void setup_actions() {
@@ -196,8 +197,54 @@ private:
         new_item->set_action(m_new_action);
         file_menu->add_item(std::move(new_item));
 
+        // Phase 5: Open submenu - demonstrates cascading menu navigation!
         auto open_item = std::make_unique<onyxui::menu_item<Backend>>("Open");
-        open_item->set_action(m_open_action);
+
+        // Create Open submenu with multiple options
+        auto open_submenu = std::make_unique<onyxui::menu<Backend>>();
+
+        // Open File option (using existing open_action)
+        auto open_file_item = std::make_unique<onyxui::menu_item<Backend>>("Open &File...");
+        open_file_item->set_action(m_open_action);  // Ctrl+O
+        open_submenu->add_item(std::move(open_file_item));
+
+        // Open Folder option
+        auto open_folder_item = std::make_unique<onyxui::menu_item<Backend>>("Open F&older...");
+        open_folder_item->clicked.connect([]() {
+            std::cerr << "Open Folder clicked!" << std::endl;
+        });
+        open_submenu->add_item(std::move(open_folder_item));
+
+        open_submenu->add_separator();
+
+        // Recent Files submenu (nested submenu - demonstrates arbitrary depth!)
+        auto recent_item = std::make_unique<onyxui::menu_item<Backend>>("&Recent Files");
+
+        auto recent_submenu = std::make_unique<onyxui::menu<Backend>>();
+        auto recent1 = std::make_unique<onyxui::menu_item<Backend>>("demo.cc");
+        recent1->clicked.connect([]() {
+            std::cerr << "Opening recent file: demo.cc" << std::endl;
+        });
+        recent_submenu->add_item(std::move(recent1));
+
+        auto recent2 = std::make_unique<onyxui::menu_item<Backend>>("main.cc");
+        recent2->clicked.connect([]() {
+            std::cerr << "Opening recent file: main.cc" << std::endl;
+        });
+        recent_submenu->add_item(std::move(recent2));
+
+        auto recent3 = std::make_unique<onyxui::menu_item<Backend>>("test.cc");
+        recent3->clicked.connect([]() {
+            std::cerr << "Opening recent file: test.cc" << std::endl;
+        });
+        recent_submenu->add_item(std::move(recent3));
+
+        // Attach Recent Files submenu to Recent item
+        recent_item->set_submenu(std::move(recent_submenu));
+        open_submenu->add_item(std::move(recent_item));
+
+        // Attach Open submenu to Open item
+        open_item->set_submenu(std::move(open_submenu));
         file_menu->add_item(std::move(open_item));
 
         file_menu->add_separator();
