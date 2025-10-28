@@ -492,4 +492,79 @@ TEST_SUITE("menu_system::submenu_navigation") {
         CHECK_FALSE(menu_bar_widget->has_open_menu());  // All menus closed
     }
 
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Enter key opens submenu (like Right arrow)") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File menu with Open submenu
+        auto file_menu = std::make_unique<menu<Backend>>();
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
+
+        // Create "Open" item with submenu
+        auto open_item = std::make_unique<menu_item<Backend>>("Open");
+        auto open_submenu = std::make_unique<menu<Backend>>();
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("Project"));
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("File"));
+        open_item->set_submenu(std::move(open_submenu));
+        file_menu->add_item(std::move(open_item));
+
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("Save"));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu
+        menu_bar_widget->open_menu(0);
+
+        auto* menu = menu_bar_widget->get_menu(0);
+        CHECK(menu != nullptr);
+
+        // Navigate to "Open" item (index 1)
+        auto down_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_DOWN);
+        ctx.hotkeys().handle_key_event(down_event);
+
+        // Verify focused on "Open" item with submenu
+        auto* focused = menu->focused_item();
+        CHECK(focused != nullptr);
+        CHECK(focused->has_submenu());
+
+        // Press Enter to open submenu (new feature!)
+        auto enter_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_ENTER);
+        bool handled = ctx.hotkeys().handle_key_event(enter_event);
+
+        CHECK(handled);
+        // Submenu should be open (same as Right arrow behavior)
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Enter key activates regular items (no submenu)") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File menu with action item
+        auto file_menu = std::make_unique<menu<Backend>>();
+
+        bool action_triggered = false;
+        auto new_action = std::make_shared<action<Backend>>();
+        new_action->triggered.connect([&]() { action_triggered = true; });
+
+        auto new_item = std::make_unique<menu_item<Backend>>("New");
+        new_item->set_action(new_action);
+        file_menu->add_item(std::move(new_item));
+
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu (New is already focused)
+        menu_bar_widget->open_menu(0);
+
+        auto* menu = menu_bar_widget->get_menu(0);
+        auto* focused = menu->focused_item();
+        CHECK(focused != nullptr);
+        CHECK_FALSE(focused->has_submenu());
+
+        // Press Enter to activate item
+        auto enter_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_ENTER);
+        bool handled = ctx.hotkeys().handle_key_event(enter_event);
+
+        CHECK(handled);
+        CHECK(action_triggered);  // Action should be triggered
+    }
+
 } // TEST_SUITE menu_system::submenu_navigation

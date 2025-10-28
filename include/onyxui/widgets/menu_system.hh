@@ -369,11 +369,30 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle menu_select action
-         * @details Activates the focused item in current menu
+         * @brief Handle menu_select action (context-dependent)
+         *
+         * @details
+         * Behavior depends on focused item:
+         * - **Item has submenu**: Open the submenu
+         * - **Regular item**: Activate the item (trigger action)
          */
         void handle_menu_select() {
-            if (auto* menu = current_menu()) {
+            auto* menu = current_menu();
+            if (!menu) return;
+
+            auto* focused_item = menu->focused_item();
+            if (!focused_item) return;
+
+            if (focused_item->has_submenu()) {
+                // Enter on submenu item - open submenu (like Right arrow)
+                open_submenu(focused_item->submenu());
+
+                // Focus first item in submenu
+                if (auto* submenu = focused_item->submenu()) {
+                    submenu->focus_first();
+                }
+            } else {
+                // Enter on regular item - activate it
                 menu->activate_focused();
             }
         }
