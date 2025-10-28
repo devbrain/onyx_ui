@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <iostream>  // For std::cerr debug logging
 #include <onyxui/conio/termbox2_wrappers.hh>
 #include <onyxui/concepts/event_like.hh>
 
@@ -73,10 +74,22 @@ namespace onyxui {
         }
 
         [[nodiscard]] static bool shift_pressed(const tb_event& e) noexcept {
+            // Terminal reality: Enter=Ctrl+M, Tab=Ctrl+I (Ctrl bit always set at terminal level)
+            // Shift has no semantic meaning for these keys - ignore it
+            if (e.key == TB_KEY_ENTER || e.key == TB_KEY_TAB) {
+                return false;
+            }
             return (e.mod & TB_MOD_SHIFT) != 0;
         }
 
         [[nodiscard]] static bool ctrl_pressed(const tb_event& e) noexcept {
+            // Terminal reality: Enter=Ctrl+M, Tab=Ctrl+I (Ctrl bit always set at terminal level)
+            // Ignore Ctrl for these keys so they can be used in hotkeys without Ctrl modifier
+            //
+            // Note: Escape is NOT a Ctrl combination, so Ctrl+Escape is meaningful!
+            if (e.key == TB_KEY_ENTER || e.key == TB_KEY_TAB) {
+                return false;
+            }
             return (e.mod & TB_MOD_CTRL) != 0;
         }
 

@@ -42,9 +42,10 @@ TEST_CASE("measure_context - Basic functionality") {
         CHECK(size_utils::get_height(size) == 0);
     }
 
-    SUBCASE("renderer() returns nullptr") {
+    SUBCASE("is_measuring() returns true, is_rendering() returns false") {
         measure_context<Backend> ctx(make_default_style());
-        CHECK(ctx.renderer() == nullptr);
+        CHECK(ctx.is_measuring());
+        CHECK_FALSE(ctx.is_rendering());
     }
 }
 
@@ -145,12 +146,12 @@ TEST_CASE("measure_context - Reset functionality") {
 }
 
 TEST_CASE("draw_context - Basic functionality") {
-    SUBCASE("renderer() returns non-null") {
+    SUBCASE("is_rendering() returns true, is_measuring() returns false") {
         Backend::renderer_type renderer;
         draw_context<Backend> ctx(renderer);
 
-        CHECK(ctx.renderer() != nullptr);
-        CHECK(ctx.renderer() == &renderer);
+        CHECK(ctx.is_rendering());
+        CHECK_FALSE(ctx.is_measuring());
     }
 }
 
@@ -191,8 +192,9 @@ TEST_CASE("Polymorphic usage") {
         auto ctx = std::make_unique<measure_context<Backend>>(make_default_style());
         render_context<Backend>* base = ctx.get();
 
-        // measure_context has no renderer
-        CHECK(base->renderer() == nullptr);
+        // measure_context is in measuring mode
+        CHECK(base->is_measuring());
+        CHECK_FALSE(base->is_rendering());
     }
 
     SUBCASE("Can use render_context* to point to draw_context") {
@@ -200,8 +202,9 @@ TEST_CASE("Polymorphic usage") {
         auto ctx = std::make_unique<draw_context<Backend>>(renderer);
         render_context<Backend>* base = ctx.get();
 
-        // draw_context has valid renderer
-        CHECK(base->renderer() != nullptr);
+        // draw_context is in rendering mode
+        CHECK(base->is_rendering());
+        CHECK_FALSE(base->is_measuring());
     }
 }
 
@@ -229,8 +232,8 @@ TEST_CASE("Context lifetimes") {
         // Move
         draw_context<Backend> const ctx2 = std::move(ctx1);
 
-        // Moved context retains renderer
-        CHECK(ctx2.renderer() != nullptr);
+        // Moved context retains rendering mode
+        CHECK(ctx2.is_rendering());
     }
 }
 
@@ -302,7 +305,7 @@ TEST_CASE("draw_context - Constructor accepts resolved_style") {
     draw_context<Backend> ctx(renderer, style);
 
     CHECK(ctx.style().foreground_color.value.r == 100);
-    CHECK(ctx.renderer() != nullptr);
+    CHECK(ctx.is_rendering());
 }
 
 TEST_CASE("measure_context - Constructor accepts resolved_style") {
@@ -323,7 +326,7 @@ TEST_CASE("measure_context - Constructor accepts resolved_style") {
 
     CHECK(ctx.style().foreground_color.value.r == 50);
     CHECK(ctx.style().background_color.value.r == 200);
-    CHECK(ctx.renderer() == nullptr);
+    CHECK(ctx.is_measuring());
 }
 
 TEST_CASE("render_context - Style is passed to context") {

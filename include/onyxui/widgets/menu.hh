@@ -61,6 +61,7 @@
 #include <iostream>  // For debug output
 #include <onyxui/widgets/widget_container.hh>
 #include <onyxui/widgets/menu_item.hh>
+#include <onyxui/widgets/separator.hh>
 #include <onyxui/ui_services.hh>
 #include <onyxui/focus_manager.hh>
 #include <onyxui/layout/linear_layout.hh>
@@ -114,7 +115,8 @@ namespace onyxui {
                     horizontal_alignment::left,
                     vertical_alignment::top));
 
-            initialize_hotkeys();  // Register keyboard navigation
+            // NOTE: Semantic actions are registered when menu opens, not in constructor
+            // This prevents multiple menus from conflicting with each other
         }
 
         /**
@@ -157,7 +159,7 @@ namespace onyxui {
 
         /**
          * @brief Add a separator line
-         * @return Pointer to separator item
+         * @return Pointer to separator widget
          *
          * @details
          * Convenience method to add a horizontal divider.
@@ -169,10 +171,10 @@ namespace onyxui {
          * menu->add_item(exit_item);
          * @endcode
          */
-        menu_item<Backend>* add_separator() {
-            auto separator = menu_item<Backend>::make_separator(this);
-            menu_item<Backend>* ptr = separator.get();
-            this->add_child(std::move(separator));
+        separator<Backend>* add_separator() {
+            auto sep = std::make_unique<separator<Backend>>(orientation::horizontal, this);
+            separator<Backend>* ptr = sep.get();
+            this->add_child(std::move(sep));
             return ptr;
         }
 
@@ -237,7 +239,7 @@ namespace onyxui {
          * @brief Focus first focusable item
          *
          * @details
-         * Focuses the first non-separator, enabled item.
+         * Focuses the first enabled, focusable child.
          * Called automatically when menu is opened.
          */
         void focus_first() {
@@ -246,11 +248,9 @@ namespace onyxui {
             if (!focus_mgr) return;
 
             for (auto& child : this->children()) {
-                if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
-                    if (!item->is_separator() && item->is_enabled() && item->is_focusable()) {
-                        focus_mgr->set_focus(item);
-                        return;
-                    }
+                if (child->is_enabled() && child->is_focusable()) {
+                    focus_mgr->set_focus(child.get());
+                    return;
                 }
             }
         }
@@ -260,7 +260,7 @@ namespace onyxui {
          *
          * @details
          * Moves focus to next focusable item (wraps to start).
-         * Skips separators and disabled items.
+         * Skips non-focusable children (like separators) and disabled items.
          */
         void focus_next() {
             auto* focus_mgr = ui_services<Backend>::input();
@@ -283,7 +283,7 @@ namespace onyxui {
                     it = menu_items.begin();
                 }
 
-                if (!(*it)->is_separator() && (*it)->is_enabled() && (*it)->is_focusable()) {
+                if ((*it)->is_enabled() && (*it)->is_focusable()) {
                     focus_mgr->set_focus(*it);
                     return;
                 }
@@ -295,7 +295,7 @@ namespace onyxui {
          *
          * @details
          * Moves focus to previous focusable item (wraps to end).
-         * Skips separators and disabled items.
+         * Skips non-focusable children (like separators) and disabled items.
          */
         void focus_previous() {
             auto* focus_mgr = ui_services<Backend>::input();
@@ -318,7 +318,7 @@ namespace onyxui {
                     it = std::prev(menu_items.end());
                 }
 
-                if (!(*it)->is_separator() && (*it)->is_enabled() && (*it)->is_focusable()) {
+                if ((*it)->is_enabled() && (*it)->is_focusable()) {
                     focus_mgr->set_focus(*it);
                     return;
                 }
@@ -333,17 +333,75 @@ namespace onyxui {
          * Called when Enter is pressed.
          */
         void activate_focused() {
-            if (auto* item = focused_item()) {
-                if (!item->is_separator() && item->is_enabled()) {
-                    // Trigger the item's action
-                    if (auto action_ptr = item->get_action()) {
-                        action_ptr->trigger();
-                    }
-                    on_item_activated();
+            auto* item = focused_item();
+            if (item && item->is_enabled()) {
+                // Trigger the item's action
+                if (auto action_ptr = item->get_action()) {
+                    action_ptr->trigger();
                 }
+                on_item_activated();
             }
         }
 
+        /**
+         * @brief Register keyboard navigation hotkeys
+         *
+         * @details
+         * Registers semantic actions for menu keyboard navigation:
+         * - menu_down: Move to next item
+         * - menu_up: Move to previous item
+         * - menu_select: Activate focused item
+         * - menu_cancel: Close menu
+         *
+         * Should be called when the menu is opened/shown.
+         * Must be paired with unregister_navigation_hotkeys() when menu closes.
+         */
+        void register_navigation_hotkeys() {
+            auto* hotkeys = ui_services<Backend>::hotkeys();
+            if (!hotkeys) return;
+
+            // Down arrow → focus next item
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_down,
+                [this]() { this->focus_next(); }
+            );
+
+            // Up arrow → focus previous item
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_up,
+                [this]() { this->focus_previous(); }
+            );
+
+            // Enter → activate focused item
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_select,
+                [this]() { this->activate_focused(); }
+            );
+
+            // Escape → close menu
+            hotkeys->register_semantic_action(
+                hotkey_action::menu_cancel,
+                [this]() { this->closing.emit(); }
+            );
+        }
+
+        /**
+         * @brief Unregister keyboard navigation hotkeys
+         *
+         * @details
+         * Unregisters semantic actions for menu keyboard navigation.
+         * Should be called when the menu is closed/hidden.
+         * Must be paired with register_navigation_hotkeys().
+         */
+        void unregister_navigation_hotkeys() {
+            auto* hotkeys = ui_services<Backend>::hotkeys();
+            if (!hotkeys) return;
+
+            hotkeys->unregister_semantic_action(hotkey_action::menu_down);
+            hotkeys->unregister_semantic_action(hotkey_action::menu_up);
+            hotkeys->unregister_semantic_action(hotkey_action::menu_select);
+            hotkeys->unregister_semantic_action(hotkey_action::menu_cancel);
+        }
 
         /**
          * @brief Signal emitted when menu should close
@@ -392,46 +450,6 @@ namespace onyxui {
          */
         virtual void on_item_activated() {
             closing.emit();
-        }
-
-    private:
-        /**
-         * @brief Initialize keyboard navigation hotkeys
-         *
-         * @details
-         * Registers semantic actions for menu keyboard navigation:
-         * - menu_down: Move to next item
-         * - menu_up: Move to previous item
-         * - menu_select: Activate focused item
-         * - menu_cancel: Close menu
-         */
-        void initialize_hotkeys() {
-            auto* hotkeys = ui_services<Backend>::hotkeys();
-            if (!hotkeys) return;
-
-            // Down arrow → focus next item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_down,
-                [this]() { this->focus_next(); }
-            );
-
-            // Up arrow → focus previous item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_up,
-                [this]() { this->focus_previous(); }
-            );
-
-            // Enter → activate focused item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_select,
-                [this]() { this->activate_focused(); }
-            );
-
-            // Escape → close menu
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_cancel,
-                [this]() { this->closing.emit(); }
-            );
         }
     };
 

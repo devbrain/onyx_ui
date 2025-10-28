@@ -82,7 +82,7 @@ namespace onyxui {
             const point_type& position,
             const size_type& available_size
         )
-            : base(style, position, available_size)
+            : base(style, position, available_size, nullptr)
             , m_renderer(&renderer) {
         }
 
@@ -102,7 +102,7 @@ namespace onyxui {
          * proper visitor pattern support.
          */
         explicit draw_context(renderer_type& renderer, const resolved_style<Backend>& style)
-            : base(style)
+            : base(style, nullptr)
             , m_renderer(&renderer) {}
 
         /**
@@ -139,7 +139,7 @@ namespace onyxui {
             const point_type& position,
             const size_type& available_size,
             const std::vector<rect_type>& dirty_regions,
-            const typename base::theme_type* theme = nullptr
+            const typename base::theme_type* theme
         )
             : base(style, position, available_size, theme)
             , m_renderer(&renderer)
@@ -166,7 +166,7 @@ namespace onyxui {
          * - Caller must handle exception and use fallback rendering strategy
          */
         draw_context(renderer_type& renderer, const resolved_style<Backend>& style, const std::vector<rect_type>& dirty_regions)
-            : base(style)
+            : base(style, nullptr)
             , m_renderer(&renderer)
             , m_dirty_regions(dirty_regions) {}
 
@@ -308,56 +308,74 @@ namespace onyxui {
             const icon_type& icon,
             const point_type& position
         ) override {
-            if (m_renderer) {
-                // Get icon size to construct bounds
-                auto icon_size = renderer_type::get_icon_size(icon);
+            // Get icon size to construct bounds
+            auto icon_size = renderer_type::get_icon_size(icon);
 
-                // Construct rect from position and size
-                rect_type icon_bounds;
-                rect_utils::set_bounds(
-                    icon_bounds,
-                    point_utils::get_x(position),
-                    point_utils::get_y(position),
-                    size_utils::get_width(icon_size),
-                    size_utils::get_height(icon_size)
-                );
+            // Construct rect from position and size
+            rect_type icon_bounds;
+            rect_utils::set_bounds(
+                icon_bounds,
+                point_utils::get_x(position),
+                point_utils::get_y(position),
+                size_utils::get_width(icon_size),
+                size_utils::get_height(icon_size)
+            );
 
-                // Call renderer with rect and icon
-                m_renderer->draw_icon(icon_bounds, icon);
-            }
-            return renderer_type::get_icon_size(icon);
+            // Call renderer with rect and icon (m_renderer guaranteed non-null)
+            m_renderer->draw_icon(icon_bounds, icon);
+            return icon_size;
         }
 
         /**
          * @brief Draw horizontal separator line
          * @param bounds Line bounds (y and height define position, x and w define extent)
          * @param style Line drawing style
+         *
+         * @details
+         * Auto-syncs renderer state with resolved style before drawing.
+         * This prevents state leaking between widgets (e.g., highlighted menu item
+         * background bleeding into separator).
          */
         void draw_horizontal_line(
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
-            if (m_renderer) {
-                m_renderer->draw_horizontal_line(bounds, style);
-            }
+            // Auto-sync renderer state with resolved style
+            m_renderer->set_foreground(this->style().foreground_color);
+            m_renderer->set_background(this->style().background_color);
+            m_renderer->draw_horizontal_line(bounds, style);
         }
 
         /**
          * @brief Draw vertical separator line
          * @param bounds Line bounds (x and width define position, y and h define extent)
          * @param style Line drawing style
+         *
+         * @details
+         * Auto-syncs renderer state with resolved style before drawing.
+         * This prevents state leaking between widgets.
          */
         void draw_vertical_line(
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
-            if (m_renderer) {
-                m_renderer->draw_vertical_line(bounds, style);
-            }
+            // Auto-sync renderer state with resolved style
+            m_renderer->set_foreground(this->style().foreground_color);
+            m_renderer->set_background(this->style().background_color);
+            m_renderer->draw_vertical_line(bounds, style);
         }
 
         /**
-         * @brief Access underlying renderer
+         * @brief Check if context is rendering
+         * @return true (draw_context is always rendering)
+         */
+        [[nodiscard]] bool is_rendering() const noexcept override {
+            return true;
+        }
+
+    protected:
+        /**
+         * @brief Access underlying renderer (internal use only)
          * @return Pointer to the renderer
          */
         [[nodiscard]] renderer_type* renderer() noexcept override {
@@ -365,12 +383,14 @@ namespace onyxui {
         }
 
         /**
-         * @brief Access underlying renderer (const version)
+         * @brief Access underlying renderer (const version, internal use only)
          * @return Const pointer to the renderer
          */
         [[nodiscard]] const renderer_type* renderer() const noexcept override {
             return m_renderer;
         }
+
+    public:
 
         /**
          * @brief Set dirty regions for optimized rendering

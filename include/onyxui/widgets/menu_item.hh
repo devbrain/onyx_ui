@@ -9,7 +9,6 @@
  * - Text with mnemonic (Alt+key navigation)
  * - Action integration (triggers on activation)
  * - Shortcut display (shows Ctrl+S, F9, etc.)
- * - Separator style
  * - Submenu indicators
  * - Enabled/disabled state
  *
@@ -19,12 +18,6 @@
  * Text with optional mnemonic and shortcut
  * ```
  * &Save          Ctrl+S
- * ```
- *
- * **Separator:**
- * Visual divider between menu sections
- * ```
- * ─────────────────────
  * ```
  *
  * **Submenu:**
@@ -67,7 +60,6 @@ namespace onyxui {
      */
     enum class menu_item_type {
         normal,     ///< Regular menu item with text
-        separator,  ///< Horizontal divider
         submenu     ///< Opens a submenu
     };
 
@@ -118,18 +110,6 @@ namespace onyxui {
             , m_text(std::move(text))
             , m_item_type(menu_item_type::normal) {
             this->set_focusable(true);  // Menu items are focusable
-        }
-
-        /**
-         * @brief Construct a separator
-         * @param parent Parent element
-         * @return menu_item configured as separator
-         */
-        static std::unique_ptr<menu_item> make_separator(ui_element<Backend>* parent = nullptr) {
-            auto item = std::make_unique<menu_item>("", parent);
-            item->m_item_type = menu_item_type::separator;
-            item->set_focusable(false);  // Separators are not focusable
-            return item;
         }
 
         /**
@@ -213,13 +193,6 @@ namespace onyxui {
         }
 
         /**
-         * @brief Check if this is a separator
-         */
-        [[nodiscard]] bool is_separator() const noexcept {
-            return m_item_type == menu_item_type::separator;
-        }
-
-        /**
          * @brief Get shortcut text from associated action
          * @return Shortcut string (e.g., "Ctrl+S"), or empty if none
          */
@@ -272,11 +245,12 @@ namespace onyxui {
          * During rendering: draws background, text, and shortcut with state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
+            // Get bounds for positioning
+            const auto& item_bounds = this->bounds();
+
             // Use resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
-
-            // DEBUG: Log resolved colors
 
             // Calculate sizes (needed for both measurement and rendering)
             std::string const shortcut = get_shortcut_text();
@@ -296,35 +270,10 @@ namespace onyxui {
             constexpr int RIGHT_PADDING = 2;
             constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
 
-            // Use bounds for positioning during rendering
-            // During measurement, bounds will be zero, which is fine
-            const auto& item_bounds = this->bounds();
+            // Use bounds for positioning during rendering (already declared above for debug)
             int const base_x = rect_utils::get_x(item_bounds);
             int const base_y = rect_utils::get_y(item_bounds);
             int const item_width = rect_utils::get_width(item_bounds);
-
-            // Separator uses horizontal line drawing (like separator widget)
-            if (is_separator()) {
-                int const min_width = 20;
-                int const height = 1;  // Separators are 1 pixel tall
-
-                // During measurement (item_width == 0), use minimum width
-                // During rendering, use actual width
-                int const width = item_width > 0 ? std::max(min_width, item_width) : min_width;
-
-                // Draw horizontal line using renderer's line drawing
-                typename Backend::rect_type line_rect;
-                rect_utils::set_bounds(line_rect, base_x, base_y, width, height);
-
-                // Get line style from theme (use separator's line_style)
-                // Default to empty line_style{} if no theme available
-                typename renderer_type::line_style line_style{};
-                if (auto* theme = ctx.theme()) {
-                    line_style = theme->separator.line_style;
-                }
-                ctx.draw_horizontal_line(line_rect, line_style);
-                return;
-            }
 
             // Calculate minimum width needed
             int const min_width = LEFT_PADDING + text_width +
@@ -368,6 +317,19 @@ namespace onyxui {
             int const right_edge = base_x + effective_width - 1;
             typename Backend::point_type const right_marker{right_edge, base_y};
             ctx.draw_text(" ", right_marker, text_font, fg);
+        }
+
+        /**
+         * @brief Stateful widget - does NOT inherit colors from parent
+         * @return false - menu items manage their own state-based colors
+         *
+         * @details
+         * Menu items have state-dependent colors (normal/highlighted/disabled) that
+         * must NOT be overridden by parent CSS inheritance. If we inherit colors from
+         * the menu container, the highlighting won't work.
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Stateful widget - use theme colors, not parent colors
         }
 
         /**
@@ -420,7 +382,7 @@ namespace onyxui {
         bool handle_mouse_enter() override {
             // Mouse hover also sets focus (DOS menu behavior)
             auto* input = ui_services<Backend>::input();
-            if (input && this->is_focusable() && this->is_enabled() && !is_separator()) {
+            if (input && this->is_focusable() && this->is_enabled()) {
                 input->set_focus(this);
             }
 

@@ -243,31 +243,67 @@ namespace onyxui {
         ) = 0;
 
         /**
-         * @brief Access underlying renderer (for advanced use cases)
+         * @brief Check if context is in rendering mode
+         * @return true for draw_context, false for measure_context
+         *
+         * @details
+         * Use this to conditionally execute render-only code paths.
+         * Prefer using this over checking renderer() pointer.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     // Common code for both measure and render
+         *     auto size = ctx.draw_text(m_text, pos, font, color);
+         *
+         *     // Render-only code
+         *     if (ctx.is_rendering()) {
+         *         // Expensive decoration only during rendering
+         *         ctx.draw_icon(icon, icon_pos);
+         *     }
+         * }
+         * @endcode
+         */
+        [[nodiscard]] virtual bool is_rendering() const noexcept {
+            return false;  // Base class and measure_context return false
+        }
+
+        /**
+         * @brief Check if context is in measurement mode
+         * @return true for measure_context, false for draw_context
+         *
+         * @details
+         * Convenience method, equivalent to `!is_rendering()`.
+         */
+        [[nodiscard]] bool is_measuring() const noexcept {
+            return !is_rendering();
+        }
+
+    protected:
+        /**
+         * @brief Access underlying renderer (internal use only)
          * @return Pointer to renderer, or nullptr if measuring
          *
          * @details
-         * Returns nullptr during measurement pass (measure_context).
-         * Returns valid renderer during rendering pass (draw_context).
+         * Protected to prevent widgets from bypassing the visitor pattern.
+         * Only draw_context should override this for internal forwarding.
          *
-         * **Warning**: Directly using the renderer bypasses the visitor pattern
-         * and may cause measurement/rendering to diverge. Use sparingly.
+         * Widgets should use render_context methods (draw_text, draw_rect, etc.),
+         * not direct renderer access.
          */
         [[nodiscard]] virtual renderer_type* renderer() noexcept {
             return nullptr;
         }
 
         /**
-         * @brief Access underlying renderer (const version)
+         * @brief Access underlying renderer (const version, internal use only)
          * @return Const pointer to renderer, or nullptr if measuring
-         *
-         * @details
-         * Const overload for accessing renderer from const contexts.
-         * Useful for read-only operations like querying capabilities.
          */
         [[nodiscard]] virtual const renderer_type* renderer() const noexcept {
             return nullptr;
         }
+
+    public:
 
         // ===================================================================
         // Style Access (v2.0)
@@ -500,7 +536,7 @@ namespace onyxui {
             const resolved_style<Backend>& style,
             const point_type& position,
             const size_type& available_size,
-            const theme_type* theme = nullptr
+            const theme_type* theme
         )
             : m_style(style)
             , m_position(position)
@@ -518,7 +554,7 @@ namespace onyxui {
          * Position and size are initialized to zero.
          * Use this for measurement contexts.
          */
-        explicit render_context(const resolved_style<Backend>& style, const theme_type* theme = nullptr)
+        explicit render_context(const resolved_style<Backend>& style, const theme_type* theme)
             : m_style(style)
             , m_theme(theme) {
             // Initialize position and size to zero (measurement defaults)

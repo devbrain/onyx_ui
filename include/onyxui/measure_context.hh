@@ -88,7 +88,7 @@ namespace onyxui {
          * as rendering. This prevents measurement/rendering inconsistencies.
          */
         explicit measure_context(const resolved_style<Backend>& style)
-            : base(style)
+            : base(style, nullptr)
             , m_min_x(INT_MAX)
             , m_min_y(INT_MAX)
             , m_max_right(INT_MIN)
