@@ -344,66 +344,6 @@ namespace onyxui {
         }
 
         /**
-         * @brief Register keyboard navigation hotkeys
-         *
-         * @details
-         * Registers semantic actions for menu keyboard navigation:
-         * - menu_down: Move to next item
-         * - menu_up: Move to previous item
-         * - menu_select: Activate focused item
-         * - menu_cancel: Close menu
-         *
-         * Should be called when the menu is opened/shown.
-         * Must be paired with unregister_navigation_hotkeys() when menu closes.
-         */
-        void register_navigation_hotkeys() {
-            auto* hotkeys = ui_services<Backend>::hotkeys();
-            if (!hotkeys) return;
-
-            // Down arrow → focus next item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_down,
-                [this]() { this->focus_next(); }
-            );
-
-            // Up arrow → focus previous item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_up,
-                [this]() { this->focus_previous(); }
-            );
-
-            // Enter → activate focused item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_select,
-                [this]() { this->activate_focused(); }
-            );
-
-            // Escape → close menu
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_cancel,
-                [this]() { this->closing.emit(); }
-            );
-        }
-
-        /**
-         * @brief Unregister keyboard navigation hotkeys
-         *
-         * @details
-         * Unregisters semantic actions for menu keyboard navigation.
-         * Should be called when the menu is closed/hidden.
-         * Must be paired with register_navigation_hotkeys().
-         */
-        void unregister_navigation_hotkeys() {
-            auto* hotkeys = ui_services<Backend>::hotkeys();
-            if (!hotkeys) return;
-
-            hotkeys->unregister_semantic_action(hotkey_action::menu_down);
-            hotkeys->unregister_semantic_action(hotkey_action::menu_up);
-            hotkeys->unregister_semantic_action(hotkey_action::menu_select);
-            hotkeys->unregister_semantic_action(hotkey_action::menu_cancel);
-        }
-
-        /**
          * @brief Signal emitted when menu should close
          *
          * @details

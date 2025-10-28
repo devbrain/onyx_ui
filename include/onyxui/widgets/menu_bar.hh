@@ -73,6 +73,7 @@
 #include <onyxui/focus_manager.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
+#include <onyxui/hotkeys/semantic_action_guard.hh>
 
 namespace onyxui {
 
@@ -400,60 +401,16 @@ namespace onyxui {
                 }
             );
 
-            // Navigate down in dropdown menu
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_down,
-                [this]() {
-                    if (m_open_menu_index.has_value()) {
-                        auto& entry = m_menus[*m_open_menu_index];
-                        if (entry.dropdown_menu) {
-                            entry.dropdown_menu->focus_next();
-                        }
-                    }
-                }
-            );
-
-            // Navigate up in dropdown menu
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_up,
-                [this]() {
-                    if (m_open_menu_index.has_value()) {
-                        auto& entry = m_menus[*m_open_menu_index];
-                        if (entry.dropdown_menu) {
-                            entry.dropdown_menu->focus_previous();
-                        }
-                    }
-                }
-            );
-
-            // Select/activate focused menu item
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_select,
-                [this]() {
-                    if (m_open_menu_index.has_value()) {
-                        auto& entry = m_menus[*m_open_menu_index];
-                        if (entry.dropdown_menu) {
-                            entry.dropdown_menu->activate_focused();
-                        }
-                    }
-                }
-            );
-
-            // Cancel/close menu
-            hotkeys->register_semantic_action(
-                hotkey_action::menu_cancel,
-                [this]() {
-                    if (m_open_menu_index.has_value()) {
-                        close_menu();
-                    }
-                }
-            );
+            // NOTE: menu_down, menu_up, menu_select, menu_cancel are registered
+            // per-menu using RAII guards in open_menu() (Phase 1).
+            // This prevents conflicts when multiple menus exist.
         }
 
     private:
         std::vector<menu_entry<Backend>> m_menus;  ///< Menu entries with owned dropdown menus
         std::optional<std::size_t> m_open_menu_index;  ///< Currently open menu
         scoped_layer<Backend> m_current_menu;      ///< Current menu popup (RAII cleanup)
+        std::vector<semantic_action_guard<Backend>> m_menu_nav_guards;  ///< RAII guards for menu navigation (Phase 1)
     };
 
 } // namespace onyxui
@@ -485,10 +442,24 @@ namespace onyxui {
             entry.dropdown_menu.get()  // Pass raw pointer, unique_ptr retains ownership
         );
 
-        // Register navigation hotkeys for THIS menu (Phase 0)
-        // This prevents conflicts when multiple menus exist
-        if (entry.dropdown_menu) {
-            entry.dropdown_menu->register_navigation_hotkeys();
+        // Register navigation hotkeys for THIS menu using RAII guards (Phase 1)
+        // Guards automatically unregister when menu closes or switches
+        auto* hotkeys = ui_services<Backend>::hotkeys();
+        if (hotkeys && entry.dropdown_menu) {
+            auto* menu = entry.dropdown_menu.get();
+
+            // Clear previous guards (auto-unregister previous menu's handlers)
+            m_menu_nav_guards.clear();
+
+            // Register handlers for currently open menu
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_down,
+                [menu]() { menu->focus_next(); });
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_up,
+                [menu]() { menu->focus_previous(); });
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_select,
+                [menu]() { menu->activate_focused(); });
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_cancel,
+                [this]() { this->close_menu(); });
         }
 
         // Focus the menu and first item
@@ -512,10 +483,9 @@ namespace onyxui {
             entry.title_item->set_menu_open(false);
         }
 
-        // Unregister navigation hotkeys (Phase 0)
-        if (entry.dropdown_menu) {
-            entry.dropdown_menu->unregister_navigation_hotkeys();
-        }
+        // Unregister navigation hotkeys using RAII guards (Phase 1)
+        // Guards automatically unregister when cleared
+        m_menu_nav_guards.clear();
 
         // RAII cleanup - scoped_layer automatically removes layer
         m_current_menu.reset();

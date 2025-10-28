@@ -68,6 +68,7 @@ add_executable(ui_unittest
         hotkeys/test_hotkey_ui_event.cc
         hotkeys/test_hotkey_scheme.cc
         hotkeys/test_key_chord.cc
+        hotkeys/test_semantic_action_guard.cc
         # YAML infrastructure tests (backend-agnostic, use test::test_types)
         reflection/test_fkyaml_basic.cc
         reflection/test_color_yaml.cc

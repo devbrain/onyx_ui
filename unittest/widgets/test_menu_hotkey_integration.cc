@@ -43,21 +43,45 @@ static test_backend::test_keyboard_event make_key_event(int key_code) {
 
 TEST_SUITE("menu_bar::hotkey_integration") {
 
-    TEST_CASE("Semantic actions are registered on construction") {
+    TEST_CASE("Semantic actions are registered on construction (Phase 1 RAII)") {
         scoped_ui_context<Backend> ctx;
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
-        // After construction, semantic handlers should be registered
+        // After construction, only menu bar-level handlers should be registered
         auto& hotkeys = ctx.hotkeys();
 
         CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_left));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_right));
+
+        // Phase 1: Menu navigation actions are NOT registered until menu opens
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_up));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+
+        // Now open a menu
+        auto file_menu = std::make_unique<menu<Backend>>();
+        auto item = std::make_unique<menu_item<Backend>>("New");
+        file_menu->add_item(std::move(item));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+        menu_bar_widget->open_menu(0);
+
+        // Menu navigation actions should now be registered via RAII guards
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+
+        // Close menu
+        menu_bar_widget->close_menu();
+
+        // Menu navigation actions should be unregistered
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_up));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
     }
 
     TEST_CASE("F10 opens first menu (Windows scheme)") {
