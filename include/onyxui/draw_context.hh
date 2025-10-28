@@ -267,6 +267,13 @@ namespace onyxui {
             // Create fill-only style (no border, solid fill)
             box_style fill_style{};  // Default: border_style::none, is_solid=true
             m_renderer->draw_box(bounds, fill_style);
+
+            // Restore background to window background (defensive - prevents color bleeding)
+            // After drawing a colored rect, restore the default window background
+            // so subsequent widgets don't inherit this color
+            if (auto* theme = this->theme()) {
+                m_renderer->set_background(theme->window_bg);
+            }
         }
 
         /**
