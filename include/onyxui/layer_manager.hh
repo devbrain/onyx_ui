@@ -74,6 +74,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
 #include <onyxui/element_fwd.hh>  // Forward declaration only (breaks circular dependency)
+#include <onyxui/theme.hh>  // For ui_theme<Backend>
 
 namespace onyxui {
 
@@ -203,6 +204,7 @@ namespace onyxui {
         using rect_type = typename Backend::rect_type;
         using event_type = typename Backend::event_type;
         using renderer_type = typename Backend::renderer_type;
+        using theme_type = ui_theme<Backend>;
 
         // Configuration
         struct config {
@@ -591,13 +593,15 @@ namespace onyxui {
          *
          * @param renderer Renderer to use
          * @param viewport Viewport bounds
+         * @param theme Theme pointer for styling (required, pass nullptr if no theme)
          *
          * @details
          * Renders all visible layers from lowest z to highest z.
          * Performs layout (measure/arrange) before rendering.
          * **Phase 1.2**: Automatically skips expired layers.
+         * Theme must be explicitly passed to ensure popup menus/dialogs use correct styling.
          */
-        void render_all_layers(renderer_type& renderer, const rect_type& viewport) {
+        void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type& theme) {
             // Phase 1.2: Clean up expired layers first
             cleanup_expired_layers();
 
@@ -618,8 +622,8 @@ namespace onyxui {
                     [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
                     root_ptr->arrange(layer.bounds);
 
-                    // Render
-                    root_ptr->render(renderer);
+                    // Render with theme (for proper styling in menus, dialogs, etc.)
+                    root_ptr->render(renderer, theme);
                 });
             }
         }

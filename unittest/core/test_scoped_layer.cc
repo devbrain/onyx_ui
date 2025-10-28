@@ -324,19 +324,23 @@ TEST_SUITE("scoped_layer - Integration") {
         layer_manager<Backend> mgr;
         auto elem = std::make_shared<TestElement>();
 
+        // Create minimal theme for testing
+        ui_theme<Backend> test_theme;
+        test_theme.name = "TestTheme";
+
         {
             auto layer = mgr.add_scoped_layer(layer_type::popup, elem);
 
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
         }
 
         // Layer removed, rendering should still work
         TestRenderer renderer;
         TestRect const viewport{0, 0, 800, 600};
-        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
     }
 }
 

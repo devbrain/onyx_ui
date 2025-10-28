@@ -165,7 +165,11 @@ namespace onyxui::testing {
             );
         }
 
-        auto* theme = themes_registry->get_current_theme();
+        auto* theme_ptr = themes_registry->get_current_theme();
+        if (!theme_ptr) {
+            throw std::runtime_error("No current theme set!");
+        }
+        const auto& theme = *theme_ptr;
         element.render(renderer, theme);
 
         return canvas;

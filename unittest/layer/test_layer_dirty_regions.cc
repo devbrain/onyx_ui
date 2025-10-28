@@ -32,13 +32,8 @@ using Backend = test_backend;
 
 TEST_SUITE("Layer Dirty Region Tracking") {
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layer removal marks area as dirty") {
-    // Setup ui_context with theme for measurement
-    ui_theme<Backend> theme;
-    theme.name = "Test";
-    scoped_ui_context<Backend> ctx;
-    ctx.themes().register_theme(std::move(theme));
-    ctx.themes().set_current_theme("Test");
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as dirty") {
+    // Use the fixture's context which already has a properly registered theme
 
     auto* layer_mgr = ui_services<Backend>::layers();
     REQUIRE(layer_mgr != nullptr);
@@ -175,13 +170,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layer removal marks 
     }
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "UI handle integrates removed layer dirty regions") {
-    // Setup ui_context with theme for measurement
-    ui_theme<Backend> theme;
-    theme.name = "Test";
-    scoped_ui_context<Backend> ctx;
-    ctx.themes().register_theme(std::move(theme));
-    ctx.themes().set_current_theme("Test");
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates removed layer dirty regions") {
+    // Use the fixture's context which already has a properly registered theme
 
     // Create root widget
     auto root = std::make_unique<panel<Backend>>();

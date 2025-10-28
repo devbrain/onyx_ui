@@ -192,6 +192,7 @@ namespace onyxui {
             }
 
             // Draw line based on orientation
+            // Note: draw_context auto-syncs renderer state with resolved style
             if (m_orientation == orientation::horizontal) {
                 ctx.draw_horizontal_line(line_rect, line_style);
             } else {

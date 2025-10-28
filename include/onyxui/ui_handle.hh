@@ -185,19 +185,25 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
-            // Get global theme ONCE at rendering entry point
-            auto* theme = ui_services<Backend>::themes()
-                ? ui_services<Backend>::themes()->get_current_theme()
-                : nullptr;
+            // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                throw std::runtime_error("Theme service not initialized! Ensure ui_context is created before rendering.");
+            }
+            auto* theme_ptr = themes->get_current_theme();
+            if (!theme_ptr) {
+                throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
+            }
+            const auto& theme = *theme_ptr;
 
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree
+            // Theme is passed down through the widget tree by reference
             m_root->render(m_renderer, theme);
 
-            // Render all overlay layers from current context
+            // Render all overlay layers from current context (pass theme for popup menus, dialogs)
             if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds);
+                layers->render_all_layers(m_renderer, bounds, theme);
             }
         }
 
@@ -233,19 +239,25 @@ namespace onyxui {
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
 
-            // Get global theme ONCE at rendering entry point
-            auto* theme = ui_services<Backend>::themes()
-                ? ui_services<Backend>::themes()->get_current_theme()
-                : nullptr;
+            // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                throw std::runtime_error("Theme service not initialized! Ensure ui_context is created before rendering.");
+            }
+            auto* theme_ptr = themes->get_current_theme();
+            if (!theme_ptr) {
+                throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
+            }
+            const auto& theme = *theme_ptr;
 
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree
+            // Theme is passed down through the widget tree by reference
             m_root->render(m_renderer, theme);
 
-            // Render all overlay layers from current context
+            // Render all overlay layers from current context (pass theme for popup menus, dialogs)
             if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds);
+                layers->render_all_layers(m_renderer, bounds, theme);
             }
         }
 

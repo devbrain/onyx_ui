@@ -142,7 +142,7 @@ namespace onyxui {
          * @brief Render the menu bar item
          *
          * @details
-         * Menu bar items are rendered WITHOUT borders.
+         * Menu bar items draw background when hovered or when menu is open.
          * They use menu bar theme colors and compact padding.
          */
         void do_render(render_context<Backend>& ctx) const override {
@@ -158,15 +158,41 @@ namespace onyxui {
             // Use pre-resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
+            auto const& bg = ctx.style().background_color;
 
-            // Menu bar items render ONLY text (no background, no border)
-            // The menu bar itself provides the background
+            // Measure text to determine item size
+            auto text_size = renderer_type::measure_text(m_text, text_font);
+            int const text_width = size_utils::get_width(text_size);
+            int const text_height = size_utils::get_height(text_size);
+
+            // Calculate full item bounds including padding
+            int const total_width = text_width + 2 * horizontal_padding;
+            int const total_height = text_height + 2 * vertical_padding;
+
+            // Draw background if hovered or menu is open (for highlighting)
+            if (this->is_hovered() || m_is_menu_open) {
+                typename Backend::rect_type bg_rect;
+                rect_utils::set_bounds(bg_rect, x, y, total_width, total_height);
+                ctx.fill_rect(bg_rect);
+            }
 
             // Draw text with theme-configured padding
             int const text_x = x + horizontal_padding;
             int const text_y = y + vertical_padding;
             typename Backend::point_type const text_pos{text_x, text_y};
             ctx.draw_text(m_text, text_pos, text_font, fg);
+        }
+
+        /**
+         * @brief Stateful widget - does NOT inherit colors from parent
+         * @return false - menu bar items manage their own state-based colors
+         *
+         * @details
+         * Menu bar items have state-dependent colors (normal/hover/open) that
+         * must NOT be overridden by parent CSS inheritance.
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Stateful widget - use theme colors, not parent colors
         }
 
         /**

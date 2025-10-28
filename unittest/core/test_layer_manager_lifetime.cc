@@ -84,6 +84,10 @@ public:
 TEST_SUITE("Layer Manager - Lifetime Safety") {
 
     TEST_CASE("Dangling pointer detection - basic case" * doctest::skip()) {
+        // Create minimal theme for testing (this test is skipped anyway)
+        ui_theme<Backend> test_theme;
+        test_theme.name = "TestTheme";
+
         SUBCASE("Destroy widget then route event") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
@@ -113,7 +117,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRect const viewport{0, 0, 800, 600};
 
             // Phase 1.2: Automatic cleanup of expired layers
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
 
             // Verify layer was removed
             CHECK(mgr.layer_count() == 0);
@@ -216,6 +220,11 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
     }
 
     TEST_CASE("Dangling pointer - rendering scenarios" * doctest::skip()) {
+        // Create minimal theme for testing (this test is skipped anyway)
+        ui_theme<Backend> test_theme;
+        test_theme.name = "TestTheme";
+
+
         // SKIPPED: These tests document known limitations of non-owning pointers.
         // show_popup/show_tooltip/show_modal_dialog use non-owning shared_ptr,
         // so if the caller incorrectly destroys the element, we can't detect it.
@@ -239,7 +248,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             // Should handle gracefully (skip expired layer)
             // Currently: EXPECTED TO FAIL
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
         }
 
         SUBCASE("Modal dialog after destruction") {
@@ -252,11 +261,16 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
         }
     }
 
     TEST_CASE("Dangling pointer - tooltip scenarios" * doctest::skip()) {
+        // Create minimal theme for testing (this test is skipped anyway)
+        ui_theme<Backend> test_theme;
+        test_theme.name = "TestTheme";
+
+
         layer_manager<Backend> mgr;
         auto tooltip = std::make_shared<TestElement>();
 
@@ -271,7 +285,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         SUBCASE("Render after tooltip destroyed") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
         }
 
         SUBCASE("Hide after tooltip destroyed") {

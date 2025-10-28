@@ -500,23 +500,11 @@ namespace onyxui {
             /**
        * @brief Render this element and its children with proper clipping
        * @param renderer The backend renderer instance
+       * @param theme Global theme (REQUIRED - no default)
        */
-            void render(renderer_type& renderer, const theme_type* theme = nullptr) {
-                // Create default parent style from theme (or empty if no theme)
-                resolved_style<Backend> default_style = theme
-                    ? resolved_style<Backend>::from_theme(*theme)
-                    : resolved_style<Backend>{
-                        .background_color = typename Backend::color_type{},
-                        .foreground_color = typename Backend::color_type{},
-                        .border_color = typename Backend::color_type{},
-                        .box_style = typename Backend::renderer_type::box_style{},
-                        .font = typename Backend::renderer_type::font{},
-                        .opacity = 1.0f,
-                        .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
-                        .padding_horizontal = std::optional<int>{},
-                        .padding_vertical = std::optional<int>{},
-                        .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
-                    };
+            void render(renderer_type& renderer, const theme_type& theme) {
+                // Create default parent style from theme
+                resolved_style<Backend> default_style = resolved_style<Backend>::from_theme(theme);
                 render(renderer, {}, theme, default_style);  // Empty vector means "render everything"
             }
 
@@ -524,7 +512,7 @@ namespace onyxui {
        * @brief Render this element and its children with dirty rectangle optimization
        * @param renderer The backend renderer instance
        * @param dirty_regions Regions that need redrawing (empty = render everything)
-       * @param theme Global theme (fetched once by ui_handle and passed down tree)
+       * @param theme Global theme (REQUIRED - fetched once by ui_handle and passed down tree)
        * @param parent_style Parent's resolved style (accumulated top-down, no recursion!)
        *
        * @details
@@ -540,7 +528,7 @@ namespace onyxui {
        * instead of O(depth), following the same pattern used by browser rendering engines.
        */
             void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions,
-                       const theme_type* theme, const resolved_style<Backend>& parent_style) {
+                       const theme_type& theme, const resolved_style<Backend>& parent_style) {
                 if (!m_visible) {
                     return;
                 }
@@ -559,7 +547,7 @@ namespace onyxui {
                 // Create draw context with resolved style, position, size, dirty regions, and theme
                 // Passing position/size decouples widgets from element state (pure visitor pattern)
                 // Theme pointer allows widgets to access rare properties (text_align, line_style, etc.)
-                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions, theme);
+                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions, &theme);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
                 if (!ctx.should_render(m_bounds)) {

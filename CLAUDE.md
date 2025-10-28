@@ -1012,28 +1012,56 @@ See `.clang-tidy` for full configuration.
 The project uses **doctest** (fetched via CMake FetchContent).
 
 **Test organization:**
-- 569 test cases across 27 test files
-- 2771 assertions total
+- 736 test cases across 27 test files
+- 4660 assertions total
 - All tests must pass with zero warnings
 
-**Writing tests:**
+**Writing tests for widgets (requires theme):**
+
+Widgets need a ui_context with registered themes. Use the `ui_context_fixture` helper:
+
 ```cpp
 #include <doctest/doctest.h>
+#include "../utils/test_helpers.hh"
+#include "../utils/test_canvas_backend.hh"
 
-TEST_CASE("Widget - Basic functionality") {
+using namespace onyxui;
+using namespace onyxui::testing;
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Widget - Basic functionality") {
     SUBCASE("First scenario") {
-        // Test code
-        CHECK(condition);
+        button<test_canvas_backend> btn("Click me");
+
+        // The fixture provides ctx which sets up themes automatically
+        auto size = btn.measure(100, 50);
+        CHECK(size_utils::get_width(size) > 0);
     }
 
     SUBCASE("Second scenario") {
+        label<test_canvas_backend> lbl("Text");
+        CHECK_FALSE(lbl.is_focusable());
+    }
+}
+```
+
+**Writing tests without widgets (no theme needed):**
+
+For non-widget tests, use regular TEST_CASE:
+
+```cpp
+#include <doctest/doctest.h>
+
+TEST_CASE("Core - Basic functionality") {
+    SUBCASE("First scenario") {
         // Test code
-        CHECK_FALSE(condition);
+        CHECK(condition);
     }
 }
 ```
 
 **Best practices:**
+- Use `ui_context_fixture<test_canvas_backend>` for widget tests
+- Use `test_canvas_backend` (not `test_backend`) for consistency
 - Test both measure and arrange phases
 - Verify exact bounds, not just success
 - Test edge cases (empty, zero size, max values)

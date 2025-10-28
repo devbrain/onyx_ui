@@ -50,7 +50,7 @@ TEST_SUITE("menu_item") {
         auto item = std::make_unique<menu_item<Backend>>("Save");
 
         CHECK(item->text() == "Save");
-        CHECK(!item->is_separator());
+        CHECK(item->is_focusable());  // Menu items are focusable by default
     }
 
     TEST_CASE("Set and get text") {
@@ -64,10 +64,10 @@ TEST_SUITE("menu_item") {
     }
 
     TEST_CASE("Create separator") {
-        auto separator = menu_item<Backend>::make_separator();
+        auto sep = std::make_unique<separator<Backend>>();
 
-        CHECK(separator->is_separator());
-        CHECK(!separator->is_focusable());
+        CHECK(!sep->is_focusable());
+        CHECK(sep->get_orientation() == orientation::horizontal);
     }
 
     TEST_CASE("Set mnemonic text") {
@@ -133,9 +133,9 @@ TEST_SUITE("menu_item") {
     }
 
     TEST_CASE("Separator is not focusable") {
-        auto separator = menu_item<Backend>::make_separator();
+        auto sep = std::make_unique<separator<Backend>>();
 
-        CHECK(!separator->is_focusable());
+        CHECK(!sep->is_focusable());
     }
 
     TEST_CASE("Normal item is focusable") {
@@ -184,8 +184,12 @@ TEST_SUITE("menu") {
         menu_widget->add_separator();
         menu_widget->add_item(std::make_unique<menu_item<Backend>>("Exit"));
 
-        CHECK(menu_widget->items().size() == 3);
-        CHECK(menu_widget->items()[1]->is_separator());
+        // items() returns only menu_items (excludes separators)
+        CHECK(menu_widget->items().size() == 2);
+        // All children includes items + separator
+        CHECK(menu_widget->children().size() == 3);
+        // Middle child is a separator widget
+        CHECK(!menu_widget->children()[1]->is_focusable());
     }
 
     TEST_CASE("Find item by mnemonic") {
@@ -576,7 +580,8 @@ TEST_SUITE("menu_integration") {
         CHECK(bar->menu_count() == 2);
 
         auto* file = bar->get_menu(0);
-        CHECK(file->items().size() == 4);
+        CHECK(file->items().size() == 3);  // items() excludes separator
+        CHECK(file->children().size() == 4);  // children() includes separator
 
         auto* edit = bar->get_menu(1);
         CHECK(edit->items().size() == 3);

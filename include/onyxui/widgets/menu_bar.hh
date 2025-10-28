@@ -485,6 +485,12 @@ namespace onyxui {
             entry.dropdown_menu.get()  // Pass raw pointer, unique_ptr retains ownership
         );
 
+        // Register navigation hotkeys for THIS menu (Phase 0)
+        // This prevents conflicts when multiple menus exist
+        if (entry.dropdown_menu) {
+            entry.dropdown_menu->register_navigation_hotkeys();
+        }
+
         // Focus the menu and first item
         if (auto* focus = ui_services<Backend>::input()) {
             focus->set_focus(entry.dropdown_menu.get());  // Pass raw pointer
@@ -504,6 +510,11 @@ namespace onyxui {
         auto& entry = m_menus[*m_open_menu_index];
         if (entry.title_item) {
             entry.title_item->set_menu_open(false);
+        }
+
+        // Unregister navigation hotkeys (Phase 0)
+        if (entry.dropdown_menu) {
+            entry.dropdown_menu->unregister_navigation_hotkeys();
         }
 
         // RAII cleanup - scoped_layer automatically removes layer

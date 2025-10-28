@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <algorithm>
 #include <iostream>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/button.hh>
@@ -39,6 +40,14 @@ public:
             throw std::runtime_error("No themes registered! Call conio_themes::register_default_themes() first.");
         }
 
+        // Find Norton Blue theme index (default theme, registered first by conio_backend)
+        auto norton_it = std::find(m_theme_names.begin(), m_theme_names.end(), "Norton Blue");
+        if (norton_it != m_theme_names.end()) {
+            m_current_theme_index = std::distance(m_theme_names.begin(), norton_it);
+        } else {
+            m_current_theme_index = 0;  // Fallback to first theme if Norton Blue not found
+        }
+
         // Set up layout
         this->set_vbox_layout(0);  // Vertical layout with no spacing for compact DOS look
         this->set_padding(onyxui::thickness::all(0));  // No internal padding for compact DOS look
@@ -49,7 +58,7 @@ public:
         // Build UI structure (including menu bar)
         build_ui();
 
-        // Apply initial theme by name
+        // Apply initial theme: Norton Blue (default conio theme)
         apply_theme_by_name(m_theme_names[m_current_theme_index]);
     }
 

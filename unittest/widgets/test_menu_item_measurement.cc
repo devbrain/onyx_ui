@@ -106,18 +106,29 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         CHECK(width >= 14);
     }
 
-    SUBCASE("Separator has fixed minimum width") {
+    SUBCASE("Separator has fixed height and expand width") {
         scoped_ui_context<Backend> ctx;
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
-        auto separator = menu_item<Backend>::make_separator();
+        auto sep = std::make_unique<separator<Backend>>();
 
         // Measure the separator
-        auto size = separator->measure(100, 100);
+        auto size = sep->measure(100, 100);
         int width = size_utils::get_width(size);
+        int height = size_utils::get_height(size);
 
-        // Separator should have at least 20 chars width (from the code)
-        CHECK(width >= 20);
+        // Separator has expand policy for width (returns 0 during measurement)
+        // and fixed height of 1
+        CHECK(height == 1);
+        CHECK(width == 0);  // Expand policy returns 0 during measurement
+
+        // After arrange(), the separator will fill available width
+        typename Backend::rect_type bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 100, 1);
+        sep->arrange(bounds);
+
+        auto arranged_bounds = sep->bounds();
+        CHECK(rect_utils::get_width(arranged_bounds) == 100);  // Now fills available width
     }
 }
 
@@ -456,23 +467,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         auto canvas = std::make_shared<test_canvas>(80, 25);
         canvas_renderer renderer(canvas);
         std::vector<canvas_rect> dirty_regions = {{0, 0, 80, 25}};
-        auto* theme = ctx.themes().get_current_theme();
+        auto* theme_ptr = ctx.themes().get_current_theme();
+
+        // Theme is required for rendering
+        if (!theme_ptr) {
+            throw std::runtime_error("No theme set!");
+        }
+        const auto& theme = *theme_ptr;
 
         // Create root parent_style from theme
-        auto parent_style = theme
-            ? resolved_style<CanvasBackend>::from_theme(*theme)
-            : resolved_style<CanvasBackend>{
-                .background_color = typename CanvasBackend::color_type{},
-                .foreground_color = typename CanvasBackend::color_type{},
-                .border_color = typename CanvasBackend::color_type{},
-                .box_style = typename CanvasBackend::renderer_type::box_style{},
-                .font = typename CanvasBackend::renderer_type::font{},
-                .opacity = 1.0f,
-                .icon_style = std::optional<typename CanvasBackend::renderer_type::icon_style>(std::nullopt),
-                .padding_horizontal = std::optional<int>{},
-                .padding_vertical = std::optional<int>{},
-                .mnemonic_font = std::optional<typename CanvasBackend::renderer_type::font>{}
-            };
+        auto parent_style = resolved_style<CanvasBackend>::from_theme(theme);
 
         root->render(renderer, dirty_regions, theme, parent_style);
 

@@ -35,19 +35,8 @@ using Backend = test_canvas_backend;
 namespace {
     // Test helper: resolve style with given theme
     template<typename Widget>
-    resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>* theme) {
-        auto parent_style = theme ? resolved_style<Backend>::from_theme(*theme) : resolved_style<Backend>{
-            .background_color = Backend::color_type{0, 0, 0},
-            .foreground_color = Backend::color_type{255, 255, 255},
-            .border_color = Backend::color_type{128, 128, 128},
-            .box_style = Backend::renderer_type::box_style{},
-            .font = Backend::renderer_type::font{},
-            .opacity = 1.0f,
-            .icon_style = std::optional<Backend::renderer_type::icon_style>(std::nullopt),
-            .padding_horizontal = std::optional<int>{},
-            .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
-        };
+    resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>& theme) {
+        auto parent_style = resolved_style<Backend>::from_theme(theme);
         return widget.resolve_style(theme, parent_style);
     }
 
@@ -815,7 +804,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Bu
 //     btn.apply_theme("State Test", ctx.themes());  // No longer needed - widgets use global theme
 
     // Get the registered theme
-    auto* test_theme = ctx.themes().get_theme("State Test");
+    auto* test_theme_ptr = ctx.themes().get_theme("State Test");
+    if (!test_theme_ptr) {
+        throw std::runtime_error("Theme not found!");
+    }
+    const auto& test_theme = *test_theme_ptr;
 
     // Normal state initially
     Backend::color_type normal_fg = resolve_with_theme(btn, test_theme).foreground_color;

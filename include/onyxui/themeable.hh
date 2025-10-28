@@ -311,7 +311,7 @@ namespace onyxui {
             /**
              * @brief Resolve complete style from theme, parent, and overrides
              *
-             * @param theme Theme pointer (can be nullptr for no theme)
+             * @param theme Theme reference (REQUIRED - must be valid)
              * @param parent_style Parent's resolved style (passed down from root)
              * @return Fully resolved style with all properties
              *
@@ -326,31 +326,27 @@ namespace onyxui {
              * @note Zero recursion! Parent style is passed down, not looked up.
              */
             [[nodiscard]] virtual resolved_style<Backend> resolve_style(
-                const theme_type* theme,
+                const theme_type& theme,
                 const resolved_style<Backend>& parent_style
             ) const {
                 // Start with theme style (widget-specific via polymorphism)
-                resolved_style<Backend> style = theme ? get_theme_style(*theme) : resolved_style<Backend>{
-                    .background_color = typename Backend::color_type{},
-                    .foreground_color = typename Backend::color_type{},
-                    .border_color = typename Backend::color_type{},
-                    .box_style = typename Backend::renderer_type::box_style{},
-                    .font = typename Backend::renderer_type::font{},
-                    .opacity = 1.0f,
-                    .icon_style = std::optional<typename Backend::renderer_type::icon_style>(std::nullopt),
-                    .padding_horizontal = std::optional<int>{},
-                    .padding_vertical = std::optional<int>{},
-                    .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
-                };
+                resolved_style<Backend> style = get_theme_style(theme);
 
                 // Apply parent inheritance per-property (CSS-style)
                 // Parent values override theme values (parent already accumulated from ancestors)
                 // Note: We don't check for "default" because backend types are opaque and may not have operator==
                 // The root element gets theme values, so this always works correctly.
-                style.background_color = parent_style.background_color.value;
-                style.foreground_color = parent_style.foreground_color.value;
+
+                // BUG FIX: Stateful widgets (menu_item, menu_bar_item, button) manage their own
+                // state-based colors and should NOT inherit from parents. Check if widget wants inheritance.
+                if (should_inherit_colors()) {
+                    style.background_color = parent_style.background_color.value;
+                    style.foreground_color = parent_style.foreground_color.value;
+                }
                 // box_style is NOT inherited (borders don't inherit in CSS)
                 // style.box_style = parent_style.box_style.value;  // REMOVED - breaks CSS compliance
+
+                // Font inheritance (all widgets inherit fonts)
                 style.font = parent_style.font.value;
 
                 // Icon style is optional - only inherit if parent has one
@@ -401,6 +397,24 @@ namespace onyxui {
              */
             [[nodiscard]] virtual const themeable* get_themeable_parent() const {
                 return nullptr;
+            }
+
+            /**
+             * @brief Check if widget should inherit colors from parent
+             * @return true if colors should inherit (default), false otherwise
+             *
+             * @details
+             * Stateful widgets (menu_item, menu_bar_item, button) manage their own
+             * state-based colors (normal/hover/pressed/etc) and should NOT inherit
+             * background/foreground from parents, as this would override their state colors.
+             *
+             * Non-stateful widgets (label, panel) should inherit colors from parents
+             * for consistent styling (CSS-style inheritance).
+             *
+             * @note Override to return false in stateful widgets
+             */
+            [[nodiscard]] virtual bool should_inherit_colors() const {
+                return true;  // Default: inherit colors (normal CSS behavior)
             }
 
             /**

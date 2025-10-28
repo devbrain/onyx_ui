@@ -4,6 +4,7 @@
 
 #include <onyxui/sdl2/sdl2_backend.hh>
 #include <onyxui/ui_context.hh>
+#include <onyxui/ui_services.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/vbox.hh>
@@ -110,7 +111,19 @@ int main() {
             // Render
             renderer.set_background({192, 192, 192});  // Windows gray
             renderer.clear_region(renderer.get_viewport());
-            root->render(&renderer);
+
+            // Get current theme (required for rendering)
+            auto* themes = ui_services<sdl2_backend>::themes();
+            if (!themes) {
+                throw std::runtime_error("Theme service not initialized!");
+            }
+            auto* theme_ptr = themes->get_current_theme();
+            if (!theme_ptr) {
+                throw std::runtime_error("No current theme set!");
+            }
+            const auto& theme = *theme_ptr;
+
+            root->render(&renderer, theme);
             renderer.present();
 
             SDL_Delay(16);  // ~60 FPS

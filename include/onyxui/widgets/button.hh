@@ -283,6 +283,18 @@ namespace onyxui {
         }
 
         /**
+         * @brief Stateful widget - does NOT inherit colors from parent
+         * @return false - buttons manage their own state-based colors
+         *
+         * @details
+         * Buttons have state-dependent colors (normal/hover/pressed/disabled) that
+         * must NOT be overridden by parent CSS inheritance.
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Stateful widget - use theme colors, not parent colors
+        }
+
+        /**
          * @brief Get complete widget style from theme
          * @param theme Theme to extract properties from
          * @return Resolved style with button-specific theme values
