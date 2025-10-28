@@ -42,12 +42,14 @@ namespace {
             bool operator==(const background_style&) const = default;
         };
 
+        using color_type = test_backend::color;
+
         // Track calls
         std::vector<std::pair<test_backend::rect, background_style>> draw_background_calls;
 
-        void draw_box(const test_backend::rect&, const box_style&) {}
-        void draw_text(const test_backend::rect&, std::string_view, const font&) {}
-        void draw_icon(const test_backend::rect&, const icon_style&) {}
+        void draw_box(const test_backend::rect&, const box_style&, const color_type&, const color_type&) {}
+        void draw_text(const test_backend::rect&, std::string_view, const font&, const color_type&, const color_type&) {}
+        void draw_icon(const test_backend::rect&, const icon_style&, const color_type&, const color_type&) {}
 
         void draw_background(const test_backend::rect& r, const background_style& style) {
             draw_background_calls.push_back({r, style});
@@ -59,9 +61,9 @@ namespace {
             draw_background_calls.push_back({r, style});
         }
 
-        void clear_region(const test_backend::rect&) {}
-        void draw_horizontal_line(const test_backend::rect&, const line_style&) {}
-        void draw_vertical_line(const test_backend::rect&, const line_style&) {}
+        void clear_region(const test_backend::rect&, const color_type&) {}
+        void draw_horizontal_line(const test_backend::rect&, const line_style&, const color_type&, const color_type&) {}
+        void draw_vertical_line(const test_backend::rect&, const line_style&, const color_type&, const color_type&) {}
 
         static size_type measure_text(std::string_view, const font&) {
             return {0, 0};

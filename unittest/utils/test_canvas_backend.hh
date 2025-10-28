@@ -122,6 +122,7 @@ namespace onyxui::testing {
     class canvas_renderer {
     public:
         using size_type = canvas_size;  // Required by RenderLike concept
+        using color_type = canvas_color;  // Required by RenderLike concept (for stateless drawing)
 
         struct box_style {
             bool draw_border = false;
@@ -176,51 +177,64 @@ namespace onyxui::testing {
         /**
          * @brief Draw box (border) - required by RenderLike
          */
-        void draw_box(const canvas_rect& rect, const box_style& style) {
+        void draw_box(const canvas_rect& rect, const box_style& style, const canvas_color& fg, const canvas_color& bg) {
             if (!style.draw_border || !m_canvas) return;
 
             if (rect.w < 2 || rect.h < 2) return;  // Too small for border
 
+            // Convert colors to palette indices (simplified)
+            uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
+
             // Draw corners
-            m_canvas->put(rect.x, rect.y, style.corner);
-            m_canvas->put(rect.x + rect.w - 1, rect.y, style.corner);
-            m_canvas->put(rect.x, rect.y + rect.h - 1, style.corner);
-            m_canvas->put(rect.x + rect.w - 1, rect.y + rect.h - 1, style.corner);
+            m_canvas->put(rect.x, rect.y, style.corner, fg_idx, bg_idx);
+            m_canvas->put(rect.x + rect.w - 1, rect.y, style.corner, fg_idx, bg_idx);
+            m_canvas->put(rect.x, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
+            m_canvas->put(rect.x + rect.w - 1, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
 
             // Draw horizontal edges
             for (int x = rect.x + 1; x < rect.x + rect.w - 1; ++x) {
-                m_canvas->put(x, rect.y, style.horizontal);
-                m_canvas->put(x, rect.y + rect.h - 1, style.horizontal);
+                m_canvas->put(x, rect.y, style.horizontal, fg_idx, bg_idx);
+                m_canvas->put(x, rect.y + rect.h - 1, style.horizontal, fg_idx, bg_idx);
             }
 
             // Draw vertical edges
             for (int y = rect.y + 1; y < rect.y + rect.h - 1; ++y) {
-                m_canvas->put(rect.x, y, style.vertical);
-                m_canvas->put(rect.x + rect.w - 1, y, style.vertical);
+                m_canvas->put(rect.x, y, style.vertical, fg_idx, bg_idx);
+                m_canvas->put(rect.x + rect.w - 1, y, style.vertical, fg_idx, bg_idx);
             }
         }
 
         /**
          * @brief Draw text - required by RenderLike (different signature!)
          */
-        void draw_text(const canvas_rect& rect, std::string_view text, const font& f) {
+        void draw_text(const canvas_rect& rect, std::string_view text, const font& f, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
+
+            // Convert colors to palette indices (simplified)
+            uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
             // Draw text at rect position
             for (size_t i = 0; i < text.length() && rect.x + static_cast<int>(i) < rect.x + rect.w; ++i) {
                 uint8_t attrs = 0;
                 if (f.bold) attrs |= 0x01;
                 if (f.underline) attrs |= 0x02;
-                m_canvas->put(rect.x + static_cast<int>(i), rect.y, text[i], 7, 0, attrs);
+                m_canvas->put(rect.x + static_cast<int>(i), rect.y, text[i], fg_idx, bg_idx, attrs);
             }
         }
 
         /**
          * @brief Draw icon - required by RenderLike
          */
-        void draw_icon(const canvas_rect& rect, const icon_style& style) {
+        void draw_icon(const canvas_rect& rect, const icon_style& style, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
-            m_canvas->put(rect.x, rect.y, style.icon);
+
+            // Convert colors to palette indices (simplified)
+            uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
+
+            m_canvas->put(rect.x, rect.y, style.icon, fg_idx, bg_idx);
         }
 
         /**
@@ -261,12 +275,15 @@ namespace onyxui::testing {
         /**
          * @brief Clear region - required by RenderLike
          */
-        void clear_region(const canvas_rect& rect) {
+        void clear_region(const canvas_rect& rect, const canvas_color& bg) {
             if (!m_canvas) return;
+
+            // Convert color to palette index (simplified)
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
             for (int y = rect.y; y < rect.y + rect.h; ++y) {
                 for (int x = rect.x; x < rect.x + rect.w; ++x) {
-                    m_canvas->put(x, y, ' ');
+                    m_canvas->put(x, y, ' ', bg_idx, bg_idx);
                 }
             }
         }
@@ -274,24 +291,32 @@ namespace onyxui::testing {
         /**
          * @brief Draw horizontal line
          */
-        void draw_horizontal_line(const canvas_rect& rect, const line_style& style) {
+        void draw_horizontal_line(const canvas_rect& rect, const line_style& style, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
+
+            // Convert colors to palette indices (simplified)
+            uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
             int const y = rect.y;
             for (int x = rect.x; x < rect.x + rect.w; ++x) {
-                m_canvas->put(x, y, style.horizontal);
+                m_canvas->put(x, y, style.horizontal, fg_idx, bg_idx);
             }
         }
 
         /**
          * @brief Draw vertical line
          */
-        void draw_vertical_line(const canvas_rect& rect, const line_style& style) {
+        void draw_vertical_line(const canvas_rect& rect, const line_style& style, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
+
+            // Convert colors to palette indices (simplified)
+            uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
+            uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
             int const x = rect.x;
             for (int y = rect.y; y < rect.y + rect.h; ++y) {
-                m_canvas->put(x, y, style.vertical);
+                m_canvas->put(x, y, style.vertical, fg_idx, bg_idx);
             }
         }
 
@@ -314,34 +339,6 @@ namespace onyxui::testing {
          */
         static canvas_size get_icon_size(const icon_style&) {
             return {1, 1};
-        }
-
-        /**
-         * @brief Set foreground color
-         */
-        void set_foreground(const canvas_color& color) {
-            m_foreground = color;
-        }
-
-        /**
-         * @brief Set background color
-         */
-        void set_background(const canvas_color& color) {
-            m_background = color;
-        }
-
-        /**
-         * @brief Get current foreground color
-         */
-        [[nodiscard]] canvas_color get_foreground() const {
-            return m_foreground;
-        }
-
-        /**
-         * @brief Get current background color
-         */
-        [[nodiscard]] canvas_color get_background() const {
-            return m_background;
         }
 
         /**
@@ -395,8 +392,6 @@ namespace onyxui::testing {
         std::shared_ptr<test_canvas> m_canvas;
         std::stack<canvas_rect> m_clip_stack;
         canvas_rect m_viewport;
-        canvas_color m_foreground{255, 255, 255};  // Default white
-        canvas_color m_background{0, 0, 0};        // Default black
     };
 
     /**

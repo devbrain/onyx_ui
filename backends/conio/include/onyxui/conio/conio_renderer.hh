@@ -141,6 +141,7 @@ namespace onyxui::conio {
             };
 
             using size_type = size; // Required by RenderLike concept
+            using color_type = color; // Required by RenderLike concept (for stateless drawing)
 
             conio_renderer();
             ~conio_renderer();
@@ -152,23 +153,29 @@ namespace onyxui::conio {
              * @brief Draw a box with the specified style
              * @param r Rectangle defining the box bounds
              * @param style Box drawing style (border and fill behavior)
+             * @param fg Foreground color for borders
+             * @param bg Background color for fill
              */
-            void draw_box(const rect& r, const box_style& style);
+            void draw_box(const rect& r, const box_style& style, const color& fg, const color& bg);
 
             /**
              * @brief Draw text within a rectangle
              * @param r Rectangle defining text bounds
              * @param text Text to draw (UTF-8 encoded)
              * @param f Font attributes
+             * @param fg Foreground color for text
+             * @param bg Background color behind text
              */
-            void draw_text(const rect& r, std::string_view text, const font& f);
+            void draw_text(const rect& r, std::string_view text, const font& f, const color& fg, const color& bg);
 
             /**
              * @brief Draw an icon/glyph
              * @param r Rectangle defining icon bounds
              * @param style Icon to draw
+             * @param fg Foreground color for icon
+             * @param bg Background color behind icon
              */
-            void draw_icon(const rect& r, icon_style style);
+            void draw_icon(const rect& r, icon_style style, const color& fg, const color& bg);
 
             /**
              * @brief Draw background fill (full viewport)
@@ -204,36 +211,41 @@ namespace onyxui::conio {
             /**
              * @brief Clear a rectangular region (fill with spaces)
              * @param r Rectangle to clear
+             * @param bg Background color for cleared region
              *
              * @details
-             * Fills the region with space characters using current background color.
+             * Fills the region with space characters using specified background color.
              * This is used by the dirty rectangle system to clear old content.
              */
-            void clear_region(const rect& r);
+            void clear_region(const rect& r, const color& bg);
 
             /**
              * @brief Draw a horizontal line
              * @param r Rectangle defining the line bounds (y and height define line position, x and w define extent)
              * @param style Line drawing style
+             * @param fg Foreground color for line characters
+             * @param bg Background color behind line
              *
              * @details
              * Draws a horizontal line using box-drawing characters. The line is drawn
              * at vertical position r.y with width r.w starting from r.x.
              * Used for menu separators, horizontal dividers, etc.
              */
-            void draw_horizontal_line(const rect& r, const line_style& style);
+            void draw_horizontal_line(const rect& r, const line_style& style, const color& fg, const color& bg);
 
             /**
              * @brief Draw a vertical line
              * @param r Rectangle defining the line bounds (x and width define line position, y and h define extent)
              * @param style Line drawing style
+             * @param fg Foreground color for line characters
+             * @param bg Background color behind line
              *
              * @details
              * Draws a vertical line using box-drawing characters. The line is drawn
              * at horizontal position r.x with height r.h starting from r.y.
              * Used for vertical separators, column dividers, etc.
              */
-            void draw_vertical_line(const rect& r, const line_style& style);
+            void draw_vertical_line(const rect& r, const line_style& style, const color& fg, const color& bg);
 
             // ===================================================================
             // Required Clipping Methods (RenderLike Concept)
@@ -347,30 +359,6 @@ namespace onyxui::conio {
             [[nodiscard]] static constexpr int get_border_thickness(const box_style& style) noexcept {
                 return (style.style == border_style::none) ? 0 : 1;
             }
-
-            // ===================================================================
-            // Color Management
-            // ===================================================================
-
-            /**
-             * @brief Set current foreground color
-             */
-            void set_foreground(const color& c);
-
-            /**
-             * @brief Set current background color
-             */
-            void set_background(const color& c);
-
-            /**
-             * @brief Get current foreground color
-             */
-            [[nodiscard]] color get_foreground() const;
-
-            /**
-             * @brief Get current background color
-             */
-            [[nodiscard]] color get_background() const;
 
         private:
             struct impl;

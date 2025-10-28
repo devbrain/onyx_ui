@@ -225,15 +225,8 @@ namespace onyxui {
                                   size_utils::get_width(text_size),
                                   size_utils::get_height(text_size));
 
-            // Save current foreground color (RAII pattern)
-            auto saved_fg = m_renderer->get_foreground();
-
-            // Set colors and draw
-            m_renderer->set_foreground(color);
-            m_renderer->draw_text(text_rect, text, font);
-
-            // Restore saved foreground (prevents color bleeding)
-            m_renderer->set_foreground(saved_fg);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_text(text_rect, text, font, color, this->style().background_color);
 
             return text_size;
         }
@@ -244,24 +237,14 @@ namespace onyxui {
          * @details
          * Forwards to renderer's draw_box() method.
          * The rectangle is actually rendered to the screen/buffer.
-         * Sets foreground and background colors from resolved style before drawing.
+         * Passes foreground and background colors from resolved style.
          */
         void draw_rect(
             const rect_type& bounds,
             box_style style
         ) override {
-            // Save current colors (RAII pattern)
-            auto saved_fg = m_renderer->get_foreground();
-            auto saved_bg = m_renderer->get_background();
-
-            // Set colors from resolved style before drawing
-            m_renderer->set_foreground(this->style().foreground_color);
-            m_renderer->set_background(this->style().background_color);
-            m_renderer->draw_box(bounds, style);
-
-            // Restore saved colors (prevents color bleeding)
-            m_renderer->set_foreground(saved_fg);
-            m_renderer->set_background(saved_bg);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_box(bounds, style, this->style().foreground_color, this->style().background_color);
         }
 
         /**
@@ -270,22 +253,16 @@ namespace onyxui {
          * @details
          * Fills the rectangle with background color from resolved style.
          * Creates a box_style with no border and solid fill, then calls draw_box().
-         * The renderer's background color is set before drawing.
          */
         void fill_rect(const rect_type& bounds) override {
-            // Save current background color (RAII pattern)
-            auto saved_bg = m_renderer->get_background();
-
-            // Set background color from resolved style
+            // Get background color from resolved style
             auto const& bg = this->style().background_color;
-            m_renderer->set_background(bg);
 
             // Create fill-only style (no border, solid fill)
             box_style fill_style{};  // Default: border_style::none, is_solid=true
-            m_renderer->draw_box(bounds, fill_style);
 
-            // Restore saved background (prevents color bleeding)
-            m_renderer->set_background(saved_bg);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_box(bounds, fill_style, bg, bg);
         }
 
         /**
@@ -340,8 +317,8 @@ namespace onyxui {
                 size_utils::get_height(icon_size)
             );
 
-            // Call renderer with rect and icon (m_renderer guaranteed non-null)
-            m_renderer->draw_icon(icon_bounds, icon);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_icon(icon_bounds, icon, this->style().foreground_color, this->style().background_color);
             return icon_size;
         }
 
@@ -351,26 +328,15 @@ namespace onyxui {
          * @param style Line drawing style
          *
          * @details
-         * Auto-syncs renderer state with resolved style before drawing.
-         * This prevents state leaking between widgets (e.g., highlighted menu item
-         * background bleeding into separator).
+         * Passes colors from resolved style directly to renderer.
+         * No state management needed - fully stateless!
          */
         void draw_horizontal_line(
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
-            // Save current colors (RAII pattern)
-            auto saved_fg = m_renderer->get_foreground();
-            auto saved_bg = m_renderer->get_background();
-
-            // Auto-sync renderer state with resolved style
-            m_renderer->set_foreground(this->style().foreground_color);
-            m_renderer->set_background(this->style().background_color);
-            m_renderer->draw_horizontal_line(bounds, style);
-
-            // Restore saved colors (prevents color bleeding)
-            m_renderer->set_foreground(saved_fg);
-            m_renderer->set_background(saved_bg);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_horizontal_line(bounds, style, this->style().foreground_color, this->style().background_color);
         }
 
         /**
@@ -379,25 +345,15 @@ namespace onyxui {
          * @param style Line drawing style
          *
          * @details
-         * Auto-syncs renderer state with resolved style before drawing.
-         * This prevents state leaking between widgets.
+         * Passes colors from resolved style directly to renderer.
+         * No state management needed - fully stateless!
          */
         void draw_vertical_line(
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
-            // Save current colors (RAII pattern)
-            auto saved_fg = m_renderer->get_foreground();
-            auto saved_bg = m_renderer->get_background();
-
-            // Auto-sync renderer state with resolved style
-            m_renderer->set_foreground(this->style().foreground_color);
-            m_renderer->set_background(this->style().background_color);
-            m_renderer->draw_vertical_line(bounds, style);
-
-            // Restore saved colors (prevents color bleeding)
-            m_renderer->set_foreground(saved_fg);
-            m_renderer->set_background(saved_bg);
+            // Pass colors directly to renderer (stateless!)
+            m_renderer->draw_vertical_line(bounds, style, this->style().foreground_color, this->style().background_color);
         }
 
         /**

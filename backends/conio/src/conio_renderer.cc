@@ -24,10 +24,6 @@ namespace onyxui::conio {
 
     struct conio_renderer::impl {
         vram m_vram;
-        // Default white foreground
-        color m_fg{color::MAX_COMPONENT, color::MAX_COMPONENT, color::MAX_COMPONENT};
-        // Default black background
-        color m_bg{color::MIN_COMPONENT, color::MIN_COMPONENT, color::MIN_COMPONENT};
     };
 
     // ======================================================================
@@ -40,7 +36,7 @@ namespace onyxui::conio {
 
     conio_renderer::~conio_renderer() = default;
 
-    void conio_renderer::draw_box(const rect& r, const box_style& style) {
+    void conio_renderer::draw_box(const rect& r, const box_style& style, const color& fg, const color& bg) {
         const rect clip = get_clip_rect();
 
         // Fill interior if solid
@@ -51,7 +47,7 @@ namespace onyxui::conio {
                     if (x >= clip.x && x < clip.x + clip.w &&
                         y >= clip.y && y < clip.y + clip.h) {
                         // Fill with space character using background color
-                        m_pimpl->m_vram.put(x, y, ' ', m_pimpl->m_fg, m_pimpl->m_bg);
+                        m_pimpl->m_vram.put(x, y, ' ', fg, bg);
                     }
                 }
             }
@@ -98,22 +94,22 @@ namespace onyxui::conio {
         // Draw corners (if visible)
         if (r.x >= clip.x && r.x < clip.x + clip.w &&
             r.y >= clip.y && r.y < clip.y + clip.h) {
-            m_pimpl->m_vram.put(r.x, r.y, tl, m_pimpl->m_fg, m_pimpl->m_bg);  // Top-left
+            m_pimpl->m_vram.put(r.x, r.y, tl, fg, bg);  // Top-left
         }
 
         if (right_edge >= clip.x && right_edge < clip.x + clip.w &&
             r.y >= clip.y && r.y < clip.y + clip.h) {
-            m_pimpl->m_vram.put(right_edge, r.y, tr, m_pimpl->m_fg, m_pimpl->m_bg);  // Top-right
+            m_pimpl->m_vram.put(right_edge, r.y, tr, fg, bg);  // Top-right
         }
 
         if (r.x >= clip.x && r.x < clip.x + clip.w &&
             bottom_edge >= clip.y && bottom_edge < clip.y + clip.h) {
-            m_pimpl->m_vram.put(r.x, bottom_edge, bl, m_pimpl->m_fg, m_pimpl->m_bg);  // Bottom-left
+            m_pimpl->m_vram.put(r.x, bottom_edge, bl, fg, bg);  // Bottom-left
         }
 
         if (right_edge >= clip.x && right_edge < clip.x + clip.w &&
             bottom_edge >= clip.y && bottom_edge < clip.y + clip.h) {
-            m_pimpl->m_vram.put(right_edge, bottom_edge, br, m_pimpl->m_fg, m_pimpl->m_bg);  // Bottom-right
+            m_pimpl->m_vram.put(right_edge, bottom_edge, br, fg, bg);  // Bottom-right
         }
 
         // Draw horizontal lines
@@ -121,11 +117,11 @@ namespace onyxui::conio {
             if (x >= clip.x && x < clip.x + clip.w) {
                 // Top edge
                 if (r.y >= clip.y && r.y < clip.y + clip.h) {
-                    m_pimpl->m_vram.put(x, r.y, h, m_pimpl->m_fg, m_pimpl->m_bg);
+                    m_pimpl->m_vram.put(x, r.y, h, fg, bg);
                 }
                 // Bottom edge
                 if (r.y + r.h - RECT_EDGE_OFFSET >= clip.y && r.y + r.h - RECT_EDGE_OFFSET < clip.y + clip.h) {
-                    m_pimpl->m_vram.put(x, r.y + r.h - RECT_EDGE_OFFSET, h, m_pimpl->m_fg, m_pimpl->m_bg);
+                    m_pimpl->m_vram.put(x, r.y + r.h - RECT_EDGE_OFFSET, h, fg, bg);
                 }
             }
         }
@@ -135,11 +131,11 @@ namespace onyxui::conio {
             if (y >= clip.y && y < clip.y + clip.h) {
                 // Left edge
                 if (r.x >= clip.x && r.x < clip.x + clip.w) {
-                    m_pimpl->m_vram.put(r.x, y, v, m_pimpl->m_fg, m_pimpl->m_bg);
+                    m_pimpl->m_vram.put(r.x, y, v, fg, bg);
                 }
                 // Right edge
                 if (r.x + r.w - RECT_EDGE_OFFSET >= clip.x && r.x + r.w - RECT_EDGE_OFFSET < clip.x + clip.w) {
-                    m_pimpl->m_vram.put(r.x + r.w - RECT_EDGE_OFFSET, y, v, m_pimpl->m_fg, m_pimpl->m_bg);
+                    m_pimpl->m_vram.put(r.x + r.w - RECT_EDGE_OFFSET, y, v, fg, bg);
                 }
             }
         }
@@ -149,7 +145,7 @@ namespace onyxui::conio {
     // Text Drawing
     // ======================================================================
 
-    void conio_renderer::draw_text(const rect& r, std::string_view text, const font& f) {
+    void conio_renderer::draw_text(const rect& r, std::string_view text, const font& f, const color& fg, const color& bg) {
         if (text.empty()) return;
 
         const rect clip = get_clip_rect();
@@ -182,7 +178,7 @@ namespace onyxui::conio {
                 uint32_t const codepoint = utf8::next(it, end);
 
                 // Draw the character with attributes
-                m_pimpl->m_vram.put(x, y, static_cast<int>(codepoint), m_pimpl->m_fg, m_pimpl->m_bg, attr);
+                m_pimpl->m_vram.put(x, y, static_cast<int>(codepoint), fg, bg, attr);
             } else {
                 // Still need to advance iterator even if not drawing
                 utf8::next(it, end);
@@ -199,9 +195,9 @@ namespace onyxui::conio {
     void conio_renderer::draw_background(const rect& viewport, const background_style& style) {
         const rect clip = get_clip_rect();
 
-        // Set colors from background_style
-        set_background(style.bg_color);
-        set_foreground(style.bg_color);  // Use same for consistency
+        // Use colors from background_style directly
+        const color& bg = style.bg_color;
+        const color& fg = style.bg_color;  // Use same for consistency
 
         // Fill entire viewport with the background style
         for (int y = viewport.y; y < viewport.y + viewport.h; ++y) {
@@ -210,7 +206,7 @@ namespace onyxui::conio {
                 if (x >= clip.x && x < clip.x + clip.w &&
                     y >= clip.y && y < clip.y + clip.h) {
                     // Use fill_char from style (space = solid, others = patterns)
-                    m_pimpl->m_vram.put(x, y, style.fill_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                    m_pimpl->m_vram.put(x, y, style.fill_char, fg, bg);
                 }
             }
         }
@@ -227,9 +223,9 @@ namespace onyxui::conio {
 
         const rect clip = get_clip_rect();
 
-        // Set colors from background_style
-        set_background(style.bg_color);
-        set_foreground(style.bg_color);
+        // Use colors from background_style directly
+        const color& bg = style.bg_color;
+        const color& fg = style.bg_color;
 
         // Fill only dirty regions (optimization)
         for (const auto& region : dirty_regions) {
@@ -239,7 +235,7 @@ namespace onyxui::conio {
                     if (x >= clip.x && x < clip.x + clip.w &&
                         y >= clip.y && y < clip.y + clip.h) {
                         // Use fill_char from style
-                        m_pimpl->m_vram.put(x, y, style.fill_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                        m_pimpl->m_vram.put(x, y, style.fill_char, fg, bg);
                     }
                 }
             }
@@ -250,18 +246,18 @@ namespace onyxui::conio {
     // Region Clearing
     // ======================================================================
 
-    void conio_renderer::clear_region(const rect& r) {
+    void conio_renderer::clear_region(const rect& r, const color& bg) {
 
         const rect clip = get_clip_rect();
 
-        // Clear by filling with spaces using current background color
+        // Clear by filling with spaces using specified background color
         for (int y = r.y; y < r.y + r.h; ++y) {
             for (int x = r.x; x < r.x + r.w; ++x) {
                 // Check if position is within clip region
                 if (x >= clip.x && x < clip.x + clip.w &&
                     y >= clip.y && y < clip.y + clip.h) {
-                    // Put a space character with current background
-                    m_pimpl->m_vram.put(x, y, ' ', m_pimpl->m_fg, m_pimpl->m_bg);
+                    // Put a space character with specified background
+                    m_pimpl->m_vram.put(x, y, ' ', bg, bg);
                 }
             }
         }
@@ -271,7 +267,7 @@ namespace onyxui::conio {
     // Line Drawing
     // ======================================================================
 
-    void conio_renderer::draw_horizontal_line(const rect& r, const line_style& style) {
+    void conio_renderer::draw_horizontal_line(const rect& r, const line_style& style, const color& fg, const color& bg) {
         const rect clip = get_clip_rect();
 
         // Select line character based on style
@@ -300,12 +296,12 @@ namespace onyxui::conio {
             // Check if position is within clip region
             if (x >= clip.x && x < clip.x + clip.w &&
                 y >= clip.y && y < clip.y + clip.h) {
-                m_pimpl->m_vram.put(x, y, line_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                m_pimpl->m_vram.put(x, y, line_char, fg, bg);
             }
         }
     }
 
-    void conio_renderer::draw_vertical_line(const rect& r, const line_style& style) {
+    void conio_renderer::draw_vertical_line(const rect& r, const line_style& style, const color& fg, const color& bg) {
         const rect clip = get_clip_rect();
 
         // Select line character based on style
@@ -334,7 +330,7 @@ namespace onyxui::conio {
             // Check if position is within clip region
             if (x >= clip.x && x < clip.x + clip.w &&
                 y >= clip.y && y < clip.y + clip.h) {
-                m_pimpl->m_vram.put(x, y, line_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                m_pimpl->m_vram.put(x, y, line_char, fg, bg);
             }
         }
     }
@@ -343,7 +339,7 @@ namespace onyxui::conio {
     // Icon Drawing
     // ======================================================================
 
-    void conio_renderer::draw_icon(const rect& r, icon_style style) {
+    void conio_renderer::draw_icon(const rect& r, icon_style style, const color& fg, const color& bg) {
 
         if (style == icon_style::none) return;
 
@@ -370,7 +366,7 @@ namespace onyxui::conio {
             default:                      return;
         }
 
-        m_pimpl->m_vram.put(r.x, r.y, ch, m_pimpl->m_fg, m_pimpl->m_bg);
+        m_pimpl->m_vram.put(r.x, r.y, ch, fg, bg);
     }
 
     // ======================================================================
@@ -421,22 +417,6 @@ namespace onyxui::conio {
         // In a TUI, each character is 1x1 cell
         return size{glyph_count, TUI_CELL_HEIGHT};
     }
-
-    // ======================================================================
-    // Color Management
-    // ======================================================================
-
-    void conio_renderer::set_foreground(const color& c) {
-        m_pimpl->m_fg = c;
-    }
-
-    void conio_renderer::set_background(const color& c) {
-        m_pimpl->m_bg = c;
-    }
-
-    color conio_renderer::get_foreground() const { return m_pimpl->m_fg; }
-
-    color conio_renderer::get_background() const { return m_pimpl->m_bg; }
 
     // ======================================================================
     // Resize Handling

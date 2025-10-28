@@ -94,6 +94,7 @@ namespace onyxui {
                                                   const typename T::font& f,
                                                   const typename T::icon_style& i,
                                                   const typename T::background_style& bg,
+                                                  const typename T::color_type& color,
                                                   const std::vector<R>& regions)
     {
         typename T::box_style;
@@ -101,23 +102,24 @@ namespace onyxui {
         typename T::font;
         typename T::icon_style;
         typename T::background_style;  // Backend-specific background attributes
+        typename T::color_type;  // Color type for stateless drawing
         typename T::size_type;  // Required for measure_text return type
 
-        // Drawing methods
-        { renderer.draw_box(rect, box) } -> std::same_as<void>;
-        { renderer.draw_text(rect, "text", f) } -> std::same_as<void>;
-        { renderer.draw_icon(rect, i) } -> std::same_as<void>;
+        // Drawing methods (stateless - pass colors directly)
+        { renderer.draw_box(rect, box, color, color) } -> std::same_as<void>;
+        { renderer.draw_text(rect, "text", f, color, color) } -> std::same_as<void>;
+        { renderer.draw_icon(rect, i, color, color) } -> std::same_as<void>;
 
-        // Line drawing methods
-        { renderer.draw_horizontal_line(rect, line) } -> std::same_as<void>;
-        { renderer.draw_vertical_line(rect, line) } -> std::same_as<void>;
+        // Line drawing methods (stateless - pass colors directly)
+        { renderer.draw_horizontal_line(rect, line, color, color) } -> std::same_as<void>;
+        { renderer.draw_vertical_line(rect, line, color, color) } -> std::same_as<void>;
 
         // Background drawing methods (optimized for viewport clearing)
         { renderer.draw_background(rect, bg) } -> std::same_as<void>;
         { renderer.draw_background(rect, bg, regions) } -> std::same_as<void>;
 
-        // Clearing method (for dirty rectangle support)
-        { renderer.clear_region(rect) } -> std::same_as<void>;
+        // Clearing method (for dirty rectangle support - stateless)
+        { renderer.clear_region(rect, color) } -> std::same_as<void>;
 
         // Clipping methods
         { renderer.push_clip(rect) } -> std::same_as<void>;

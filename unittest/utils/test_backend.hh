@@ -155,37 +155,17 @@ namespace onyxui {
                 bool operator==(const background_style&) const = default;
             };
             using size_type = size;  // Required by RenderLike concept
+            using color_type = color;  // Required by RenderLike concept (for stateless drawing)
 
-            void set_foreground(const color& c) {
-                m_foreground = c;
-            }
-
-            void set_background(const color& c) {
-                m_background = c;
-            }
-
-            [[nodiscard]] color get_foreground() const {
-                return m_foreground;
-            }
-
-            [[nodiscard]] color get_background() const {
-                return m_background;
-            }
-
-        private:
-            color m_foreground{255, 255, 255};  // Default white
-            color m_background{0, 0, 0};        // Default black
-        public:
-
-            void draw_box([[maybe_unused]] const rect& r,[[maybe_unused]]  const box_style& box) {
+            void draw_box([[maybe_unused]] const rect& r, [[maybe_unused]] const box_style& box, [[maybe_unused]] const color& fg, [[maybe_unused]] const color& bg) {
 
             }
 
-            void draw_text([[maybe_unused]] const rect& r, [[maybe_unused]] std::string_view x, [[maybe_unused]] const font& f) {
+            void draw_text([[maybe_unused]] const rect& r, [[maybe_unused]] std::string_view x, [[maybe_unused]] const font& f, [[maybe_unused]] const color& fg, [[maybe_unused]] const color& bg) {
 
             }
 
-            void draw_icon([[maybe_unused]] const rect& r,[[maybe_unused]]  const icon_style& icon) {
+            void draw_icon([[maybe_unused]] const rect& r, [[maybe_unused]] const icon_style& icon, [[maybe_unused]] const color& fg, [[maybe_unused]] const color& bg) {
 
             }
 
@@ -199,15 +179,15 @@ namespace onyxui {
                 // Stub for testing - dirty region background
             }
 
-            void clear_region([[maybe_unused]] const rect& r) {
+            void clear_region([[maybe_unused]] const rect& r, [[maybe_unused]] const color& bg) {
                 // Stub for testing - tracks what regions are cleared
             }
 
-            void draw_horizontal_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style) {
+            void draw_horizontal_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style, [[maybe_unused]] const color& fg, [[maybe_unused]] const color& bg) {
                 // Stub for testing
             }
 
-            void draw_vertical_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style) {
+            void draw_vertical_line([[maybe_unused]] const rect& r, [[maybe_unused]] const line_style& style, [[maybe_unused]] const color& fg, [[maybe_unused]] const color& bg) {
                 // Stub for testing
             }
 
