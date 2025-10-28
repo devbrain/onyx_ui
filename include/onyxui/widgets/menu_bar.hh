@@ -405,12 +405,16 @@ namespace onyxui {
         }
 
         m_open_menu_index = index;
-        auto& entry = m_menus[index];
 
-        // Update visual state of menu bar item
-        if (entry.title_item) {
-            entry.title_item->set_menu_open(true);
+        // Clear menu_open state on ALL items, then set only the current one
+        // This prevents stale highlighting on other menu items
+        for (std::size_t i = 0; i < m_menus.size(); ++i) {
+            if (m_menus[i].title_item) {
+                m_menus[i].title_item->set_menu_open(i == index);
+            }
         }
+
+        auto& entry = m_menus[index];
 
         // Show context menu with outside click detection (Phase 1.3)
         // scoped_layer auto-closes previous menu when reassigned
@@ -436,10 +440,11 @@ namespace onyxui {
             return;
         }
 
-        // Update visual state of menu bar item
-        auto& entry = m_menus[*m_open_menu_index];
-        if (entry.title_item) {
-            entry.title_item->set_menu_open(false);
+        // Clear menu_open state on ALL items (defensive - ensures no stale highlighting)
+        for (auto& entry : m_menus) {
+            if (entry.title_item) {
+                entry.title_item->set_menu_open(false);
+            }
         }
 
         // Phase 4: Notify menu_system to close all menus (unregisters handlers via RAII)
