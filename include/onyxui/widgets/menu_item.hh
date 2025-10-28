@@ -48,11 +48,16 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include <onyxui/widgets/stateful_widget.hh>
 #include <onyxui/widgets/action.hh>
 #include <onyxui/widgets/mnemonic_parser.hh>
 
 namespace onyxui {
+
+    // Forward declaration to avoid circular dependency (Phase 3)
+    template<UIBackend Backend>
+    class menu;
 
     /**
      * @enum menu_item_type
@@ -206,6 +211,61 @@ namespace onyxui {
             return "";
         }
 
+        // ===================================================================
+        // Submenu Management (Phase 3)
+        // ===================================================================
+
+        /**
+         * @brief Set submenu for this item
+         * @param submenu Submenu to attach (nullptr to remove)
+         *
+         * @details
+         * Item takes ownership of submenu.
+         * Automatically updates item type to submenu.
+         *
+         * @example
+         * @code
+         * auto submenu = std::make_unique<menu<Backend>>();
+         * submenu->add_item(std::make_unique<menu_item<Backend>>("Recent 1"));
+         * item->set_submenu(std::move(submenu));
+         * @endcode
+         */
+        void set_submenu(std::unique_ptr<menu<Backend>> submenu) {
+            m_submenu = std::move(submenu);
+            m_item_type = m_submenu ? menu_item_type::submenu : menu_item_type::normal;
+            this->invalidate_measure();  // Need to redraw with submenu indicator
+        }
+
+        /**
+         * @brief Check if item has submenu
+         * @return true if submenu attached, false otherwise
+         */
+        [[nodiscard]] bool has_submenu() const noexcept {
+            return m_submenu != nullptr;
+        }
+
+        /**
+         * @brief Get submenu pointer
+         * @return Pointer to submenu, or nullptr if none
+         */
+        [[nodiscard]] menu<Backend>* submenu() const noexcept {
+            return m_submenu.get();
+        }
+
+        /**
+         * @brief Release submenu ownership
+         * @return Submenu unique_ptr
+         *
+         * @details
+         * Transfers ownership to caller.
+         * Item type automatically reset to normal.
+         */
+        [[nodiscard]] std::unique_ptr<menu<Backend>> release_submenu() noexcept {
+            m_item_type = menu_item_type::normal;
+            this->invalidate_measure();
+            return std::move(m_submenu);
+        }
+
     private:
         /**
          * @brief Extract mnemonic character from markup text
@@ -310,6 +370,9 @@ namespace onyxui {
                 typename Backend::point_type const shortcut_pos{shortcut_x, base_y};
                 ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
             }
+
+            // NOTE: Submenu indicator rendering deferred to Phase 4/5
+            // Phase 3 provides the data structure and API only
 
             // Ensure measurement includes right padding by drawing marker at rightmost edge
             // During measurement this ensures the bounding box extends to include right padding
@@ -459,6 +522,7 @@ namespace onyxui {
         mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
         mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
         menu_item_type m_item_type;               ///< Type of item
+        std::unique_ptr<menu<Backend>> m_submenu; ///< Submenu (Phase 3) - nullptr if no submenu
     };
 
 } // namespace onyxui

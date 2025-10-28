@@ -104,6 +104,9 @@ namespace onyxui {
             // Layout
             int padding_horizontal = 8;
             int padding_vertical = 1;
+
+            // NOTE: Submenu indicator rendering is deferred to Phase 4/5
+            // Each backend can decide how to render the "▶" indicator
         };
 
         /**
