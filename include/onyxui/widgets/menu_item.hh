@@ -325,6 +325,13 @@ namespace onyxui {
             auto text_size = renderer_type::measure_text(m_text, text_font);
             int text_width = size_utils::get_width(text_size);
 
+            // Submenu indicator width (Phase 5)
+            int submenu_indicator_width = 0;
+            if (has_submenu()) {
+                auto indicator_size = renderer_type::measure_text("\x10", text_font);  // ►
+                submenu_indicator_width = size_utils::get_width(indicator_size) + 1;  // +1 for spacing
+            }
+
             // Define padding constants
             constexpr int LEFT_PADDING = 2;
             constexpr int RIGHT_PADDING = 2;
@@ -335,9 +342,10 @@ namespace onyxui {
             int const base_y = rect_utils::get_y(item_bounds);
             int const item_width = rect_utils::get_width(item_bounds);
 
-            // Calculate minimum width needed
+            // Calculate minimum width needed (includes submenu indicator if present)
             int const min_width = LEFT_PADDING + text_width +
                                   (shortcut.empty() ? 0 : SHORTCUT_SPACING + shortcut_width) +
+                                  submenu_indicator_width +
                                   RIGHT_PADDING;
 
             // Use actual width if available (rendering), otherwise use minimum (measurement)
@@ -359,10 +367,50 @@ namespace onyxui {
             typename Backend::point_type const left_marker{base_x, base_y};
             ctx.draw_text(" ", left_marker, text_font, fg);
 
-            // Draw text with left padding
+            // Parse mnemonics lazily during render (cache depends on theme)
+            if (!m_mnemonic_markup.empty() && ctx.theme()) {
+                auto* theme = ctx.theme();
+                if (m_cached_theme_ptr != theme) {
+                    // Parse mnemonic with theme fonts (normal + mnemonic)
+                    m_mnemonic_info = parse_mnemonic<Backend>(
+                        m_mnemonic_markup,
+                        text_font,  // Normal font from resolved style
+                        ctx.style().mnemonic_font.value.value_or(text_font)  // Mnemonic font from theme
+                    );
+                    m_cached_theme_ptr = theme;
+                }
+            }
+
+            // Draw text with left padding (with mnemonic support)
             int const text_x = base_x + LEFT_PADDING;
-            typename Backend::point_type const text_pos{text_x, base_y};
-            ctx.draw_text(m_text, text_pos, text_font, fg);
+            if (!m_mnemonic_markup.empty() && !m_mnemonic_info.text.empty()) {
+                // Render styled text with mnemonics (multi-segment)
+                int segment_x = text_x;
+                for (const auto& segment : m_mnemonic_info.text) {
+                    typename Backend::point_type const seg_pos{segment_x, base_y};
+                    auto seg_size = ctx.draw_text(segment.text, seg_pos, segment.font, fg);
+                    segment_x += size_utils::get_width(seg_size);
+                }
+            } else {
+                // Render plain text (no mnemonics)
+                typename Backend::point_type const text_pos{text_x, base_y};
+                ctx.draw_text(m_text, text_pos, text_font, fg);
+            }
+
+            // Draw submenu indicator if item has submenu (Phase 5)
+            if (has_submenu()) {
+                // Position indicator to the right of shortcut (or text if no shortcut)
+                int indicator_x;
+                if (!shortcut.empty()) {
+                    // After shortcut
+                    indicator_x = base_x + effective_width - shortcut_width - RIGHT_PADDING - 2;
+                } else {
+                    // After text
+                    indicator_x = base_x + effective_width - RIGHT_PADDING - 1;
+                }
+                typename Backend::point_type const indicator_pos{indicator_x, base_y};
+                ctx.draw_text("\x10", indicator_pos, text_font, fg);  // ► (CP437: 0x10 = right-pointing triangle)
+            }
 
             // Draw shortcut if present (right-aligned within effective width)
             if (!shortcut.empty()) {
@@ -370,9 +418,6 @@ namespace onyxui {
                 typename Backend::point_type const shortcut_pos{shortcut_x, base_y};
                 ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
             }
-
-            // NOTE: Submenu indicator rendering deferred to Phase 4/5
-            // Phase 3 provides the data structure and API only
 
             // Ensure measurement includes right padding by drawing marker at rightmost edge
             // During measurement this ensures the bounding box extends to include right padding
