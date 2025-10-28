@@ -20,7 +20,7 @@ Incremental refactoring from current buggy menu system → full-fledged composit
 |-------|------|----------|--------|--------|
 | **Phase 0** | Fix down arrow bug | CRITICAL | 1-2h | 🟢 DONE |
 | **Phase 1** | Add RAII guards | HIGH | 2-3h | 🟢 DONE |
-| **Phase 2** | Left/right navigation | MEDIUM | 2-3h | 🔴 TODO |
+| **Phase 2** | Left/right navigation | MEDIUM | 2-3h | 🟢 DONE |
 | **Phase 3** | Submenu infrastructure | LOW | 4-6h | 🔴 TODO |
 | **Phase 4** | Composite menu_system | LOW | 6-8h | 🔴 TODO |
 | **Phase 5** | Context-dependent nav | LOW | 4-6h | 🔴 TODO |
@@ -375,7 +375,7 @@ Last updated: 2025-10-28
 |-------|--------|------------|----------|-------|
 | Phase 0 | 🟢 DONE | 2025-10-28 | 2025-10-28 | Critical bug fix - All tests pass |
 | Phase 1 | 🟢 DONE | 2025-10-28 | 2025-10-28 | RAII guards - Exception-safe, 786 tests pass, 4907 assertions |
-| Phase 2 | 🔴 TODO | - | - | - |
+| Phase 2 | 🟢 DONE | 2025-10-28 | 2025-10-28 | Left/Right navigation - 788 tests pass, 4925 assertions |
 | Phase 3 | 🔴 TODO | - | - | - |
 | Phase 4 | 🔴 TODO | - | - | - |
 | Phase 5 | 🔴 TODO | - | - | - |

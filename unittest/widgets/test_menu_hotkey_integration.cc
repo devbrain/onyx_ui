@@ -332,4 +332,91 @@ TEST_SUITE("menu_bar::hotkey_integration") {
         CHECK_FALSE(app_action_triggered);
     }
 
+    TEST_CASE("Left/Right arrows navigate between menu bar items (Phase 2)") {
+        scoped_ui_context<Backend> ctx;
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Add 3 menus: File, Edit, View
+        auto file_menu = std::make_unique<menu<Backend>>();
+        auto item1 = std::make_unique<menu_item<Backend>>("New");
+        file_menu->add_item(std::move(item1));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        auto edit_menu = std::make_unique<menu<Backend>>();
+        auto item2 = std::make_unique<menu_item<Backend>>("Cut");
+        edit_menu->add_item(std::move(item2));
+        menu_bar_widget->add_menu("Edit", std::move(edit_menu));
+
+        auto view_menu = std::make_unique<menu<Backend>>();
+        auto item3 = std::make_unique<menu_item<Backend>>("Zoom");
+        view_menu->add_item(std::move(item3));
+        menu_bar_widget->add_menu("View", std::move(view_menu));
+
+        // Open File menu (index 0)
+        menu_bar_widget->open_menu(0);
+        CHECK(menu_bar_widget->open_menu_index() == 0);
+
+        // Simulate Right arrow - should switch to Edit menu
+        auto right_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_RIGHT);
+        bool handled = ctx.hotkeys().handle_key_event(right_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 1);  // Edit menu
+
+        // Right arrow again - should switch to View menu
+        handled = ctx.hotkeys().handle_key_event(right_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 2);  // View menu
+
+        // Right arrow again - should wrap to File menu
+        handled = ctx.hotkeys().handle_key_event(right_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 0);  // File menu (wrapped)
+
+        // Simulate Left arrow - should switch to View menu (wrap backwards)
+        auto left_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_LEFT);
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 2);  // View menu
+
+        // Left arrow again - should switch to Edit menu
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 1);  // Edit menu
+
+        // Left arrow again - should switch to File menu
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 0);  // File menu
+    }
+
+    TEST_CASE("Left/Right navigation with single menu wraps to same menu (Phase 2 edge case)") {
+        scoped_ui_context<Backend> ctx;
+
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Add only one menu
+        auto file_menu = std::make_unique<menu<Backend>>();
+        auto item = std::make_unique<menu_item<Backend>>("New");
+        file_menu->add_item(std::move(item));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open the menu
+        menu_bar_widget->open_menu(0);
+        CHECK(menu_bar_widget->open_menu_index() == 0);
+
+        // Right arrow - should stay on same menu (wraps to itself)
+        auto right_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_RIGHT);
+        bool handled = ctx.hotkeys().handle_key_event(right_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 0);  // Still File menu
+
+        // Left arrow - should stay on same menu
+        auto left_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_LEFT);
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 0);  // Still File menu
+    }
+
 } // TEST_SUITE menu_bar::hotkey_integration

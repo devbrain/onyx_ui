@@ -456,6 +456,13 @@ namespace onyxui {
                 [menu]() { menu->focus_next(); });
             m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_up,
                 [menu]() { menu->focus_previous(); });
+
+            // Phase 2: Left/Right navigation to switch menu bar items
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_left,
+                [this]() { this->navigate_previous(); });
+            m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_right,
+                [this]() { this->navigate_next(); });
+
             m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_select,
                 [menu]() { menu->activate_focused(); });
             m_menu_nav_guards.emplace_back(hotkeys, hotkey_action::menu_cancel,
