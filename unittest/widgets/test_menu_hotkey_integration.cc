@@ -43,44 +43,51 @@ static test_backend::test_keyboard_event make_key_event(int key_code) {
 
 TEST_SUITE("menu_bar::hotkey_integration") {
 
-    TEST_CASE("Semantic actions are registered on construction (Phase 4 menu_system)") {
+    TEST_CASE("Semantic actions registered on-demand when menu opens") {
         scoped_ui_context<Backend> ctx;
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
-        // Phase 4: After construction, ALL navigation handlers are registered immediately
-        // by menu_system (no more per-menu registration churn)
+        // After construction, only activate_menu_bar is registered
+        // Navigation handlers are registered on-demand to avoid consuming ESC when no menu is open
         auto& hotkeys = ctx.hotkeys();
 
         CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_left));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_right));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_left));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_right));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_up));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
 
-        // Now open a menu
+        // Open a menu - navigation handlers should now be registered
         auto file_menu = std::make_unique<menu<Backend>>();
         auto item = std::make_unique<menu_item<Backend>>("New");
         file_menu->add_item(std::move(item));
         menu_bar_widget->add_menu("File", std::move(file_menu));
         menu_bar_widget->open_menu(0);
 
-        // All handlers should still be registered (Phase 4: no re-registration)
+        // All navigation handlers now registered
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_left));
+        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_right));
 
-        // Close menu
+        // Close menu - navigation handlers should be unregistered
         menu_bar_widget->close_menu();
 
-        // Phase 4: Handlers remain registered (menu_system owns them for lifetime)
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
-        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+        // Navigation handlers unregistered (allows ESC to propagate to app)
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_up));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_left));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_right));
+
+        // But activate_menu_bar remains registered
+        CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));
     }
 
     TEST_CASE("F10 opens first menu (Windows scheme)") {
@@ -151,7 +158,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
         // Menu should be closed (handler was called)
     }
 
-    TEST_CASE("Arrow keys navigate when menu is closed - no effect") {
+    TEST_CASE("Arrow keys not handled when menu is closed (on-demand registration)") {
         scoped_ui_context<Backend> ctx;
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -163,17 +170,19 @@ TEST_SUITE("menu_bar::hotkey_integration") {
         auto edit_menu = std::make_unique<menu<Backend>>();
         menu_bar_widget->add_menu("Edit", std::move(edit_menu));
 
-        // Menu is NOT open
+        // Menu is NOT open - navigation handlers not registered (on-demand)
+        CHECK_FALSE(ctx.hotkeys().has_semantic_handler(hotkey_action::menu_left));
+        CHECK_FALSE(ctx.hotkeys().has_semantic_handler(hotkey_action::menu_right));
 
-        // Simulate Left arrow - should be handled but do nothing
+        // Simulate Left arrow - should NOT be handled (no handler registered)
         auto left_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_LEFT);
         bool handled = ctx.hotkeys().handle_key_event(left_event);
-        CHECK(handled);
+        CHECK_FALSE(handled);
 
-        // Simulate Right arrow
+        // Simulate Right arrow - should NOT be handled
         auto right_event = make_key_event(event_traits<test_backend::test_keyboard_event>::KEY_RIGHT);
         handled = ctx.hotkeys().handle_key_event(right_event);
-        CHECK(handled);
+        CHECK_FALSE(handled);
     }
 
     TEST_CASE("Multiple menus can be added") {

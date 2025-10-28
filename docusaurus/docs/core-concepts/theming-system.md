@@ -227,6 +227,98 @@ This architecture balances performance and flexibility:
 
 ✅ **Architectural Clarity**: Clear separation between common and rare properties
 
+## Theme Change Signal (NEW)
+
+The `theme_registry` now emits a `theme_changed` signal whenever the current theme is changed via `set_current_theme()`. This enables automatic synchronization between the theme system and other UI services.
+
+### Signal Definition
+
+```cpp
+template<UIBackend Backend>
+class theme_registry {
+public:
+    /**
+     * @brief Signal emitted when the current theme changes
+     *
+     * @details
+     * Emitted by set_current_theme() when a new theme is activated.
+     * Subscribers receive a pointer to the new theme (can be nullptr if theme is cleared).
+     */
+    signal<const theme_type*> theme_changed;
+
+    // ...
+};
+```
+
+### Automatic Background Synchronization
+
+The most common use of the `theme_changed` signal is to automatically synchronize the background renderer with theme changes. This is set up automatically in `ui_context`:
+
+```cpp
+// In ui_context constructor (automatic setup - no user code needed!)
+ui_context()
+    : m_theme_connection(get_theme_signal(), [this](const theme_type* theme) {
+        m_background_renderer.on_theme_changed(theme);
+    })
+{
+    // ...
+}
+```
+
+**What this means for you:**
+
+```cpp
+scoped_ui_context<Backend> ctx;
+
+// Switch theme - background updates automatically!
+ctx.themes().set_current_theme("Norton Blue");
+// Background is now dark blue (theme->window_bg)
+
+ctx.themes().set_current_theme("DOS Edit");
+// Background is now white (theme->window_bg)
+
+// Zero manual synchronization code required!
+```
+
+### Custom Signal Subscriptions
+
+You can also subscribe to theme changes in your own code:
+
+```cpp
+// Subscribe to theme changes
+auto connection = ctx.themes().theme_changed.connect([](const ui_theme<Backend>* theme) {
+    if (theme) {
+        std::cout << "Theme changed to: " << theme->name << "\n";
+        // Update custom UI elements, save preferences, etc.
+    }
+});
+
+// RAII cleanup with scoped_connection
+scoped_connection scoped_conn(ctx.themes().theme_changed, my_handler);
+// Automatically disconnects when scoped_conn goes out of scope
+```
+
+### Thread Safety
+
+The signal is emitted **outside the theme_registry's mutex lock** to prevent deadlocks:
+
+```cpp
+bool set_current_theme(const std::string& name) {
+    const theme_type* new_theme_ptr = nullptr;
+
+    {
+        std::unique_lock lock(m_mutex);
+        // ... find and set theme ...
+    }  // Lock released here
+
+    // Emit signal outside the lock to avoid deadlock
+    theme_changed.emit(new_theme_ptr);
+    return true;
+}
+```
+
+This ensures that signal handlers can safely access other UI services without risking circular locking.
+
 ## Conclusion
 
-OnyxUI's theming system is a powerful and flexible tool for customizing the appearance of your application. By leveraging its CSS-style inheritance, thread-safe API, efficient style resolution, and two-tier property access pattern, you can create beautiful and consistent user interfaces with optimal performance.
+OnyxUI's theming system is a powerful and flexible tool for customizing the appearance of your application. By leveraging its CSS-style inheritance, thread-safe API, efficient style resolution, two-tier property access pattern, and automatic signal-based synchronization, you can create beautiful and consistent user interfaces with optimal performance.

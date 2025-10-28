@@ -57,6 +57,7 @@ ui_context<Backend>
   ├─ layer_manager         (per-context service)
   ├─ focus_manager         (per-context service)
   ├─ background_renderer   (per-context service)  ← HERE
+  │   └─ Automatically syncs with theme changes via signal/slot
   └─ theme_registry        (shared service)
 ```
 
@@ -65,21 +66,56 @@ Access is provided through `ui_services`:
 ```cpp
 auto* bg = ui_services<Backend>::background();
 if (bg) {
-    // Configure background
-    bg->set_mode(background_mode::solid);
+    // Option 1: Manual control (if needed)
     bg->set_color({0, 0, 170});  // Blue
+
+    // Option 2: Automatic sync with theme (RECOMMENDED)
+    // Just switch themes - background updates automatically!
+    ctx.themes().set_current_theme("Norton Blue");
 }
 ```
 
-## Three Rendering Modes
+## Automatic Theme Synchronization (NEW)
 
-### 1. Solid Mode (Default)
-
-Fills the viewport with a solid color, optimized for dirty regions:
+The background renderer **automatically synchronizes** with theme changes using the signal/slot pattern. When you switch themes, the background color updates immediately:
 
 ```cpp
-bg->set_mode(background_mode::solid);
+scoped_ui_context<Backend> ctx;
+
+// Switch theme - background updates automatically!
+ctx.themes().set_current_theme("Norton Blue");
+// Background is now dark blue (0, 0, 170)
+
+ctx.themes().set_current_theme("DOS Edit");
+// Background is now white (255, 255, 255)
+
+// No manual synchronization needed!
+```
+
+**How it works:**
+1. `theme_registry` emits `theme_changed` signal when theme switches
+2. `background_renderer` subscribes via `on_theme_changed()` handler
+3. Connection managed by `scoped_connection` in `ui_context` constructor
+4. Background color automatically set to `theme->window_bg`
+
+**Benefits:**
+- **Zero boilerplate:** No manual sync code required
+- **Always consistent:** Background matches theme automatically
+- **Type-safe:** Compile-time checked signal connections
+- **RAII cleanup:** Automatic disconnection via `scoped_connection`
+
+## Two Rendering Modes
+
+Rendering is governed **exclusively by background_style presence**, not by an explicit mode enum.
+
+### 1. Opaque Mode (With Style)
+
+When a background style is set, the viewport is filled with that style:
+
+```cpp
 bg->set_color({255, 255, 255});  // White background
+// or
+bg->set_style(background_style_type{{240, 240, 240}});
 ```
 
 **Performance Characteristics:**
@@ -92,12 +128,30 @@ bg->set_color({255, 255, 255});  // White background
 - Document editors
 - Dialogs and forms
 
-### 2. Transparent Mode
+**Backend-Specific Styles:**
 
-No background rendering - UI widgets overlay existing content:
+Each backend defines its own `background_style`:
 
 ```cpp
-bg->set_mode(background_mode::transparent);
+// TUI backend: color + fill character
+struct background_style {
+    color bg_color;
+    char fill_char = ' ';  // Space = solid, '░'/'▒'/'▓' = patterns
+};
+
+// Canvas backend: RGBA + attributes
+struct background_style {
+    uint8_t fg, bg, attrs;
+    char fill_char;
+};
+```
+
+### 2. Transparent Mode (No Style)
+
+When no background style is set, nothing is rendered - UI widgets overlay existing content:
+
+```cpp
+bg->clear_style();  // Remove background style
 // Zero overhead - no rendering at all
 ```
 
@@ -111,19 +165,15 @@ bg->set_mode(background_mode::transparent);
 - Video player overlays
 - AR/VR interfaces
 
-### 3. Pattern Mode (Future)
-
-Reserved for future texture support:
+**Check if style is set:**
 
 ```cpp
-bg->set_mode(background_mode::pattern);
-// Currently falls back to solid mode
+if (bg->has_style()) {
+    // Background will be rendered
+} else {
+    // Transparent mode
+}
 ```
-
-**Planned Features:**
-- Tiled textures
-- Stretched backgrounds
-- Centered images
 
 ## Rendering Pipeline Integration
 
@@ -225,7 +275,6 @@ scoped_ui_context<Backend> ctx;
 
 // Configure background
 auto* bg = ui_services<Backend>::background();
-bg->set_mode(background_mode::solid);
 bg->set_color({240, 240, 240});  // Light gray
 
 // Build UI
@@ -241,19 +290,34 @@ while (!quit) {
 }
 ```
 
-### Pattern 2: Theme-Based Background
+### Pattern 2: Automatic Theme Synchronization (RECOMMENDED)
 
 ```cpp
 scoped_ui_context<Backend> ctx;
 
-// Get theme background color
-auto* themes = ui_services<Backend>::themes();
-auto* theme = themes->get_theme("Dark Theme");
+// Switch theme - background updates automatically!
+ctx.themes().set_current_theme("Dark Theme");
+// Background is now theme->window_bg (automatic)
 
-// Apply theme's window background
-auto* bg = ui_services<Backend>::background();
-bg->set_color(theme->window_bg);
-bg->set_mode(background_mode::solid);
+// No manual background code needed! The signal/slot connection
+// in ui_context automatically calls bg->on_theme_changed()
+
+// Build UI
+auto root = create_vbox();
+// ... add widgets ...
+
+// Main loop - theme switches update background automatically
+ui_handle<Backend> ui(std::move(root));
+while (!quit) {
+    ui.display();
+    ui.present();
+
+    // User presses key to switch theme
+    if (key == '1') {
+        ctx.themes().set_current_theme("Norton Blue");
+        // Background automatically changes to blue
+    }
+}
 ```
 
 ### Pattern 3: Game Overlay (Transparent)
@@ -265,7 +329,7 @@ GameRenderer game_renderer;
 // Create UI over game
 scoped_ui_context<Backend> ctx;
 auto* bg = ui_services<Backend>::background();
-bg->set_mode(background_mode::transparent);  // Don't fill background
+bg->clear_style();  // Transparent mode - no background rendering
 
 // Build HUD
 auto hud = create_game_hud();
@@ -310,9 +374,10 @@ public:
     using color_type = typename Backend::color_type;
     using rect_type = typename Backend::rect_type;
     using renderer_type = typename Backend::renderer_type;
+    using background_style_type = typename renderer_type::background_style;
 
     // Constructors
-    background_renderer() = default;
+    background_renderer() = default;  // Transparent by default
     explicit background_renderer(const color_type& color);
 
     // Rule of Five (explicitly defaulted)
@@ -323,12 +388,16 @@ public:
     ~background_renderer() = default;
 
     // Configuration
-    void set_mode(background_mode mode) noexcept;
+    void set_style(const background_style_type& style) noexcept;
     void set_color(const color_type& color) noexcept;
+    void clear_style() noexcept;
 
     // Queries
-    [[nodiscard]] background_mode get_mode() const noexcept;
-    [[nodiscard]] const color_type& get_color() const noexcept;
+    [[nodiscard]] bool has_style() const noexcept;
+    [[nodiscard]] const std::optional<background_style_type>& get_style() const noexcept;
+
+    // Theme change handler (NEW)
+    void on_theme_changed(const ui_theme<Backend>* theme) noexcept;
 
     // Rendering (called by ui_handle)
     void render(renderer_type& renderer,
@@ -340,14 +409,15 @@ public:
 ### Memory and Performance
 
 **Memory Footprint:**
-- Enum (mode): 1 byte
-- Color: 3-4 bytes (RGB/RGBA)
-- **Total:** ~8 bytes per instance
+- `std::optional<background_style_type>`: ~16-24 bytes (depends on backend style size)
+- Backend style (TUI): ~8 bytes (color + char)
+- Backend style (Canvas): ~4 bytes (fg + bg + attrs + char)
+- **Total:** ~16-32 bytes per instance (backend-dependent)
 
 **Performance:**
-- **Solid mode (empty dirty):** 1 draw call
-- **Solid mode (N dirty):** N draw calls
-- **Transparent mode:** 0 draw calls
+- **Opaque mode (empty dirty):** 1 draw call
+- **Opaque mode (N dirty):** N draw calls
+- **Transparent mode:** 0 draw calls (short-circuits immediately)
 - **No allocations:** All operations are `noexcept`
 
 ### Thread Safety
@@ -362,37 +432,59 @@ The background renderer is **not thread-safe**:
 Comprehensive test coverage in `unittest/core/test_background_renderer.cc`:
 
 ```cpp
-TEST_CASE("Background Renderer - Mode switching") {
-    background_renderer<Backend> bg;
+TEST_CASE("Background Renderer - Construction") {
+    SUBCASE("Default constructor creates transparent background") {
+        background_renderer<Backend> bg;
+        CHECK_FALSE(bg.has_style());
+    }
 
-    // Default mode is solid
-    CHECK(bg.get_mode() == background_mode::solid);
-
-    // Can switch to transparent
-    bg.set_mode(background_mode::transparent);
-    CHECK(bg.get_mode() == background_mode::transparent);
+    SUBCASE("Constructor with color creates opaque background") {
+        background_renderer<Backend> bg({0, 0, 170});
+        CHECK(bg.has_style());
+    }
 }
 
-TEST_CASE("Background Renderer - Dirty region optimization") {
+TEST_CASE("Background Renderer - Style management") {
     background_renderer<Backend> bg;
-    bg.set_mode(background_mode::solid);
+
+    // set_color() enables rendering
+    bg.set_color({255, 255, 255});
+    CHECK(bg.has_style());
+
+    // clear_style() disables rendering
+    bg.clear_style();
+    CHECK_FALSE(bg.has_style());
+}
+
+TEST_CASE("Background Renderer - Opaque rendering") {
+    background_renderer<Backend> bg;
+    bg.set_color({0, 0, 170});
 
     mock_renderer renderer;
     rect viewport{0, 0, 80, 25};
-    std::vector<rect> dirty_regions{{10, 10, 20, 10}, {40, 5, 15, 8}};
+    std::vector<rect> dirty_regions{{10, 10, 20, 10}};
 
     bg.render(renderer, viewport, dirty_regions);
 
-    // Should only fill dirty regions
-    REQUIRE(renderer.draw_box_calls.size() == 2);
-    CHECK(renderer.draw_box_calls[0] == dirty_regions[0]);
-    CHECK(renderer.draw_box_calls[1] == dirty_regions[1]);
+    // Should fill dirty regions
+    CHECK(renderer.draw_background_calls.size() == 1);
+}
+
+TEST_CASE("Background Renderer - Transparent rendering") {
+    background_renderer<Backend> bg;
+    bg.clear_style();  // Transparent
+
+    mock_renderer renderer;
+    bg.render(renderer, viewport, dirty_regions);
+
+    // Should NOT render anything
+    CHECK(renderer.draw_background_calls.empty());
 }
 ```
 
 **Coverage:**
-- 8 test cases
-- 67 assertions
+- 7 test cases
+- 62 assertions
 - 100% API coverage
 
 ## Comparison with Other Approaches
@@ -430,9 +522,16 @@ ui.set_background_color(color);  // Property of ui_handle
 ```cpp
 // ✅ What we DO
 scoped_ui_context<Backend> ctx;
+
+// Option 1: Automatic theme synchronization (RECOMMENDED)
+ctx.themes().set_current_theme("Norton Blue");
+// Background automatically updates via signal/slot
+
+// Option 2: Manual control (if needed)
 auto* bg = ui_services<Backend>::background();
-bg->set_mode(background_mode::solid);
-bg->set_color(color);
+bg->set_color(color);  // Opaque mode
+// or
+bg->clear_style();  // Transparent mode
 
 ui_handle ui(root);  // Background is independent
 
@@ -440,19 +539,24 @@ ui_handle ui(root);  // Background is independent
 // ✓ Consistent with service locator pattern
 // ✓ Configure before ui_handle creation
 // ✓ Not part of layout hierarchy
-// ✓ Supports all three modes naturally
+// ✓ Supports both opaque and transparent modes
+// ✓ Automatic theme synchronization via signal/slot
 ```
 
 ## See Also
 
 - **[Service Locator](./service-locator.md)** - Pattern used for background access
-- **[UI Context](./ui-context.md)** - Service container
+- **[UI Context](./ui-context.md)** - Service container and signal connection
+- **[Theming System](./theming-system.md)** - Theme registry and theme_changed signal
 - **[UI Handle](./ui-handle.md)** - Rendering pipeline
 - **[Render Context](./render-context.md)** - Widget rendering
+- **[Event System](./event-system.md)** - Signal/slot pattern
 
 ## API Reference
 
 For complete API documentation, see:
 - `include/onyxui/background_renderer.hh` - Full implementation
-- `include/onyxui/ui_context.hh` - Service integration
+- `include/onyxui/theme_registry.hh` - Signal emission
+- `include/onyxui/ui_context.hh` - Signal connection
+- `include/onyxui/concepts/render_like.hh` - Background style concept
 - `unittest/core/test_background_renderer.cc` - Usage examples

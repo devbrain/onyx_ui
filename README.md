@@ -2,7 +2,7 @@
 
 A lightweight, header-only UI framework featuring smart layout caching, thread-safe signals, and backend-agnostic rendering.
 
-[![Tests](https://img.shields.io/badge/tests-440%20passed-success)](unittest/)
+[![Tests](https://img.shields.io/badge/tests-771%20passed-success)](unittest/)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -21,12 +21,13 @@ A lightweight, header-only UI framework featuring smart layout caching, thread-s
 ### 🚀 Latest Improvements (2025-10 Refactoring)
 
 - ✅ **Render Context Pattern**: Visitor pattern unifies measurement and rendering (~50% code reduction)
+- ✅ **Automatic Theme Synchronization**: Background renderer syncs with theme changes via signal/slot pattern
 - ✅ **Exception Safety**: Strong guarantees for `add_child()`, proper cleanup on errors
 - ✅ **Thread Safety**: Optional thread-safe signals (enabled by default)
 - ✅ **Safe Arithmetic**: Overflow-safe math operations for layout calculations
 - ✅ **Float Comparison**: Epsilon-based comparison fixes rounding errors
 - ✅ **Comprehensive Documentation**: 4 new guides covering thread safety, performance, and best practices
-- ✅ **440 Tests**: 100% pass rate with 2257 assertions
+- ✅ **771 Tests**: 100% pass rate with 4844 assertions
 
 ## Quick Start
 
@@ -49,8 +50,8 @@ cmake --build build -j8
 ./build/bin/ui_unittest
 
 # Expected output:
-# [doctest] test cases:  440 |  440 passed
-# [doctest] assertions: 2257 | 2257 passed
+# [doctest] test cases:  771 |  771 passed
+# [doctest] assertions: 4844 | 4844 passed
 # [doctest] Status: SUCCESS!
 ```
 
@@ -166,6 +167,56 @@ data_changed.emit(42, "value");
 scoped_connection scoped_conn(data_changed, my_handler);
 // Disconnects automatically when scoped_conn is destroyed
 ```
+
+### Background Rendering & Theme Synchronization
+
+The framework automatically synchronizes background colors with theme changes using the signal/slot pattern:
+
+```cpp
+#include <onyxui/ui_context.hh>
+#include <onyxui/background_renderer.hh>
+
+// Create UI context (auto-connects theme to background)
+scoped_ui_context<Backend> ctx;
+
+// Switch theme - background updates automatically!
+ctx.themes().set_current_theme("Norton Blue");
+// Background is now dark blue (0, 0, 170)
+
+ctx.themes().set_current_theme("DOS Edit");
+// Background is now white (255, 255, 255)
+
+// No manual synchronization needed!
+```
+
+**How it works:**
+- `theme_registry` emits `theme_changed` signal when theme switches
+- `background_renderer` subscribes to signal via `on_theme_changed()`
+- Connection managed by `scoped_connection` in `ui_context`
+- Zero manual synchronization code required
+
+**Backend-Specific Styles:**
+
+Background rendering uses backend-specific `background_style` for flexibility:
+
+```cpp
+// TUI backend: color + fill character
+struct background_style {
+    color bg_color;
+    char fill_char = ' ';  // Space = solid, '░'/'▒'/'▓' = patterns
+};
+
+// Canvas backend: RGBA + attributes
+struct background_style {
+    uint8_t fg, bg, attrs;
+    char fill_char;
+};
+```
+
+The `RenderLike` concept requires backends to implement:
+- `typename renderer_type::background_style` - Backend-specific style type
+- `void draw_background(rect, background_style)` - Full viewport clear
+- `void draw_background(rect, background_style, dirty_regions)` - Optimized partial clear
 
 ## Widget Library
 
@@ -330,8 +381,8 @@ See [PERFORMANCE.md](docs/PERFORMANCE.md) for detailed optimization strategies.
 
 ### Test Coverage
 
-- **440 test cases** across 22 test files
-- **2257 assertions** covering all major functionality
+- **771 test cases** across 27 test files
+- **4844 assertions** covering all major functionality
 - **100% pass rate**
 
 Test categories:
@@ -479,4 +530,4 @@ See [BEST_PRACTICES.md](docs/BEST_PRACTICES.md) for complete style guide.
 
 ---
 
-**Status**: Production-ready | **Tests**: 440/440 passing | **Assertions**: 2257/2257 passing | **Version**: 2025-10 Refactoring
+**Status**: Production-ready | **Tests**: 771/771 passing | **Assertions**: 4844/4844 passing | **Version**: 2025-10 Refactoring

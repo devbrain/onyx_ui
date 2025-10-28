@@ -127,13 +127,26 @@ TEST_SUITE("menu_system::submenu_stack") {
 
 TEST_SUITE("menu_system::hotkey_registration") {
 
-    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Hotkeys registered on construction") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Hotkeys registered on-demand when menu opens") {
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
-        // Phase 4: All navigation handlers registered immediately by menu_system
+        // On construction: Only activate_menu_bar registered (ESC fix)
         auto& hotkeys = ctx.hotkeys();
 
         CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_left));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_right));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_up));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+
+        // Open a menu - navigation handlers now registered
+        auto file_menu = std::make_unique<menu<Backend>>();
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+        menu_bar_widget->open_menu(0);
+
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_left));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_right));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
@@ -168,7 +181,7 @@ TEST_SUITE("menu_system::hotkey_registration") {
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_up));
     }
 
-    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Hotkeys persist after close_menu") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Navigation hotkeys unregistered after close_menu (ESC fix)") {
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -176,12 +189,24 @@ TEST_SUITE("menu_system::hotkey_registration") {
         menu_bar_widget->add_menu("File", std::move(file_menu));
 
         menu_bar_widget->open_menu(0);
-        menu_bar_widget->close_menu();
 
-        // Phase 4: Handlers remain registered (menu_system owns them for lifetime)
         auto& hotkeys = ctx.hotkeys();
+        // Verify handlers registered when menu open
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+
+        menu_bar_widget->close_menu();
+
+        // Navigation handlers unregistered (allows ESC to propagate to app)
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_select));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_left));
+        CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_right));
+
+        // But activate_menu_bar remains registered
+        CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));
     }
 
 } // TEST_SUITE menu_system::hotkey_registration

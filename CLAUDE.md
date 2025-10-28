@@ -752,34 +752,57 @@ Background rendering is a **global UI concern**, not a widget:
 background_renderer<Backend>  // Per-context instance
   ├─ Accessed via ui_services<Backend>::background()
   ├─ Renders before widget tree in ui_handle::display()
-  └─ Supports dirty region optimization
+  ├─ Supports dirty region optimization
+  └─ Automatically syncs with theme changes via signal/slot
 ```
 
-**Three Rendering Modes:**
+**Automatic Theme Synchronization (NEW):**
 
-1. **Solid Mode** (default) - Fill with solid color
+Background automatically synchronizes with the current theme via signal/slot pattern:
+
+```cpp
+// 1. Set theme (in application code)
+ctx.themes().set_current_theme("Norton Blue");
+
+// 2. theme_registry emits theme_changed signal
+// 3. background_renderer automatically receives notification
+// 4. Background updates to match theme->window_bg
+
+// NO manual synchronization needed!
+```
+
+**How It Works:**
+
+```cpp
+// In ui_context constructor (automatic setup):
+m_theme_connection = s_shared_themes->theme_changed.connect([this](const theme_type* theme) {
+    m_background_renderer.on_theme_changed(theme);  // Auto-sync!
+});
+```
+
+**Two Rendering Modes:**
+
+1. **Opaque** - Background style is set
    - Respects dirty regions (only fills changed areas)
    - Suitable for traditional desktop applications
    - Optimized: O(dirty_regions) draw calls
 
-2. **Transparent Mode** - No background
+2. **Transparent** - No background style
    - UI widgets overlay game/3D rendering
    - Suitable for game HUDs, in-game menus
    - Zero overhead: no rendering
 
-3. **Pattern Mode** (future) - Tiled/stretched textures
-   - Currently falls back to solid mode
-   - Reserved for future texture support
-
 **Usage Pattern:**
 
 ```cpp
-// Access from ui_services (not widget tree)
+// Option 1: Automatic sync with theme (RECOMMENDED)
+ctx.themes().set_current_theme("Borland Turbo");
+// Background automatically updates to theme->window_bg!
+
+// Option 2: Manual control (if needed)
 auto* bg = ui_services<Backend>::background();
-if (bg) {
-    bg->set_mode(background_mode::solid);
-    bg->set_color({0, 0, 170});  // Blue background
-}
+bg->set_color({0, 0, 170});  // Blue background
+bg->clear_style();            // Transparent mode
 
 // Changes take effect on next display() call
 ui.display();  // Background rendered first, then widgets
@@ -834,20 +857,55 @@ Each `ui_context` has its own `background_renderer`:
 }
 ```
 
+**Backend-Specific Styles:**
+
+Each backend defines its own `background_style` type via the `RenderLike` concept:
+
+```cpp
+// conio backend (TUI)
+struct background_style {
+    color bg_color;
+    char fill_char = ' ';  // Pattern support: '░', '▒', '▓', etc.
+};
+
+// canvas backend (testing)
+struct background_style {
+    uint8_t fg, bg, attrs;
+    char fill_char = ' ';
+};
+```
+
+**RenderLike Concept Extension:**
+
+```cpp
+template<typename T, typename R>
+concept RenderLike = RectLike<R> && requires(T renderer,
+                                              const typename T::background_style& bg) {
+    typename T::background_style;  // Backend-specific type
+
+    // Draw background (optimized clearing)
+    { renderer.draw_background(rect, bg) } -> std::same_as<void>;
+    { renderer.draw_background(rect, bg, regions) } -> std::same_as<void>;
+};
+```
+
 **Testing:**
 
 Comprehensive tests in `unittest/core/test_background_renderer.cc`:
-- 8 test cases, 67 assertions
-- Mode switching, color changes, dirty regions
-- Renderer state verification
+- 7 test cases, 62 assertions
+- Style management (has_style, set_style, clear_style)
+- Opaque/transparent rendering
+- Dirty region optimization
 - ui_context integration
 - Copy/move semantics
 
 **See also:**
 - `include/onyxui/background_renderer.hh` - Implementation
-- `include/onyxui/ui_context.hh` - Service integration
+- `include/onyxui/theme_registry.hh` - Signal emission
+- `include/onyxui/ui_context.hh` - Signal connection
+- `include/onyxui/concepts/render_like.hh` - Background style concept
 - `include/onyxui/ui_handle.hh` - Rendering pipeline
-- `examples/demo.cc` - Usage example
+- `examples/demo.cc` - Automatic sync demonstration
 
 ## Project Structure
 

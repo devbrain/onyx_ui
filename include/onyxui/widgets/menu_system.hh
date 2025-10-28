@@ -96,12 +96,12 @@ namespace onyxui {
          * @param menu_bar Parent menu bar (non-owning pointer)
          *
          * @details
-         * Registers navigation hotkeys immediately.
-         * Handlers remain registered for lifetime of menu_system.
+         * Navigation hotkeys are registered on-demand when a menu opens.
+         * This prevents ESC from being consumed when no menu is open.
          */
         explicit menu_system(menu_bar_type* menu_bar)
             : m_menu_bar(menu_bar) {
-            register_navigation_hotkeys();
+            // Don't register hotkeys here - they'll be registered when menu opens
         }
 
         /**
@@ -127,10 +127,17 @@ namespace onyxui {
          * Called by menu_bar when switching top-level menus.
          *
          * Phase 5: Clears any open submenus when switching top-level menus
+         * Registers navigation hotkeys on first menu open.
          */
         void open_top_level_menu(menu_type* menu) {
             m_submenu_layers.clear();  // Phase 5: Close all submenus when switching
             m_menu_stack = {menu};  // Reset to single menu
+
+            // Register navigation hotkeys if not already registered
+            // This ensures ESC and other keys are only active when a menu is open
+            if (m_nav_guards.empty()) {
+                register_navigation_hotkeys();
+            }
         }
 
         /**
@@ -216,10 +223,15 @@ namespace onyxui {
          * Used when closing entire menu bar.
          *
          * Phase 5: Clears all submenu layers (RAII auto-cleanup)
+         * Unregisters navigation hotkeys to allow ESC to propagate to app.
          */
         void close_all_menus() {
             m_submenu_layers.clear();  // Phase 5: RAII removes all submenu layers
             m_menu_stack.clear();
+
+            // Unregister navigation hotkeys when no menu is open
+            // This allows ESC and other keys to propagate to application
+            m_nav_guards.clear();
         }
 
         /**
