@@ -317,17 +317,31 @@ namespace onyxui::testing {
         }
 
         /**
-         * @brief Set foreground color (no-op for test canvas)
+         * @brief Set foreground color
          */
-        void set_foreground(const canvas_color&) {
-            // No-op for basic testing
+        void set_foreground(const canvas_color& color) {
+            m_foreground = color;
         }
 
         /**
-         * @brief Set background color (no-op for test canvas)
+         * @brief Set background color
          */
-        void set_background(const canvas_color&) {
-            // No-op for basic testing
+        void set_background(const canvas_color& color) {
+            m_background = color;
+        }
+
+        /**
+         * @brief Get current foreground color
+         */
+        [[nodiscard]] canvas_color get_foreground() const {
+            return m_foreground;
+        }
+
+        /**
+         * @brief Get current background color
+         */
+        [[nodiscard]] canvas_color get_background() const {
+            return m_background;
         }
 
         /**
@@ -381,6 +395,8 @@ namespace onyxui::testing {
         std::shared_ptr<test_canvas> m_canvas;
         std::stack<canvas_rect> m_clip_stack;
         canvas_rect m_viewport;
+        canvas_color m_foreground{255, 255, 255};  // Default white
+        canvas_color m_background{0, 0, 0};        // Default black
     };
 
     /**

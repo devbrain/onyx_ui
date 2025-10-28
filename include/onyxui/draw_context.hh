@@ -225,9 +225,15 @@ namespace onyxui {
                                   size_utils::get_width(text_size),
                                   size_utils::get_height(text_size));
 
+            // Save current foreground color (RAII pattern)
+            auto saved_fg = m_renderer->get_foreground();
+
             // Set colors and draw
             m_renderer->set_foreground(color);
             m_renderer->draw_text(text_rect, text, font);
+
+            // Restore saved foreground (prevents color bleeding)
+            m_renderer->set_foreground(saved_fg);
 
             return text_size;
         }
@@ -244,10 +250,18 @@ namespace onyxui {
             const rect_type& bounds,
             box_style style
         ) override {
+            // Save current colors (RAII pattern)
+            auto saved_fg = m_renderer->get_foreground();
+            auto saved_bg = m_renderer->get_background();
+
             // Set colors from resolved style before drawing
             m_renderer->set_foreground(this->style().foreground_color);
             m_renderer->set_background(this->style().background_color);
             m_renderer->draw_box(bounds, style);
+
+            // Restore saved colors (prevents color bleeding)
+            m_renderer->set_foreground(saved_fg);
+            m_renderer->set_background(saved_bg);
         }
 
         /**
@@ -259,21 +273,19 @@ namespace onyxui {
          * The renderer's background color is set before drawing.
          */
         void fill_rect(const rect_type& bounds) override {
+            // Save current background color (RAII pattern)
+            auto saved_bg = m_renderer->get_background();
+
             // Set background color from resolved style
             auto const& bg = this->style().background_color;
-
             m_renderer->set_background(bg);
 
             // Create fill-only style (no border, solid fill)
             box_style fill_style{};  // Default: border_style::none, is_solid=true
             m_renderer->draw_box(bounds, fill_style);
 
-            // Restore background to window background (defensive - prevents color bleeding)
-            // After drawing a colored rect, restore the default window background
-            // so subsequent widgets don't inherit this color
-            if (auto* theme = this->theme()) {
-                m_renderer->set_background(theme->window_bg);
-            }
+            // Restore saved background (prevents color bleeding)
+            m_renderer->set_background(saved_bg);
         }
 
         /**
@@ -347,10 +359,18 @@ namespace onyxui {
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
+            // Save current colors (RAII pattern)
+            auto saved_fg = m_renderer->get_foreground();
+            auto saved_bg = m_renderer->get_background();
+
             // Auto-sync renderer state with resolved style
             m_renderer->set_foreground(this->style().foreground_color);
             m_renderer->set_background(this->style().background_color);
             m_renderer->draw_horizontal_line(bounds, style);
+
+            // Restore saved colors (prevents color bleeding)
+            m_renderer->set_foreground(saved_fg);
+            m_renderer->set_background(saved_bg);
         }
 
         /**
@@ -366,10 +386,18 @@ namespace onyxui {
             const rect_type& bounds,
             const typename renderer_type::line_style& style
         ) override {
+            // Save current colors (RAII pattern)
+            auto saved_fg = m_renderer->get_foreground();
+            auto saved_bg = m_renderer->get_background();
+
             // Auto-sync renderer state with resolved style
             m_renderer->set_foreground(this->style().foreground_color);
             m_renderer->set_background(this->style().background_color);
             m_renderer->draw_vertical_line(bounds, style);
+
+            // Restore saved colors (prevents color bleeding)
+            m_renderer->set_foreground(saved_fg);
+            m_renderer->set_background(saved_bg);
         }
 
         /**

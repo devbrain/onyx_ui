@@ -156,13 +156,26 @@ namespace onyxui {
             };
             using size_type = size;  // Required by RenderLike concept
 
-            void set_foreground([[maybe_unused]] const color& c) {
-                // Stub for testing
+            void set_foreground(const color& c) {
+                m_foreground = c;
             }
 
-            void set_background([[maybe_unused]] const color& c) {
-                // Stub for testing
+            void set_background(const color& c) {
+                m_background = c;
             }
+
+            [[nodiscard]] color get_foreground() const {
+                return m_foreground;
+            }
+
+            [[nodiscard]] color get_background() const {
+                return m_background;
+            }
+
+        private:
+            color m_foreground{255, 255, 255};  // Default white
+            color m_background{0, 0, 0};        // Default black
+        public:
 
             void draw_box([[maybe_unused]] const rect& r,[[maybe_unused]]  const box_style& box) {
 
