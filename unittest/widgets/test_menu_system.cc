@@ -267,3 +267,204 @@ TEST_SUITE("menu_system::context_navigation") {
     }
 
 } // TEST_SUITE menu_system::context_navigation
+
+
+// ======================================================================
+// Test Suite: menu_system - Submenu Navigation (Phase 5)
+// ======================================================================
+
+TEST_SUITE("menu_system::submenu_navigation") {
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Right arrow on submenu item opens submenu") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File menu with Open submenu
+        auto file_menu = std::make_unique<menu<Backend>>();
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
+
+        // Create "Open" item with submenu
+        auto open_item = std::make_unique<menu_item<Backend>>("Open");
+        auto open_submenu = std::make_unique<menu<Backend>>();
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("Project"));
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("File"));
+        open_item->set_submenu(std::move(open_submenu));
+        file_menu->add_item(std::move(open_item));
+
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("Save"));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu
+        menu_bar_widget->open_menu(0);
+
+        auto* menu = menu_bar_widget->get_menu(0);
+        CHECK(menu != nullptr);
+
+        // Navigate to "Open" item (index 1)
+        auto down_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_DOWN);
+        ctx.hotkeys().handle_key_event(down_event);
+
+        // Verify focused on "Open" item with submenu
+        auto* focused = menu->focused_item();
+        CHECK(focused != nullptr);
+        CHECK(focused->has_submenu());
+
+        // Press right arrow to open submenu
+        auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
+        bool handled = ctx.hotkeys().handle_key_event(right_event);
+
+        CHECK(handled);
+        // Phase 5: Submenu should be open (visual verification would check layer count)
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Left arrow in submenu closes submenu") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File menu with Open submenu
+        auto file_menu = std::make_unique<menu<Backend>>();
+
+        auto open_item = std::make_unique<menu_item<Backend>>("Open");
+        auto open_submenu = std::make_unique<menu<Backend>>();
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("Project"));
+        open_item->set_submenu(std::move(open_submenu));
+        file_menu->add_item(std::move(open_item));
+
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu and submenu
+        menu_bar_widget->open_menu(0);
+
+        auto* menu = menu_bar_widget->get_menu(0);
+        auto* focused = menu->focused_item();
+        CHECK(focused != nullptr);
+        CHECK(focused->has_submenu());
+
+        // Open submenu with right arrow
+        auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
+        ctx.hotkeys().handle_key_event(right_event);
+
+        // Now press left arrow to close submenu
+        auto left_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_LEFT);
+        bool handled = ctx.hotkeys().handle_key_event(left_event);
+
+        CHECK(handled);
+        // Phase 5: Submenu should be closed, focus restored to parent
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Right arrow on regular item switches menu bar at top-level") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Add two menus
+        auto file_menu = std::make_unique<menu<Backend>>();
+        file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        auto edit_menu = std::make_unique<menu<Backend>>();
+        edit_menu->add_item(std::make_unique<menu_item<Backend>>("Cut"));
+        menu_bar_widget->add_menu("Edit", std::move(edit_menu));
+
+        // Open File menu
+        menu_bar_widget->open_menu(0);
+        CHECK(menu_bar_widget->open_menu_index() == 0);
+
+        // Focused on regular item (no submenu)
+        auto* menu = menu_bar_widget->get_menu(0);
+        auto* focused = menu->focused_item();
+        CHECK(focused != nullptr);
+        CHECK_FALSE(focused->has_submenu());
+
+        // Right arrow should switch to Edit menu (not open submenu)
+        auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
+        bool handled = ctx.hotkeys().handle_key_event(right_event);
+
+        CHECK(handled);
+        CHECK(menu_bar_widget->open_menu_index() == 1);  // Switched to Edit menu
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Nested submenus (arbitrary depth)") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File → Open → Recent (3 levels)
+        auto file_menu = std::make_unique<menu<Backend>>();
+
+        auto open_item = std::make_unique<menu_item<Backend>>("Open");
+        auto open_submenu = std::make_unique<menu<Backend>>();
+
+        auto recent_item = std::make_unique<menu_item<Backend>>("Recent");
+        auto recent_submenu = std::make_unique<menu<Backend>>();
+        recent_submenu->add_item(std::make_unique<menu_item<Backend>>("Project1"));
+        recent_item->set_submenu(std::move(recent_submenu));
+
+        open_submenu->add_item(std::move(recent_item));
+        open_item->set_submenu(std::move(open_submenu));
+        file_menu->add_item(std::move(open_item));
+
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu
+        menu_bar_widget->open_menu(0);
+
+        // Navigate to Open and open submenu
+        auto* menu = menu_bar_widget->get_menu(0);
+        CHECK(menu->focused_item()->has_submenu());
+
+        auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
+        ctx.hotkeys().handle_key_event(right_event);
+
+        // Now in Open submenu, navigate to Recent and open it
+        ctx.hotkeys().handle_key_event(right_event);
+
+        // Phase 5: Should have 3-level menu hierarchy (File → Open → Recent)
+        // Pressing left should close Recent, then Open, then File menu
+        auto left_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_LEFT);
+        bool handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);  // Close Recent submenu
+
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);  // Close Open submenu
+
+        handled = ctx.hotkeys().handle_key_event(left_event);
+        CHECK(handled);  // Close File menu
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Escape closes submenu, then parent menu") {
+        ctx.hotkey_schemes().set_current_scheme("Windows");
+        auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+
+        // Build File menu with Open submenu
+        auto file_menu = std::make_unique<menu<Backend>>();
+
+        auto open_item = std::make_unique<menu_item<Backend>>("Open");
+        auto open_submenu = std::make_unique<menu<Backend>>();
+        open_submenu->add_item(std::make_unique<menu_item<Backend>>("Project"));
+        open_item->set_submenu(std::move(open_submenu));
+        file_menu->add_item(std::move(open_item));
+
+        menu_bar_widget->add_menu("File", std::move(file_menu));
+
+        // Open File menu and submenu
+        menu_bar_widget->open_menu(0);
+
+        auto* menu = menu_bar_widget->get_menu(0);
+        CHECK(menu->focused_item()->has_submenu());
+
+        // Open submenu
+        auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
+        ctx.hotkeys().handle_key_event(right_event);
+
+        // First Escape closes submenu
+        auto esc_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_ESCAPE);
+        bool handled = ctx.hotkeys().handle_key_event(esc_event);
+        CHECK(handled);
+        CHECK(menu_bar_widget->has_open_menu());  // File menu still open
+
+        // Second Escape closes File menu
+        handled = ctx.hotkeys().handle_key_event(esc_event);
+        CHECK(handled);
+        CHECK_FALSE(menu_bar_widget->has_open_menu());  // All menus closed
+    }
+
+} // TEST_SUITE menu_system::submenu_navigation

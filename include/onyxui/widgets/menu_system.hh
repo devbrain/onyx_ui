@@ -48,6 +48,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/hotkeys/semantic_action_guard.hh>
 #include <onyxui/ui_services.hh>
+#include <onyxui/scoped_layer.hh>
 #include <vector>
 
 namespace onyxui {
@@ -124,8 +125,11 @@ namespace onyxui {
          * @details
          * Resets menu stack to single menu.
          * Called by menu_bar when switching top-level menus.
+         *
+         * Phase 5: Clears any open submenus when switching top-level menus
          */
         void open_top_level_menu(menu_type* menu) {
+            m_submenu_layers.clear();  // Phase 5: Close all submenus when switching
             m_menu_stack = {menu};  // Reset to single menu
         }
 
@@ -134,12 +138,40 @@ namespace onyxui {
          * @param submenu Submenu to open
          *
          * @details
-         * Adds submenu to top of stack.
+         * Adds submenu to top of stack and shows it as a popup layer.
          * Navigation handlers will target this submenu until closed.
+         *
+         * Phase 5: Visual rendering with layer management
          */
         void open_submenu(menu_type* submenu) {
-            if (submenu) {
-                m_menu_stack.push_back(submenu);
+            if (!submenu) return;
+
+            // Get parent menu (current top of stack before pushing)
+            auto* parent_menu = current_menu();
+            if (!parent_menu) return;
+
+            // Get focused item in parent menu (anchor for submenu position)
+            auto* focused_item = parent_menu->focused_item();
+            if (!focused_item) return;
+
+            // Push submenu onto stack FIRST
+            m_menu_stack.push_back(submenu);
+
+            // Show submenu as popup to the right of focused item (Phase 5)
+            auto submenu_layer = focused_item->show_popup_scoped(
+                submenu,
+                popup_placement::right  // Show to the right of parent item
+            );
+
+            // Store scoped_layer (RAII auto-cleanup on pop)
+            m_submenu_layers.push_back(std::move(submenu_layer));
+
+            // Set focus to submenu and its first item
+            if (auto* focus = ui_services<Backend>::input()) {
+                focus->set_focus(submenu);
+                if (submenu) {
+                    submenu->focus_first();
+                }
             }
         }
 
@@ -150,12 +182,29 @@ namespace onyxui {
          * @details
          * Removes top menu from stack if depth > 1.
          * If at top level, returns false and does nothing.
+         *
+         * Phase 5: Removes visual layer and restores focus to parent
          */
         bool close_current_submenu() {
             if (m_menu_stack.size() <= 1) {
                 return false;  // At top-level, can't close
             }
+
+            // Pop submenu layer (RAII auto-removes from layer_manager) (Phase 5)
+            if (!m_submenu_layers.empty()) {
+                m_submenu_layers.pop_back();
+            }
+
+            // Pop from menu stack
             m_menu_stack.pop_back();
+
+            // Restore focus to parent menu (Phase 5)
+            if (auto* parent_menu = current_menu()) {
+                if (auto* focus = ui_services<Backend>::input()) {
+                    focus->set_focus(parent_menu);
+                }
+            }
+
             return true;
         }
 
@@ -165,8 +214,11 @@ namespace onyxui {
          * @details
          * Removes all menus from stack.
          * Used when closing entire menu bar.
+         *
+         * Phase 5: Clears all submenu layers (RAII auto-cleanup)
          */
         void close_all_menus() {
+            m_submenu_layers.clear();  // Phase 5: RAII removes all submenu layers
             m_menu_stack.clear();
         }
 
@@ -335,6 +387,7 @@ namespace onyxui {
         menu_bar_type* m_menu_bar = nullptr;       ///< Non-owning pointer to parent menu bar
         std::vector<menu_type*> m_menu_stack;      ///< Menu hierarchy (back = current)
         std::vector<semantic_action_guard<Backend>> m_nav_guards;  ///< RAII hotkey guards
+        std::vector<scoped_layer<Backend>> m_submenu_layers;  ///< Submenu popup layers (Phase 5)
     };
 
 } // namespace onyxui
