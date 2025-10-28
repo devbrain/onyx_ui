@@ -110,6 +110,36 @@ namespace onyxui::conio {
                 file // ■
             };
 
+            /**
+             * @struct background_style
+             * @brief Backend-specific background rendering attributes
+             *
+             * @details
+             * Defines how the viewport background should be rendered.
+             * This is backend-specific and extensible for patterns, gradients, etc.
+             *
+             * For conio (TUI), the background consists of:
+             * - Background color
+             * - Fill character (space by default, but could be patterns)
+             *
+             * Future extensions:
+             * - Pattern support (fill_char could be '░', '▒', '▓', etc.)
+             * - Gradient information (for terminals that support 24-bit color)
+             * - Texture IDs (for more advanced backends)
+             */
+            struct background_style {
+                color bg_color;              ///< Background color
+                char fill_char = ' ';        ///< Fill character (space = solid, others = patterns)
+
+                // Convenience constructors
+                constexpr background_style() noexcept = default;
+                constexpr explicit background_style(const color& c, char ch = ' ') noexcept
+                    : bg_color(c), fill_char(ch) {}
+
+                // Comparison operators for testing
+                constexpr bool operator==(const background_style&) const noexcept = default;
+            };
+
             using size_type = size; // Required by RenderLike concept
 
             conio_renderer();
@@ -139,6 +169,37 @@ namespace onyxui::conio {
              * @param style Icon to draw
              */
             void draw_icon(const rect& r, icon_style style);
+
+            /**
+             * @brief Draw background fill (full viewport)
+             * @param viewport The viewport bounds to fill
+             * @param style Background style (color, fill character, etc.)
+             *
+             * @details
+             * Optimized for full viewport background rendering. This is more efficient
+             * than draw_box() for large areas. Uses the fill character from the style
+             * to create solid fills or patterns.
+             *
+             * @note This is called by background_renderer for solid/pattern modes.
+             */
+            void draw_background(const rect& viewport, const background_style& style);
+
+            /**
+             * @brief Draw background fill for specific regions (dirty region optimization)
+             * @param viewport The viewport bounds (for bounds checking)
+             * @param style Background style (color, fill character, etc.)
+             * @param dirty_regions Specific regions to fill
+             *
+             * @details
+             * For partial updates (dirty regions), fills only the specified areas.
+             * More efficient than redrawing the entire viewport. If dirty_regions
+             * is empty, falls back to full viewport fill.
+             *
+             * @note This is called by background_renderer when dirty regions are available.
+             */
+            void draw_background(const rect& viewport,
+                                const background_style& style,
+                                const std::vector<rect>& dirty_regions);
 
             /**
              * @brief Clear a rectangular region (fill with spaces)

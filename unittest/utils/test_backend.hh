@@ -148,6 +148,12 @@ namespace onyxui {
             struct font {
                 bool operator==(const font&) const = default;
             };
+            struct background_style {
+                color bg_color;
+                char fill_char = ' ';
+
+                bool operator==(const background_style&) const = default;
+            };
             using size_type = size;  // Required by RenderLike concept
 
             void set_foreground([[maybe_unused]] const color& c) {
@@ -168,6 +174,16 @@ namespace onyxui {
 
             void draw_icon([[maybe_unused]] const rect& r,[[maybe_unused]]  const icon_style& icon) {
 
+            }
+
+            void draw_background([[maybe_unused]] const rect& viewport, [[maybe_unused]] const background_style& style) {
+                // Stub for testing - full viewport background
+            }
+
+            void draw_background([[maybe_unused]] const rect& viewport,
+                                [[maybe_unused]] const background_style& style,
+                                [[maybe_unused]] const std::vector<rect>& dirty_regions) {
+                // Stub for testing - dirty region background
             }
 
             void clear_region([[maybe_unused]] const rect& r) {

@@ -193,6 +193,60 @@ namespace onyxui::conio {
     }
 
     // ======================================================================
+    // Background Drawing (Backend-Specific Optimization)
+    // ======================================================================
+
+    void conio_renderer::draw_background(const rect& viewport, const background_style& style) {
+        const rect clip = get_clip_rect();
+
+        // Set colors from background_style
+        set_background(style.bg_color);
+        set_foreground(style.bg_color);  // Use same for consistency
+
+        // Fill entire viewport with the background style
+        for (int y = viewport.y; y < viewport.y + viewport.h; ++y) {
+            for (int x = viewport.x; x < viewport.x + viewport.w; ++x) {
+                // Check if position is within clip region
+                if (x >= clip.x && x < clip.x + clip.w &&
+                    y >= clip.y && y < clip.y + clip.h) {
+                    // Use fill_char from style (space = solid, others = patterns)
+                    m_pimpl->m_vram.put(x, y, style.fill_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                }
+            }
+        }
+    }
+
+    void conio_renderer::draw_background(const rect& viewport,
+                                         const background_style& style,
+                                         const std::vector<rect>& dirty_regions) {
+        // If no dirty regions, fall back to full viewport
+        if (dirty_regions.empty()) {
+            draw_background(viewport, style);
+            return;
+        }
+
+        const rect clip = get_clip_rect();
+
+        // Set colors from background_style
+        set_background(style.bg_color);
+        set_foreground(style.bg_color);
+
+        // Fill only dirty regions (optimization)
+        for (const auto& region : dirty_regions) {
+            for (int y = region.y; y < region.y + region.h; ++y) {
+                for (int x = region.x; x < region.x + region.w; ++x) {
+                    // Check if position is within clip region
+                    if (x >= clip.x && x < clip.x + clip.w &&
+                        y >= clip.y && y < clip.y + clip.h) {
+                        // Use fill_char from style
+                        m_pimpl->m_vram.put(x, y, style.fill_char, m_pimpl->m_fg, m_pimpl->m_bg);
+                    }
+                }
+            }
+        }
+    }
+
+    // ======================================================================
     // Region Clearing
     // ======================================================================
 

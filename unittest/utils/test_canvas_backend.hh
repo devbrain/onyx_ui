@@ -144,6 +144,29 @@ namespace onyxui::testing {
             char icon = '*';
         };
 
+        struct background_style {
+            uint8_t fg = 7;      // Default foreground color
+            uint8_t bg = 0;      // Default background color
+            uint8_t attrs = 0;   // Attributes (bold, underline, etc.)
+            char fill_char = ' ';
+
+            // Default constructor
+            background_style() = default;
+
+            // Constructor from canvas_color (for background_renderer compatibility)
+            explicit background_style(const canvas_color& color)
+                : fg(7)  // Keep default foreground
+                , bg(0)  // Use color for background (simplified - assumes palette index 0)
+                , attrs(0)
+                , fill_char(' ') {
+                // Note: canvas_color is RGB, but canvas uses palette indices
+                // This is a simplified mapping for testing purposes
+                (void)color;  // Suppress unused parameter warning
+            }
+
+            bool operator==(const background_style&) const = default;
+        };
+
         explicit canvas_renderer(std::shared_ptr<test_canvas> canvas)
             : m_canvas(canvas)
             , m_viewport(0, 0, canvas ? canvas->width() : 80, canvas ? canvas->height() : 25)
@@ -198,6 +221,41 @@ namespace onyxui::testing {
         void draw_icon(const canvas_rect& rect, const icon_style& style) {
             if (!m_canvas) return;
             m_canvas->put(rect.x, rect.y, style.icon);
+        }
+
+        /**
+         * @brief Draw background (full viewport) - required by RenderLike
+         */
+        void draw_background(const canvas_rect& viewport, const background_style& style) {
+            if (!m_canvas) return;
+
+            for (int y = viewport.y; y < viewport.y + viewport.h; ++y) {
+                for (int x = viewport.x; x < viewport.x + viewport.w; ++x) {
+                    m_canvas->put(x, y, style.fill_char, style.fg, style.bg, style.attrs);
+                }
+            }
+        }
+
+        /**
+         * @brief Draw background (dirty regions) - required by RenderLike
+         */
+        void draw_background(const canvas_rect& viewport,
+                            const background_style& style,
+                            const std::vector<canvas_rect>& dirty_regions) {
+            if (!m_canvas) return;
+
+            if (dirty_regions.empty()) {
+                draw_background(viewport, style);
+                return;
+            }
+
+            for (const auto& region : dirty_regions) {
+                for (int y = region.y; y < region.y + region.h; ++y) {
+                    for (int x = region.x; x < region.x + region.w; ++x) {
+                        m_canvas->put(x, y, style.fill_char, style.fg, style.bg, style.attrs);
+                    }
+                }
+            }
         }
 
         /**

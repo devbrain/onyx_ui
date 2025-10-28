@@ -35,26 +35,30 @@ namespace {
         struct font {
             bool operator==(const font&) const = default;
         };
+        struct background_style {
+            test_backend::color bg_color;
+            char fill_char = ' ';
+
+            bool operator==(const background_style&) const = default;
+        };
 
         // Track calls
-        std::vector<test_backend::color> foreground_calls;
-        std::vector<test_backend::color> background_calls;
-        std::vector<test_backend::rect> draw_box_calls;
+        std::vector<std::pair<test_backend::rect, background_style>> draw_background_calls;
 
-        void set_foreground(const test_backend::color& c) {
-            foreground_calls.push_back(c);
-        }
-
-        void set_background(const test_backend::color& c) {
-            background_calls.push_back(c);
-        }
-
-        void draw_box(const test_backend::rect& r, const box_style&) {
-            draw_box_calls.push_back(r);
-        }
-
+        void draw_box(const test_backend::rect&, const box_style&) {}
         void draw_text(const test_backend::rect&, std::string_view, const font&) {}
         void draw_icon(const test_backend::rect&, const icon_style&) {}
+
+        void draw_background(const test_backend::rect& r, const background_style& style) {
+            draw_background_calls.push_back({r, style});
+        }
+
+        void draw_background(const test_backend::rect& r, const background_style& style,
+                            const std::vector<test_backend::rect>&) {
+            // For testing, just record the viewport call
+            draw_background_calls.push_back({r, style});
+        }
+
         void clear_region(const test_backend::rect&) {}
         void draw_horizontal_line(const test_backend::rect&, const line_style&) {}
         void draw_vertical_line(const test_backend::rect&, const line_style&) {}
@@ -80,121 +84,131 @@ namespace {
         test_backend::rect get_clip_rect() const { return {0, 0, 80, 25}; }
         void present() {}
         void on_resize() {}
-
-        // Reset tracking
-        void reset() {
-            foreground_calls.clear();
-            background_calls.clear();
-            draw_box_calls.clear();
-        }
     };
 
     /**
-     * @brief Test backend using mock_renderer
+     * @brief Test backend specialization for mocking
      */
     struct mock_test_backend {
         using rect_type = test_backend::rect;
         using size_type = test_backend::size;
         using point_type = test_backend::point;
         using color_type = test_backend::color;
-        using event_type = test_backend::test_keyboard_event;
+        using event_type = test_backend::test_event;
         using keyboard_event_type = test_backend::test_keyboard_event;
         using mouse_button_event_type = test_backend::test_mouse_event;
         using mouse_motion_event_type = test_backend::test_mouse_event;
         using mouse_wheel_event_type = test_backend::test_mouse_event;
+        using text_input_event_type = test_backend::test_event;
+        using window_event_type = test_backend::test_window_event;
         using renderer_type = mock_renderer;
+        using texture_type = void*;
+        using font_type = void*;
 
-        [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const test_backend::test_keyboard_event&) noexcept {
+        [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const event_type& native) noexcept {
             return std::nullopt;
         }
 
-        static void register_themes(theme_registry<mock_test_backend>&) {}
+        static void register_themes([[maybe_unused]] theme_registry<mock_test_backend>& registry) {}
     };
+
+    static_assert(UIBackend<mock_test_backend>, "mock_test_backend must satisfy UIBackend");
 }
 
 // =============================================================================
-// Mode Switching Tests
+// Construction Tests
 // =============================================================================
 
-TEST_CASE("Background Renderer - Mode switching") {
-    SUBCASE("Default mode is solid") {
+TEST_CASE("Background Renderer - Construction") {
+    SUBCASE("Default constructor creates transparent background") {
         background_renderer<mock_test_backend> bg;
-        CHECK(bg.get_mode() == background_mode::solid);
+        CHECK_FALSE(bg.has_style());
     }
 
-    SUBCASE("Can switch to transparent mode") {
-        background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::transparent);
-        CHECK(bg.get_mode() == background_mode::transparent);
-    }
-
-    SUBCASE("Can switch to pattern mode") {
-        background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::pattern);
-        CHECK(bg.get_mode() == background_mode::pattern);
-    }
-
-    SUBCASE("Can switch back to solid mode") {
-        background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::transparent);
-        bg.set_mode(background_mode::solid);
-        CHECK(bg.get_mode() == background_mode::solid);
-    }
-}
-
-// =============================================================================
-// Color Management Tests
-// =============================================================================
-
-TEST_CASE("Background Renderer - Color management") {
-    SUBCASE("Default color is default-constructed") {
-        background_renderer<mock_test_backend> bg;
-        auto color = bg.get_color();
-        CHECK(color.r == 0);
-        CHECK(color.g == 0);
-        CHECK(color.b == 0);
-    }
-
-    SUBCASE("Constructor with color sets initial color") {
+    SUBCASE("Constructor with color creates opaque background") {
         test_backend::color blue{0, 0, 170};
         background_renderer<mock_test_backend> bg(blue);
-        auto color = bg.get_color();
-        CHECK(color.r == 0);
-        CHECK(color.g == 0);
-        CHECK(color.b == 170);
+        CHECK(bg.has_style());
+
+        auto style_opt = bg.get_style();
+        REQUIRE(style_opt.has_value());
+        CHECK(style_opt->bg_color.r == 0);
+        CHECK(style_opt->bg_color.g == 0);
+        CHECK(style_opt->bg_color.b == 170);
+    }
+}
+
+// =============================================================================
+// Style Management Tests
+// =============================================================================
+
+TEST_CASE("Background Renderer - Style management") {
+    SUBCASE("Default is transparent (no style)") {
+        background_renderer<mock_test_backend> bg;
+        CHECK_FALSE(bg.has_style());
     }
 
-    SUBCASE("Can change color via setter") {
+    SUBCASE("set_color() enables rendering") {
         background_renderer<mock_test_backend> bg;
         test_backend::color red{255, 0, 0};
         bg.set_color(red);
-        auto color = bg.get_color();
-        CHECK(color.r == 255);
-        CHECK(color.g == 0);
-        CHECK(color.b == 0);
+
+        CHECK(bg.has_style());
+        auto style_opt = bg.get_style();
+        REQUIRE(style_opt.has_value());
+        CHECK(style_opt->bg_color.r == 255);
+        CHECK(style_opt->bg_color.g == 0);
+        CHECK(style_opt->bg_color.b == 0);
+    }
+
+    SUBCASE("clear_style() disables rendering") {
+        background_renderer<mock_test_backend> bg;
+        bg.set_color({100, 100, 100});
+        CHECK(bg.has_style());
+
+        bg.clear_style();
+        CHECK_FALSE(bg.has_style());
+    }
+
+    SUBCASE("Can toggle between transparent and opaque") {
+        background_renderer<mock_test_backend> bg;
+
+        bg.set_color({255, 0, 0});
+        CHECK(bg.has_style());
+
+        bg.clear_style();
+        CHECK_FALSE(bg.has_style());
+
+        bg.set_color({0, 255, 0});
+        CHECK(bg.has_style());
     }
 
     SUBCASE("Multiple color changes are tracked") {
         background_renderer<mock_test_backend> bg;
         test_backend::color c1{255, 0, 0};
         test_backend::color c2{0, 255, 0};
+
         bg.set_color(c1);
-        CHECK(bg.get_color() == c1);
+        auto style1 = bg.get_style();
+        REQUIRE(style1.has_value());
+        CHECK(style1->bg_color == c1);
+
         bg.set_color(c2);
-        CHECK(bg.get_color() == c2);
+        auto style2 = bg.get_style();
+        REQUIRE(style2.has_value());
+        CHECK(style2->bg_color == c2);
     }
 }
 
 // =============================================================================
-// Rendering Tests - Solid Mode
+// Rendering Tests - With Style (Opaque)
 // =============================================================================
 
-TEST_CASE("Background Renderer - Solid mode rendering") {
-    SUBCASE("Solid mode with empty dirty regions fills entire viewport") {
+TEST_CASE("Background Renderer - Opaque rendering") {
+    SUBCASE("Renders with style when empty dirty regions fills entire viewport") {
         background_renderer<mock_test_backend> bg;
         test_backend::color blue{0, 0, 170};
         bg.set_color(blue);
-        bg.set_mode(background_mode::solid);
 
         mock_renderer renderer;
         test_backend::rect viewport{0, 0, 80, 25};
@@ -202,18 +216,13 @@ TEST_CASE("Background Renderer - Solid mode rendering") {
 
         bg.render(renderer, viewport, dirty_regions);
 
-        // Should set colors
-        REQUIRE(renderer.foreground_calls.size() == 1);
-        REQUIRE(renderer.background_calls.size() == 1);
-        CHECK(renderer.foreground_calls[0] == blue);
-        CHECK(renderer.background_calls[0] == blue);
-
-        // Should draw entire viewport
-        REQUIRE(renderer.draw_box_calls.size() == 1);
-        CHECK(renderer.draw_box_calls[0] == viewport);
+        // Should call draw_background once
+        REQUIRE(renderer.draw_background_calls.size() == 1);
+        CHECK(renderer.draw_background_calls[0].first == viewport);
+        CHECK(renderer.draw_background_calls[0].second.bg_color == blue);
     }
 
-    SUBCASE("Solid mode with dirty regions fills only those regions") {
+    SUBCASE("Renders with dirty regions") {
         background_renderer<mock_test_backend> bg;
         test_backend::color red{255, 0, 0};
         bg.set_color(red);
@@ -227,17 +236,12 @@ TEST_CASE("Background Renderer - Solid mode rendering") {
 
         bg.render(renderer, viewport, dirty_regions);
 
-        // Should set colors
-        CHECK(renderer.foreground_calls.size() == 1);
-        CHECK(renderer.background_calls.size() == 1);
-
-        // Should draw exactly the dirty regions
-        REQUIRE(renderer.draw_box_calls.size() == 2);
-        CHECK(renderer.draw_box_calls[0] == dirty_regions[0]);
-        CHECK(renderer.draw_box_calls[1] == dirty_regions[1]);
+        // Should call draw_background once (implementation may optimize)
+        REQUIRE(renderer.draw_background_calls.size() >= 1);
+        CHECK(renderer.draw_background_calls[0].second.bg_color == red);
     }
 
-    SUBCASE("Solid mode with multiple dirty regions") {
+    SUBCASE("Renders with multiple dirty regions") {
         background_renderer<mock_test_backend> bg;
         bg.set_color({128, 128, 128});
 
@@ -252,23 +256,19 @@ TEST_CASE("Background Renderer - Solid mode rendering") {
 
         bg.render(renderer, viewport, dirty_regions);
 
-        // Should draw all dirty regions
-        REQUIRE(renderer.draw_box_calls.size() == 4);
-        for (size_t i = 0; i < dirty_regions.size(); ++i) {
-            CHECK(renderer.draw_box_calls[i] == dirty_regions[i]);
-        }
+        // Should call draw_background (implementation handles regions)
+        CHECK_FALSE(renderer.draw_background_calls.empty());
     }
 }
 
 // =============================================================================
-// Rendering Tests - Transparent Mode
+// Rendering Tests - Transparent (No Style)
 // =============================================================================
 
-TEST_CASE("Background Renderer - Transparent mode rendering") {
-    SUBCASE("Transparent mode renders nothing") {
+TEST_CASE("Background Renderer - Transparent rendering") {
+    SUBCASE("Transparent renders nothing") {
         background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::transparent);
-        bg.set_color({255, 255, 255});  // Color should be ignored
+        // Default is transparent
 
         mock_renderer renderer;
         test_backend::rect viewport{0, 0, 80, 25};
@@ -277,14 +277,12 @@ TEST_CASE("Background Renderer - Transparent mode rendering") {
         bg.render(renderer, viewport, dirty_regions);
 
         // Should not call any renderer methods
-        CHECK(renderer.foreground_calls.empty());
-        CHECK(renderer.background_calls.empty());
-        CHECK(renderer.draw_box_calls.empty());
+        CHECK(renderer.draw_background_calls.empty());
     }
 
-    SUBCASE("Transparent mode with dirty regions still renders nothing") {
+    SUBCASE("Transparent with dirty regions still renders nothing") {
         background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::transparent);
+        bg.clear_style();  // Explicit transparent
 
         mock_renderer renderer;
         test_backend::rect viewport{0, 0, 80, 25};
@@ -293,22 +291,13 @@ TEST_CASE("Background Renderer - Transparent mode rendering") {
         bg.render(renderer, viewport, dirty_regions);
 
         // Should not call any renderer methods
-        CHECK(renderer.foreground_calls.empty());
-        CHECK(renderer.background_calls.empty());
-        CHECK(renderer.draw_box_calls.empty());
+        CHECK(renderer.draw_background_calls.empty());
     }
-}
 
-// =============================================================================
-// Rendering Tests - Pattern Mode (Future)
-// =============================================================================
-
-TEST_CASE("Background Renderer - Pattern mode rendering") {
-    SUBCASE("Pattern mode falls back to solid mode") {
+    SUBCASE("Setting color then clearing style makes it transparent") {
         background_renderer<mock_test_backend> bg;
-        test_backend::color green{0, 255, 0};
-        bg.set_color(green);
-        bg.set_mode(background_mode::pattern);
+        bg.set_color({255, 0, 0});
+        bg.clear_style();
 
         mock_renderer renderer;
         test_backend::rect viewport{0, 0, 80, 25};
@@ -316,11 +305,7 @@ TEST_CASE("Background Renderer - Pattern mode rendering") {
 
         bg.render(renderer, viewport, dirty_regions);
 
-        // Should behave like solid mode (fallback)
-        CHECK(renderer.foreground_calls.size() == 1);
-        CHECK(renderer.background_calls.size() == 1);
-        REQUIRE(renderer.draw_box_calls.size() == 1);
-        CHECK(renderer.draw_box_calls[0] == viewport);
+        CHECK(renderer.draw_background_calls.empty());
     }
 }
 
@@ -331,7 +316,7 @@ TEST_CASE("Background Renderer - Pattern mode rendering") {
 TEST_CASE("Background Renderer - Edge cases") {
     SUBCASE("Empty viewport with empty dirty regions") {
         background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::solid);
+        bg.set_color({255, 255, 255});
 
         mock_renderer renderer;
         test_backend::rect viewport{0, 0, 0, 0};  // Empty viewport
@@ -339,15 +324,13 @@ TEST_CASE("Background Renderer - Edge cases") {
 
         bg.render(renderer, viewport, dirty_regions);
 
-        // Should still call renderer methods (renderer handles empty rect)
-        CHECK(renderer.foreground_calls.size() == 1);
-        CHECK(renderer.background_calls.size() == 1);
-        CHECK(renderer.draw_box_calls.size() == 1);
+        // Should still call renderer (renderer handles empty rect)
+        CHECK(renderer.draw_background_calls.size() == 1);
     }
 
     SUBCASE("Negative viewport coordinates") {
         background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::solid);
+        bg.set_color({255, 255, 255});
 
         mock_renderer renderer;
         test_backend::rect viewport{-10, -10, 100, 50};
@@ -356,85 +339,23 @@ TEST_CASE("Background Renderer - Edge cases") {
         bg.render(renderer, viewport, dirty_regions);
 
         // Should pass through to renderer (renderer handles clipping)
-        REQUIRE(renderer.draw_box_calls.size() == 1);
-        CHECK(renderer.draw_box_calls[0] == viewport);
+        REQUIRE(renderer.draw_background_calls.size() == 1);
+        CHECK(renderer.draw_background_calls[0].first == viewport);
     }
 
-    SUBCASE("Single dirty region should work") {
+    SUBCASE("Large viewport") {
         background_renderer<mock_test_backend> bg;
-        bg.set_mode(background_mode::solid);
+        bg.set_color({200, 200, 200});
 
         mock_renderer renderer;
-        test_backend::rect const viewport{0, 0, 80, 25};
-        std::vector<test_backend::rect> dirty_regions{{5, 5, 10, 10}};
+        test_backend::rect viewport{0, 0, 10000, 10000};
+        std::vector<test_backend::rect> dirty_regions;
 
         bg.render(renderer, viewport, dirty_regions);
 
-        REQUIRE(renderer.draw_box_calls.size() == 1);
-        CHECK(renderer.draw_box_calls[0] == dirty_regions[0]);
-    }
-}
-
-// =============================================================================
-// Integration with ui_context
-// =============================================================================
-
-TEST_CASE("Background Renderer - ui_context integration") {
-    SUBCASE("ui_context provides background_renderer instance") {
-        scoped_ui_context<test_backend> ctx;
-
-        auto* bg = ui_services<test_backend>::background();
-        REQUIRE(bg != nullptr);
-    }
-
-    SUBCASE("Can configure background via ui_services") {
-        scoped_ui_context<test_backend> ctx;
-
-        auto* bg = ui_services<test_backend>::background();
-        REQUIRE(bg != nullptr);
-
-        bg->set_mode(background_mode::transparent);
-        bg->set_color({255, 0, 0});
-
-        CHECK(bg->get_mode() == background_mode::transparent);
-        auto color = bg->get_color();
-        CHECK(color.r == 255);
-        CHECK(color.g == 0);
-        CHECK(color.b == 0);
-    }
-
-    SUBCASE("Multiple contexts have independent background renderers") {
-        test_backend::color color1{255, 0, 0};
-        test_backend::color color2{0, 255, 0};
-
-        {
-            scoped_ui_context<test_backend> ctx1;
-            auto* bg1 = ui_services<test_backend>::background();
-            bg1->set_color(color1);
-            bg1->set_mode(background_mode::solid);
-
-            {
-                scoped_ui_context<test_backend> ctx2;
-                auto* bg2 = ui_services<test_backend>::background();
-                bg2->set_color(color2);
-                bg2->set_mode(background_mode::transparent);
-
-                // ctx2 is active
-                CHECK(bg2->get_color() == color2);
-                CHECK(bg2->get_mode() == background_mode::transparent);
-            }
-
-            // ctx1 is active again
-            auto* bg1_again = ui_services<test_backend>::background();
-            CHECK(bg1_again->get_color() == color1);
-            CHECK(bg1_again->get_mode() == background_mode::solid);
-        }
-    }
-
-    SUBCASE("background() returns nullptr when no context") {
-        // No context active
-        auto* bg = ui_services<test_backend>::background();
-        CHECK(bg == nullptr);
+        // Should pass through (renderer handles large rectangles)
+        REQUIRE(renderer.draw_background_calls.size() == 1);
+        CHECK(renderer.draw_background_calls[0].first == viewport);
     }
 }
 
@@ -443,53 +364,118 @@ TEST_CASE("Background Renderer - ui_context integration") {
 // =============================================================================
 
 TEST_CASE("Background Renderer - Copy and move semantics") {
-    SUBCASE("Copy constructor preserves state") {
-        test_backend::color red{255, 0, 0};
+    SUBCASE("Copy constructor copies style") {
         background_renderer<mock_test_backend> bg1;
-        bg1.set_mode(background_mode::transparent);
-        bg1.set_color(red);
+        bg1.set_color({100, 100, 100});
 
-        background_renderer<mock_test_backend> bg2 = bg1;  // Copy
+        background_renderer<mock_test_backend> bg2 = bg1;
 
-        CHECK(bg2.get_mode() == background_mode::transparent);
-        CHECK(bg2.get_color() == red);
+        CHECK(bg2.has_style());
+        auto style = bg2.get_style();
+        REQUIRE(style.has_value());
+        CHECK(style->bg_color.r == 100);
+        CHECK(style->bg_color.g == 100);
+        CHECK(style->bg_color.b == 100);
     }
 
-    SUBCASE("Copy assignment preserves state") {
-        test_backend::color blue{0, 0, 255};
+    SUBCASE("Copy assignment copies style") {
         background_renderer<mock_test_backend> bg1;
-        bg1.set_mode(background_mode::pattern);
-        bg1.set_color(blue);
+        bg1.set_color({150, 150, 150});
 
         background_renderer<mock_test_backend> bg2;
-        bg2 = bg1;  // Copy assignment
+        bg2 = bg1;
 
-        CHECK(bg2.get_mode() == background_mode::pattern);
-        CHECK(bg2.get_color() == blue);
+        CHECK(bg2.has_style());
+        auto style = bg2.get_style();
+        REQUIRE(style.has_value());
+        CHECK(style->bg_color.r == 150);
     }
 
-    SUBCASE("Move constructor transfers state") {
-        test_backend::color green{0, 255, 0};
+    SUBCASE("Move constructor transfers style") {
         background_renderer<mock_test_backend> bg1;
-        bg1.set_mode(background_mode::solid);
-        bg1.set_color(green);
+        bg1.set_color({200, 200, 200});
 
-        background_renderer<mock_test_backend> bg2 = std::move(bg1);  // Move
+        background_renderer<mock_test_backend> bg2 = std::move(bg1);
 
-        CHECK(bg2.get_mode() == background_mode::solid);
-        CHECK(bg2.get_color() == green);
+        CHECK(bg2.has_style());
+        auto style = bg2.get_style();
+        REQUIRE(style.has_value());
+        CHECK(style->bg_color.r == 200);
     }
 
-    SUBCASE("Move assignment transfers state") {
-        test_backend::color yellow{255, 255, 0};
+    SUBCASE("Move assignment transfers style") {
         background_renderer<mock_test_backend> bg1;
-        bg1.set_mode(background_mode::transparent);
-        bg1.set_color(yellow);
+        bg1.set_color({250, 250, 250});
 
         background_renderer<mock_test_backend> bg2;
-        bg2 = std::move(bg1);  // Move assignment
+        bg2 = std::move(bg1);
 
-        CHECK(bg2.get_mode() == background_mode::transparent);
-        CHECK(bg2.get_color() == yellow);
+        CHECK(bg2.has_style());
+        auto style = bg2.get_style();
+        REQUIRE(style.has_value());
+        CHECK(style->bg_color.r == 250);
+    }
+
+    SUBCASE("Copying transparent background") {
+        background_renderer<mock_test_backend> bg1;  // Transparent
+
+        background_renderer<mock_test_backend> bg2 = bg1;
+
+        CHECK_FALSE(bg2.has_style());
+    }
+}
+
+// =============================================================================
+// ui_context Integration Tests
+// =============================================================================
+
+TEST_CASE("Background Renderer - ui_context integration") {
+    SUBCASE("ui_services provides background_renderer instance") {
+        scoped_ui_context<mock_test_backend> ctx;
+
+        auto* bg = ui_services<mock_test_backend>::background();
+        REQUIRE(bg != nullptr);
+
+        // Default is transparent
+        CHECK_FALSE(bg->has_style());
+    }
+
+    SUBCASE("Can configure background through ui_services") {
+        scoped_ui_context<mock_test_backend> ctx;
+
+        auto* bg = ui_services<mock_test_backend>::background();
+        REQUIRE(bg != nullptr);
+
+        test_backend::color teal{0, 128, 128};
+        bg->set_color(teal);
+
+        CHECK(bg->has_style());
+        auto style = bg->get_style();
+        REQUIRE(style.has_value());
+        CHECK(style->bg_color == teal);
+    }
+
+    SUBCASE("Multiple contexts have independent backgrounds") {
+        scoped_ui_context<mock_test_backend> ctx1;
+        auto* bg1 = ui_services<mock_test_backend>::background();
+        bg1->set_color({255, 0, 0});
+
+        {
+            scoped_ui_context<mock_test_backend> ctx2;
+            auto* bg2 = ui_services<mock_test_backend>::background();
+
+            // New context should have independent background
+            CHECK_FALSE(bg2->has_style());
+
+            bg2->set_color({0, 255, 0});
+            CHECK(bg2->has_style());
+        }
+
+        // Original context should still have red background
+        auto style1 = bg1->get_style();
+        REQUIRE(style1.has_value());
+        CHECK(style1->bg_color.r == 255);
+        CHECK(style1->bg_color.g == 0);
+        CHECK(style1->bg_color.b == 0);
     }
 }

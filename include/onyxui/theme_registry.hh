@@ -38,6 +38,7 @@
 #pragma once
 
 #include <onyxui/theme.hh>
+#include <onyxui/signal.hh>
 #include <failsafe/logger.hh>
 #include <unordered_map>
 #include <vector>
@@ -77,6 +78,27 @@ namespace onyxui {
     class theme_registry {
     public:
         using theme_type = ui_theme<Backend>;
+
+        /**
+         * @brief Signal emitted when the current theme changes
+         *
+         * @details
+         * Emitted by set_current_theme() when a new theme is activated.
+         * Subscribers receive a pointer to the new theme (can be nullptr if theme is cleared).
+         *
+         * **Use Case:** Automatic synchronization between theme and background renderer.
+         *
+         * @example
+         * @code
+         * // Subscribe to theme changes
+         * ctx.themes().theme_changed.connect([&bg](const ui_theme<Backend>* theme) {
+         *     if (theme) {
+         *         bg.set_color(theme->window_bg);
+         *     }
+         * });
+         * @endcode
+         */
+        signal<const theme_type*> theme_changed;
 
         /**
          * @brief Register a theme
@@ -282,17 +304,25 @@ namespace onyxui {
          * @endcode
          */
         bool set_current_theme(const std::string& name) {
-            std::unique_lock lock(m_mutex);
+            const theme_type* new_theme_ptr = nullptr;
 
-            auto it = m_themes.find(name);
-            if (it != m_themes.end()) {
-                m_current_theme = std::make_shared<const theme_type>(it->second);
-                LOG_DEBUG("Set current theme: ", name);
-                return true;
+            {
+                std::unique_lock lock(m_mutex);
+
+                auto it = m_themes.find(name);
+                if (it != m_themes.end()) {
+                    m_current_theme = std::make_shared<const theme_type>(it->second);
+                    new_theme_ptr = m_current_theme.get();
+                    LOG_DEBUG("Set current theme: ", name);
+                } else {
+                    LOG_WARN("Cannot set current theme (not found): ", name);
+                    return false;
+                }
             }
 
-            LOG_WARN("Cannot set current theme (not found): ", name);
-            return false;
+            // Emit signal outside the lock to avoid deadlock
+            theme_changed.emit(new_theme_ptr);
+            return true;
         }
 
         /**
@@ -310,13 +340,22 @@ namespace onyxui {
          * @endcode
          */
         void set_current_theme(std::shared_ptr<const theme_type> theme) {
-            std::unique_lock lock(m_mutex);
-            m_current_theme = std::move(theme);
-            if (m_current_theme) {
-                LOG_DEBUG("Set current theme: ", m_current_theme->name);
-            } else {
-                LOG_DEBUG("Cleared current theme");
+            const theme_type* new_theme_ptr = nullptr;
+
+            {
+                std::unique_lock lock(m_mutex);
+                m_current_theme = std::move(theme);
+                new_theme_ptr = m_current_theme.get();
+
+                if (m_current_theme) {
+                    LOG_DEBUG("Set current theme: ", m_current_theme->name);
+                } else {
+                    LOG_DEBUG("Cleared current theme");
+                }
             }
+
+            // Emit signal outside the lock to avoid deadlock
+            theme_changed.emit(new_theme_ptr);
         }
 
         /**

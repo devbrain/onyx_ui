@@ -613,6 +613,7 @@ namespace onyxui {
         using layer_manager_type = layer_manager<Backend>;
         using input_manager_type = hierarchical_input_manager<Backend, ui_element<Backend>>;
         using theme_registry_type = theme_registry<Backend>;
+        using theme_type = ui_theme<Backend>;
         using hotkey_manager_type = hotkey_manager<Backend>;
         using hotkey_scheme_registry_type = hotkey_scheme_registry;
         using background_renderer_type = background_renderer<Backend>;
@@ -624,8 +625,16 @@ namespace onyxui {
          * Per-context services (layer_manager, focus_manager) are created fresh.
          * Shared services (theme_registry, hotkey_manager) are initialized once
          * and shared across all contexts.
+         *
+         * **Automatic theme/background synchronization:**
+         * Connects background_renderer to theme_changed signal, ensuring background
+         * color automatically updates when themes are switched.
          */
-        ui_context() {
+        ui_context()
+            : m_theme_connection(get_theme_signal(), [this](const theme_type* theme) {
+                m_background_renderer.on_theme_changed(theme);
+            })
+        {
             ensure_shared_services_initialized();
         }
 
@@ -763,11 +772,21 @@ namespace onyxui {
         layer_manager_type m_layer_manager;
         input_manager_type m_input_manager;
         background_renderer_type m_background_renderer;
+        scoped_connection m_theme_connection;  ///< Auto-disconnects on destruction
 
         // Shared services (singleton pattern - shared across all contexts)
         static inline std::shared_ptr<theme_registry_type> s_shared_themes;
         static inline std::shared_ptr<hotkey_manager_type> s_shared_hotkeys;
         static inline std::shared_ptr<hotkey_scheme_registry_type> s_shared_hotkey_schemes;
+
+        /**
+         * @brief Get theme_changed signal reference (for scoped_connection initialization)
+         * @return Reference to the theme_changed signal
+         */
+        static auto& get_theme_signal() {
+            ensure_shared_services_initialized();
+            return s_shared_themes->theme_changed;
+        }
 
         /**
          * @brief Initialize shared services on first access

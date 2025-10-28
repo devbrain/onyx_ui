@@ -7,6 +7,7 @@
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/concepts/size_like.hh>
 #include <string_view>
+#include <vector>
 
 namespace onyxui {
     /**
@@ -91,12 +92,15 @@ namespace onyxui {
                                                   const typename T::box_style& box,
                                                   const typename T::line_style& line,
                                                   const typename T::font& f,
-                                                  const typename T::icon_style& i)
+                                                  const typename T::icon_style& i,
+                                                  const typename T::background_style& bg,
+                                                  const std::vector<R>& regions)
     {
         typename T::box_style;
         typename T::line_style;
         typename T::font;
         typename T::icon_style;
+        typename T::background_style;  // Backend-specific background attributes
         typename T::size_type;  // Required for measure_text return type
 
         // Drawing methods
@@ -107,6 +111,10 @@ namespace onyxui {
         // Line drawing methods
         { renderer.draw_horizontal_line(rect, line) } -> std::same_as<void>;
         { renderer.draw_vertical_line(rect, line) } -> std::same_as<void>;
+
+        // Background drawing methods (optimized for viewport clearing)
+        { renderer.draw_background(rect, bg) } -> std::same_as<void>;
+        { renderer.draw_background(rect, bg, regions) } -> std::same_as<void>;
 
         // Clearing method (for dirty rectangle support)
         { renderer.clear_region(rect) } -> std::same_as<void>;

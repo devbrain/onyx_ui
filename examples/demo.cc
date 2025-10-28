@@ -26,22 +26,20 @@ int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
         }
         std::cerr << std::endl;
 
-        // 3. Configure background via ui_services
-        //    Get the theme's window background color
-        auto* themes = onyxui::ui_services<onyxui::conio::conio_backend>::themes();
-        auto* bg = onyxui::ui_services<onyxui::conio::conio_backend>::background();
-        if (themes && bg) {
-            auto theme_names = themes->list_theme_names();
-            if (!theme_names.empty()) {
-                if (auto* theme = themes->get_theme(theme_names[0])) {
-                    // Set background via ui_services (not a widget!)
-                    bg->set_mode(onyxui::background_mode::solid);
-                    bg->set_color(theme->window_bg);
-                }
-            }
-        }
-
-        // 4. Create main widget (discovers themes from ui_services)
+        // 3. Create main widget (discovers themes from ui_services)
+        //    main_widget constructor calls themes->set_current_theme("Norton Blue")
+        //    which automatically synchronizes the background via signal/slot
+        //    No manual background setup needed!
+        //
+        //    **Automatic Theme/Background Synchronization:**
+        //    - Initial theme: Norton Blue (color{0, 0, 170} - dark blue)
+        //    - Press 1: Norton Blue → background updates to dark blue (0, 0, 170)
+        //    - Press 2: Borland Turbo → background updates to cyan (0, 170, 170)
+        //    - Press 3: Midnight Commander → background updates to black (0, 0, 0)
+        //    - Press 4: DOS Edit → background updates to white (255, 255, 255)
+        //
+        //    The background_renderer automatically receives theme_changed signals
+        //    via scoped_connection in ui_context constructor. Zero manual sync!
         auto widget = std::make_unique<main_widget<onyxui::conio::conio_backend>>();
 
         // Keep reference to widget for event handling before moving it
