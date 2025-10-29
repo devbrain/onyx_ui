@@ -150,14 +150,9 @@ namespace onyxui {
             if (!child) return;
 
             // Verify child is a direct child of this scrollable
-            bool found = false;
-            for (const auto& c : this->children()) {
-                if (c.get() == child) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) return;
+            auto it = std::find_if(this->children().begin(), this->children().end(),
+                [child](const auto& c) { return c.get() == child; });
+            if (it == this->children().end()) return;
 
             auto const child_bounds = child->bounds();
             auto const viewport_bounds = this->get_content_area();
@@ -454,17 +449,40 @@ namespace onyxui {
         }
 
         /**
-         * @brief Render content
+         * @brief Render content with viewport clipping
          * @param ctx Render context with style information
+         *
+         * @details
+         * Clips rendering to the content area (viewport bounds).
+         * Children that are positioned outside the viewport (due to scroll offset)
+         * are automatically clipped by the renderer.
+         *
+         * The clipping ensures that:
+         * - Content outside the viewport is not drawn
+         * - Scrolled content is properly clipped at viewport edges
+         * - Nested scrollables clip correctly (clip regions stack)
+         *
          * @note Children render at scrolled positions (negative offset)
-         * @note Clipping will be added in Phase 2 via renderer integration
          */
         void do_render(render_context<Backend>& ctx) const override {
-            // Use base implementation - children render at their arranged positions
+            // Only clip during actual rendering (not measurement)
+            if (!ctx.is_rendering()) {
+                base::do_render(ctx);
+                return;
+            }
+
+            // Get viewport bounds (content area excluding padding/borders)
+            auto const viewport_bounds = this->get_content_area();
+
+            // Push viewport clip region
+            ctx.push_clip(viewport_bounds);
+
+            // Render children with clipping active
+            // Children positioned outside viewport are clipped automatically
             base::do_render(ctx);
 
-            // TODO Phase 2: Add viewport clipping via renderer.push_clip/pop_clip
-            // This requires direct renderer access or a different rendering approach
+            // Restore previous clip region
+            ctx.pop_clip();
         }
 
     private:

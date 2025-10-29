@@ -44,6 +44,22 @@ struct ui_context_fixture {
         theme.text_fg = typename Backend::color_type{255, 255, 255};
         theme.border_color = typename Backend::color_type{100, 100, 100};
 
+        // Initialize scrollbar theme properties for visual tests
+        using box_style_type = typename Backend::renderer_type::box_style;
+        box_style_type scrollbar_box{};
+        scrollbar_box.draw_border = true;  // Enable border drawing for visual tests
+
+        theme.scrollbar.width = 16;              // Default scrollbar width
+        theme.scrollbar.min_thumb_size = 20;     // Minimum thumb size
+        theme.scrollbar.track_normal.box_style = scrollbar_box;
+        theme.scrollbar.thumb_normal.box_style = scrollbar_box;
+        theme.scrollbar.thumb_hover.box_style = scrollbar_box;
+        theme.scrollbar.thumb_pressed.box_style = scrollbar_box;
+        theme.scrollbar.thumb_disabled.box_style = scrollbar_box;
+        theme.scrollbar.arrow_normal.box_style = scrollbar_box;
+        theme.scrollbar.arrow_hover.box_style = scrollbar_box;
+        theme.scrollbar.arrow_pressed.box_style = scrollbar_box;
+
         // Register and activate theme
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("TestTheme");
@@ -169,8 +185,7 @@ namespace onyxui::testing {
         if (!theme_ptr) {
             throw std::runtime_error("No current theme set!");
         }
-        const auto& theme = *theme_ptr;
-        element.render(renderer, theme);
+        element.render(renderer, theme_ptr);
 
         return canvas;
     }

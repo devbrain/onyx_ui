@@ -384,6 +384,32 @@ namespace onyxui {
     public:
 
         /**
+         * @brief Push a clipping rectangle onto the renderer's clip stack
+         * @param bounds Clipping rectangle
+         *
+         * @details
+         * Forwards to renderer->push_clip(). Restricts all subsequent drawing
+         * operations to the specified rectangle.
+         */
+        void push_clip(const rect_type& bounds) override {
+            if (m_renderer) {
+                m_renderer->push_clip(bounds);
+            }
+        }
+
+        /**
+         * @brief Pop the current clipping rectangle from the renderer's clip stack
+         *
+         * @details
+         * Forwards to renderer->pop_clip(). Restores the previous clip region.
+         */
+        void pop_clip() override {
+            if (m_renderer) {
+                m_renderer->pop_clip();
+            }
+        }
+
+        /**
          * @brief Set dirty regions for optimized rendering
          * @param regions List of rectangles that need redrawing
          *

@@ -55,3 +55,49 @@ panel:
   border_color: { r: 255, g: 255, b: 255 } # White
   box_style: heavy                        # Heavy borders for visibility
   has_border: true
+
+# Scrollbar styling
+scrollbar:
+  width: 1
+  min_thumb_size: 1
+  style: compact
+
+  track_normal:
+    foreground: { r: 128, g: 128, b: 128 }
+    background: { r: 64, g: 64, b: 64 }
+    box_style: { draw_border: true }
+
+  thumb_normal:
+    foreground: { r: 192, g: 192, b: 192 }
+    background: { r: 96, g: 96, b: 96 }
+    box_style: { draw_border: true }
+
+  thumb_hover:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 128, g: 128, b: 128 }
+    box_style: { draw_border: true }
+
+  thumb_pressed:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 160, g: 160, b: 160 }
+    box_style: { draw_border: true }
+
+  thumb_disabled:
+    foreground: { r: 96, g: 96, b: 96 }
+    background: { r: 64, g: 64, b: 64 }
+    box_style: { draw_border: true }
+
+  arrow_normal:
+    foreground: { r: 192, g: 192, b: 192 }
+    background: { r: 96, g: 96, b: 96 }
+    box_style: { draw_border: true }
+
+  arrow_hover:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 128, g: 128, b: 128 }
+    box_style: { draw_border: true }
+
+  arrow_pressed:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 160, g: 160, b: 160 }
+    box_style: { draw_border: true }

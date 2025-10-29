@@ -55,3 +55,52 @@ panel:
   border_color: { r: 80, g: 80, b: 80 }  # Subtle gray border
   box_style: rounded
   has_border: true
+
+# Scrollbar styling - modern minimal design
+scrollbar:
+  width: 1                                  # Scrollbar thickness
+  min_thumb_size: 1                         # Minimum thumb size
+  style: minimal                            # Minimal style (no arrow buttons)
+
+  # Track (background bar)
+  track_normal:
+    foreground: { r: 60, g: 60, b: 60 }    # Dark gray
+    background: { r: 30, g: 30, b: 30 }     # Very dark gray
+    box_style: { draw_border: true }
+
+  # Thumb (draggable indicator) states
+  thumb_normal:
+    foreground: { r: 100, g: 100, b: 100 } # Medium gray
+    background: { r: 45, g: 45, b: 45 }     # Slightly lighter
+    box_style: { draw_border: true }
+
+  thumb_hover:
+    foreground: { r: 0, g: 120, b: 215 }   # Modern blue
+    background: { r: 60, g: 60, b: 60 }     # Dark gray
+    box_style: { draw_border: true }
+
+  thumb_pressed:
+    foreground: { r: 255, g: 255, b: 255 } # White
+    background: { r: 0, g: 90, b: 180 }     # Darker blue
+    box_style: { draw_border: true }
+
+  thumb_disabled:
+    foreground: { r: 50, g: 50, b: 50 }    # Very dark gray
+    background: { r: 35, g: 35, b: 35 }     # Almost black
+    box_style: { draw_border: true }
+
+  # Arrow buttons (not used in minimal style)
+  arrow_normal:
+    foreground: { r: 100, g: 100, b: 100 }
+    background: { r: 45, g: 45, b: 45 }
+    box_style: { draw_border: true }
+
+  arrow_hover:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 0, g: 120, b: 215 }
+    box_style: { draw_border: true }
+
+  arrow_pressed:
+    foreground: { r: 255, g: 255, b: 255 }
+    background: { r: 0, g: 90, b: 180 }
+    box_style: { draw_border: true }

@@ -66,3 +66,52 @@ panel:
   border_color: { r: 255, g: 255, b: 0 }   # Yellow
   box_style: single_line
   has_border: true
+
+# Scrollbar styling
+scrollbar:
+  width: 1                                  # Scrollbar thickness (columns/rows)
+  min_thumb_size: 1                         # Minimum thumb size
+  style: classic                            # Arrow button style (classic/compact/minimal)
+
+  # Track (background bar)
+  track_normal:
+    foreground: { r: 85, g: 85, b: 85 }    # Dark gray
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+    box_style: { draw_border: true }
+
+  # Thumb (draggable indicator) states
+  thumb_normal:
+    foreground: { r: 170, g: 170, b: 170 } # Light gray
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+    box_style: { draw_border: true }
+
+  thumb_hover:
+    foreground: { r: 255, g: 255, b: 0 }   # Yellow (highlight)
+    background: { r: 0, g: 0, b: 255 }      # Bright blue
+    box_style: { draw_border: true }
+
+  thumb_pressed:
+    foreground: { r: 0, g: 0, b: 0 }       # Black
+    background: { r: 255, g: 255, b: 255 } # White
+    box_style: { draw_border: true }
+
+  thumb_disabled:
+    foreground: { r: 64, g: 64, b: 64 }    # Very dark gray
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+    box_style: { draw_border: true }
+
+  # Arrow buttons (classic/compact styles)
+  arrow_normal:
+    foreground: { r: 255, g: 255, b: 255 } # White
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+    box_style: { draw_border: true }
+
+  arrow_hover:
+    foreground: { r: 255, g: 255, b: 0 }   # Yellow
+    background: { r: 0, g: 0, b: 255 }      # Bright blue
+    box_style: { draw_border: true }
+
+  arrow_pressed:
+    foreground: { r: 0, g: 0, b: 0 }       # Black
+    background: { r: 170, g: 170, b: 170 } # Light gray
+    box_style: { draw_border: true }

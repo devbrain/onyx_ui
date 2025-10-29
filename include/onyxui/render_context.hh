@@ -279,6 +279,47 @@ namespace onyxui {
             return !is_rendering();
         }
 
+        /**
+         * @brief Push a clipping rectangle onto the renderer's clip stack
+         * @param bounds Clipping rectangle
+         *
+         * @details
+         * Restricts rendering to the specified rectangle. All subsequent draw operations
+         * will be clipped to this region. Clip regions can be nested (stacked).
+         *
+         * - **measure_context**: No-op (clipping not needed during measurement)
+         * - **draw_context**: Forwards to renderer->push_clip()
+         *
+         * **Important**: Every push_clip() must have a matching pop_clip()!
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     auto viewport = this->get_content_area();
+         *     ctx.push_clip(viewport);  // Clip to viewport
+         *     // ... render children ...
+         *     ctx.pop_clip();  // Restore previous clip
+         * }
+         * @endcode
+         */
+        virtual void push_clip(const rect_type& bounds) {
+            // Default: no-op (measure_context doesn't clip)
+            (void)bounds;
+        }
+
+        /**
+         * @brief Pop the current clipping rectangle from the renderer's clip stack
+         *
+         * @details
+         * Restores the previous clip region. Must be paired with push_clip().
+         *
+         * - **measure_context**: No-op
+         * - **draw_context**: Forwards to renderer->pop_clip()
+         */
+        virtual void pop_clip() {
+            // Default: no-op (measure_context doesn't clip)
+        }
+
     protected:
         /**
          * @brief Access underlying renderer (internal use only)
@@ -393,7 +434,7 @@ namespace onyxui {
         /**
          * @brief Get the theme pointer for accessing rare widget-specific properties
          *
-         * @return Pointer to theme (can be nullptr if no theme is set)
+         * @return Pointer to theme (should not be nullptr in normal usage)
          *
          * @details
          * Provides access to rare widget-specific properties that aren't common enough
@@ -401,6 +442,11 @@ namespace onyxui {
          * - button's text_align
          * - separator's line_style
          * - menu_item's separator line_style
+         *
+         * **Theme Policy**:
+         * - Public rendering entry points (ui_element::render) enforce non-null themes
+         * - The API uses pointers (not references) for safety and defensive programming
+         * - Widgets should defensively check for nullptr, though it should not occur
          *
          * **Note**: Most widgets should use ctx.style() for common properties.
          * Only access theme directly for rare properties specific to your widget type.
