@@ -230,31 +230,8 @@ namespace onyxui {
          * @note If targets list is empty, this is a no-op
          */
         void focus_next(const std::vector<target_ptr>& targets) {
-            auto focusables = collect_focusable_targets(targets);
+            auto focusables = get_sorted_focusable_targets(targets);
             if (focusables.empty()) return;
-
-            // Sort by tab index with stable tiebreaker
-            std::stable_sort(focusables.begin(), focusables.end(),
-                     [](target_ptr a, target_ptr b) {
-                         int const a_idx = a->tab_index();
-                         int const b_idx = b->tab_index();
-
-                         // Both have explicit tab indices
-                         if (a_idx >= 0 && b_idx >= 0) {
-                             if (a_idx != b_idx) {
-                                 return a_idx < b_idx;
-                             }
-                             // Equal tab indices: use pointer address as stable tiebreaker
-                             return std::less<>()(a, b);
-                         }
-
-                         // Explicit indices come before implicit (-1)
-                         if (a_idx >= 0) return true;
-                         if (b_idx >= 0) return false;
-
-                         // Both have implicit indices: maintain original order (stable_sort)
-                         return false;
-                     });
 
             // Find current in list
             auto it = std::find(focusables.begin(), focusables.end(), m_focused_target);
@@ -285,31 +262,8 @@ namespace onyxui {
          * @note If targets list is empty, this is a no-op
          */
         void focus_previous(const std::vector<target_ptr>& targets) {
-            auto focusables = collect_focusable_targets(targets);
+            auto focusables = get_sorted_focusable_targets(targets);
             if (focusables.empty()) return;
-
-            // Sort by tab index with stable tiebreaker (same as focus_next)
-            std::stable_sort(focusables.begin(), focusables.end(),
-                     [](target_ptr a, target_ptr b) {
-                         int const a_idx = a->tab_index();
-                         int const b_idx = b->tab_index();
-
-                         // Both have explicit tab indices
-                         if (a_idx >= 0 && b_idx >= 0) {
-                             if (a_idx != b_idx) {
-                                 return a_idx < b_idx;
-                             }
-                             // Equal tab indices: use pointer address as stable tiebreaker
-                             return std::less<>()(a, b);
-                         }
-
-                         // Explicit indices come before implicit (-1)
-                         if (a_idx >= 0) return true;
-                         if (b_idx >= 0) return false;
-
-                         // Both have implicit indices: maintain original order (stable_sort)
-                         return false;
-                     });
 
             // Find current in list
             auto it = std::find(focusables.begin(), focusables.end(), m_focused_target);
@@ -444,6 +398,51 @@ namespace onyxui {
             }
 
             return result;
+        }
+
+        /**
+         * @brief Get sorted focusable targets ordered by tab index
+         * @param targets The list of all targets
+         * @return Vector of focusable and enabled targets, sorted by tab index
+         *
+         * @details
+         * This is a helper method that combines filtering and sorting of targets.
+         * It first collects only focusable and enabled targets, then sorts them by
+         * tab_index with a stable tiebreaker to ensure consistent ordering.
+         *
+         * The sorting algorithm ensures that:
+         * - Elements with explicit tab_index >= 0 come first, in ascending order
+         * - Elements with tab_index < 0 (default) come last, in order they appear
+         * - Equal tab_index values maintain their relative order (stable sort)
+         *
+         * @exception std::bad_alloc If vector allocation or sort fails
+         * @note Performance: O(n log n) where n = number of focusable targets
+         * @note Exception safety: Strong guarantee - no changes if exception thrown
+         */
+        std::vector<target_ptr> get_sorted_focusable_targets(const std::vector<target_ptr>& targets) {
+            auto focusables = collect_focusable_targets(targets);
+            if (focusables.empty()) return focusables;
+
+            // Sort by tab index with stable tiebreaker
+            std::stable_sort(focusables.begin(), focusables.end(),
+                     [](target_ptr a, target_ptr b) {
+                         int const a_idx = a->tab_index();
+                         int const b_idx = b->tab_index();
+
+                         // Elements with explicit tab_index >= 0 come before those with < 0
+                         bool const a_has_explicit = (a_idx >= 0);
+                         bool const b_has_explicit = (b_idx >= 0);
+
+                         if (a_has_explicit != b_has_explicit) {
+                             return a_has_explicit;  // Explicit indices come first
+                         }
+
+                         // If both have explicit indices or both don't, sort by index
+                         // For elements without explicit index (both < 0), this preserves order
+                         return a_idx < b_idx;
+                     });
+
+            return focusables;
         }
 
     };
