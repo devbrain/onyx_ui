@@ -60,17 +60,11 @@ namespace {
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurement includes padding") {
     SUBCASE("Short text like 'About' needs padding space") {
-        // Setup context (for theme registry)
-        scoped_ui_context<Backend> ctx;
-
-        // Register a test theme
+        // Register a test theme (use fixture's context)
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         menu_item<Backend> item;
         item.set_text("About");  // 5 characters
-
-        // Apply the theme
-//         item.apply_theme("Test Theme", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure the menu item
         auto size = item.measure(100, 100);
@@ -83,7 +77,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
     }
 
     SUBCASE("Menu item with shortcut needs padding on both sides") {
-        scoped_ui_context<Backend> ctx;
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         menu_item<Backend> item;
@@ -107,7 +100,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
     }
 
     SUBCASE("Separator has fixed height and expand width") {
-        scoped_ui_context<Backend> ctx;
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         auto sep = std::make_unique<separator<Backend>>();
@@ -134,7 +126,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Text is not truncated when rendered") {
     SUBCASE("Menu item displays full text with padding") {
-        scoped_ui_context<Backend> ctx;
         ctx.themes().register_theme(create_menu_test_theme("Test Theme"));
 
         menu_item<Backend> item;
@@ -166,8 +157,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Text is 
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme changes don't break measurement") {
     SUBCASE("Changing theme invalidates cached measurement") {
-        scoped_ui_context<Backend> ctx;
-
         // Register two different themes
         ctx.themes().register_theme(create_menu_test_theme("Theme 1"));
         auto theme2 = create_menu_test_theme("Theme 2");
@@ -177,15 +166,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme ch
         menu_item<Backend> item;
         item.set_text("About");
 
-        // Apply first theme and measure
-//         item.apply_theme("Theme 1", ctx.themes());  // No longer needed - widgets use global theme
+        // Measure with first theme
         auto size1 = item.measure(100, 100);
         int width1 = size_utils::get_width(size1);
 
         CHECK(width1 >= 9);  // Should have padding
-
-        // Change to second theme
-//         item.apply_theme("Theme 2", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure again - should still have correct width
         auto size2 = item.measure(100, 100);
@@ -196,8 +181,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme ch
     }
 
     SUBCASE("Theme change forces remeasurement for items with shortcuts") {
-        scoped_ui_context<Backend> ctx;
-
         ctx.themes().register_theme(create_menu_test_theme("Theme 1"));
         ctx.themes().register_theme(create_menu_test_theme("Theme 2"));
 
@@ -210,15 +193,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme ch
         action->set_shortcut('S', key_modifier::ctrl);
         item.set_action(action);
 
-        // Apply first theme and measure
-//         item.apply_theme("Theme 1", ctx.themes());  // No longer needed - widgets use global theme
+        // Measure with first theme
         auto size1 = item.measure(100, 100);
         int width1 = size_utils::get_width(size1);
 
         CHECK(width1 >= 14);  // Text + shortcut + padding
-
-        // Change theme
-//         item.apply_theme("Theme 2", ctx.themes());  // No longer needed - widgets use global theme
 
         // Measure again
         auto size2 = item.measure(100, 100);
@@ -233,8 +212,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
     using namespace onyxui::testing;
 
     SUBCASE("Multiple menu items render consistently with borders") {
-        scoped_ui_context<CanvasBackend> ctx;
-
         // Register test theme for canvas rendering
         ui_theme<CanvasBackend> theme;
         theme.name = "Canvas Test Theme";
@@ -297,7 +274,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
 
     SUBCASE("Menu bar buttons render consistently") {
         using namespace onyxui;
-        scoped_ui_context<CanvasBackend> ctx;
 
         // Register test theme
         ui_theme<CanvasBackend> theme;
@@ -346,7 +322,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
 
     SUBCASE("Menu bar with actual menu_bar widget - theme applied AFTER creation") {
         using namespace onyxui;
-        scoped_ui_context<CanvasBackend> ctx;
 
         // Register test theme
         ui_theme<CanvasBackend> theme;
@@ -386,34 +361,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Add menu bar to root
         root.add_child(std::move(menu_bar_ptr));
 
-        // NOW apply theme to root (simulating what widget_demo does)
-//         root.apply_theme("Widget Demo Theme", ctx.themes());  // No longer needed - widgets use global theme
-
         // Measure and arrange
-        root.measure(100, 100);
+        auto root_size = root.measure(100, 100);
+        (void)root_size;  // Measurement needed for arrange
         root.arrange({0, 0, 100, 100});
 
         // Get the button bounds from menu bar
         auto file_btn_bounds = menu_bar->get_menu_button_bounds(0);
         auto theme_btn_bounds = menu_bar->get_menu_button_bounds(1);
         auto help_btn_bounds = menu_bar->get_menu_button_bounds(2);
-
-        // Create small canvases to render each button individually
-        auto render_button = [&menu_bar](size_t index, int width, int height) {
-            auto canvas = std::make_shared<test_canvas>(width, height);
-            canvas_renderer renderer(canvas);
-
-            // Get button bounds
-            auto bounds = menu_bar->get_menu_button_bounds(index);
-            int w = rect_utils::get_width(bounds);
-            int h = rect_utils::get_height(bounds);
-
-            // Adjust bounds for small canvas
-            canvas_rect small_bounds{0, 0, std::min(w, width), std::min(h, height)};
-
-            // We can't easily render just one button, so let's skip this approach
-            return canvas;
-        };
 
         // For now, just check that the buttons have non-zero bounds
         CHECK(rect_utils::get_width(file_btn_bounds) > 0);
@@ -432,7 +388,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // This test reproduces the exact structure of widgets_demo
         // to catch the bug where File button doesn't have a border
         using namespace onyxui;
-        scoped_ui_context<CanvasBackend> ctx;
 
         // Set Canvas Test Theme as current (auto-registered by backend)
         ctx.themes().set_current_theme("Canvas Test Theme");
@@ -455,12 +410,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         auto help_menu = std::make_unique<menu<CanvasBackend>>();
         menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
-        // NOW apply theme by name (line 53 of demo.hh)
-//         bool applied = root->apply_theme("Canvas Test Theme", ctx.themes());  // No longer needed - widgets use global theme
-//         REQUIRE(applied);
-
         // Measure and arrange
-        root->measure(80, 25);
+        auto root_size = root->measure(80, 25);
+        (void)root_size;  // Measurement needed for arrange
         root->arrange({0, 0, 80, 25});
 
         // Render to canvas

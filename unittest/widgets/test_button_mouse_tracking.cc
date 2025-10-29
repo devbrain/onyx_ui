@@ -188,17 +188,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hov
     }
 
     SUBCASE("Real event sequence: mouse move, click, release (Demo Bug Reproduction)") {
-        // Setup ui_context with theme for measurement
-        ui_theme<test_canvas_backend> theme;
-        theme.name = "Test";
-        scoped_ui_context<test_canvas_backend> ctx;
-        ctx.themes().register_theme(std::move(theme));
-        ctx.themes().set_current_theme("Test");
-
+        // Use fixture's ui_context with theme for measurement
         test_button<Backend> btn("Test");
 
         // Position button at specific location
-        btn.measure(100, 20);
+        auto size = btn.measure(100, 20);
+        (void)size;  // Measurement needed for arrange
         btn.arrange(Backend::rect_type{10, 10, 100, 20});
 
         // === REAL EVENT SEQUENCE FROM DEMO ===
@@ -234,21 +229,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hov
     }
 
     SUBCASE("Click button 1, then click button 2 sequence") {
-        // Setup ui_context with theme for measurement
-        ui_theme<test_canvas_backend> theme;
-        theme.name = "Test";
-        scoped_ui_context<test_canvas_backend> ctx;
-        ctx.themes().register_theme(std::move(theme));
-        ctx.themes().set_current_theme("Test");
-
+        // Use fixture's ui_context with theme for measurement
         test_button<Backend> btn1("Normal");
         test_button<Backend> btn2("Quit");
 
         // Position buttons
-        btn1.measure(100, 20);
+        auto size1 = btn1.measure(100, 20);
+        (void)size1;  // Measurement needed for arrange
         btn1.arrange(Backend::rect_type{10, 10, 100, 20});
 
-        btn2.measure(100, 20);
+        auto size2 = btn2.measure(100, 20);
+        (void)size2;  // Measurement needed for arrange
         btn2.arrange(Backend::rect_type{10, 40, 100, 20});  // Below btn1
 
         // === Click button 1 ===

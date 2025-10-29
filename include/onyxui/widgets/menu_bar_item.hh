@@ -158,7 +158,6 @@ namespace onyxui {
             // Use pre-resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
-            auto const& bg = ctx.style().background_color;
 
             // Measure text to determine item size
             auto text_size = renderer_type::measure_text(m_text, text_font);
