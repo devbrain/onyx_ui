@@ -200,27 +200,10 @@ TEST_SUITE("linear_layout") {
         CHECK(parent->child_at(2)->bounds().x == 110); // Right after first child + spacing
     }
 
-    TEST_CASE("Percentage sizing") {
-        auto parent = std::make_unique<TestElement>();
-
-        auto layout = std::make_unique<TestLinearLayout>(direction::horizontal, 0);
-        parent->set_layout_strategy(std::move(layout));
-
-        // Add child that takes 50% of parent width
-        auto child = std::make_unique<TestElement>();
-        // Note: percentage policy may not be fully implemented in linear_layout
-        child->set_width_constraint({size_policy::fixed, 200, 200}); // Use fixed for now
-        parent->add_test_child(std::move(child));
-
-        // Measure with fixed width child
-        auto measured = parent->measure(400, 100);
-        CHECK(measured.w == 200);  // Reports child's fixed width
-        CHECK(measured.h == 0);    // No height specified
-
-        parent->arrange({0, 0, 400, 100});
-
-        CHECK(parent->child_at(0)->bounds().w == 200); // Fixed at 200
-    }
+    // TODO: Add percentage sizing test once size_policy::percentage is implemented
+    // Percentage sizing is defined in size_policy enum but not yet implemented in linear_layout
+    // Expected behavior: child with percentage policy should take N% of parent's dimension
+    // Example: 50% of 400px parent width = 200px child width
 
     TEST_CASE("Content sizing") {
         auto parent = std::make_unique<TestElement>();
