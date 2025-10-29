@@ -138,6 +138,41 @@ This approach has several advantages:
 -   **Safety:** No exponential recursion risk (parent resolved once per widget)
 -   **Consistency:** Single source of truth for a widget's visual properties
 
+### Stateless Rendering Architecture
+
+The style resolution system works hand-in-hand with OnyxUI's **stateless rendering architecture**:
+
+```cpp
+void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
+    // Step 1: Resolve style ONCE per frame (CSS inheritance)
+    auto style = this->resolve_style();  // O(depth) tree walk
+
+    // Step 2: Create render context with pre-resolved style
+    draw_context<Backend> ctx(renderer, style, dirty_regions);
+
+    // Step 3: Widget uses style for all drawing operations
+    do_render(ctx);  // O(1) property access via ctx.style()
+}
+```
+
+**Key Principles:**
+
+- **Renderers are stateless**: No colors or styles stored in renderer
+- **Style resolved once**: Before any drawing operations begin
+- **Context carries style**: All widgets access colors via `ctx.style()`
+- **Drawing methods take colors as parameters**: Enables custom color calculations
+
+**Benefits:**
+
+| Aspect | Benefit |
+|--------|---------|
+| **Thread Safety** | Renderers can be used concurrently |
+| **Predictability** | No hidden state affects rendering |
+| **Testability** | Same input → same output |
+| **Performance** | O(1) color access during rendering |
+
+See the [Render Context](./render-context.md) documentation for detailed examples of using the stateless rendering pattern.
+
 ## Widget Property Access Pattern (Phase 6 - October 2025)
 
 The latest enhancement to the theming system introduced a **two-tier property access pattern** that optimizes performance while maintaining flexibility.

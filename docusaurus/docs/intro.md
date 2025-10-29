@@ -14,8 +14,9 @@ OnyxUI is a lightweight, header-only UI framework that provides a powerful set o
 
 - **Two-Pass Layout System**: An efficient measure/arrange algorithm with smart caching ensures high-performance layout calculations, even for complex UI hierarchies.
 - **Backend Agnostic**: OnyxUI is designed to work with any rendering engine. Through the power of C++20 concepts, you can integrate it with your own renderer, whether it's based on SDL2, Conio, or a custom solution.
-- **Rich Widget Library**: A comprehensive set of widgets is included out of the box, such as buttons, labels, menus, panels, and grids, allowing you to build complex UIs quickly.
-- **CSS-Style Theming**: The theming system allows for easy customization of the look and feel of your application. Properties are inherited from parent to child, similar to CSS, making it easy to create consistent and beautiful designs.
+- **Stateless Rendering Architecture**: Renderers don't store colors or styles internally. All visual properties are passed to drawing methods or accessed from the render context's pre-resolved style, ensuring thread safety, predictability, and optimal performance.
+- **Rich Widget Library**: A comprehensive set of widgets is included out of the box, such as buttons, labels, menus, panels, grids, and a complete scrolling system, allowing you to build complex UIs quickly.
+- **CSS-Style Theming**: The theming system allows for easy customization of the look and feel of your application. Properties are inherited from parent to child, similar to CSS, and styles are resolved once per frame for optimal performance.
 - **Thread-Safe Signals**: The signal/slot system provides a powerful mechanism for event handling and is thread-safe by default, making it suitable for use in multi-threaded applications.
 - **Modern C++ Design**: The library is written in modern C++20 and leverages features like concepts, move semantics, and smart pointers to provide a safe and expressive API.
 

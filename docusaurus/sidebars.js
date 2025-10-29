@@ -29,6 +29,7 @@ const sidebars = {
       items: [
         'guides/getting-started',
         'guides/layout-system',
+        'guides/scrolling-system',
         'guides/creating-custom-widgets',
       ],
     },
@@ -46,6 +47,9 @@ const sidebars = {
             'api-reference/widgets/panel',
             'api-reference/widgets/vbox-hbox',
             'api-reference/widgets/grid',
+            'api-reference/widgets/scroll-view',
+            'api-reference/widgets/scrollable',
+            'api-reference/widgets/scrollbar',
           ],
         },
       ],

@@ -51,13 +51,19 @@ public:
         // measure_context (size calculation) and draw_context (actual rendering)
         auto bounds = this->bounds();
 
-        // Get the style from the context
-        auto style = ctx.style();
-        box_style_type box_style = style.box_style;
-        box_style.draw_border = true;  // Customize for our circle
+        // Access pre-resolved style from context (resolved once per frame via CSS)
+        const auto& style = ctx.style();
 
-        // Draw operations automatically track size for measurement
-        ctx.draw_rect(bounds);
+        // Method 1: Use convenience methods (auto-apply style colors)
+        ctx.draw_rect(bounds);  // Uses style.box_style automatically
+
+        // Method 2: Explicit control - pass colors from style
+        // ctx.draw_rect(bounds, style.box_style);
+
+        // For custom appearance, you can override style properties
+        box_style_type custom_style = style.box_style;
+        custom_style.draw_border = true;  // Customize for our circle
+        ctx.draw_rect(bounds, custom_style);
 
         // Note: get_content_size() is automatically implemented by the base
         // widget class. It creates a measure_context and calls do_render()!
@@ -153,6 +159,59 @@ void do_render(render_context_type& ctx) const override {
 ✅ **ALWAYS** use `ctx.style()` for common properties
 ✅ **ALWAYS** use `ctx.theme()` for rare widget-specific properties
 ✅ **ALWAYS** provide explicit defaults for optional properties
+
+### Migration from Old Pattern (Pre-v2.0)
+
+If you're updating old widget code, here's how the pattern has evolved:
+
+**❌ Old Pattern (Pre-v2.0) - Don't do this:**
+
+```cpp
+void do_render(render_context_type& ctx) const override {
+    // OLD: Widgets directly queried effective colors
+    auto bg = this->get_effective_background_color();
+    auto fg = this->get_effective_foreground_color();
+
+    // OLD: Colors passed to renderer methods
+    ctx.renderer()->draw_text(bounds, m_text, font, fg, bg);
+
+    // OLD: get_effective_*() walks up tree on every call (expensive!)
+}
+```
+
+**✅ New Pattern (v2.0+) - Do this instead:**
+
+```cpp
+void do_render(render_context_type& ctx) const override {
+    // NEW: Style pre-resolved once per frame via CSS inheritance
+    const auto& style = ctx.style();
+
+    // NEW Option 1: Convenience methods (cleanest)
+    ctx.draw_text(m_text, position);  // Uses style.foreground_color automatically
+
+    // NEW Option 2: Explicit colors from style (more control)
+    ctx.draw_text(m_text, position, style.font, style.foreground_color);
+
+    // NEW: O(1) access, no tree walking
+}
+```
+
+**Why the Change?**
+
+| Old Pattern | New Pattern |
+|-------------|-------------|
+| `get_effective_*()` walks tree every call | Style resolved once per frame |
+| O(depth) per property access | O(1) property access |
+| Widgets tightly coupled to theme system | Widgets receive pre-resolved style |
+| Difficult to test (requires full tree) | Easy to test (just pass a style) |
+| Exponential complexity risk | Linear complexity guaranteed |
+
+**Performance Impact:**
+
+For a widget tree of depth 10 with 100 widgets:
+- **Old**: 1000 tree walks per frame (10 per widget × 100 widgets)
+- **New**: 100 tree walks per frame (1 per widget × 100 widgets)
+- **Improvement**: 10x faster style resolution!
 
 ### 4. Using the Custom Widget
 

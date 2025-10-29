@@ -38,6 +38,14 @@ These are widgets that are used to control the spacing and alignment of other wi
 -   **`spacer`:** A widget that takes up a fixed amount of space.
 -   **`spring`:** A widget that expands to fill available space.
 
+### Scrolling
+
+These widgets provide comprehensive scrolling functionality with three levels of abstraction.
+
+-   **`scroll_view`:** High-level convenience wrapper combining scrollable, scrollbars, and controller (recommended).
+-   **`scrollable`:** Core scrolling logic and viewport management.
+-   **`scrollbar`:** Visual scrollbar widget with mouse interaction.
+
 ### Advanced Widgets
 
 These are more complex widgets that are used for specific purposes.
@@ -54,3 +62,6 @@ For more detailed information on each widget, including its API and usage exampl
 -   **[Panel](./widgets/panel.md)**
 -   **[VBox and HBox](./widgets/vbox-hbox.md)**
 -   **[Grid](./widgets/grid.md)**
+-   **[scroll_view](./widgets/scroll-view.md)**
+-   **[scrollable](./widgets/scrollable.md)**
+-   **[scrollbar](./widgets/scrollbar.md)**

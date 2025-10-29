@@ -90,6 +90,42 @@ If you want to integrate OnyxUI with your own rendering engine, you'll need to c
 
     Your `MyRenderer` class will need to implement the `RenderLike` concept, which includes functions for drawing rectangles, text, icons, etc.
 
+    **Important:** Renderers must be **stateless** with respect to colors and styles. They should not store background/foreground colors internally. Instead, colors are passed to drawing methods or accessed from the render context's resolved style.
+
+    ```cpp
+    class MyRenderer {
+    public:
+        // Drawing methods take colors as parameters (stateless)
+        void draw_text(const rect& bounds, std::string_view text,
+                      const font& f, const color& fg, const color& bg);
+
+        void draw_box(const rect& r, const box_style& style,
+                     const color& fg, const color& bg);
+
+        void draw_icon(const rect& r, const icon_style& icon,
+                      const color& fg, const color& bg);
+
+        void draw_background(const rect& viewport, const background_style& style);
+
+        // Static methods for measurement (no instance needed)
+        static size measure_text(std::string_view text, const font& f);
+        static size get_icon_size(const icon_style& icon);
+        static int get_border_thickness(const box_style& style);
+
+        // ❌ WRONG: Don't store colors in renderer
+        // color m_foreground_color;
+        // color m_background_color;
+        // void set_foreground_color(const color& c);  // No!
+        // void set_background_color(const color& c);  // No!
+    };
+    ```
+
+    **Why Stateless?**
+    - **Thread Safety**: Renderers can be safely used from multiple threads
+    - **Predictability**: No hidden state affects rendering output
+    - **Testability**: Drawing methods produce identical output for identical inputs
+    - **Clarity**: All visual properties come from the render context's style
+
 4.  **Implement theme registration:**
 
     ```cpp

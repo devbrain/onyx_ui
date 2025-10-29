@@ -105,6 +105,67 @@ ctx.set_dirty_regions(compute_dirty_regions());  // Automatic move
 - **Strong guarantee:** Text rendering has no allocations in critical path
 - **Basic guarantee:** Copy operations are well-defined and documented
 
+### Stateless Rendering with Style-Based Drawing
+
+**OnyxUI uses a stateless rendering architecture:** renderers don't store colors or styles internally. Instead, all visual properties are passed to drawing methods or accessed from the render context's pre-resolved style.
+
+This design provides several key benefits:
+- **Thread Safety**: Renderers can be safely used concurrently
+- **Predictability**: No hidden state affects rendering output
+- **Testability**: Drawing methods produce identical output for identical inputs
+- **Performance**: Styles resolved once per frame, reused for all drawing operations
+
+### Drawing Methods: Two Levels of Control
+
+The render context provides **two ways to draw**, offering a trade-off between control and convenience:
+
+**Level 1: Explicit Parameters (Full Control)**
+
+Pass colors and styles explicitly to low-level drawing methods:
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // Access pre-resolved style from context
+    const auto& style = ctx.style();
+
+    // Pass colors explicitly (full control over which colors to use)
+    ctx.draw_text(m_text, position, style.font, style.foreground_color);
+    ctx.draw_rect(bounds, style.box_style);
+
+    // You can also pass custom colors when needed
+    color_type custom_color = calculate_hover_color();
+    ctx.draw_text(hover_text, hover_pos, style.font, custom_color);
+}
+```
+
+**Level 2: Convenience Methods (Automatic Style)**
+
+Use convenience overloads that automatically use colors from the context's resolved style:
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // Convenience methods use ctx.style() automatically
+    ctx.draw_text(m_text, position);        // Uses style.font + style.foreground_color
+    ctx.draw_rect(bounds);                  // Uses style.box_style
+
+    // Equivalent to:
+    // ctx.draw_text(m_text, position, ctx.style().font, ctx.style().foreground_color);
+    // ctx.draw_rect(bounds, ctx.style().box_style);
+}
+```
+
+**When to Use Which Level?**
+
+- **Use Level 1 (explicit)** when you need:
+  - Custom color calculations (e.g., hover effects, gradients)
+  - State-dependent colors (see `stateful_widget` helper)
+  - Non-standard font attributes
+
+- **Use Level 2 (convenience)** when you want:
+  - Standard rendering with theme colors
+  - Cleaner code with less repetition
+  - Automatic inheritance of style changes
+
 ### Accessing Visual Properties (Two-Tier Pattern)
 
 The render context provides a **two-tier property access pattern** for optimal performance:

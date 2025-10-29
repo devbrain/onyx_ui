@@ -65,6 +65,14 @@ add_executable(ui_unittest
         widgets/test_theme_layout_integration.cc
         widgets/test_stateful_widget.cc
         widgets/test_separator.cc
+        widgets/test_scroll_info.cc
+        widgets/test_scrollable.cc
+        widgets/test_scrollbar.cc
+        widgets/test_scroll_controller.cc
+        widgets/test_scroll_view.cc
+        widgets/test_scroll_view_presets.cc
+        widgets/test_scrolling_integration.cc
+        utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
         hotkeys/test_hotkey_ui_event.cc
@@ -77,6 +85,7 @@ add_executable(ui_unittest
         reflection/test_enum_reflection.cc
         reflection/test_nested_structs.cc
         reflection/test_font_reflection.cc
+        reflection/test_scrollbar_style_yaml.cc
         # Layer management tests
         layer/test_layer_dirty_regions.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)

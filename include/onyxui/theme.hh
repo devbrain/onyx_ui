@@ -11,6 +11,46 @@
 
 namespace onyxui {
 
+    /**
+     * @enum scrollbar_style
+     * @brief Visual style for scrollbar rendering
+     *
+     * @details
+     * Defines the overall appearance of scrollbars including arrow button presence.
+     */
+    enum class scrollbar_style : std::uint8_t {
+        minimal,      ///< No arrow buttons, just track + thumb
+        classic,      ///< Arrow buttons at both ends (Windows style)
+        compact       ///< Arrow buttons at one end only
+    };
+
+    /**
+     * @brief Convert scrollbar_style to string
+     * @param style The scrollbar_style enum value
+     * @return String representation of the style
+     */
+    inline constexpr std::string_view scrollbar_style_to_string(scrollbar_style style) noexcept {
+        switch (style) {
+            case scrollbar_style::minimal: return "minimal";
+            case scrollbar_style::classic: return "classic";
+            case scrollbar_style::compact: return "compact";
+        }
+        return "minimal";  // Unreachable, but satisfies compiler
+    }
+
+    /**
+     * @brief Convert string to scrollbar_style
+     * @param str The string representation
+     * @return The scrollbar_style enum value
+     * @throws std::runtime_error if string doesn't match any value
+     */
+    inline scrollbar_style scrollbar_style_from_string(std::string_view str) {
+        if (str == "minimal") return scrollbar_style::minimal;
+        if (str == "classic") return scrollbar_style::classic;
+        if (str == "compact") return scrollbar_style::compact;
+        throw std::runtime_error(std::string("Invalid scrollbar_style: ") + std::string(str));
+    }
+
     template<UIBackend Backend>
     struct ui_theme {
         using color_type = typename Backend::color_type;
@@ -123,6 +163,42 @@ namespace onyxui {
             int padding_vertical = 0;
         };
 
+        /**
+         * @brief Scrollbar theme - PLACEHOLDER for Phase 3
+         * @details Will be fully implemented in Phase 3 of scrolling system
+         */
+        struct scrollbar_theme {
+            /**
+             * @brief Component-specific styling (track, thumb, arrows)
+             */
+            struct component_style {
+                color_type background;
+                color_type foreground;
+                box_style_type box_style;
+            };
+
+            // Component states
+            component_style track_normal;
+            component_style thumb_normal;
+            component_style thumb_hover;
+            component_style thumb_pressed;
+            component_style thumb_disabled;
+            component_style arrow_normal;
+            component_style arrow_hover;
+            component_style arrow_pressed;
+
+            // Geometry
+            int width = 16;                     ///< Width for vertical (swapped for horizontal)
+            int min_thumb_size = 20;            ///< Minimum thumb size in pixels
+
+            // Visual style
+            scrollbar_style style = scrollbar_style::classic;
+
+            // Animation settings (Phase 2 - auto_hide_inactive policy)
+            int fade_duration_ms = 150;         ///< Fade in/out duration
+            int inactive_delay_ms = 500;        ///< Delay before hiding after scroll ends
+        };
+
         // Widget-specific styles
         button_style button{};            // BREAKING CHANGE - refactored
         label_style label{};              // Unchanged
@@ -134,6 +210,9 @@ namespace onyxui {
         // NEW: Menu item styles
         menu_item_style menu_item{};
         menu_bar_item_style menu_bar_item{};
+
+        // Scrollbar style (Phase 3 - PLACEHOLDER)
+        scrollbar_theme scrollbar{};
 
         // Global palette
         color_type window_bg;
