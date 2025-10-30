@@ -10,6 +10,7 @@ This document describes the comprehensive theming system refactored in October 2
 - [Style-Based Rendering](#style-based-rendering)
 - [Stateful Widget Helper](#stateful-widget-helper)
 - [CSS-Style Inheritance](#css-style-inheritance)
+- [Color Manipulation Utilities](#color-manipulation-utilities)
 - [Performance Characteristics](#performance-characteristics)
 
 ---
@@ -312,6 +313,107 @@ button->set_background_color({0, 255, 0});  // Green button
 - Opacity (multiplicative)
 
 **See also:** `include/onyxui/themeable.hh` for the inheritance system.
+
+---
+
+## Color Manipulation Utilities
+
+The framework provides comprehensive color manipulation utilities for generating theme variations and visual states. These utilities are foundational to Phase 4's smart defaults system.
+
+### Core Functions
+
+```cpp
+#include <onyxui/utils/color_utils.hh>
+
+using namespace onyxui::color_utils;
+
+// Lighten - move RGB toward white
+auto light_blue = lighten(dark_blue, 0.3f);  // 30% toward white
+
+// Darken - move RGB toward black
+auto dark_red = darken(bright_red, 0.5f);    // 50% toward black
+
+// Dim - reduce alpha for transparency
+auto dimmed = dim(solid_color, 0.4f);        // 40% more transparent
+
+// Invert - flip all RGB channels
+auto inverted = invert(color);               // 255 - each channel
+
+// Luminance - perceived brightness (ITU-R BT.709)
+float brightness = luminance(color);         // 0.0 (black) to 1.0 (white)
+
+// Contrast - get readable text color
+auto text_color = contrast(background);      // Black or white for readability
+
+// Hex string conversion
+std::string hex = to_hex_string(color);      // "0xRRGGBB"
+std::string hex_alpha = to_hex_string(color, true);  // "0xRRGGBBAA"
+```
+
+### Typical Use Cases
+
+**Generate hover state from normal state:**
+
+```cpp
+rgb_components normal_bg{0, 0, 170, 255};    // Dark blue
+auto hover_bg = lighten(normal_bg, 0.2f);    // Slightly lighter blue
+auto hover_fg = rgb_components{255, 255, 0, 255};  // Yellow accent
+```
+
+**Generate disabled state:**
+
+```cpp
+rgb_components normal_fg{255, 255, 255, 255};
+auto disabled_fg = dim(normal_fg, 0.6f);     // 60% transparent white
+```
+
+**Generate pressed state:**
+
+```cpp
+auto pressed_bg = invert(normal_bg);         // Inverted colors
+auto pressed_fg = invert(normal_fg);
+```
+
+**Ensure readable text:**
+
+```cpp
+rgb_components bg{30, 30, 30, 255};          // Dark gray
+auto text = contrast(bg);                     // Returns white {255, 255, 255, 255}
+
+rgb_components light_bg{250, 250, 250, 255}; // Light gray
+auto text2 = contrast(light_bg);             // Returns black {0, 0, 0, 255}
+```
+
+### Algorithm Details
+
+**Lighten/Darken:**
+- Operates on RGB channels independently
+- Alpha channel preserved
+- Factor clamped to [0.0, 1.0]
+- Results clamped to [0, 255]
+
+**Luminance Calculation:**
+Uses ITU-R BT.709 coefficients for human perception:
+```
+Y = 0.2126*R + 0.7152*G + 0.0722*B
+```
+Green contributes most (71.52%), blue least (7.22%).
+
+**Contrast Selection:**
+- Luminance > 0.5 → black text (light background)
+- Luminance ≤ 0.5 → white text (dark background)
+
+### constexpr Support
+
+All functions except `to_hex_string()` are `constexpr`, allowing compile-time color calculations:
+
+```cpp
+constexpr rgb_components hover = lighten(rgb_components{0, 0, 170, 255}, 0.2f);
+```
+
+**See also:**
+- `include/onyxui/utils/color_utils.hh` - Complete implementation
+- `unittest/utils/test_color_utils.cc` - 49 test cases with 219 assertions
 
 ---
 

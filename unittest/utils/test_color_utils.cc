@@ -334,3 +334,325 @@ TEST_CASE("color_utils::rgb_components - Equality") {
     CHECK(c1 == c2);
     CHECK_FALSE(c1 == c3);
 }
+
+// ===========================================================================
+// Phase 4: Color Manipulation Functions
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// lighten() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::lighten - Basic lightening") {
+    rgb_components const dark_blue{0, 0, 170, 255};
+
+    // Lighten by 30%
+    auto const light = lighten(dark_blue, 0.3f);
+
+    // RGB should move toward 255
+    CHECK(light.r > dark_blue.r);
+    CHECK(light.g > dark_blue.g);
+    CHECK(light.b > dark_blue.b);
+    CHECK(light.a == 255);  // Alpha preserved
+}
+
+TEST_CASE("color_utils::lighten - Full white") {
+    rgb_components const dark{50, 50, 50, 255};
+
+    // Lighten to full white
+    auto const white = lighten(dark, 1.0f);
+
+    CHECK(white.r == 255);
+    CHECK(white.g == 255);
+    CHECK(white.b == 255);
+    CHECK(white.a == 255);
+}
+
+TEST_CASE("color_utils::lighten - No change") {
+    rgb_components const color{100, 100, 100, 255};
+
+    // Factor 0.0 = no change
+    auto const same = lighten(color, 0.0f);
+
+    CHECK(same == color);
+}
+
+TEST_CASE("color_utils::lighten - Already white") {
+    rgb_components const white{255, 255, 255, 255};
+
+    // Lightening white stays white
+    auto const still_white = lighten(white, 0.5f);
+
+    CHECK(still_white == white);
+}
+
+// ---------------------------------------------------------------------------
+// darken() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::darken - Basic darkening") {
+    rgb_components const bright_yellow{255, 255, 0, 255};
+
+    // Darken by 50%
+    auto const dark = darken(bright_yellow, 0.5f);
+
+    // RGB should move toward 0
+    CHECK(dark.r < bright_yellow.r);
+    CHECK(dark.g < bright_yellow.g);
+    CHECK(dark.b == 0);  // Already 0
+    CHECK(dark.a == 255);  // Alpha preserved
+}
+
+TEST_CASE("color_utils::darken - Full black") {
+    rgb_components const bright{200, 200, 200, 255};
+
+    // Darken to full black
+    auto const black = darken(bright, 1.0f);
+
+    CHECK(black.r == 0);
+    CHECK(black.g == 0);
+    CHECK(black.b == 0);
+    CHECK(black.a == 255);
+}
+
+TEST_CASE("color_utils::darken - No change") {
+    rgb_components const color{100, 100, 100, 255};
+
+    // Factor 0.0 = no change
+    auto const same = darken(color, 0.0f);
+
+    CHECK(same == color);
+}
+
+TEST_CASE("color_utils::darken - Already black") {
+    rgb_components const black{0, 0, 0, 255};
+
+    // Darkening black stays black
+    auto const still_black = darken(black, 0.5f);
+
+    CHECK(still_black == black);
+}
+
+// ---------------------------------------------------------------------------
+// dim() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::dim - Basic dimming") {
+    rgb_components const solid_white{255, 255, 255, 255};
+
+    // Dim by 50%
+    auto const dimmed = dim(solid_white, 0.5f);
+
+    // RGB preserved, alpha reduced
+    CHECK(dimmed.r == 255);
+    CHECK(dimmed.g == 255);
+    CHECK(dimmed.b == 255);
+    CHECK(dimmed.a == 127);  // 255 * 0.5 = 127.5 → 127
+}
+
+TEST_CASE("color_utils::dim - Full transparency") {
+    rgb_components const solid{200, 100, 50, 255};
+
+    // Dim to full transparency
+    auto const transparent = dim(solid, 1.0f);
+
+    CHECK(transparent.r == 200);
+    CHECK(transparent.g == 100);
+    CHECK(transparent.b == 50);
+    CHECK(transparent.a == 0);
+}
+
+TEST_CASE("color_utils::dim - No change") {
+    rgb_components const color{100, 100, 100, 255};
+
+    // Factor 0.0 = no change
+    auto const same = dim(color, 0.0f);
+
+    CHECK(same == color);
+}
+
+// ---------------------------------------------------------------------------
+// invert() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::invert - Black to white") {
+    rgb_components const black{0, 0, 0, 255};
+
+    auto const white = invert(black);
+
+    CHECK(white.r == 255);
+    CHECK(white.g == 255);
+    CHECK(white.b == 255);
+    CHECK(white.a == 255);  // Alpha preserved
+}
+
+TEST_CASE("color_utils::invert - Primary colors") {
+    rgb_components const red{255, 0, 0, 255};
+    auto const cyan = invert(red);
+    CHECK(cyan.r == 0);
+    CHECK(cyan.g == 255);
+    CHECK(cyan.b == 255);
+
+    rgb_components const blue{0, 0, 255, 255};
+    auto const yellow = invert(blue);
+    CHECK(yellow.r == 255);
+    CHECK(yellow.g == 255);
+    CHECK(yellow.b == 0);
+}
+
+TEST_CASE("color_utils::invert - Double inversion") {
+    rgb_components const original{123, 45, 67, 200};
+
+    auto const inverted = invert(original);
+    auto const restored = invert(inverted);
+
+    CHECK(restored == original);
+}
+
+// ---------------------------------------------------------------------------
+// luminance() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::luminance - Black and white") {
+    rgb_components const black{0, 0, 0, 255};
+    CHECK(luminance(black) == 0.0f);
+
+    rgb_components const white{255, 255, 255, 255};
+    CHECK(luminance(white) == doctest::Approx(1.0f).epsilon(0.01));
+}
+
+TEST_CASE("color_utils::luminance - Gray scale") {
+    rgb_components const dark_gray{64, 64, 64, 255};
+    rgb_components const light_gray{192, 192, 192, 255};
+
+    float const lum_dark = luminance(dark_gray);
+    float const lum_light = luminance(light_gray);
+
+    CHECK(lum_dark < lum_light);
+    CHECK(lum_dark > 0.0f);
+    CHECK(lum_light < 1.0f);
+}
+
+TEST_CASE("color_utils::luminance - Weighted channels") {
+    // Green contributes most to luminance (0.7152)
+    rgb_components const green{0, 255, 0, 255};
+    rgb_components const red{255, 0, 0, 255};
+    rgb_components const blue{0, 0, 255, 255};
+
+    float const lum_green = luminance(green);
+    float const lum_red = luminance(red);
+    float const lum_blue = luminance(blue);
+
+    // Green should have highest luminance
+    CHECK(lum_green > lum_red);
+    CHECK(lum_green > lum_blue);
+}
+
+// ---------------------------------------------------------------------------
+// contrast() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::contrast - Dark background") {
+    rgb_components const dark_blue{0, 0, 170, 255};
+
+    auto const text_color = contrast(dark_blue);
+
+    // Dark background → white text
+    CHECK(text_color.r == 255);
+    CHECK(text_color.g == 255);
+    CHECK(text_color.b == 255);
+}
+
+TEST_CASE("color_utils::contrast - Light background") {
+    rgb_components const light_yellow{255, 255, 0, 255};
+
+    auto const text_color = contrast(light_yellow);
+
+    // Light background → black text
+    CHECK(text_color.r == 0);
+    CHECK(text_color.g == 0);
+    CHECK(text_color.b == 0);
+}
+
+TEST_CASE("color_utils::contrast - Edge cases") {
+    // Pure black → white text
+    rgb_components const black{0, 0, 0, 255};
+    CHECK(contrast(black) == rgb_components{255, 255, 255, 255});
+
+    // Pure white → black text
+    rgb_components const white{255, 255, 255, 255};
+    CHECK(contrast(white) == rgb_components{0, 0, 0, 255});
+}
+
+// ---------------------------------------------------------------------------
+// to_hex_string() Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::to_hex_string - RGB format") {
+    rgb_components const red{255, 0, 0, 255};
+    CHECK(to_hex_string(red) == "0xFF0000");
+
+    rgb_components const green{0, 255, 0, 255};
+    CHECK(to_hex_string(green) == "0x00FF00");
+
+    rgb_components const blue{0, 0, 255, 255};
+    CHECK(to_hex_string(blue) == "0x0000FF");
+}
+
+TEST_CASE("color_utils::to_hex_string - RGBA format") {
+    rgb_components const red_opaque{255, 0, 0, 255};
+    CHECK(to_hex_string(red_opaque, true) == "0xFF0000FF");
+
+    rgb_components const red_half{255, 0, 0, 128};
+    CHECK(to_hex_string(red_half, true) == "0xFF000080");
+
+    rgb_components const transparent{255, 255, 255, 0};
+    CHECK(to_hex_string(transparent, true) == "0xFFFFFF00");
+}
+
+TEST_CASE("color_utils::to_hex_string - Lowercase output") {
+    // Uppercase hex letters
+    rgb_components const color{170, 187, 204, 255};
+    std::string const hex = to_hex_string(color);
+
+    // Should contain uppercase hex digits
+    CHECK(hex == "0xAABBCC");
+}
+
+// ---------------------------------------------------------------------------
+// Integration Tests - Combining operations
+// ---------------------------------------------------------------------------
+
+TEST_CASE("color_utils::integration - Generate hover state") {
+    // Typical use case: generate hover color from normal color
+    rgb_components const normal_bg{0, 0, 170, 255};  // Dark blue
+
+    // Hover = lighten background slightly
+    auto const hover_bg = lighten(normal_bg, 0.2f);
+
+    CHECK(hover_bg.b > normal_bg.b);
+    CHECK(hover_bg.b < 255);
+}
+
+TEST_CASE("color_utils::integration - Generate disabled state") {
+    // Typical use case: generate disabled color
+    rgb_components const normal_fg{255, 255, 255, 255};  // White
+
+    // Disabled = dim foreground
+    auto const disabled_fg = dim(normal_fg, 0.6f);  // 40% visible
+
+    CHECK(disabled_fg.r == 255);
+    CHECK(disabled_fg.g == 255);
+    CHECK(disabled_fg.b == 255);
+    CHECK(disabled_fg.a == 101);  // 255 * 0.4 = 102 → 101
+}
+
+TEST_CASE("color_utils::integration - Readable text color") {
+    // Typical use case: ensure text is readable on background
+    rgb_components const bg{0, 0, 170, 255};  // Dark blue background
+
+    auto const text_color = contrast(bg);
+
+    // Should get white text for readability
+    CHECK(text_color == rgb_components{255, 255, 255, 255});
+}
