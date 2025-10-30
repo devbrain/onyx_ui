@@ -33,15 +33,6 @@ This document tracks non-implemented features, placeholders, and future enhancem
   - Test: `unittest/layout/test_linear.cc:203` has TODO placeholder
   - Expected behavior: Child with `{size_policy::percentage, 0, 0, max, 0.5F}` takes 50% of parent
 
-### Scrolling System
-
-- [ ] **Scrollbar arrow glyphs** - Render arrow symbols in arrow buttons
-  - Location: `include/onyxui/widgets/containers/scroll/scrollbar.hh:392,399`
-  - Status: Arrow buttons render with themed styles but no arrow glyphs
-  - Current: Boxes render correctly, but no up/down/left/right symbols
-  - Implementation: Use renderer to draw arrow characters or glyphs
-  - Depends on: Backend icon/glyph rendering support
-
 ### Widget Rendering
 
 - [ ] **group_box title** - Title inset into top border
@@ -189,6 +180,7 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+- [x] **Scrollbar arrow glyphs** - Render arrow icons using backend icon_style - 2025-10-30
 - [x] **Scrollbar line increment from theme** - Arrow clicks use theme value - 2025-10-30
 - [x] **Directory reorganization** - Logical include/ structure - 2025-10-30
 - [x] **Viewport clipping** - scoped_clip RAII guard for scrollable - 2025-10-30

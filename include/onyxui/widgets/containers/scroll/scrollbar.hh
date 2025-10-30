@@ -73,6 +73,7 @@ namespace onyxui {
         using point_type = typename Backend::point_type;
         using rect_type = typename Backend::rect_type;
         using color_type = typename Backend::color_type;
+        using renderer_type = typename Backend::renderer_type;
         using theme_type = typename base::theme_type;
 
         /**
@@ -389,14 +390,30 @@ namespace onyxui {
                 if (rect_utils::get_width(layout.arrow_decrement) > 0 &&
                     rect_utils::get_height(layout.arrow_decrement) > 0) {
                     ctx.draw_rect(layout.arrow_decrement, arrow_style.box_style);
-                    // TODO: Render arrow glyph
+
+                    // Render arrow glyph (centered in button)
+                    auto icon_size = renderer_type::get_icon_size(theme->scrollbar.arrow_decrement_icon);
+                    int const icon_x = rect_utils::get_x(layout.arrow_decrement) +
+                                       (rect_utils::get_width(layout.arrow_decrement) - size_utils::get_width(icon_size)) / 2;
+                    int const icon_y = rect_utils::get_y(layout.arrow_decrement) +
+                                       (rect_utils::get_height(layout.arrow_decrement) - size_utils::get_height(icon_size)) / 2;
+                    point_type const icon_pos{icon_x, icon_y};
+                    ctx.draw_icon(theme->scrollbar.arrow_decrement_icon, icon_pos);
                 }
 
                 // Render increment arrow (down/right) if present
                 if (rect_utils::get_width(layout.arrow_increment) > 0 &&
                     rect_utils::get_height(layout.arrow_increment) > 0) {
                     ctx.draw_rect(layout.arrow_increment, arrow_style.box_style);
-                    // TODO: Render arrow glyph
+
+                    // Render arrow glyph (centered in button)
+                    auto icon_size = renderer_type::get_icon_size(theme->scrollbar.arrow_increment_icon);
+                    int const icon_x = rect_utils::get_x(layout.arrow_increment) +
+                                       (rect_utils::get_width(layout.arrow_increment) - size_utils::get_width(icon_size)) / 2;
+                    int const icon_y = rect_utils::get_y(layout.arrow_increment) +
+                                       (rect_utils::get_height(layout.arrow_increment) - size_utils::get_height(icon_size)) / 2;
+                    point_type const icon_pos{icon_x, icon_y};
+                    ctx.draw_icon(theme->scrollbar.arrow_increment_icon, icon_pos);
                 }
             }
         }
