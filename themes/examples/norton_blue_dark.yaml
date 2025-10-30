@@ -1,0 +1,12 @@
+# Norton Blue Dark - Theme Variant (Phase 3 Inheritance Demo)
+# Extends the Norton Blue Palette theme with darker colors
+# This demonstrates Phase 3 theme inheritance: only 10 lines vs 118 lines for full theme!
+
+extends: "Norton Blue (Palette)"
+name: "Norton Blue Dark"
+description: "Darker variant of Norton Blue with improved contrast"
+
+# Override only the palette colors - everything else inherited!
+palette:
+  bg: "0x000044"          # Much darker blue
+  bg_bright: "0x0000AA"   # Darker bright blue (was 0x0000FF)

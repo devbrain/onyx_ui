@@ -10,6 +10,8 @@
 #include <onyxui/utils/fkyaml_adapter.hh>
 #include <onyxui/theming/theme.hh>
 #include <onyxui/theming/theme_palette.hh>
+#include <onyxui/theming/theme_inheritance.hh>
+#include <onyxui/theming/theme_registry.hh>
 #include <failsafe/logger.hh>
 #include <fstream>
 #include <stdexcept>
@@ -474,6 +476,205 @@ namespace onyxui::theme_loader {
 
         return results;
     }
+
+    // =========================================================================
+    // Phase 3: Theme Inheritance Support
+    // =========================================================================
+
+    /**
+     * @brief Load theme from YAML string with inheritance support
+     * @tparam Backend The UI backend type
+     * @param yaml_string YAML content as string
+     * @param registry Theme registry for parent theme lookups
+     * @param visited Set of visited theme names for cycle detection (internal use)
+     * @return Loaded and merged theme
+     * @throws std::runtime_error if circular inheritance detected or parent not found
+     *
+     * @details
+     * Supports `extends: "ParentThemeName"` to inherit from registered themes.
+     * - Recursively loads parent themes
+     * - Merges YAML before deserialization (child overrides parent)
+     * - Detects circular inheritance chains
+     * - Backward compatible (themes without extends work normally)
+     *
+     * Example:
+     * @code
+     * const char* child_yaml = R"(
+     * extends: "Norton Blue"
+     * name: "Norton Blue Dark"
+     * palette:
+     *   bg: "0x000044"  # Override just the background
+     * )";
+     *
+     * auto theme = load_from_string_with_inheritance<Backend>(child_yaml, registry);
+     * // Result: Norton Blue theme with darker background
+     * @endcode
+     */
+    template<UIBackend Backend>
+    ui_theme<Backend> load_from_string_with_inheritance(
+        const std::string& yaml_string,
+        const theme_registry<Backend>& registry,
+        std::unordered_set<std::string>& visited
+    ) {
+        // Apply palette preprocessing (Phase 2)
+        std::string preprocessed_yaml;
+        try {
+            preprocessed_yaml = theme_palette::apply_palette_preprocessing(yaml_string);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to process palette: " + std::string(e.what()));
+        }
+
+        // Parse YAML
+        fkyaml::node child_node;
+        try {
+            child_node = fkyaml::node::deserialize(preprocessed_yaml);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to parse YAML: " + std::string(e.what()));
+        }
+
+        // Check for inheritance
+        if (!theme_inheritance::has_extends_field(child_node)) {
+            // No inheritance - normal deserialization
+            try {
+                return yaml::from_yaml<ui_theme<Backend>>(child_node);
+            } catch (const std::exception& e) {
+                throw std::runtime_error("Failed to deserialize theme: " + std::string(e.what()));
+            }
+        }
+
+        // Get parent theme name
+        std::string parent_name;
+        try {
+            parent_name = theme_inheritance::get_extends_value(child_node);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Invalid extends field: " + std::string(e.what()));
+        }
+
+        // Check for circular inheritance
+        try {
+            theme_inheritance::check_circular_inheritance(parent_name, visited);
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::string(e.what()));
+        }
+
+        // Look up parent theme in registry
+        const ui_theme<Backend>* parent_theme = registry.get_theme(parent_name);
+        if (!parent_theme) {
+            throw std::runtime_error("Parent theme not found: '" + parent_name + "'");
+        }
+
+        // Convert parent theme back to YAML for merging
+        fkyaml::node parent_node;
+        try {
+            std::string parent_yaml = yaml::to_yaml_string(*parent_theme);
+            parent_node = fkyaml::node::deserialize(parent_yaml);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to serialize parent theme: " + std::string(e.what()));
+        }
+
+        // Remove extends field from child (not part of theme data)
+        fkyaml::node child_without_extends = theme_inheritance::remove_extends_field(child_node);
+
+        // Merge parent + child YAML
+        fkyaml::node merged_node;
+        try {
+            merged_node = theme_inheritance::merge_yaml_nodes(parent_node, child_without_extends);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to merge themes: " + std::string(e.what()));
+        }
+
+        // Deserialize merged YAML
+        try {
+            return yaml::from_yaml<ui_theme<Backend>>(merged_node);
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to deserialize merged theme: " + std::string(e.what()));
+        }
+    }
+
+    /**
+     * @brief Load theme from YAML string with inheritance support (public API)
+     * @tparam Backend The UI backend type
+     * @param yaml_string YAML content as string
+     * @param registry Theme registry for parent theme lookups
+     * @return Loaded and merged theme
+     *
+     * @details
+     * Public wrapper that initializes cycle detection state.
+     * See load_from_string_with_inheritance() for details.
+     */
+    template<UIBackend Backend>
+    ui_theme<Backend> load_from_string_with_inheritance(
+        const std::string& yaml_string,
+        const theme_registry<Backend>& registry
+    ) {
+        std::unordered_set<std::string> visited;
+        return load_from_string_with_inheritance<Backend>(yaml_string, registry, visited);
+    }
+
+    /**
+     * @brief Load theme from file with inheritance support
+     * @tparam Backend The UI backend type
+     * @param file_path Path to YAML theme file
+     * @param registry Theme registry for parent theme lookups
+     * @return Loaded and merged theme
+     * @throws std::runtime_error if file not found or inheritance fails
+     *
+     * @details
+     * Same as load_from_string_with_inheritance() but reads from file.
+     *
+     * Example:
+     * @code
+     * // Register base themes
+     * registry.register_theme(load_from_file<Backend>("norton_blue.yaml"));
+     *
+     * // Load variant with inheritance
+     * auto dark_variant = load_from_file_with_inheritance<Backend>(
+     *     "norton_blue_dark.yaml", registry
+     * );
+     * @endcode
+     */
+    template<UIBackend Backend>
+    ui_theme<Backend> load_from_file_with_inheritance(
+        const std::filesystem::path& file_path,
+        const theme_registry<Backend>& registry
+    ) {
+        LOG_DEBUG("Loading theme with inheritance from: ", file_path.string());
+
+        // Check file exists
+        if (!std::filesystem::exists(file_path)) {
+            std::string error = "Theme file not found: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
+        }
+
+        // Read file contents
+        std::ifstream file(file_path);
+        if (!file.is_open()) {
+            std::string error = "Failed to open theme file: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
+        }
+
+        std::string yaml_content((std::istreambuf_iterator<char>(file)),
+                                  std::istreambuf_iterator<char>());
+
+        if (yaml_content.empty()) {
+            std::string error = "Theme file is empty: " + file_path.string();
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
+        }
+
+        // Load with inheritance
+        try {
+            return load_from_string_with_inheritance<Backend>(yaml_content, registry);
+        } catch (const std::exception& e) {
+            std::string error = "Failed to load theme with inheritance from '" +
+                              file_path.string() + "': " + std::string(e.what());
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
+        }
+    }
+
 } // namespace onyxui::theme_loader
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

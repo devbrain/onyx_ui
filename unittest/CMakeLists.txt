@@ -96,6 +96,7 @@ add_executable(ui_unittest
         layer/test_layer_dirty_regions.cc
         # Theming tests
         theming/test_theme_palette.cc
+        theming/test_theme_inheritance.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
