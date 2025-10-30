@@ -200,10 +200,73 @@ TEST_SUITE("linear_layout") {
         CHECK(parent->child_at(2)->bounds().x == 110); // Right after first child + spacing
     }
 
-    // TODO: Add percentage sizing test once size_policy::percentage is implemented
-    // Percentage sizing is defined in size_policy enum but not yet implemented in linear_layout
-    // Expected behavior: child with percentage policy should take N% of parent's dimension
-    // Example: 50% of 400px parent width = 200px child width
+    TEST_CASE("Percentage sizing - horizontal") {
+        auto parent = std::make_unique<TestElement>();
+        auto layout = std::make_unique<TestLinearLayout>(direction::horizontal, 0);
+        parent->set_layout_strategy(std::move(layout));
+
+        // Add child with 50% width constraint
+        auto child1 = std::make_unique<TestElement>();
+        child1->set_width_constraint({size_policy::percentage, 0, 0, 1000, 1.0F, 0.5F});
+        child1->set_height_constraint({size_policy::content});
+        parent->add_test_child(std::move(child1));
+
+        // Add child with 30% width constraint
+        auto child2 = std::make_unique<TestElement>();
+        child2->set_width_constraint({size_policy::percentage, 0, 0, 1000, 1.0F, 0.3F});
+        child2->set_height_constraint({size_policy::content});
+        parent->add_test_child(std::move(child2));
+
+        // Parent width = 400, so children should be 200 (50%) and 120 (30%)
+        parent->measure(1000, 1000);
+        parent->arrange({0, 0, 400, 100});
+
+        CHECK(parent->child_at(0)->bounds().w == 200);  // 50% of 400
+        CHECK(parent->child_at(1)->bounds().w == 120);  // 30% of 400
+    }
+
+    TEST_CASE("Percentage sizing - vertical") {
+        auto parent = std::make_unique<TestElement>();
+        auto layout = std::make_unique<TestLinearLayout>(direction::vertical, 0);
+        parent->set_layout_strategy(std::move(layout));
+
+        // Add child with 40% height constraint
+        auto child1 = std::make_unique<TestElement>();
+        child1->set_width_constraint({size_policy::content});
+        child1->set_height_constraint({size_policy::percentage, 0, 0, 1000, 1.0F, 0.4F});
+        parent->add_test_child(std::move(child1));
+
+        // Add child with 25% height constraint
+        auto child2 = std::make_unique<TestElement>();
+        child2->set_width_constraint({size_policy::content});
+        child2->set_height_constraint({size_policy::percentage, 0, 0, 1000, 1.0F, 0.25F});
+        parent->add_test_child(std::move(child2));
+
+        // Parent height = 500, so children should be 200 (40%) and 125 (25%)
+        parent->measure(1000, 1000);
+        parent->arrange({0, 0, 100, 500});
+
+        CHECK(parent->child_at(0)->bounds().h == 200);  // 40% of 500
+        CHECK(parent->child_at(1)->bounds().h == 125);  // 25% of 500
+    }
+
+    TEST_CASE("Percentage sizing with min/max constraints") {
+        auto parent = std::make_unique<TestElement>();
+        auto layout = std::make_unique<TestLinearLayout>(direction::horizontal, 0);
+        parent->set_layout_strategy(std::move(layout));
+
+        // Child with 80% width but max constrained to 150
+        auto child = std::make_unique<TestElement>();
+        child->set_width_constraint({size_policy::percentage, 0, 0, 150, 1.0F, 0.8F});
+        child->set_height_constraint({size_policy::content});
+        parent->add_test_child(std::move(child));
+
+        // Parent width = 400, 80% would be 320, but clamped to max 150
+        parent->measure(1000, 1000);
+        parent->arrange({0, 0, 400, 100});
+
+        CHECK(parent->child_at(0)->bounds().w == 150);  // Clamped to max
+    }
 
     TEST_CASE("Content sizing") {
         auto parent = std::make_unique<TestElement>();

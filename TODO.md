@@ -3,7 +3,7 @@
 This document tracks non-implemented features, placeholders, and future enhancements for OnyxUI.
 
 **Last Updated**: 2025-10-30
-**Status**: 1039 tests passing, 5636 assertions
+**Status**: 1042 tests passing, 5641 assertions
 
 ---
 
@@ -20,18 +20,6 @@ This document tracks non-implemented features, placeholders, and future enhancem
 ---
 
 ## 🟡 Medium Priority (Incomplete Features)
-
-### Layout System
-
-- [ ] **size_policy::percentage** - Percentage-based sizing
-  - Location: `include/onyxui/layout/layout_strategy.hh` (defined)
-  - Status: Defined in enum but not implemented in any layout
-  - Implementation needed in:
-    - `linear_layout.hh` - Horizontal/vertical layouts
-    - `grid_layout.hh` - Grid layouts
-    - `anchor_layout.hh` - Anchor layouts
-  - Test: `unittest/layout/test_linear.cc:203` has TODO placeholder
-  - Expected behavior: Child with `{size_policy::percentage, 0, 0, max, 0.5F}` takes 50% of parent
 
 ### Widget Rendering
 
@@ -180,6 +168,7 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+- [x] **size_policy::percentage** - Percentage-based sizing for all layouts - 2025-10-30
 - [x] **Scrollbar arrow glyphs** - Render arrow icons using backend icon_style - 2025-10-30
 - [x] **Scrollbar line increment from theme** - Arrow clicks use theme value - 2025-10-30
 - [x] **Directory reorganization** - Logical include/ structure - 2025-10-30

@@ -359,12 +359,30 @@ namespace onyxui {
 
             const size_type& measured = this->get_last_measured_size(child.get());
 
-            int child_x, child_y;
-            calculate_anchor_position(content_area, measured, info,
-                                      child_x, child_y);
+            // Calculate child size (handle percentage policy)
+            int child_w = size_utils::get_width(measured);
+            int child_h = size_utils::get_height(measured);
 
-            int const child_w = size_utils::get_width(measured);
-            int const child_h = size_utils::get_height(measured);
+            int const content_w = rect_utils::get_width(content_area);
+            int const content_h = rect_utils::get_height(content_area);
+
+            if (child->w_constraint().policy == size_policy::percentage) {
+                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
+                child_w = child->w_constraint().clamp(percentage_w);
+            }
+
+            if (child->h_constraint().policy == size_policy::percentage) {
+                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
+                child_h = child->h_constraint().clamp(percentage_h);
+            }
+
+            // Calculate position based on anchor point (using potentially adjusted child size)
+            size_type child_size;
+            size_utils::set_size(child_size, child_w, child_h);
+
+            int child_x, child_y;
+            calculate_anchor_position(content_area, child_size, info,
+                                      child_x, child_y);
 
             rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, child_y, child_w, child_h);

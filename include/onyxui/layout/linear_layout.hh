@@ -13,7 +13,7 @@
  * - Horizontal or vertical stacking direction
  * - Configurable spacing between children
  * - Per-child alignment in cross axis
- * - Multiple size policies: fixed, content, expand, weighted, fill_parent
+ * - Multiple size policies: fixed, content, expand, weighted, percentage, fill_parent
  * - Min/max constraint enforcement
  * - Remainder pixel distribution for integer division
  * - Visibility-aware layout (hidden children don't occupy space)
@@ -82,6 +82,7 @@ namespace onyxui {
      * - **fixed/content**: Uses measured size, doesn't expand
      * - **expand**: Shares available space equally with other expand children
      * - **weighted**: Shares space proportionally based on weight value
+     * - **percentage**: Takes a percentage (0.0-1.0) of parent's dimension
      * - **fill_parent**: Takes full parent dimension (ignores other children)
      *
      * ## Edge Cases
@@ -458,6 +459,11 @@ namespace onyxui {
             } else if (child->h_constraint().policy == size_policy::weighted) {
                 weighted_children.push_back(child.get());
                 // Don't add to total_fixed_height - weighted children use available space
+            } else if (child->h_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of parent height
+                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
+                int const clamped_h = child->h_constraint().clamp(percentage_h);
+                total_fixed_height += clamped_h;
             } else {
                 // Only fixed-size children contribute to total_fixed_height
                 total_fixed_height += meas_h;
@@ -518,6 +524,10 @@ namespace onyxui {
                 }
             } else if (child->h_constraint().policy == size_policy::fill_parent) {
                 child_height = content_h;
+            } else if (child->h_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of parent height
+                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
+                child_height = percentage_h;
             }
 
             // Apply height constraints (already applied for weighted, but needed for others)
@@ -576,6 +586,11 @@ namespace onyxui {
             } else if (child->w_constraint().policy == size_policy::weighted) {
                 weighted_children.push_back(child.get());
                 // Don't add to total_fixed_width - weighted children use available space
+            } else if (child->w_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of parent width
+                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
+                int const clamped_w = child->w_constraint().clamp(percentage_w);
+                total_fixed_width += clamped_w;
             } else {
                 // Only fixed-size children contribute to total_fixed_width
                 total_fixed_width += meas_w;
@@ -636,6 +651,10 @@ namespace onyxui {
                 }
             } else if (child->w_constraint().policy == size_policy::fill_parent) {
                 child_width = content_w;
+            } else if (child->w_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of parent width
+                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
+                child_width = percentage_w;
             }
 
             // Apply width constraints (already applied for weighted, but needed for others)

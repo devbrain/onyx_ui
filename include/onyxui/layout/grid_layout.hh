@@ -608,10 +608,20 @@ namespace onyxui {
             int child_x = cell_x;
             int child_y = cell_y;
 
-            if (this->get_h_align(child.get()) == horizontal_alignment::stretch) {
+            // Handle width sizing
+            if (child->w_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of cell width
+                int const percentage_w = static_cast<int>(static_cast<float>(cell_width) * child->w_constraint().percentage);
+                child_width = child->w_constraint().clamp(percentage_w);
+            } else if (this->get_h_align(child.get()) == horizontal_alignment::stretch) {
                 child_width = cell_width;
             } else {
                 child_width = std::min(meas_w, cell_width);
+            }
+
+            // Apply horizontal alignment (after width determination)
+            if (child->w_constraint().policy != size_policy::percentage &&
+                this->get_h_align(child.get()) != horizontal_alignment::stretch) {
                 if (this->get_h_align(child.get()) == horizontal_alignment::center) {
                     child_x = cell_x + (cell_width - child_width) / 2;
                 } else if (this->get_h_align(child.get()) == horizontal_alignment::right) {
@@ -619,10 +629,20 @@ namespace onyxui {
                 }
             }
 
-            if (this->get_v_align(child.get()) == vertical_alignment::stretch) {
+            // Handle height sizing
+            if (child->h_constraint().policy == size_policy::percentage) {
+                // Calculate percentage of cell height
+                int const percentage_h = static_cast<int>(static_cast<float>(cell_height) * child->h_constraint().percentage);
+                child_height = child->h_constraint().clamp(percentage_h);
+            } else if (this->get_v_align(child.get()) == vertical_alignment::stretch) {
                 child_height = cell_height;
             } else {
                 child_height = std::min(meas_h, cell_height);
+            }
+
+            // Apply vertical alignment (after height determination)
+            if (child->h_constraint().policy != size_policy::percentage &&
+                this->get_v_align(child.get()) != vertical_alignment::stretch) {
                 if (this->get_v_align(child.get()) == vertical_alignment::center) {
                     child_y = cell_y + (cell_height - child_height) / 2;
                 } else if (this->get_v_align(child.get()) == vertical_alignment::bottom) {
