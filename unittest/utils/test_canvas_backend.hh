@@ -73,6 +73,8 @@ namespace onyxui::testing {
 
         canvas_color() = default;
         canvas_color(uint8_t r_, uint8_t g_, uint8_t b_) : r(r_), g(g_), b(b_) {}
+
+        bool operator==(const canvas_color&) const = default;
     };
 
     /**
