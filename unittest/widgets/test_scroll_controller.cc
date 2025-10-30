@@ -45,10 +45,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     scrollable<test_canvas_backend> scroll;
     scrollbar<test_canvas_backend> vscrollbar(orientation::vertical);
 
-    // Should not crash
-    scroll_controller<test_canvas_backend> controller(&scroll, &vscrollbar, nullptr);
-
-    CHECK(true);  // Construction successful
+    // Constructor should not throw
+    CHECK_NOTHROW(scroll_controller<test_canvas_backend>(&scroll, &vscrollbar, nullptr));
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Construction with both scrollbars") {
@@ -56,19 +54,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     scrollbar<test_canvas_backend> vscrollbar(orientation::vertical);
     scrollbar<test_canvas_backend> hscrollbar(orientation::horizontal);
 
-    // Should not crash
-    scroll_controller<test_canvas_backend> controller(&scroll, &vscrollbar, &hscrollbar);
-
-    CHECK(true);  // Construction successful
+    // Constructor should not throw with both scrollbars
+    CHECK_NOTHROW(scroll_controller<test_canvas_backend>(&scroll, &vscrollbar, &hscrollbar));
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Construction with nullptr scrollbars") {
     scrollable<test_canvas_backend> scroll;
 
-    // Should not crash with null scrollbars
-    scroll_controller<test_canvas_backend> controller(&scroll, nullptr, nullptr);
-
-    CHECK(true);  // Construction successful
+    // Constructor should not throw with null scrollbars
+    CHECK_NOTHROW(scroll_controller<test_canvas_backend>(&scroll, nullptr, nullptr));
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Destructor disconnects signals (RAII)") {

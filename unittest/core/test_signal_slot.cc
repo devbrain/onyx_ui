@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <doctest/doctest.h>
 #include <onyxui/signal.hh>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -595,4 +596,109 @@ TEST_CASE("Edge case - Connection ID uniqueness") {
     CHECK(id1 != id2);
     CHECK(id2 != id3);
     CHECK(id1 != id3);
+}
+
+// ============================================================================
+// Lifetime Safety Tests (Phase 1.1 Refactoring)
+// ============================================================================
+
+TEST_CASE("scoped_connection - Signal destroyed before connection") {
+    std::optional<scoped_connection> conn;
+
+    {
+        signal<int> sig;
+        conn.emplace(sig, [](int) {});
+        // sig destroyed here
+    }
+
+    // conn destroyed here - should NOT crash
+    CHECK_NOTHROW(conn.reset());
+}
+
+TEST_CASE("scoped_connection - Connection destroyed before signal") {
+    signal<int> sig;
+    int call_count = 0;
+
+    {
+        scoped_connection conn(sig, [&](int) {
+            ++call_count;
+        });
+        // conn destroyed here - should disconnect cleanly
+    }
+
+    sig.emit(42);  // Should not call disconnected slot
+    CHECK(call_count == 0);
+    CHECK(sig.connection_count() == 0);
+}
+
+TEST_CASE("scoped_connection - Multiple connections with signal destruction") {
+    std::optional<scoped_connection> conn1;
+    std::optional<scoped_connection> conn2;
+    std::optional<scoped_connection> conn3;
+
+    {
+        signal<> sig;
+        conn1.emplace(sig, []() {});
+        conn2.emplace(sig, []() {});
+        conn3.emplace(sig, []() {});
+        CHECK(sig.connection_count() == 3);
+        // sig destroyed here - all connections should handle it gracefully
+    }
+
+    // Destroying connections after signal destruction should be safe
+    CHECK_NOTHROW(conn1.reset());
+    CHECK_NOTHROW(conn2.reset());
+    CHECK_NOTHROW(conn3.reset());
+}
+
+TEST_CASE("scoped_connection - Manual disconnect after signal destruction") {
+    std::optional<scoped_connection> conn;
+
+    {
+        signal<int> sig;
+        conn.emplace(sig, [](int) {});
+        // sig destroyed here
+    }
+
+    // Manually calling disconnect after signal destruction should be safe
+    CHECK_NOTHROW(conn->disconnect());
+    CHECK_NOTHROW(conn->disconnect());  // Multiple calls should also be safe
+}
+
+TEST_CASE("scoped_connection - Move after signal destruction") {
+    std::optional<scoped_connection> conn1;
+
+    {
+        signal<> sig;
+        conn1.emplace(sig, []() {});
+        // sig destroyed here
+    }
+
+    // Moving a connection after signal destruction should be safe
+    CHECK_NOTHROW({
+        scoped_connection conn2 = std::move(*conn1);
+        // conn2 destroyed here
+    });
+}
+
+TEST_CASE("scoped_connection - Alive flag behavior") {
+    signal<int> sig;
+
+    // Get alive flag while signal is alive
+    auto alive_flag = sig.get_alive_flag();
+    CHECK(alive_flag != nullptr);
+    CHECK(*alive_flag == true);
+
+    std::shared_ptr<bool> temp_flag;
+    {
+        signal<int> temp_sig;
+        temp_flag = temp_sig.get_alive_flag();
+        CHECK(*temp_flag == true);
+        // temp_sig destroyed here
+    }
+    // Now check after temp_sig has been destroyed
+    CHECK(*temp_flag == false);  // Flag should be set to false
+
+    // Original signal still alive
+    CHECK(*alive_flag == true);
 }

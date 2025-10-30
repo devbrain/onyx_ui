@@ -136,7 +136,8 @@ TEST_SUITE("menu_item::submenu_infrastructure") {
     }
 
     TEST_CASE("menu_item destruction cleans up submenu") {
-        {
+        // RAII test: verify destruction doesn't crash or leak (checked by sanitizers)
+        CHECK_NOTHROW({
             auto item = std::make_unique<menu_item<Backend>>("File");
             auto submenu = std::make_unique<menu<Backend>>();
 
@@ -145,10 +146,8 @@ TEST_SUITE("menu_item::submenu_infrastructure") {
 
             item->set_submenu(std::move(submenu));
 
-            // item goes out of scope - submenu should be destroyed
-        }
-        // No leaks expected (verified by valgrind/sanitizers)
-        CHECK(true);  // Just verify no crash
+            // item goes out of scope - submenu should be destroyed cleanly
+        });
     }
 
     TEST_CASE("submenu() returns consistent pointer") {

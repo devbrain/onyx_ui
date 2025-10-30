@@ -361,10 +361,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
             }
         }
         CHECK(has_content);
-    } else {
-        // No arrows in this style - test passes
-        CHECK(true);
     }
+    // Note: If no arrows, test is skipped (theme has arrows disabled)
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: Arrow press changes style") {
@@ -404,9 +402,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
             }
         }
         CHECK(has_content);
-    } else {
-        CHECK(true);
     }
+    // Note: If no arrows, test is skipped (theme has arrows disabled)
 }
 
 // =============================================================================
