@@ -6,6 +6,7 @@ add_executable(ui_unittest
         core/test_rule_of_five.cc
         core/test_dirty_tracking.cc
         core/test_exception_safety.cc
+        core/test_scoped_clip.cc
         core/test_layer_manager.cc
         core/test_layer_manager_lifetime.cc
         core/test_layer_manager_events.cc

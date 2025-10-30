@@ -320,6 +320,23 @@ namespace onyxui {
             // Default: no-op (measure_context doesn't clip)
         }
 
+        /**
+         * @brief Get the current clip rectangle
+         * @return Current clipping rectangle
+         *
+         * @details
+         * Returns the active clipping region, or the full viewport if no clip is active.
+         *
+         * - **measure_context**: Returns full viewport (no clipping during measurement)
+         * - **draw_context**: Forwards to renderer->get_clip_rect()
+         *
+         * @note For testing purposes - widgets should not typically need this
+         */
+        virtual rect_type get_clip_rect() const {
+            // Default: return full viewport (measure_context)
+            return rect_type{0, 0, 0, 0};
+        }
+
     protected:
         /**
          * @brief Access underlying renderer (internal use only)

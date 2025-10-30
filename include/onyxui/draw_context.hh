@@ -410,6 +410,20 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get the current clip rectangle
+         * @return Current clipping rectangle from renderer
+         *
+         * @details
+         * Forwards to renderer->get_clip_rect(). Returns the active clipping region.
+         */
+        rect_type get_clip_rect() const override {
+            if (m_renderer) {
+                return m_renderer->get_clip_rect();
+            }
+            return rect_type{0, 0, 0, 0};
+        }
+
+        /**
          * @brief Set dirty regions for optimized rendering
          * @param regions List of rectangles that need redrawing
          *

@@ -11,6 +11,7 @@
 #include <onyxui/widgets/scroll_info.hh>
 #include <onyxui/widgets/scrollbar_visibility.hh>
 #include <onyxui/signal.hh>
+#include <onyxui/scoped_clip.hh>
 #include <algorithm>
 
 namespace onyxui {
@@ -474,15 +475,14 @@ namespace onyxui {
             // Get viewport bounds (content area excluding padding/borders)
             auto const viewport_bounds = this->get_content_area();
 
-            // Push viewport clip region
-            ctx.push_clip(viewport_bounds);
+            // RAII guard for viewport clipping - automatically pops on scope exit
+            scoped_clip clip(ctx, viewport_bounds);
 
             // Render children with clipping active
             // Children positioned outside viewport are clipped automatically
             base::do_render(ctx);
 
-            // Restore previous clip region
-            ctx.pop_clip();
+            // Clip automatically popped when 'clip' guard is destroyed
         }
 
     private:
