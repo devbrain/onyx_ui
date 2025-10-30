@@ -6,7 +6,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/scroll_info.hh>
+#include <../../include/onyxui/widgets/containers/scroll/scroll_info.hh>
 #include "../utils/test_backend.hh"
 
 using namespace onyxui;

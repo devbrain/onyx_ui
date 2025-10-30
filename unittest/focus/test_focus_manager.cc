@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <doctest/doctest.h>
 #include <functional>
-#include <onyxui/focus_manager.hh>
-#include <onyxui/event_target.hh>
+#include <../../include/onyxui/services/focus_manager.hh>
+#include <../../include/onyxui/core/event_target.hh>
 #include <utils/test_backend.hh>
 #include <memory>
 #include <vector>

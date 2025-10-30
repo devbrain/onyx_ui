@@ -9,13 +9,13 @@
 #include "../utils/test_helpers.hh"
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
-#include <onyxui/element.hh>
+#include <../../include/onyxui/core/element.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
 #include "../utils/test_helpers.hh"

@@ -6,14 +6,14 @@
 //
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
 #include "onyxui/concepts/rect_like.hh"
-#include "onyxui/element.hh"
+#include "../../include/onyxui/core/element.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;

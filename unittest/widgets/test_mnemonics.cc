@@ -16,11 +16,11 @@
 #include <doctest/doctest.h>
 #include <memory>
 #include <onyxui/widgets/styled_text.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/ui_context.hh>
-#include "onyxui/theme.hh"
+#include <onyxui/services/ui_context.hh>
+#include <onyxui/theming/theme.hh>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;

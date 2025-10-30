@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include <onyxui/widgets/scrollable.hh>
-#include <onyxui/widgets/scrollbar.hh>
-#include <onyxui/widgets/scroll_controller.hh>
-#include <containers/panel.hh>
-#include <containers/grid.hh>
+#include <onyxui/widgets/containers/scroll/scrollable.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar.hh>
+#include <onyxui/widgets/containers/scroll/scroll_controller.hh>
+#include <onyxui/widgets/containers/panel.hh>
+#include <onyxui/widgets/containers/grid.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include <memory>
 

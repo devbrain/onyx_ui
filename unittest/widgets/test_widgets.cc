@@ -7,7 +7,7 @@
 
 #include <doctest/doctest.h>
 #include "../utils/test_backend.hh"
-#include "onyxui/signal.hh"
+#include "../../include/onyxui/core/signal.hh"
 #include "widgets.hh"
 
 using namespace onyxui;

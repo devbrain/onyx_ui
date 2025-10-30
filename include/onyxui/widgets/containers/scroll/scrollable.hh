@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include <containers/panel.hh>
-#include <containers/scroll/scroll_info.hh>
-#include <onyxui/widgets/scrollbar_visibility.hh>
+#include <onyxui/widgets/containers/panel.hh>
+#include <onyxui/widgets/containers/scroll/scroll_info.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar_visibility.hh>
 #include <onyxui/core/signal.hh>
-#include <onyxui/core/rendering/scoped_clip.hh>
+#include <onyxui/core/raii/scoped_clip.hh>
 #include <algorithm>
 
 namespace onyxui {

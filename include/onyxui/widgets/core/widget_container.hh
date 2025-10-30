@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <core/widget.hh>
+#include <onyxui/widgets/core/widget.hh>
 #include <onyxui/core/rendering/render_context.hh>
 
 namespace onyxui {

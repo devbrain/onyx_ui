@@ -15,7 +15,7 @@
 #include <memory>
 #include <onyxui/hotkeys/key_sequence.hh>
 #include <onyxui/concepts/event_like.hh>
-#include <onyxui/widgets/action.hh>
+#include <onyxui/actions/action.hh>
 #include <optional>
 #include "utils/test_backend.hh"
 

@@ -17,7 +17,7 @@
 #include <onyxui/hotkeys/semantic_action_guard.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;

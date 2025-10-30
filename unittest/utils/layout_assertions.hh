@@ -8,7 +8,7 @@
 #pragma once
 
 #include "test_canvas.hh"
-#include <onyxui/element.hh>
+#include <../../include/onyxui/core/element.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <doctest/doctest.h>
 #include <string>

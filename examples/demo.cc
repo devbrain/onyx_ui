@@ -4,7 +4,7 @@
 
 #include <onyxui/conio/conio_backend.hh>
 #include <onyxui/ui_handle.hh>
-#include <onyxui/background_renderer.hh>
+#include <../include/onyxui/services/background_renderer.hh>
 #include "demo.hh"
 
 int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {

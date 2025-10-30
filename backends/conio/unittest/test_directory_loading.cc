@@ -7,8 +7,8 @@
 
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
-#include <onyxui/theme_loader.hh>
-#include <onyxui/theme.hh>
+#include <../../../include/onyxui/theming/theme_loader.hh>
+#include <../../../include/onyxui/theming/theme.hh>
 #include <onyxui/conio/conio_backend.hh>
 #include <filesystem>
 #include <fstream>

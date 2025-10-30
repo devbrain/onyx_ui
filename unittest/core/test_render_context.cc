@@ -6,10 +6,10 @@
 
 #include <doctest/doctest.h>
 #include <memory>
-#include <onyxui/render_context.hh>
-#include <onyxui/draw_context.hh>
-#include <onyxui/measure_context.hh>
-#include <onyxui/resolved_style.hh>
+#include <../../include/onyxui/core/rendering/render_context.hh>
+#include <../../include/onyxui/core/rendering/draw_context.hh>
+#include <../../include/onyxui/core/rendering/measure_context.hh>
+#include <../../include/onyxui/core/rendering/resolved_style.hh>
 #include <onyxui/concepts/size_like.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <utility>
@@ -241,8 +241,8 @@ TEST_CASE("Context lifetimes") {
 // resolved_style Integration Tests
 // ============================================================================
 
-#include <onyxui/resolved_style.hh>
-#include <onyxui/theme.hh>
+#include <../../include/onyxui/core/rendering/resolved_style.hh>
+#include <../../include/onyxui/theming/theme.hh>
 
 TEST_CASE("render_context - Style accessor returns resolved_style") {
     SUBCASE("measure_context with style") {

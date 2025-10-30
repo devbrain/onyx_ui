@@ -10,7 +10,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/layer_manager.hh>
+#include <../../include/onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
 #include "utils/test_backend.hh"
 #include <memory>

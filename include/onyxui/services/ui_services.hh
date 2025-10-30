@@ -56,7 +56,7 @@
 #define ONYXUI_UI_SERVICES_HH_INCLUDED
 
 #include <onyxui/concepts/backend.hh>
-#include <services/ui_context.hh>
+#include <onyxui/services/ui_context.hh>
 #include <vector>
 #include <cassert>
 

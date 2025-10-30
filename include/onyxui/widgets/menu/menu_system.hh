@@ -48,7 +48,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/hotkeys/semantic_action_guard.hh>
 #include <onyxui/services/ui_services.hh>
-#include <onyxui/scoped_layer.hh>
+#include <onyxui/core/raii/scoped_layer.hh>
 #include <vector>
 
 namespace onyxui {

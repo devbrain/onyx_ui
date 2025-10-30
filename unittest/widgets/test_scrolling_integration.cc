@@ -7,13 +7,13 @@
 
 #include <doctest/doctest.h>
 
-#include <onyxui/widgets/scroll_view.hh>
-#include <onyxui/widgets/scroll_view_presets.hh>
+#include <../../include/onyxui/widgets/containers/scroll_view.hh>
+#include <../../include/onyxui/widgets/containers/scroll/scroll_view_presets.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/widgets/grid.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
+#include <../../include/onyxui/widgets/containers/grid.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"

@@ -8,9 +8,8 @@
 #pragma once
 
 #include <string>
-#include <iostream>
-#include <onyxui/widgets/widget.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
+#include <onyxui/widgets/core/widget.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
 
 namespace onyxui {
     /**
@@ -105,11 +104,8 @@ namespace onyxui {
             // Store plain text for backwards compatibility
             m_text = strip_mnemonic(mnemonic_text);
 
-            // Store raw markup for lazy parsing during render
+            // Store raw markup (will be parsed on-the-fly during render using ctx.theme())
             m_mnemonic_markup = std::string(mnemonic_text);
-
-            // Invalidate cache (will be parsed on next render using ctx.theme())
-            m_cached_theme_ptr = nullptr;
 
             this->invalidate_measure();  // Size may change
         }
@@ -179,25 +175,27 @@ namespace onyxui {
             int x = rect_utils::get_x(bounds);
             int y = rect_utils::get_y(bounds);
 
-            // Parse mnemonic on-demand if needed (lazy initialization with cache)
-            if (!m_mnemonic_markup.empty() && theme && m_cached_theme_ptr != theme) {
-                // Theme changed or first render - parse mnemonic with current theme fonts
-                m_mnemonic_info = parse_mnemonic<Backend>(
+            // Render text (mnemonic segments if available, otherwise plain text)
+            if (!m_mnemonic_markup.empty()) {
+                // Parse mnemonic on-the-fly (no mutable state modification!)
+                const auto mnemonic_info = parse_mnemonic<Backend>(
                     m_mnemonic_markup,
                     theme->label.font,
                     theme->label.mnemonic_font
                 );
-                m_cached_theme_ptr = theme;
-            }
 
-            // Render text (mnemonic segments if available, otherwise plain text)
-            if (!m_mnemonic_markup.empty() && !m_mnemonic_info.text.empty()) {
-                // Render styled text with mnemonic (multi-segment)
-                for (const auto& segment : m_mnemonic_info.text) {
+                if (!mnemonic_info.text.empty()) {
+                    // Render styled text with mnemonic (multi-segment)
+                    for (const auto& segment : mnemonic_info.text) {
+                        typename Backend::point_type const pos{x, y};
+                        // Use segment-specific font, but inherited foreground color
+                        auto text_size = ctx.draw_text(segment.text, pos, segment.font, fg);
+                        x += size_utils::get_width(text_size);
+                    }
+                } else {
+                    // Fallback to plain text if parsing failed
                     typename Backend::point_type const pos{x, y};
-                    // Use segment-specific font, but inherited foreground color
-                    auto text_size = ctx.draw_text(segment.text, pos, segment.font, fg);
-                    x += size_utils::get_width(text_size);
+                    ctx.draw_text(m_text, pos, font, fg);
                 }
             } else {
                 // Render plain text using pre-resolved style
@@ -230,9 +228,7 @@ namespace onyxui {
 
     private:
         std::string m_text;                       ///< Plain text without markup
-        std::string m_mnemonic_markup;            ///< Raw markup like "&Name:" (empty if no mnemonic)
-        mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
-        mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
+        std::string m_mnemonic_markup;            ///< Raw markup like "&Name:" (parsed on-the-fly during render)
     };
 
     // =========================================================================

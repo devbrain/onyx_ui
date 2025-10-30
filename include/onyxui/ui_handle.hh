@@ -41,15 +41,12 @@
 #pragma once
 
 #include <memory>
-#include <iostream>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/rect_like.hh>
-#include <onyxui/concepts/event_like.hh>
-#include <onyxui/element.hh>
-#include <onyxui/focus_manager.hh>
-#include <onyxui/layer_manager.hh>
-#include <onyxui/ui_services.hh>
-#include <onyxui/widgets/widget.hh>
+#include <onyxui/core/element.hh>
+#include <onyxui/services/focus_manager.hh>
+#include <onyxui/services/ui_services.hh>
+#include <onyxui/widgets/core/widget.hh>
 
 namespace onyxui {
 
@@ -194,16 +191,15 @@ namespace onyxui {
             if (!theme_ptr) {
                 throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
             }
-            const auto& theme = *theme_ptr;
 
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree by reference
-            m_root->render(m_renderer, theme);
+            // Theme is passed down through the widget tree by pointer
+            m_root->render(m_renderer, theme_ptr);
 
             // Render all overlay layers from current context (pass theme for popup menus, dialogs)
             if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds, theme);
+                layers->render_all_layers(m_renderer, bounds, theme_ptr);
             }
         }
 
@@ -248,16 +244,15 @@ namespace onyxui {
             if (!theme_ptr) {
                 throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
             }
-            const auto& theme = *theme_ptr;
 
             // Render base UI to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree by reference
-            m_root->render(m_renderer, theme);
+            // Theme is passed down through the widget tree by pointer
+            m_root->render(m_renderer, theme_ptr);
 
             // Render all overlay layers from current context (pass theme for popup menus, dialogs)
             if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds, theme);
+                layers->render_all_layers(m_renderer, bounds, theme_ptr);
             }
         }
 

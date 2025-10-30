@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <core/widget.hh>
+#include <onyxui/widgets/core/widget.hh>
 
 namespace onyxui {
 

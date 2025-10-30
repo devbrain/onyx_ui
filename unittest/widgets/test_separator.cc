@@ -10,12 +10,12 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/separator.hh>
+#include <../../include/onyxui/widgets/menu/separator.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/widgets/hbox.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
+#include <../../include/onyxui/widgets/containers/hbox.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"

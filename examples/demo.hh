@@ -5,13 +5,13 @@
 #pragma once
 #include <algorithm>
 #include <iostream>
-#include <onyxui/widgets/panel.hh>
+#include <../include/onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/menu.hh>
-#include <onyxui/widgets/menu_bar.hh>
-#include <onyxui/widgets/menu_item.hh>
-#include <onyxui/ui_services.hh>
+#include <../include/onyxui/widgets/menu/menu.hh>
+#include <../include/onyxui/widgets/menu/menu_bar.hh>
+#include <../include/onyxui/widgets/menu/menu_item.hh>
+#include <../include/onyxui/services/ui_services.hh>
 
 
 template <onyxui::UIBackend Backend>

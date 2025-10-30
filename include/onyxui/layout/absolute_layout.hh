@@ -46,7 +46,7 @@
 #pragma once
 
 #include <unordered_map>
-#include <onyxui/layout_strategy.hh>
+#include <onyxui/layout/layout_strategy.hh>
 
 namespace onyxui {
     /**

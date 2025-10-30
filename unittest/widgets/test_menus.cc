@@ -13,28 +13,21 @@
  */
 
 #include <doctest/doctest.h>
-#include "../utils/test_helpers.hh"
+#include "utils/test_helpers.hh"
 #include <memory>
-#include "../utils/test_helpers.hh"
-#include <onyxui/widgets/menu_item.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/widgets/menu.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/widgets/menu_bar.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/widgets/action.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
-#include "../utils/test_helpers.hh"
-#include "onyxui/hotkeys/key_sequence.hh"
-#include "../utils/test_helpers.hh"
 #include <utility>
-#include "../utils/test_helpers.hh"
-#include "onyxui/layer_manager.hh"
-#include "../utils/test_helpers.hh"
+
+#include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/widgets/menu/menu.hh>
+#include <onyxui/widgets/menu/menu_bar.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/services/ui_context.hh>
+#include <onyxui/hotkeys/key_sequence.hh>
+
+#include <onyxui/services/layer_manager.hh>
 #include "utils/test_backend.hh"
-#include "../utils/test_canvas_backend.hh"
-#include "../utils/test_helpers.hh"
+#include "utils/test_canvas_backend.hh"
+
 
 using namespace onyxui;
 using namespace onyxui::testing;

@@ -6,8 +6,8 @@
 
 #include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/anchor_panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/anchor_panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <utility>
 #include "../utils/test_backend.hh"

@@ -6,11 +6,11 @@
 #include "../utils/test_helpers.hh"
 #include <memory>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/group_box.hh>
+#include <../../include/onyxui/widgets/containers/group_box.hh>
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"
 #include <utility>
 #include "../utils/test_helpers.hh"

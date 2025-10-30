@@ -6,9 +6,9 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/scoped_clip.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/scrollable.hh>
+#include <../../include/onyxui/core/raii/scoped_clip.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/scroll/scrollable.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 

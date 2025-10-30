@@ -5,12 +5,12 @@
 
 #include <memory>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
 #include <utility>
 #include "../utils/test_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
 #include "onyxui/layout/linear_layout.hh"
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 using namespace onyxui;
 
 TEST_CASE("Panel - Container widget") {

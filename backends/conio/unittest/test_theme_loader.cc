@@ -8,8 +8,8 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <../../../include/onyxui/utils/fkyaml_adapter.hh>
-#include <onyxui/theme.hh>
-#include <onyxui/theme_loader.hh>
+#include <../../../include/onyxui/theming/theme.hh>
+#include <../../../include/onyxui/theming/theme_loader.hh>
 #include <onyxui/conio/conio_backend.hh>
 #include <onyxui/conio/enum_reflection.hh>
 #include <filesystem>

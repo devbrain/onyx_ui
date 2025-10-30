@@ -8,7 +8,7 @@
 #include <doctest/doctest.h>
 #include "visual_test_helpers.hh"
 #include "test_canvas_backend.hh"
-#include <onyxui/widgets/panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
 
 using namespace onyxui;
 using namespace onyxui::testing;

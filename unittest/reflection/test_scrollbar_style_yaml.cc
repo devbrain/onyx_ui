@@ -9,7 +9,7 @@
 
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
-#include <onyxui/theme.hh>
+#include <../../include/onyxui/theming/theme.hh>
 #include <fkYAML/node.hpp>
 #include <string>
 

@@ -18,8 +18,8 @@
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/hotkeys/hotkey_scheme_registry.hh>
 #include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/widgets/panel.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/widgets/containers/panel.hh>
 #include "onyxui/hotkeys/key_sequence.hh"
 #include <utility>
 #include "utils/test_backend.hh"

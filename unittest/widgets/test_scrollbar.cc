@@ -6,7 +6,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/scrollbar.hh>
+#include <../../include/onyxui/widgets/containers/scroll/scrollbar.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
 

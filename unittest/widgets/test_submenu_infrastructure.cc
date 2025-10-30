@@ -14,8 +14,8 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/menu_item.hh>
-#include <onyxui/widgets/menu.hh>
+#include <../../include/onyxui/widgets/menu/menu_item.hh>
+#include <../../include/onyxui/widgets/menu/menu.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
 

@@ -39,7 +39,7 @@
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/core/rendering/measure_context.hh>
 #include <onyxui/services/ui_services.hh>
-#include <onyxui/scoped_layer.hh>
+#include <onyxui/core/raii/scoped_layer.hh>
 #include <onyxui/services/layer_manager.hh>
 #include <memory>
 #include <stdexcept>
@@ -60,7 +60,7 @@ namespace onyxui {
 }
 
 // Include after forward declaration to avoid circular dependency issues
-#include <onyxui/widgets/action.hh>
+#include <onyxui/actions/action.hh>
 
 namespace onyxui {
     /**

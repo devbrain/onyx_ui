@@ -10,15 +10,15 @@
 //
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/group_box.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/group_box.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/vbox.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include <limits>
 #include "../utils/test_canvas_backend.hh"
 #include "onyxui/concepts/rect_like.hh"
-#include "onyxui/element.hh"
+#include "../../include/onyxui/core/element.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;

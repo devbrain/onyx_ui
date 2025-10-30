@@ -7,7 +7,7 @@
  * like dashboards, forms, and application windows.
  */
 
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 #include "utils/test_helpers.hh"
 #include <memory>
 #include <onyxui/layout/linear_layout.hh>

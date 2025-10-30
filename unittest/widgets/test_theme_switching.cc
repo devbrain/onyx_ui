@@ -7,9 +7,9 @@
 #include <memory>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/theme.hh>
-#include <onyxui/ui_services.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/theming/theme.hh>
+#include <../../include/onyxui/services/ui_services.hh>
 #include <utility>
 
 using namespace onyxui;
@@ -20,7 +20,7 @@ namespace {
     template<typename Widget>
     resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>& theme) {
         auto parent_style = resolved_style<Backend>::from_theme(theme);
-        return widget.resolve_style(theme, parent_style);
+        return widget.resolve_style(&theme, parent_style);
     }
 
     auto create_blue_theme() {

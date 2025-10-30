@@ -8,10 +8,11 @@
 #pragma once
 
 #include <string>
-#include <onyxui/widgets/stateful_widget.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
-#include <onyxui/layout_strategy.hh>  // For horizontal_alignment
+#include <onyxui/widgets/core/stateful_widget.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
+#include <onyxui/layout/layout_strategy.hh>
+#include <onyxui/ui_constants.hh>  // For default padding values
 
 namespace onyxui {
     /**
@@ -114,11 +115,8 @@ namespace onyxui {
             // Store plain text for backwards compatibility
             m_text = strip_mnemonic(mnemonic_text);
 
-            // Store raw markup for lazy parsing during render
+            // Store raw markup (will be parsed on-the-fly during render using ctx.theme())
             m_mnemonic_markup = std::string(mnemonic_text);
-
-            // Invalidate cache (will be parsed on next render using ctx.theme())
-            m_cached_theme_ptr = nullptr;
 
             this->invalidate_measure();  // Size may change
         }
@@ -190,8 +188,10 @@ namespace onyxui {
             auto* theme = ctx.theme();
 
             // Get padding from resolved style (with defaults)
-            int const padding_horizontal = ctx.style().padding_horizontal.value.value_or(2);
-            int const padding_vertical = ctx.style().padding_vertical.value.value_or(2);
+            int const padding_horizontal = ctx.style().padding_horizontal.value
+                .value_or(ui_constants::DEFAULT_BUTTON_PADDING_HORIZONTAL);
+            int const padding_vertical = ctx.style().padding_vertical.value
+                .value_or(ui_constants::DEFAULT_BUTTON_PADDING_VERTICAL);
             int const border = renderer_type::get_border_thickness(ctx.style().box_style);
 
             // Measure text size
@@ -255,25 +255,27 @@ namespace onyxui {
             int const text_x = x + border + padding_horizontal + align_offset;
             int const text_y = y + border + padding_vertical;
 
-            // Parse mnemonic on-demand if needed (lazy initialization with cache)
-            if (!m_mnemonic_markup.empty() && theme && m_cached_theme_ptr != theme) {
-                // Theme changed or first render - parse mnemonic with current theme fonts
-                m_mnemonic_info = parse_mnemonic<Backend>(
+            // Render text (mnemonic segments if available, otherwise plain text)
+            if (!m_mnemonic_markup.empty()) {
+                // Parse mnemonic on-the-fly (no mutable state modification!)
+                const auto mnemonic_info = parse_mnemonic<Backend>(
                     m_mnemonic_markup,
                     theme->button.normal.font,
                     theme->button.mnemonic_font
                 );
-                m_cached_theme_ptr = theme;
-            }
 
-            // Render text (mnemonic segments if available, otherwise plain text)
-            if (!m_mnemonic_markup.empty() && !m_mnemonic_info.text.empty()) {
-                // Render styled text with multiple fonts (multi-segment)
-                int segment_x = text_x;
-                for (const auto& segment : m_mnemonic_info.text) {
-                    typename Backend::point_type const text_pos{segment_x, text_y};
-                    auto seg_size = ctx.draw_text(segment.text, text_pos, segment.font, fg);
-                    segment_x += size_utils::get_width(seg_size);
+                if (!mnemonic_info.text.empty()) {
+                    // Render styled text with multiple fonts (multi-segment)
+                    int segment_x = text_x;
+                    for (const auto& segment : mnemonic_info.text) {
+                        typename Backend::point_type const text_pos{segment_x, text_y};
+                        auto seg_size = ctx.draw_text(segment.text, text_pos, segment.font, fg);
+                        segment_x += size_utils::get_width(seg_size);
+                    }
+                } else {
+                    // Fallback to plain text if parsing failed
+                    typename Backend::point_type const text_pos{text_x, text_y};
+                    ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
                 }
             } else {
                 // Render plain text
@@ -378,9 +380,7 @@ namespace onyxui {
 
     private:
         std::string m_text;                       ///< Plain text without markup
-        std::string m_mnemonic_markup;            ///< Raw markup like "&Save" (empty if no mnemonic)
-        mutable mnemonic_info<Backend> m_mnemonic_info;  ///< Cached parsed segments (lazy init)
-        mutable const ui_theme<Backend>* m_cached_theme_ptr = nullptr;  ///< Track theme for cache invalidation
+        std::string m_mnemonic_markup;            ///< Raw markup like "&Save" (parsed on-the-fly during render)
     };
 
     // =========================================================================

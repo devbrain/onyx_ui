@@ -8,7 +8,7 @@
 
 #include <optional>
 #include <onyxui/concepts/backend.hh>
-#include <onyxui/theme.hh>  // For from_theme() method
+#include <onyxui/theming/theme.hh>
 
 namespace onyxui {
 

@@ -7,7 +7,7 @@
 
 #include <cstddef>
 #include <doctest/doctest.h>
-#include <onyxui/signal.hh>
+#include <../../include/onyxui/core/signal.hh>
 #include <optional>
 #include <string>
 #include <utility>

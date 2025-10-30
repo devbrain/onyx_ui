@@ -7,12 +7,12 @@
  * deleted where appropriate.
  */
 
-#include "onyxui/theme.hh"
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/theming/theme.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 #include <doctest/doctest.h>
-#include <onyxui/element.hh>
-#include <onyxui/event_target.hh>
-#include <onyxui/focus_manager.hh>
+#include <../../include/onyxui/core/element.hh>
+#include <../../include/onyxui/core/event_target.hh>
+#include <../../include/onyxui/services/focus_manager.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include <type_traits>
 #include <utils/test_backend.hh>

@@ -73,12 +73,12 @@
 #include <utility>  // for std::exchange
 
 #include <onyxui/concepts/backend.hh>
-#include <event_target.hh>
-#include <onyxui/layout_strategy.hh>
-#include <onyxui/themeable.hh>
+#include <onyxui/core/event_target.hh>
+#include <onyxui/layout/layout_strategy.hh>
+#include <onyxui/theming/themeable.hh>
 #include <onyxui/utils/safe_math.hh>
-#include <onyxui/render_context.hh>
-#include <onyxui/draw_context.hh>
+#include <onyxui/core/rendering/render_context.hh>
+#include <onyxui/core/rendering/draw_context.hh>
 
 namespace onyxui {
     /**

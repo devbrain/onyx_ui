@@ -508,13 +508,13 @@
 #pragma once
 
 #include <onyxui/concepts/backend.hh>
-#include <services/layer_manager.hh>
-#include <services/input_manager.hh>
-#include <onyxui/theme_registry.hh>
+#include <onyxui/services/layer_manager.hh>
+#include <onyxui/services/input_manager.hh>
+#include <onyxui/theming/theme_registry.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/hotkeys/hotkey_scheme_registry.hh>
 #include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
-#include <services/background_renderer.hh>
+#include <onyxui/services/background_renderer.hh>
 
 namespace onyxui {
 

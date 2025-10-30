@@ -50,8 +50,8 @@
 #include <string>
 #include <memory>
 #include <onyxui/widgets/core/stateful_widget.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
 
 namespace onyxui {
 

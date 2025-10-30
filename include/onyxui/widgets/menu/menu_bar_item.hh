@@ -18,7 +18,7 @@
 
 #include <string>
 #include <onyxui/widgets/core/stateful_widget.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/ui_constants.hh>  // For default padding values
 
 namespace onyxui {

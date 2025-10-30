@@ -16,7 +16,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/layer_manager.hh>
+#include <../../include/onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
 #include "utils/test_backend.hh"
 #include <memory>
@@ -117,7 +117,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRect const viewport{0, 0, 800, 600};
 
             // Phase 1.2: Automatic cleanup of expired layers
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
 
             // Verify layer was removed
             CHECK(mgr.layer_count() == 0);
@@ -248,7 +248,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             // Should handle gracefully (skip expired layer)
             // Currently: EXPECTED TO FAIL
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
         }
 
         SUBCASE("Modal dialog after destruction") {
@@ -261,7 +261,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
         }
     }
 
@@ -285,7 +285,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         SUBCASE("Render after tooltip destroyed") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
         }
 
         SUBCASE("Hide after tooltip destroyed") {

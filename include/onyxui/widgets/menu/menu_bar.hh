@@ -63,14 +63,14 @@
 #include <vector>
 #include <memory>
 #include <optional>
-#include <containers/hbox.hh>
-#include <menu/menu.hh>
-#include <menu_bar_item.hh>
-#include <onyxui/widgets/mnemonic_parser.hh>
-#include <onyxui/scoped_layer.hh>
+#include <onyxui/widgets/containers/hbox.hh>
+#include <onyxui/widgets/menu/menu.hh>
+#include <onyxui/widgets/menu/menu_bar_item.hh>
+#include <onyxui/actions/mnemonic_parser.hh>
+#include <onyxui/core/raii/scoped_layer.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
-#include <menu_system.hh>
+#include <onyxui/widgets/menu/menu_system.hh>
 
 namespace onyxui {
 

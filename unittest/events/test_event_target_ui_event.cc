@@ -17,7 +17,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/event_target.hh>
+#include <../../include/onyxui/core/event_target.hh>
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/hotkeys/key_code.hh>
 #include "../utils/test_canvas_backend.hh"

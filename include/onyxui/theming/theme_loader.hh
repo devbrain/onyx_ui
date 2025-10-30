@@ -8,7 +8,7 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/utils/fkyaml_adapter.hh>
-#include <theming/theme.hh>
+#include <onyxui/theming/theme.hh>
 #include <failsafe/logger.hh>
 #include <fstream>
 #include <stdexcept>

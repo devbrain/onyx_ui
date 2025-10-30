@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <onyxui/widgets/scrollable.hh>
-#include <onyxui/widgets/scrollbar.hh>
+#include <onyxui/widgets/containers/scroll/scrollable.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar.hh>
 #include <onyxui/core/signal.hh>
 
 #include <vector>

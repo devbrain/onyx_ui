@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <containers/scroll_view.hh>
+#include <onyxui/widgets/containers/scroll_view.hh>
 #include <memory>
 
 namespace onyxui {

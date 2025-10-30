@@ -59,10 +59,9 @@
 #include <vector>
 #include <memory>
 #include <onyxui/widgets/core/widget_container.hh>
-#include <menu_item.hh>
-#include <onyxui/widgets/separator.hh>
+#include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/widgets/menu/separator.hh>
 #include <onyxui/services/ui_services.hh>
-#include <onyxui/services/focus_manager.hh>
 #include <onyxui/layout/linear_layout.hh>
 
 namespace onyxui {

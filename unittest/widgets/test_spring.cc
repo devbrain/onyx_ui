@@ -4,10 +4,10 @@
 #include <doctest/doctest.h>
 
 #include <memory>
-#include <onyxui/widgets/spring.hh>
+#include <../../include/onyxui/widgets/layout/spring.hh>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/hbox.hh>
-#include <onyxui/widgets/vbox.hh>
+#include <../../include/onyxui/widgets/containers/hbox.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
 #include <utility>
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"

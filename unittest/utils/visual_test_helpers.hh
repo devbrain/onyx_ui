@@ -14,8 +14,8 @@
 
 #include "test_canvas.hh"
 #include "test_canvas_backend.hh"
-#include <onyxui/element.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/core/element.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include <onyxui/ui_handle.hh>
 #include <memory>
 #include <string>

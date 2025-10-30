@@ -544,7 +544,7 @@ namespace onyxui {
 } // namespace onyxui
 
 // Include action_group to complete the action implementation
-#include <onyxui/widgets/actions/action_group.hh>
+#include <onyxui/actions/action_group.hh>
 
 namespace onyxui {
     // Implementation of set_checked (needs action_group definition)

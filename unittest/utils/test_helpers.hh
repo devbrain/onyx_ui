@@ -6,9 +6,9 @@
 #pragma once
 
 #include <doctest/doctest.h>
-#include <onyxui/element.hh>
-#include <onyxui/ui_services.hh>
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/core/element.hh>
+#include <../../include/onyxui/services/ui_services.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "test_backend.hh"
 #include <vector>
 #include <iostream>

@@ -14,12 +14,12 @@
 
 #pragma once
 
-#include <onyxui/theme.hh>
-#include <onyxui/theme_registry.hh>
+#include <../../../include/onyxui/theming/theme.hh>
+#include <../../../include/onyxui/theming/theme_registry.hh>
 #include <onyxui/conio/conio_backend.hh>
 #include <onyxui/conio/colors.hh>
 #include <onyxui/conio/conio_renderer.hh>
-#include <onyxui/layout_strategy.hh>
+#include <../../../include/onyxui/layout/layout_strategy.hh>
 
 namespace onyxui::conio {
 

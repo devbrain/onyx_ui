@@ -6,9 +6,9 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/scrollable.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/vbox.hh>
+#include <../../include/onyxui/widgets/containers/scroll/scrollable.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
 

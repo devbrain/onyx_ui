@@ -6,8 +6,8 @@
 
 #include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/widgets/absolute_panel.hh>
+#include <../../include/onyxui/widgets/containers/panel.hh>
+#include <../../include/onyxui/widgets/containers/absolute_panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <utility>
 #include <string>

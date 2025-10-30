@@ -15,8 +15,8 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/layer_manager.hh>
-#include <onyxui/scoped_layer.hh>  // Phase 1.4: Now implemented!
+#include <onyxui/services/layer_manager.hh>
+#include <onyxui/core/raii/scoped_layer.hh>
 #include "../utils/test_helpers.hh"
 #include "utils/test_backend.hh"
 #include <memory>
@@ -334,13 +334,13 @@ TEST_SUITE("scoped_layer - Integration") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
         }
 
         // Layer removed, rendering should still work
         TestRenderer renderer;
         TestRect const viewport{0, 0, 800, 600};
-        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, test_theme));
+        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
     }
 }
 

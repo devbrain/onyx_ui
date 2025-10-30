@@ -95,8 +95,8 @@
 #include <onyxui/hotkeys/hotkey_scheme_registry.hh>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/element.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/core/element.hh>
 #include <onyxui/events/ui_event.hh>
 // #include <failsafe/logger.hh>  // Not needed for dirty rectangle testing
 #include <map>

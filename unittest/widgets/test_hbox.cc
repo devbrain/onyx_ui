@@ -6,11 +6,11 @@
 
 #include <memory>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/hbox.hh>
+#include <../../include/onyxui/widgets/containers/hbox.hh>
 #include <utility>
 #include "../utils/test_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 
 
 using namespace onyxui;

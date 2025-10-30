@@ -10,24 +10,15 @@
 
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/stateful_widget.hh>
-#include "../utils/test_helpers.hh"
+#include <../../include/onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/widgets/button.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/theme.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/ui_services.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/render_context.hh>
-#include "../utils/test_helpers.hh"
-#include <onyxui/measure_context.hh>
+#include <../../include/onyxui/theming/theme.hh>
+#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/services/ui_services.hh>
+#include <../../include/onyxui/core/rendering/render_context.hh>
 #include <onyxui/events/ui_event.hh>
-#include "../utils/test_helpers.hh"
-#include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"
-#include "../utils/test_helpers.hh"
+
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -38,7 +29,7 @@ namespace {
     template<typename Widget>
     resolved_style<Backend> resolve_with_theme(const Widget& widget, const ui_theme<Backend>& theme) {
         auto parent_style = resolved_style<Backend>::from_theme(theme);
-        return widget.resolve_style(theme, parent_style);
+        return widget.resolve_style(&theme, parent_style);
     }
 
     // Test widget that exposes stateful_widget protected interface

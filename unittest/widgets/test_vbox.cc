@@ -9,9 +9,9 @@
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/button.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/vbox.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/hbox.hh>
+#include <../../include/onyxui/widgets/containers/hbox.hh>
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_helpers.hh"
@@ -23,7 +23,7 @@
 #include "../utils/test_helpers.hh"
 #include "onyxui/concepts/rect_like.hh"
 #include "../utils/test_helpers.hh"
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
 using namespace onyxui;

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <onyxui/widgets/widget.hh>
+#include <../../include/onyxui/widgets/core/widget.hh>
 #include <onyxui/widgets/button.hh>
 
 namespace onyxui {

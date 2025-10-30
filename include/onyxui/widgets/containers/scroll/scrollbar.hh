@@ -7,8 +7,9 @@
 
 #pragma once
 
+
 #include <onyxui/widgets/core/widget.hh>
-#include <containers/scroll/scroll_info.hh>
+#include <onyxui/widgets/containers/scroll/scroll_info.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/ui_constants.hh>  // For default scrollbar dimensions
 #include <onyxui/theming/theme.hh>

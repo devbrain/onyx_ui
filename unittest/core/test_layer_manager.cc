@@ -6,11 +6,11 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/layer_manager.hh>
+#include <../../include/onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
 #include "utils/test_backend.hh"
-#include "onyxui/render_context.hh"
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/core/rendering/render_context.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 #include <memory>
 #include <limits>
 
@@ -439,7 +439,7 @@ TEST_SUITE("Layer Manager") {
         test_theme.name = "TestTheme";
 
         SUBCASE("No layers - nothing rendered") {
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
             // No assertions needed - just shouldn't crash
         }
 
@@ -447,7 +447,7 @@ TEST_SUITE("Layer Manager") {
             auto layer = std::make_shared<TestLayer>();
             mgr.add_layer(layer_type::popup, layer);
 
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             CHECK(layer->render_called);
         }
@@ -457,7 +457,7 @@ TEST_SUITE("Layer Manager") {
             layer_id const id = mgr.add_layer(layer_type::popup, layer);
             mgr.hide_layer(id);
 
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             CHECK(!layer->render_called);
         }
@@ -471,7 +471,7 @@ TEST_SUITE("Layer Manager") {
             mgr.add_layer(layer_type::tooltip, layer2);  // z=100
             mgr.add_layer(layer_type::dialog, layer3);   // z=300
 
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             CHECK(layer1->render_called);
             CHECK(layer2->render_called);
@@ -486,7 +486,7 @@ TEST_SUITE("Layer Manager") {
             popup->set_preferred_size(120, 60);
 
             mgr.show_popup(popup.get(), anchor, popup_placement::below);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             // Popup should be positioned below anchor
             // Expected position: x=anchor.x, y=anchor.y+anchor.h
@@ -502,7 +502,7 @@ TEST_SUITE("Layer Manager") {
             dialog->set_preferred_size(200, 150);
 
             mgr.show_modal_dialog(dialog.get(), dialog_position::center);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             // Dialog should be centered in viewport
             auto bounds = dialog->bounds();
@@ -531,7 +531,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement below") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::below);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 400);
@@ -541,7 +541,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement above") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::above);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 400);
@@ -551,7 +551,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement left") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::left);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 250); // anchor.x - popup.w
@@ -561,7 +561,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement right") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::right);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 500); // anchor.x + anchor.w
@@ -571,7 +571,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement below_right") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::below_right);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
@@ -581,7 +581,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Placement above_right") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::above_right);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
@@ -591,7 +591,7 @@ TEST_SUITE("Layer Manager") {
         SUBCASE("Auto placement when below fits") {
             auto popup = create_popup();
             mgr.show_popup(popup.get(), anchor, popup_placement::auto_best);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.y == 350); // Chose below
@@ -601,7 +601,7 @@ TEST_SUITE("Layer Manager") {
             TestRect const bottom_anchor{400, 550, 100, 30}; // Near bottom
             auto popup = create_popup();
             mgr.show_popup(popup.get(), bottom_anchor, popup_placement::auto_best);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.y == 470); // Chose above (550 - 80)
@@ -611,7 +611,7 @@ TEST_SUITE("Layer Manager") {
             TestRect const edge_anchor{750, 100, 100, 50}; // Near right edge
             auto popup = create_popup();
             mgr.show_popup(popup.get(), edge_anchor, popup_placement::below);
-            mgr.render_all_layers(renderer, viewport, test_theme);
+            mgr.render_all_layers(renderer, viewport, &test_theme);
 
             auto bounds = popup->bounds();
             CHECK(bounds.x == 650); // Clamped to fit (800 - 150)

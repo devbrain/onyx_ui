@@ -5,14 +5,14 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/widgets/menu_item.hh>
+#include <onyxui/widgets/menu/menu_item.hh>
 #include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/widgets/menu.hh>
-#include <onyxui/widgets/menu_bar.hh>
-#include <onyxui/widgets/panel.hh>
-#include <onyxui/ui_context.hh>
-#include <onyxui/theme.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/widgets/menu/menu.hh>
+#include <onyxui/widgets/menu/menu_bar.hh>
+#include <onyxui/widgets/containers/panel.hh>
+#include <onyxui/services/ui_context.hh>
+#include <onyxui/theming/theme.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
@@ -430,7 +430,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Create root parent_style from theme
         auto parent_style = resolved_style<CanvasBackend>::from_theme(theme);
 
-        root->render(renderer, dirty_regions, theme, parent_style);
+        root->render(renderer, dirty_regions, &theme, parent_style);
 
         // Visual inspection
         INFO("Rendered menu bar:\n", debug_canvas(*canvas));

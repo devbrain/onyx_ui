@@ -6,7 +6,7 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/layout_strategy.hh>
+#include <../../include/onyxui/layout/layout_strategy.hh>
 
 using namespace onyxui;
 

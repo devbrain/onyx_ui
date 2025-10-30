@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 #include <onyxui/concepts/backend.hh>
-#include <onyxui/resolved_style.hh>
+#include <onyxui/core/rendering/resolved_style.hh>
 
 namespace onyxui {
     // Forward declaration

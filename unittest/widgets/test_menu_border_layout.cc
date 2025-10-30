@@ -13,11 +13,11 @@
 
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/menu.hh>
+#include <../../include/onyxui/widgets/menu/menu.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/menu_item.hh>
+#include <../../include/onyxui/widgets/menu/menu_item.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"

@@ -21,7 +21,7 @@
 #pragma once
 
 #include <core/widget.hh>
-#include <onyxui/scoped_tooltip.hh>
+#include <../../core/raii/scoped_tooltip.hh>
 
 namespace onyxui {
 

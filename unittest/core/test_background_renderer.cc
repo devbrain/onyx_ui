@@ -6,9 +6,9 @@
  */
 
 #include <doctest/doctest.h>
-#include <onyxui/background_renderer.hh>
-#include <onyxui/ui_context.hh>
-#include <onyxui/ui_services.hh>
+#include <../../include/onyxui/services/background_renderer.hh>
+#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/services/ui_services.hh>
 #include "../utils/test_backend.hh"
 #include <vector>
 

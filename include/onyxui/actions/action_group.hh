@@ -79,7 +79,7 @@
 
 #pragma once
 
-#include <onyxui/widgets/actions/action.hh>
+#include <onyxui/actions/action.hh>
 #include <vector>
 #include <algorithm>
 

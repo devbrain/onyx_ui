@@ -12,7 +12,7 @@
 
 #include "onyxui/concepts/event_like.hh"
 #include <doctest/doctest.h>
-#include <onyxui/event_target.hh>
+#include <../../include/onyxui/core/event_target.hh>
 #include <utils/test_backend.hh>
 
 using namespace onyxui;

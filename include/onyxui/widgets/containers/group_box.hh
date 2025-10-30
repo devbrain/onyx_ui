@@ -56,7 +56,7 @@
 
 #pragma once
 
-#include <panel.hh>
+#include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include <string>
 

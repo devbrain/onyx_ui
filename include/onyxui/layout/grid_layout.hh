@@ -44,7 +44,7 @@
 #include <vector>
 #include <unordered_map>
 #include <set>
-#include <onyxui/layout_strategy.hh>
+#include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/utils/safe_math.hh>
 
 namespace onyxui {

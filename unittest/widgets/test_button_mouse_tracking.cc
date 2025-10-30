@@ -8,11 +8,11 @@
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/button.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/widgets/vbox.hh>
+#include <../../include/onyxui/widgets/containers/vbox.hh>
 #include "../utils/test_helpers.hh"
 #include <onyxui/ui_handle.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_context.hh>
+#include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"

@@ -6,7 +6,7 @@
  */
 
 #include "../utils/test_helpers.hh"
-#include "onyxui/element.hh"
+#include "../../include/onyxui/core/element.hh"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

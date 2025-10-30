@@ -70,11 +70,9 @@
 #include <optional>
 #include <functional>
 #include <algorithm>
-#include <iostream>  // For debug output
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
-#include <onyxui/core/element_fwd.hh>
-#include <onyxui/theme.hh>  // For ui_theme<Backend>
+#include <onyxui/theming/theme.hh>
 
 namespace onyxui {
 

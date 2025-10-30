@@ -6,7 +6,7 @@
 
 #include <optional>
 #include <utility>  // for std::exchange
-#include <theming/theme.hh>
+#include <onyxui/theming/theme.hh>
 #include <onyxui/core/rendering/resolved_style.hh>
 #include <failsafe/logger.hh>
 

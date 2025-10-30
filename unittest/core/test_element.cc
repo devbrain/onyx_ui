@@ -3,7 +3,7 @@
  * @brief Unit tests for ui_element core functionality
  */
 
-#include "onyxui/layout_strategy.hh"
+#include "../../include/onyxui/layout/layout_strategy.hh"
 #include "utils/test_backend.hh"
 #include "utils/test_helpers.hh"
 #include <memory>

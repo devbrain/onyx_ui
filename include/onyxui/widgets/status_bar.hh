@@ -47,7 +47,7 @@
 
 #pragma once
 
-#include <onyxui/widgets/widget.hh>
+#include <onyxui/widgets/core/widget.hh>
 #include <string>
 
 namespace onyxui {

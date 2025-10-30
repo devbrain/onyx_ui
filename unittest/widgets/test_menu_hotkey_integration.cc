@@ -15,15 +15,13 @@
 
 #include <doctest/doctest.h>
 #include <memory>
-#include <onyxui/widgets/menu_bar.hh>
-#include <onyxui/widgets/menu.hh>
-#include <onyxui/widgets/menu_item.hh>
-#include <onyxui/widgets/action.hh>
-#include <onyxui/ui_context.hh>
+#include <onyxui/widgets/menu/menu_bar.hh>
+#include <onyxui/widgets/menu/menu.hh>
+#include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/actions/action.hh>
+#include <onyxui/services/ui_context.hh>
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/hotkeys/hotkey_scheme_registry.hh>
-#include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
-#include <onyxui/hotkeys/key_sequence.hh>
 #include "utils/test_backend.hh"
 
 using namespace onyxui;

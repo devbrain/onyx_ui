@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include <theming/theme.hh>
+#include <onyxui/theming/theme.hh>
 #include <onyxui/core/signal.hh>
 #include <failsafe/logger.hh>
 #include <unordered_map>

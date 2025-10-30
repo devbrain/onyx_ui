@@ -8,7 +8,7 @@
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <onyxui/conio/conio_renderer.hh>
-#include <onyxui/layout_strategy.hh>  // For horizontal_alignment
+#include <onyxui/layout/layout_strategy.hh>
 #include <fkYAML/node.hpp>
 #include <rfl.hpp>
 

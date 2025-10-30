@@ -13,8 +13,8 @@
 
 #include "test_canvas.hh"
 #include <onyxui/concepts/backend.hh>
-#include <onyxui/theme.hh>
-#include <onyxui/theme_registry.hh>
+#include <../../include/onyxui/theming/theme.hh>
+#include <../../include/onyxui/theming/theme_registry.hh>
 #include <memory>
 #include <stack>
 
