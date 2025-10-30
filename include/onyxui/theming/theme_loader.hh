@@ -12,6 +12,7 @@
 #include <onyxui/theming/theme_palette.hh>
 #include <onyxui/theming/theme_inheritance.hh>
 #include <onyxui/theming/theme_registry.hh>
+#include <onyxui/theming/theme_defaults.hh>
 #include <failsafe/logger.hh>
 #include <fstream>
 #include <stdexcept>
@@ -111,6 +112,10 @@ namespace onyxui::theme_loader {
         // Parse YAML and deserialize
         try {
             auto theme = yaml::from_yaml_string <ui_theme <Backend>>(yaml_content);
+
+            // Apply smart defaults (Phase 4)
+            theme_defaults::apply_defaults(theme);
+
             LOG_INFO("Loaded theme from ", file_path.string(), ": ", theme.name);
             return theme;
         } catch (const std::exception& e) {
@@ -221,7 +226,12 @@ namespace onyxui::theme_loader {
 
         // Parse YAML and deserialize
         try {
-            return yaml::from_yaml_string <ui_theme <Backend>>(preprocessed_yaml);
+            auto theme = yaml::from_yaml_string <ui_theme <Backend>>(preprocessed_yaml);
+
+            // Apply smart defaults (Phase 4)
+            theme_defaults::apply_defaults(theme);
+
+            return theme;
         } catch (const std::exception& e) {
             throw std::runtime_error(
                 "Failed to parse YAML string: " + std::string(e.what())

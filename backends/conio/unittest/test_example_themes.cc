@@ -237,8 +237,8 @@ TEST_CASE("Example Themes - Load all from directory") {
     // Load all themes from examples directory
     auto themes = load_from_directory<backend_type>(themes_dir);
 
-    // Should have loaded all 13 example themes (7 original + 3 modern + 1 hex + 1 palette + 1 dark variant)
-    CHECK(themes.size() == 13);
+    // Should have loaded all 15 example themes (7 original + 3 modern + 1 hex + 1 palette + 1 dark variant + 2 minimal)
+    CHECK(themes.size() == 15);
 
     // Verify all themes have valid names
     for (const auto& theme : themes) {
@@ -254,6 +254,8 @@ TEST_CASE("Example Themes - Load all from directory") {
     bool found_high_contrast = false;
     bool found_dark_pro = false;
     bool found_light = false;
+    bool found_minimal_blue = false;
+    bool found_minimal_green = false;
 
     for (const auto& theme : themes) {
         if (theme.name == "Norton Blue") found_norton = true;
@@ -263,6 +265,8 @@ TEST_CASE("Example Themes - Load all from directory") {
         if (theme.name == "High Contrast") found_high_contrast = true;
         if (theme.name == "Dark Professional") found_dark_pro = true;
         if (theme.name == "Light Modern") found_light = true;
+        if (theme.name == "Minimal Blue") found_minimal_blue = true;
+        if (theme.name == "Minimal Green") found_minimal_green = true;
     }
 
     CHECK(found_norton);
@@ -272,6 +276,8 @@ TEST_CASE("Example Themes - Load all from directory") {
     CHECK(found_high_contrast);
     CHECK(found_dark_pro);
     CHECK(found_light);
+    CHECK(found_minimal_blue);
+    CHECK(found_minimal_green);
 }
 
 #else // !ONYXUI_ENABLE_YAML_THEMES

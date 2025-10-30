@@ -1,0 +1,10 @@
+# Minimal Green - Phase 4 Smart Defaults Demo
+# A nature-inspired minimal theme showing how easy it is to create themes
+
+name: "Minimal Green"
+description: "Green theme with smart defaults - nature inspired!"
+
+# Just 3 colors
+window_bg: 0x004400      # Dark green
+text_fg: 0xDDFFDD        # Light green text
+border_color: 0x00FF00   # Bright green accents

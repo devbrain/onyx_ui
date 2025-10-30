@@ -49,6 +49,9 @@ namespace onyxui::conio {
             return color{components.r, components.g, components.b};
         }
 
+        // Comparison operator for theme defaults
+        constexpr bool operator==(const color&) const noexcept = default;
+
         uint8_t r, g, b;
     };
 }
