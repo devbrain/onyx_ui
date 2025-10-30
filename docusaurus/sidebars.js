@@ -30,6 +30,7 @@ const sidebars = {
         'guides/getting-started',
         'guides/layout-system',
         'guides/scrolling-system',
+        'guides/theme-development',
         'guides/creating-custom-widgets',
       ],
     },
