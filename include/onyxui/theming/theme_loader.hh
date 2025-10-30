@@ -9,6 +9,7 @@
 
 #include <onyxui/utils/fkyaml_adapter.hh>
 #include <onyxui/theming/theme.hh>
+#include <onyxui/theming/theme_palette.hh>
 #include <failsafe/logger.hh>
 #include <fstream>
 #include <stdexcept>
@@ -95,6 +96,15 @@ namespace onyxui::theme_loader {
             std::istreambuf_iterator <char>()
         );
         file.close();
+
+        // Apply palette preprocessing (Phase 2: resolve $color_name references)
+        try {
+            yaml_content = theme_palette::apply_palette_preprocessing(yaml_content);
+        } catch (const std::exception& e) {
+            std::string error = "Failed to process palette in '" + file_path.string() + "': " + std::string(e.what());
+            LOG_ERROR(error);
+            throw std::runtime_error(error);
+        }
 
         // Parse YAML and deserialize
         try {
@@ -197,8 +207,19 @@ namespace onyxui::theme_loader {
      */
     template<UIBackend Backend>
     ui_theme <Backend> load_from_string(const std::string& yaml_string) {
+        // Apply palette preprocessing (Phase 2: resolve $color_name references)
+        std::string preprocessed_yaml;
         try {
-            return yaml::from_yaml_string <ui_theme <Backend>>(yaml_string);
+            preprocessed_yaml = theme_palette::apply_palette_preprocessing(yaml_string);
+        } catch (const std::exception& e) {
+            throw std::runtime_error(
+                "Failed to process palette: " + std::string(e.what())
+            );
+        }
+
+        // Parse YAML and deserialize
+        try {
+            return yaml::from_yaml_string <ui_theme <Backend>>(preprocessed_yaml);
         } catch (const std::exception& e) {
             throw std::runtime_error(
                 "Failed to parse YAML string: " + std::string(e.what())

@@ -284,9 +284,9 @@ namespace onyxui::yaml {
                         r = static_cast<uint8_t>(node[0].get_value<int>());
                         g = static_cast<uint8_t>(node[1].get_value<int>());
                         b = static_cast<uint8_t>(node[2].get_value<int>());
-                        uint8_t a = static_cast<uint8_t>(node[3].get_value<int>());
-                        if constexpr (requires { T{r, g, b, a}; }) {
-                            return T{r, g, b, a};  // RGBA color
+                        uint8_t alpha = static_cast<uint8_t>(node[3].get_value<int>());
+                        if constexpr (requires { T{r, g, b, alpha}; }) {
+                            return T{r, g, b, alpha};  // RGBA color
                         } else {
                             // RGB-only color, ignore alpha channel
                             return T{r, g, b};
@@ -304,9 +304,9 @@ namespace onyxui::yaml {
                         b = static_cast<uint8_t>(node["b"].get_value<int>());
                         // Check if alpha is present
                         try {
-                            uint8_t a = static_cast<uint8_t>(node["a"].get_value<int>());
-                            if constexpr (requires { T{r, g, b, a}; }) {
-                                return T{r, g, b, a};  // RGBA color
+                            uint8_t alpha = static_cast<uint8_t>(node["a"].get_value<int>());
+                            if constexpr (requires { T{r, g, b, alpha}; }) {
+                                return T{r, g, b, alpha};  // RGBA color
                             } else {
                                 // RGB-only color, ignore alpha channel
                                 return T{r, g, b};
@@ -316,7 +316,7 @@ namespace onyxui::yaml {
                             if constexpr (requires { T{r, g, b}; }) {
                                 return T{r, g, b};  // RGB color
                             } else {
-                                return T{r, g, b, 255};  // RGBA color with default alpha
+                                return T{r, g, b, a};  // RGBA color with default alpha
                             }
                         }
                     } catch (const std::exception&) {

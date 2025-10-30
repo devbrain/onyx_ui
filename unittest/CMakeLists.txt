@@ -94,6 +94,8 @@ add_executable(ui_unittest
         reflection/test_scrollbar_style_yaml.cc
         # Layer management tests
         layer/test_layer_dirty_regions.cc
+        # Theming tests
+        theming/test_theme_palette.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})

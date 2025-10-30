@@ -1,0 +1,121 @@
+# Norton Blue Theme (Color Palette)
+# Classic Norton Utilities color scheme - dark blue background with white text
+# Reminiscent of Norton Commander, Norton Utilities, and similar DOS tools
+#
+# This version uses Phase 2 color palette features to define colors once and reuse them.
+# The palette section defines named colors, then $color_name references are resolved throughout.
+# Compare with norton_blue_hex.yaml to see the additional 60-70% reduction in verbosity.
+
+name: "Norton Blue (Palette)"
+description: "Classic Norton Utilities color scheme with color palette"
+
+# Color Palette - Define colors once, use everywhere!
+palette:
+  bg: "0x0000AA"          # Dark blue - primary background
+  bg_bright: "0x0000FF"   # Bright blue - hover backgrounds
+  fg: "0xFFFFFF"          # White - primary text
+  accent: "0xFFFF00"      # Yellow - highlights and borders
+  fg_dark: "0x555555"     # Dark gray - disabled/subtle elements
+  fg_light: "0xAAAAAA"    # Light gray - secondary elements
+  fg_black: "0x000000"    # Black - pressed state text
+  fg_vdark: "0x404040"    # Very dark gray - disabled thumbs
+
+# Global colors - Use palette references
+window_bg: "$bg"
+text_fg: "$fg"
+border_color: "$accent"
+
+# Button styling with visual_state bundles
+button:
+  # Normal state
+  normal:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "$fg"
+    background: "$bg"
+
+  # Hover state
+  hover:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "$accent"
+    background: "$bg_bright"
+
+  # Pressed state
+  pressed:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "$fg_black"
+    background: "$fg_light"
+
+  # Disabled state
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "$fg_dark"
+    background: "$bg"
+
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+# Label styling
+label:
+  text: "$fg"
+  background: "$bg"
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling
+panel:
+  background: "$bg"
+  border_color: "$accent"
+  box_style: single_line
+  has_border: true
+
+# Scrollbar styling
+scrollbar:
+  width: 1
+  min_thumb_size: 1
+  style: classic
+
+  # Track (background bar)
+  track_normal:
+    foreground: "$fg_dark"
+    background: "$bg"
+    box_style: { draw_border: true }
+
+  # Thumb (draggable indicator) states
+  thumb_normal:
+    foreground: "$fg_light"
+    background: "$bg"
+    box_style: { draw_border: true }
+
+  thumb_hover:
+    foreground: "$accent"
+    background: "$bg_bright"
+    box_style: { draw_border: true }
+
+  thumb_pressed:
+    foreground: "$fg_black"
+    background: "$fg"
+    box_style: { draw_border: true }
+
+  thumb_disabled:
+    foreground: "$fg_vdark"
+    background: "$bg"
+    box_style: { draw_border: true }
+
+  # Arrow buttons
+  arrow_normal:
+    foreground: "$fg"
+    background: "$bg"
+    box_style: { draw_border: true }
+
+  arrow_hover:
+    foreground: "$accent"
+    background: "$bg_bright"
+    box_style: { draw_border: true }
+
+  arrow_pressed:
+    foreground: "$fg_black"
+    background: "$fg_light"
+    box_style: { draw_border: true }
