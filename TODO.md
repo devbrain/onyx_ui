@@ -3,7 +3,7 @@
 This document tracks non-implemented features, placeholders, and future enhancements for OnyxUI.
 
 **Last Updated**: 2025-10-30
-**Status**: 1042 tests passing, 5641 assertions
+**Status**: 1137 tests passing, 6079 assertions
 
 ---
 
@@ -168,6 +168,48 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+### Theming System Enhancements (October 2025)
+
+**Phases 1-4: 97% Theme Size Reduction (300 lines → 9 lines)**
+
+- [x] **Phase 1: Hex Color Notation** - 2025-10-30
+  - Write colors as `0xFF0000` instead of `{r: 255, g: 0, b: 0}`
+  - 60% size reduction, easier to read and maintain
+  - Tests: 22 test cases in `test_color_yaml.cc`
+
+- [x] **Phase 2: Color Palette System** - 2025-10-30
+  - Define colors once with `$references`, reuse everywhere
+  - 70% cumulative reduction
+  - Tests: 21 test cases in `test_theme_palette.cc`
+
+- [x] **Phase 3: Theme Inheritance** - 2025-10-30
+  - Create variants with `extends: "Base Theme"`
+  - Theme variants in 5-10 lines (97% reduction)
+  - Tests: 15 test cases in `test_theme_inheritance.cc`
+
+- [x] **Phase 4: Smart Defaults** - 2025-10-30
+  - Minimal themes with just 3 colors (window_bg, text_fg, border_color)
+  - Auto-generates 50+ theme values using color science
+  - 97% total reduction (300 lines → **9 lines**!)
+  - Color utilities: lighten(), darken(), invert(), luminance(), contrast()
+  - Tests: 49 test cases (16 defaults + 33 color utils)
+  - Examples: minimal_blue.yaml, minimal_green.yaml
+
+- [x] **Phase 5: Visual State Templates** - Investigation completed
+  - Status: **BLOCKED** on fkyaml limitations (no mapping anchors/merge operators)
+  - Decision: **DEFERRED** - Phase 4 provides sufficient functionality
+  - Tests: 3 test cases document fkyaml limitations
+
+- [x] **Theming Documentation** - 2025-10-30
+  - Comprehensive 607-line theme development guide
+  - Updated core concepts documentation (+150 lines)
+  - Project summary document (625 lines)
+  - 8 total documentation files created/updated
+
+**Total Impact**: 15 example themes, 107 theming test cases, 97% size reduction
+
+### Previous Completions
+
 - [x] **size_policy::percentage** - Percentage-based sizing for all layouts - 2025-10-30
 - [x] **Scrollbar arrow glyphs** - Render arrow icons using backend icon_style - 2025-10-30
 - [x] **Scrollbar line increment from theme** - Arrow clicks use theme value - 2025-10-30
@@ -213,6 +255,10 @@ Based on `docs/unittest-review.md` recommendations:
 
 - `docs/unittest-review.md` - Test suite quality review
 - `docs/scrolling_guide.md` - Scrolling system user guide
+- `docs/THEMING_PROJECT_SUMMARY.md` - Comprehensive theming implementation summary
+- `docs/THEMING_IMPROVEMENTS.md` - Theming system roadmap and status
+- `docs/THEMING_PHASE[1-5]_*.md` - Detailed phase specifications
+- `docusaurus/docs/guides/theme-development.md` - User-facing theme development guide
 - `CLAUDE.md` - Development guidelines and architecture
 - `unittest/layout/test_linear.cc:203` - Percentage sizing TODO
 
