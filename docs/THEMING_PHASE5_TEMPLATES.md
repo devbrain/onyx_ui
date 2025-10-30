@@ -1,9 +1,86 @@
 # Phase 5: Visual State Templates
 
-**Status**: Planning
+**Status**: BLOCKED - fkyaml limitations discovered
 **Prerequisite**: Phase 2 (Palette), Phase 4 (Defaults)
-**Duration**: 2-3 days
-**Impact**: Further 30% reduction via pattern reuse
+**Duration**: N/A (blocked)
+**Impact**: Would provide 30% reduction via pattern reuse (deferred)
+
+## 🚨 Implementation Blocker
+
+**Testing Date**: 2025-10-30
+**Finding**: fkyaml does **NOT** support the YAML features required for Phase 5
+
+**What Works**:
+- ✅ Scalar anchors/aliases: `color: &c 0xFF0000` + `bg: *c` ← **WORKS**
+
+**What Doesn't Work**:
+- ❌ Mapping anchors: `template: &t {fg: white}` + `button: *t` ← **FAILS**
+- ❌ Merge operator: `button: {<<: *t, fg: red}` ← **FAILS**
+
+**Test Evidence**:
+```cpp
+// unittest/theming/test_fkyaml_anchors.cc
+TEST_CASE("fkyaml - Direct anchor test") {
+    // ✅ PASSES - scalar anchors work
+    yaml = "test: &anchor 123\nreference: *anchor";
+    CHECK(root["test"] == 123);
+    CHECK(root["reference"] == 123);  // ← Works!
+}
+
+TEST_CASE("fkyaml - Mapping anchor test") {
+    // ❌ FAILS - mapping anchors don't work
+    yaml = "template: &t {fg: 0xFFFFFF}\nbutton: *t";
+    CHECK(root["button"].is_mapping());  // ← Fails!
+}
+
+TEST_CASE("fkyaml - Merge operator test") {
+    // ❌ FAILS - merge operator not supported
+    yaml = "template: &t {bg: 0xAA}\nbutton:\n  <<: *t\n  fg: 0xFF";
+    CHECK(root["button"].contains("bg"));  // ← Fails!
+}
+```
+
+**Impact**: Phase 5 cannot be implemented without custom YAML preprocessing
+
+## Path Forward (Options)
+
+### Option 1: Custom YAML Preprocessing (High Complexity)
+Implement custom preprocessing to resolve mapping anchors and merge operators before fkyaml parsing:
+- **Effort**: 5-7 days (parser state machine, recursive resolution, error handling)
+- **Risk**: High (YAML parsing edge cases, maintainability burden)
+- **Benefit**: 30% additional size reduction from Phase 2 baseline (~120 → ~35 lines)
+
+### Option 2: Wait for fkyaml Support (Low Effort)
+Monitor fkyaml project for native anchor/merge support:
+- **Effort**: Check periodically, update when available
+- **Risk**: Low (no custom code to maintain)
+- **Timeline**: Unknown (depends on fkyaml roadmap)
+
+### Option 3: Accept Phase 4 as Sufficient (RECOMMENDED)
+Phase 4 already achieves 97% size reduction (300 → 9 lines):
+- **Current State**: Minimal themes need only 3 colors
+- **Benefit vs Cost**: Phase 5 provides diminishing returns for significant complexity
+- **Recommendation**: **Defer Phase 5 until fkyaml adds native support**
+
+## Current Achievement (Phases 1-4)
+
+Without Phase 5, we've already achieved:
+- ✅ **97% size reduction**: 300 lines → 9 lines
+- ✅ **Minimal themes**: Just 3 colors needed (window_bg, text_fg, border_color)
+- ✅ **Automatic generation**: 50+ theme values generated from 3 colors
+- ✅ **All features working**: Palette ($refs), inheritance (extends), smart defaults
+
+**Example minimal_blue.yaml** (ACTUAL WORKING THEME):
+```yaml
+name: "Minimal Blue"
+description: "Truly minimal theme with only 3 colors!"
+
+window_bg: 0x0000AA      # Dark blue background
+text_fg: 0xFFFFFF        # White text
+border_color: 0xFFFF00   # Yellow accents/borders
+```
+
+**This is sufficient for 99% of use cases.** Phase 5 optimization is not critical.
 
 ## Overview
 

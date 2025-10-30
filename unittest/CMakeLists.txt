@@ -98,6 +98,7 @@ add_executable(ui_unittest
         theming/test_theme_palette.cc
         theming/test_theme_inheritance.cc
         theming/test_theme_defaults.cc
+        theming/test_fkyaml_anchors.cc
         # Integration tests moved to backends/conio/unittest/ (conio_unittest.so)
 )
 target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})

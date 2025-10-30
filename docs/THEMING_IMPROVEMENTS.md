@@ -320,10 +320,17 @@ Each phase has 3 test categories:
   - Automatic visual state generation
   - 1134 tests passing with 6076 assertions
 
-- [ ] **Phase 5: Visual State Templates** - PENDING
-  - YAML anchors and aliases for pattern reuse
-  - Further size reduction (~30 lines total)
+- [ ] **Phase 5: Visual State Templates** - BLOCKED
+  - **Status**: Blocked on fkyaml limitations
+  - **Finding**: fkyaml doesn't support mapping anchors or merge operators
+  - **Evidence**: unittest/theming/test_fkyaml_anchors.cc (6 tests, 2 fail)
+  - **Options**:
+    1. Custom YAML preprocessing (5-7 days, high complexity)
+    2. Wait for fkyaml native support (low effort, unknown timeline)
+    3. **Accept Phase 4 as sufficient (RECOMMENDED)** - 97% reduction achieved
+  - **Recommendation**: Defer Phase 5 - current 9-line minimal themes are sufficient
 
 ---
 
-**Next Steps**: Phase 5 implementation (Visual State Templates via YAML anchors)
+**Status**: **Phases 1-4 COMPLETE** ✅ (97% size reduction achieved)
+**Next Steps**: Phase 5 deferred pending fkyaml improvements (see THEMING_PHASE5_TEMPLATES.md)
