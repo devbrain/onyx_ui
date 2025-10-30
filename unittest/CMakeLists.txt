@@ -32,6 +32,7 @@ add_executable(ui_unittest
         utils/test_canvas_backend.hh
         utils/layout_assertions.hh
         utils/test_safe_math.cc
+        utils/test_color_utils.cc
         widgets/test_widgets.cc
         widgets/widgets.hh
         widgets/test_hbox.cc

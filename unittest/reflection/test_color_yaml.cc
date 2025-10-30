@@ -105,6 +105,72 @@ TEST_CASE("Color YAML - Deserialization from hex string in struct") {
         CHECK(wrapper.value.g == 0xBB);
         CHECK(wrapper.value.b == 0xCC);
     }
+
+    // New: 0x prefix formats
+    SUBCASE("Parse 0xRRGGBB format (lowercase)") {
+        std::string yaml = "value: \"0xff0000\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 255);
+        CHECK(wrapper.value.g == 0);
+        CHECK(wrapper.value.b == 0);
+    }
+
+    SUBCASE("Parse 0xRRGGBB format (uppercase)") {
+        std::string yaml = "value: \"0x00FF00\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 0);
+        CHECK(wrapper.value.g == 255);
+        CHECK(wrapper.value.b == 0);
+    }
+
+    SUBCASE("Parse 0XRRGGBB format (uppercase X)") {
+        std::string yaml = "value: \"0X0000FF\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 0);
+        CHECK(wrapper.value.g == 0);
+        CHECK(wrapper.value.b == 255);
+    }
+
+    SUBCASE("Parse 0xRRGGBBAA format (8 digits, RGBA)") {
+        std::string yaml = "value: \"0xFF000080\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 255);
+        CHECK(wrapper.value.g == 0);
+        CHECK(wrapper.value.b == 0);
+        // Alpha is ignored for RGB-only colors
+    }
+
+    SUBCASE("Parse 0xRRGGBBAA format (full opacity)") {
+        std::string yaml = "value: \"0x00FF00FF\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 0);
+        CHECK(wrapper.value.g == 255);
+        CHECK(wrapper.value.b == 0);
+    }
+
+    SUBCASE("Parse Norton Blue - 0x0000AA") {
+        std::string yaml = "value: \"0x0000AA\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 0);
+        CHECK(wrapper.value.g == 0);
+        CHECK(wrapper.value.b == 170);
+    }
+
+    SUBCASE("Parse without prefix (backward compatible)") {
+        std::string yaml = "value: \"FF8800\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 255);
+        CHECK(wrapper.value.g == 136);
+        CHECK(wrapper.value.b == 0);
+    }
+
+    SUBCASE("Parse 0x with mixed case") {
+        std::string yaml = "value: \"0xAbCdEf\"";
+        auto wrapper = from_yaml_string<color_wrapper>(yaml);
+        CHECK(wrapper.value.r == 0xAB);
+        CHECK(wrapper.value.g == 0xCD);
+        CHECK(wrapper.value.b == 0xEF);
+    }
 }
 
 TEST_CASE("Color YAML - Deserialization from array") {
@@ -231,6 +297,32 @@ TEST_CASE("Color YAML - Error handling") {
 
     SUBCASE("Reject object missing b field") {
         std::string yaml = "r: 100\ng: 200";
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
+    }
+
+    // New: 0x format error handling
+    SUBCASE("Reject 0x with wrong length (7 digits)") {
+        std::string yaml = "\"0xFFFFFFF\"";  // 7 digits
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
+    }
+
+    SUBCASE("Reject 0x with wrong length (5 digits)") {
+        std::string yaml = "\"0xFFFFF\"";  // 5 digits
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
+    }
+
+    SUBCASE("Reject 0x with invalid characters") {
+        std::string yaml = "\"0xGGGGGG\"";  // Invalid characters
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
+    }
+
+    SUBCASE("Reject 0x with special characters") {
+        std::string yaml = "\"0xFF-00-00\"";  // Dashes
+        CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
+    }
+
+    SUBCASE("Reject just 0x prefix") {
+        std::string yaml = "\"0x\"";  // No digits
         CHECK_THROWS_AS(from_yaml_string<test_color>(yaml), std::runtime_error);
     }
 }

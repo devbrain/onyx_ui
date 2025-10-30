@@ -10,6 +10,7 @@
 #include <fkYAML/node.hpp>
 #include <rfl.hpp>
 #include <onyxui/concepts/color_like.hh>
+#include <onyxui/utils/color_utils.hh>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -67,36 +68,66 @@ namespace onyxui::yaml {
             return oss.str();
         }
 
-        // Parse hex color "#RRGGBB" or "RRGGBB"
-        inline bool parse_hex_color(std::string_view hex, uint8_t& r, uint8_t& g, uint8_t& b) {
-            // Remove '#' prefix if present
+        // Parse hex color: "#RRGGBB", "RRGGBB", "0xRRGGBB", "0xRRGGBBAA"
+        inline bool parse_hex_color(std::string_view hex, uint8_t& r, uint8_t& g, uint8_t& b, uint8_t& a) {
+            // Handle legacy "#RRGGBB" format
             if (!hex.empty() && hex[0] == '#') {
                 hex = hex.substr(1);
+
+                // Must be exactly 6 hex digits after '#'
+                if (hex.length() != 6) {
+                    return false;
+                }
+
+                // Validate all characters are hex digits
+                for (char const c : hex) {
+                    if (!std::isxdigit(static_cast<unsigned char>(c))) {
+                        return false;
+                    }
+                }
+
+                // Parse hex values manually for '#' format
+                unsigned int rr = 0;
+                unsigned int gg = 0;
+                unsigned int bb = 0;
+                std::istringstream(std::string(hex.substr(0, 2))) >> std::hex >> rr;
+                std::istringstream(std::string(hex.substr(2, 2))) >> std::hex >> gg;
+                std::istringstream(std::string(hex.substr(4, 2))) >> std::hex >> bb;
+
+                r = static_cast<uint8_t>(rr);
+                g = static_cast<uint8_t>(gg);
+                b = static_cast<uint8_t>(bb);
+                a = 255; // Full opacity for #RRGGBB format
+                return true;
             }
 
-            // Must be exactly 6 hex digits
-            if (hex.length() != 6) {
+            // Handle "0xRRGGBB" or "0xRRGGBBAA" format using color_utils
+            auto const hex_value = color_utils::parse_hex_string(hex);
+            if (!hex_value) {
                 return false;
             }
 
-            // Validate all characters are hex digits
-            for (char const c : hex) {
-                if (!std::isxdigit(static_cast<unsigned char>(c))) {
-                    return false;
-                }
+            // Determine format based on digit count (after removing 0x prefix)
+            std::size_t digit_count = hex.size();
+            if (hex.size() >= 2 && hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) {
+                digit_count -= 2;
             }
 
-            // Parse hex values
-            unsigned int rr = 0;
-            unsigned int gg = 0;
-            unsigned int bb = 0;
-            std::istringstream(std::string(hex.substr(0, 2))) >> std::hex >> rr;
-            std::istringstream(std::string(hex.substr(2, 2))) >> std::hex >> gg;
-            std::istringstream(std::string(hex.substr(4, 2))) >> std::hex >> bb;
+            color_utils::rgb_components components;
+            if (digit_count == 6) {
+                // 6 digits: 0xRRGGBB (RGB, alpha=255)
+                components = color_utils::parse_hex_rgb(*hex_value);
+            } else if (digit_count == 8) {
+                // 8 digits: 0xRRGGBBAA (RGBA)
+                components = color_utils::parse_hex_rgba(*hex_value);
+            } else {
+                return false;
+            }
 
-            r = static_cast<uint8_t>(rr);
-            g = static_cast<uint8_t>(gg);
-            b = static_cast<uint8_t>(bb);
+            r = components.r;
+            g = components.g;
+            b = components.b;
+            a = components.a;
             return true;
         }
 
@@ -224,17 +255,18 @@ namespace onyxui::yaml {
                 uint8_t r = 0;
                 uint8_t g = 0;
                 uint8_t b = 0;
+                uint8_t a = 255;
 
-                // Format 1: Hex string "#RRGGBB" or "RRGGBB"
+                // Format 1: Hex string "#RRGGBB", "0xRRGGBB", "0xRRGGBBAA"
                 if (node.is_string()) {
                     std::string hex = node.get_value<std::string>();
-                    if (!parse_hex_color(hex, r, g, b)) {
+                    if (!parse_hex_color(hex, r, g, b, a)) {
                         throw std::runtime_error("Invalid hex color format: " + hex);
                     }
-                    if constexpr (requires { T{r, g, b}; }) {
-                        return T{r, g, b};  // RGB color
+                    if constexpr (requires { T{r, g, b, a}; }) {
+                        return T{r, g, b, a};  // RGBA color
                     } else {
-                        return T{r, g, b, 255};  // RGBA color
+                        return T{r, g, b};  // RGB color (ignore alpha)
                     }
                 }
                 // Format 2: Array [R, G, B] or [R, G, B, A]

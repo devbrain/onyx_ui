@@ -1,0 +1,109 @@
+# Norton Blue Theme (Hex Color Notation)
+# Classic Norton Utilities color scheme - dark blue background with white text
+# Reminiscent of Norton Commander, Norton Utilities, and similar DOS tools
+#
+# This version uses the new Phase 1 hex color notation (0xRRGGBB) for improved readability.
+# Compare with norton_blue.yaml to see the 40% size reduction.
+
+name: "Norton Blue (Hex)"
+description: "Classic Norton Utilities color scheme with hex colors"
+
+# Global colors - Now in hex format!
+window_bg: "0x0000AA"      # Dark blue (was r: 0, g: 0, b: 170)
+text_fg: "0xFFFFFF"        # White
+border_color: "0xFFFF00"   # Yellow
+
+# Button styling with visual_state bundles
+button:
+  # Normal state
+  normal:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "0xFFFFFF"  # White on dark blue
+    background: "0x0000AA"
+
+  # Hover state
+  hover:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "0xFFFF00"  # Yellow on bright blue
+    background: "0x0000FF"
+
+  # Pressed state
+  pressed:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "0x000000"  # Black on light gray
+    background: "0xAAAAAA"
+
+  # Disabled state
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: "0x555555"  # Dark gray on dark blue
+    background: "0x0000AA"
+
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+  box_style: single_line
+  padding_horizontal: 2
+  padding_vertical: 0
+  text_align: center
+
+# Label styling
+label:
+  text: "0xFFFFFF"        # White
+  background: "0x0000AA"  # Dark blue
+  font: { bold: false, reverse: false, underline: false }
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+
+# Panel styling
+panel:
+  background: "0x0000AA"     # Dark blue
+  border_color: "0xFFFF00"   # Yellow
+  box_style: single_line
+  has_border: true
+
+# Scrollbar styling
+scrollbar:
+  width: 1                   # Scrollbar thickness (columns/rows)
+  min_thumb_size: 1          # Minimum thumb size
+  style: classic             # Arrow button style (classic/compact/minimal)
+
+  # Track (background bar)
+  track_normal:
+    foreground: "0x555555"   # Dark gray
+    background: "0x0000AA"   # Dark blue
+    box_style: { draw_border: true }
+
+  # Thumb (draggable indicator) states
+  thumb_normal:
+    foreground: "0xAAAAAA"   # Light gray
+    background: "0x0000AA"   # Dark blue
+    box_style: { draw_border: true }
+
+  thumb_hover:
+    foreground: "0xFFFF00"   # Yellow (highlight)
+    background: "0x0000FF"   # Bright blue
+    box_style: { draw_border: true }
+
+  thumb_pressed:
+    foreground: "0x000000"   # Black
+    background: "0xFFFFFF"   # White
+    box_style: { draw_border: true }
+
+  thumb_disabled:
+    foreground: "0x404040"   # Very dark gray
+    background: "0x0000AA"   # Dark blue
+    box_style: { draw_border: true }
+
+  # Arrow buttons (classic/compact styles)
+  arrow_normal:
+    foreground: "0xFFFFFF"   # White
+    background: "0x0000AA"   # Dark blue
+    box_style: { draw_border: true }
+
+  arrow_hover:
+    foreground: "0xFFFF00"   # Yellow
+    background: "0x0000FF"   # Bright blue
+    box_style: { draw_border: true }
+
+  arrow_pressed:
+    foreground: "0x000000"   # Black
+    background: "0xAAAAAA"   # Light gray
+    box_style: { draw_border: true }

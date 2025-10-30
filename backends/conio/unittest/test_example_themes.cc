@@ -237,8 +237,8 @@ TEST_CASE("Example Themes - Load all from directory") {
     // Load all themes from examples directory
     auto themes = load_from_directory<backend_type>(themes_dir);
 
-    // Should have loaded all 10 example themes (7 original + 3 modern: Solarized, Monokai, Gruvbox)
-    CHECK(themes.size() == 10);
+    // Should have loaded all 11 example themes (7 original + 3 modern: Solarized, Monokai, Gruvbox + 1 hex demo)
+    CHECK(themes.size() == 11);
 
     // Verify all themes have valid names
     for (const auto& theme : themes) {
