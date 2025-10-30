@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## 📚 Documentation Index
+
+**Quick Navigation:**
+- [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md) - Core design patterns, layout algorithm, render context
+- [Theming Guide](docs/CLAUDE/THEMING.md) - Theme system v2.0, CSS inheritance, styling
+- [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) - Keyboard shortcuts, schemes, semantic actions
+- [Testing Guide](docs/CLAUDE/TESTING.md) - Test strategy, fixtures, best practices
+- [Changelog](docs/CLAUDE/CHANGELOG.md) - Recent major changes, migration notes
+- [Scrolling Guide](docs/scrolling_guide.md) - Comprehensive scrolling system documentation
+- [Refactoring Plan](docs/REFACTORING_PLAN.md) - Upcoming code improvements
+
+---
+
 ## Project Overview
 
 **onyx_ui** is a modern C++20 header-only UI framework featuring:
@@ -15,9 +30,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The framework uses a unified **Backend pattern** where a single template parameter provides all platform-specific types (rect, size, color, renderer, etc.).
 
+---
+
 ## Build Commands
 
 ### Initial Configuration
+
 ```bash
 # Standard build
 cmake -B build
@@ -33,6 +51,7 @@ cmake -B build -DONYX_UI_ENABLE_CLANG_TIDY=ON
 ```
 
 ### Building
+
 ```bash
 # Build all targets
 cmake --build build -j8
@@ -45,6 +64,7 @@ cmake --build build --target conio -j8
 ```
 
 ### Running Tests
+
 ```bash
 # Run all 996 unit tests
 ./build/bin/ui_unittest
@@ -60,6 +80,7 @@ cmake --build build --target conio -j8
 ```
 
 ### Code Quality
+
 ```bash
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
@@ -67,535 +88,160 @@ cmake --build build 2>&1 | grep "warning:"
 # All 996 tests should pass with zero warnings
 ```
 
-## Code Architecture
+---
 
-### Backend Pattern (NEW)
+## Quick Start Guide
 
-All classes use a unified Backend template parameter:
+### Creating a Simple UI
+
+```cpp
+#include <onyxui/ui_context.hh>
+#include <onyxui/widgets/vbox.hh>
+#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/label.hh>
+
+// Backend-specific includes
+#include <backends/conio/conio_backend.hh>
+
+int main() {
+    // 1. Create UI context (themes auto-registered)
+    scoped_ui_context<conio_backend> ctx;
+
+    // 2. Create root container
+    auto root = std::make_unique<vbox<conio_backend>>(5);  // 5px spacing
+
+    // 3. Apply theme
+    root->apply_theme("Norton Blue", ctx.themes());
+
+    // 4. Add widgets
+    root->emplace_child<label>("Hello, OnyxUI!");
+    auto* btn = root->template emplace_child<button>("Click Me");
+
+    // 5. Connect events
+    btn->clicked.connect([]() {
+        std::cout << "Button clicked!\n";
+    });
+
+    // 6. Measure, arrange, render
+    root->measure(80, 25);
+    root->arrange({0, 0, 80, 25});
+
+    // Render loop...
+}
+```
+
+### Using Scrolling
+
+```cpp
+#include <onyxui/widgets/scroll_view_presets.hh>
+
+// Create scroll view with preset
+auto view = modern_scroll_view<Backend>();  // Auto-hide scrollbars
+
+// Add content
+view->emplace_child<label>("Item 1");
+view->emplace_child<button>("Item 2");
+// ... many more items ...
+
+// Scrolling is automatic!
+```
+
+---
+
+## Core Concepts (Quick Reference)
+
+### Backend Pattern
 
 ```cpp
 template<UIBackend Backend>
-class ui_element : public event_target<Backend>, public themeable<Backend> {
+class ui_element {
     using rect_type = Backend::rect_type;
     using size_type = Backend::size_type;
     using color_type = Backend::color_type;
-    using renderer_type = Backend::renderer_type;
     // ...
 };
 ```
 
-The Backend must satisfy the `UIBackend` concept and provide:
-- `rect_type` (RectLike)
-- `size_type` (SizeLike)
-- `point_type` (PointLike)
-- `color_type` (ColorLike)
-- `event_type` (EventLike)
-- `renderer_type` (RenderLike with box_style, font, icon_style)
-- `static void register_themes(theme_registry<Backend>&)` - Called automatically on first context creation
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md) for details.
 
-See `include/onyxui/concepts/backend.hh` for the full concept definition.
+### Two-Pass Layout
 
-### Automatic Theme Registration
+1. **Measure Pass** (bottom-up): `measure(available_width, available_height) -> size_type`
+2. **Arrange Pass** (top-down): `arrange(final_bounds)`
 
-Backends automatically register their built-in themes when the first `ui_context` is created:
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md#two-pass-layout-algorithm) for details.
+
+### Render Context Pattern (Visitor)
+
+Unified measurement and rendering through a single `do_render()` method:
 
 ```cpp
-// Backend provides register_themes() method
-struct conio_backend {
-    static void register_themes(theme_registry<conio_backend>& registry) {
-        // Register themes in order (first is default)
-        registry.register_theme(create_norton_blue());     // Default
-        registry.register_theme(create_borland_turbo());
-        registry.register_theme(create_midnight_commander());
-        registry.register_theme(create_dos_edit());
-    }
-};
-
-// Application code - NO manual registration needed!
-scoped_ui_context<conio_backend> ctx;
-// Themes already registered automatically
-
-// Access themes immediately
-auto* theme = ctx.themes().get_theme("Norton Blue");  // Available!
-ctx.themes().apply_theme("Borland Turbo");
-```
-
-**Default Theme Convention:**
-- The **first theme registered** is considered the default theme
-- Backends should register their primary/recommended theme first
-- No explicit "default" flag needed - order matters
-
-**When register_themes() is called:**
-- Automatically on first `scoped_ui_context` creation
-- Only once per application (shared singleton)
-- Before any user code accesses the theme registry
-
-**Benefits:**
-- No manual registration code needed in applications
-- Consistent default theme across all uses of a backend
-- Themes available immediately after context creation
-- Backend authors control the theme selection and defaults
-
-### Core Concepts
-
-The library uses C++20 concepts for type flexibility:
-
-- **RectLike** - `{x, y, w, h}` or `{x, y, width, height}`
-- **SizeLike** - `{w, h}` or `{width, height}`
-- **PointLike** - `{x, y}`
-- **ColorLike** - Any color representation
-- **EventLike** - Keyboard/mouse events
-- **RenderLike** - Drawing operations
-
-Utility namespaces provide generic operations:
-- `rect_utils::get_x()`, `rect_utils::contains()`, etc.
-- `size_utils::get_width()`, `size_utils::set_size()`, etc.
-
-### Two-Pass Layout Algorithm
-
-1. **Measure Pass** (bottom-up):
-   - Each element calculates desired size
-   - Results cached until invalidation
-   - `measure(available_width, available_height) -> size_type`
-
-2. **Arrange Pass** (top-down):
-   - Element receives final bounds from parent
-   - Positions children within content area
-   - `arrange(final_bounds)`
-
-### Render Context Pattern (Visitor Pattern)
-
-The framework uses the **visitor pattern** to unify measurement and rendering through a single `do_render()` method.
-
-**Architecture:**
-
-- **Abstract base**: `render_context<Backend>` defines drawing operations
-- **draw_context**: Concrete visitor that renders to a backend renderer
-- **measure_context**: Concrete visitor that tracks bounding boxes without rendering
-
-**Unified Interface:**
-
-```cpp
-template<UIBackend Backend>
-class my_widget : public widget<Backend> {
-    void do_render(render_context<Backend>& ctx) const override {
-        // Same code handles both measurement AND rendering!
-        auto text_size = ctx.draw_text(m_text, position, font, color);
-        ctx.draw_rect(bounds, box_style);
-        ctx.draw_icon(icon, icon_position);
-
-        // Branch if needed (rare)
-        if (ctx.is_rendering()) {
-            // Render-only code
-        }
-    }
-};
-```
-
-**Benefits:**
-
-1. **Single Source of Truth**: Measurement and rendering can never get out of sync
-2. **Code Reduction**: ~50-70% less code - no separate `get_content_size()` needed
-3. **Maintainability**: Changes to rendering automatically update measurement
-4. **Type Safety**: Compile-time guarantee of correct visitor usage
-
-**Automatic Measurement:**
-
-The base `widget` class provides automatic content sizing via `measure_context`:
-
-```cpp
-// Base widget implementation (you don't need to write this!)
-size_type get_content_size() const override {
-    measure_context<Backend> ctx;
-    this->do_render(ctx);  // Reuse rendering code for measurement
-    return ctx.get_size();
+void do_render(render_context<Backend>& ctx) const override {
+    // Same code handles both measurement AND rendering!
+    auto text_size = ctx.draw_text(m_text, position, font, color);
+    ctx.draw_rect(bounds, box_style);
 }
 ```
 
-**Drawing Operations:**
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md#render-context-pattern-visitor-pattern) for details.
 
-Both contexts support the same operations:
-- `draw_text(text, position, font, color) -> size_type`
-- `draw_rect(bounds, box_style)`
-- `draw_line(from, to, color, width)`
-- `draw_icon(icon, position) -> size_type`
-
-**Context Queries:**
-
-- `ctx.is_measuring()` - Returns `true` for `measure_context`
-- `ctx.is_rendering()` - Returns `true` for `draw_context`
-- `ctx.renderer()` - Returns renderer pointer (nullptr for `measure_context`)
-
-**Renderer Methods:**
-
-Renderers provide static methods for measurement without instantiation:
-- `Renderer::measure_text(text, font) -> size_type` - Get text dimensions
-- `Renderer::get_icon_size(icon) -> size_type` - Get icon dimensions (backend-specific)
-- `Renderer::get_border_thickness(box_style) -> int` - Get border width
-
-See `include/onyxui/render_context.hh`, `measure_context.hh`, and `draw_context.hh` for implementation.
-
-### Smart Invalidation
-
-- `invalidate_measure()` - Propagates **upward** (parents need remeasurement)
-- `invalidate_arrange()` - Propagates **downward** (children need repositioning)
-
-Layout states: `valid`, `dirty` - prevent redundant invalidation.
-
-### Event System
-
-Two complementary systems:
-
-**1. event_target (Observer pattern):**
-```cpp
-class my_widget : public ui_element<Backend> {
-    void on_mouse_down(const event_type& e) override {
-        // Handle mouse clicks
-    }
-};
-```
-
-**2. Signal/Slot (Publish-Subscribe):**
-```cpp
-signal<int, std::string> data_changed;
-
-// Connect handlers
-data_changed.connect([](int id, const std::string& name) {
-    std::cout << "Data " << id << " changed to " << name << "\n";
-});
-
-// Emit signals
-data_changed.emit(42, "value");
-
-// Scoped connections (RAII)
-scoped_connection conn(data_changed, my_handler);
-```
-
-See `include/onyxui/signal.hh` for the full signal/slot implementation.
-
-### Theming System (CSS-style Inheritance)
-
-Properties inherit from parent to child:
+### Theming
 
 ```cpp
-// Set on parent
-window->set_background_color({0, 0, 170});
-window->set_foreground_color({255, 255, 255});
+// Apply theme at root
+root->apply_theme("Norton Blue", ctx.themes());
 
-// Children automatically inherit
-auto button = create_button("OK");
-window->add_child(button);  // Button inherits colors
+// Children inherit automatically via CSS
+auto button = root->template emplace_child<button>();  // Inherits theme!
 
-// Override on specific children
+// Override on specific widgets
 button->set_background_color({0, 255, 0});  // Green button
 ```
 
-**Inheritable properties:**
-- Colors (background, foreground)
-- Renderer styles (box_style, font, icon_style)
-- Opacity (multiplicative)
+See [Theming Guide](docs/CLAUDE/THEMING.md) for details.
 
-See `include/onyxui/themeable.hh` for the inheritance system.
-
-### Theme System v2.0 (NEW - October 2025)
-
-The theme system has been refactored with three major improvements:
-
-**1. Thread-Safe Theme Registry**
-
-The `theme_registry` now uses reader-writer locking for thread-safe concurrent access:
+### Event System
 
 ```cpp
-theme_registry<Backend> registry;  // Thread-safe!
+// Signal/slot pattern
+signal<int> value_changed;
 
-// Multiple threads can safely read themes concurrently
-auto* theme = registry.get_theme("Norton Blue");  // Shared lock
+// Connect handler
+value_changed.connect([](int val) {
+    std::cout << "Value: " << val << "\n";
+});
 
-// Writes are exclusive
-registry.register_theme(my_theme);  // Unique lock
+// Emit signal
+value_changed.emit(42);
+
+// Scoped connections (RAII)
+scoped_connection conn(value_changed, my_handler);
 ```
 
-All operations are logged via failsafe logging (DEBUG level in debug builds):
-- Theme registration: `LOG_INFO("Registered theme: {name}")`
-- Theme lookup: `LOG_DEBUG("Found theme: {name}")`
-- Theme application: `LOG_DEBUG("Applying theme: {name}")`
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md#event-system) for details.
 
-**2. Global Theming Architecture**
-
-Themes are **global** and applied at the **root level only**, not on individual widgets. This simplifies the architecture and ensures consistent styling throughout the UI tree.
+### Hotkeys
 
 ```cpp
-// Apply theme ONCE at the root (RECOMMENDED)
-scoped_ui_context<Backend> ctx;
-auto root = std::make_unique<panel<Backend>>();
-root->apply_theme("Norton Blue", ctx.themes());  // Global theme!
+// Framework semantic actions (scheme-based)
+ctx.hotkeys().register_semantic_action(
+    hotkey_action::activate_menu_bar,
+    [&menu]() { menu->activate(); }
+);
 
-// All children inherit from the global theme via CSS inheritance
-auto button = root->template emplace_child<button>();
-auto label = root->template emplace_child<label>();
-// Both button and label use "Norton Blue" theme automatically
+// F10 (Windows) or F9 (Norton Commander) activates menu automatically!
+
+// Application-specific hotkeys
+auto save_action = std::make_shared<action<Backend>>();
+save_action->set_shortcut('s', key_modifier::ctrl);
+hotkeys.register_action(save_action);
 ```
 
-**Three safe ownership options** (use at root only):
+See [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) for details.
 
-```cpp
-// Option 1: By name (registry-based) - RECOMMENDED
-root->apply_theme("Norton Blue", registry);  // Zero overhead
+---
 
-// Option 2: By value (copy/move)
-ui_theme<Backend> my_theme = create_custom_theme();
-root->apply_theme(std::move(my_theme));  // Element owns theme
-
-// Option 3: By shared_ptr
-auto theme_ptr = std::make_shared<ui_theme<Backend>>(my_theme);
-root->apply_theme(theme_ptr);  // Reference-counted
-```
-
-**CSS Inheritance Chain** (priority order):
-1. **Explicit override** on widget (`set_background_color()`)
-2. **Parent's resolved style** (CSS inheritance)
-3. **Global theme** (via `get_theme()` walk-up)
-4. **Default value** (fallback)
-
-**Benefits:**
-- **Simplicity**: One theme for entire UI tree
-- **Performance**: O(depth) style resolution with single parent cache
-- **Consistency**: Uniform styling across all widgets
-- **Safety**: No dangling pointer risk
-- **Flexibility**: Individual widgets can still override colors via `set_background_color()`
-
-**3. Style-Based Rendering Architecture**
-
-The new `resolved_style` structure is the cornerstone of v2.0:
-
-```cpp
-// Style is resolved ONCE per frame via CSS inheritance
-void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions) {
-    auto style = this->resolve_style();  // Resolve through CSS hierarchy
-
-    draw_context<Backend> ctx(renderer, style, dirty_regions);
-
-    do_render(ctx);  // Widgets use pre-resolved style
-}
-```
-
-**Key types:**
-
-```cpp
-// POD-like structure with all visual properties
-template<UIBackend Backend>
-struct resolved_style {
-    color_type background_color;
-    color_type foreground_color;
-    color_type border_color;
-    box_style_type box_style;
-    font_type font;
-    float opacity;
-    icon_style_type icon_style;
-
-    // Utility methods (immutable)
-    [[nodiscard]] resolved_style with_opacity(float op) const noexcept;
-    [[nodiscard]] resolved_style with_colors(color_type bg, color_type fg) const noexcept;
-    [[nodiscard]] resolved_style with_font(font_type f) const noexcept;
-};
-```
-
-**render_context carries style:**
-
-```cpp
-template<UIBackend Backend>
-class render_context {
-    // Access resolved style
-    [[nodiscard]] const resolved_style<Backend>& style() const noexcept;
-
-    // Convenience methods using context style
-    [[nodiscard]] size_type draw_text(std::string_view text, const point_type& position);
-    void draw_rect(const rect_type& bounds);
-};
-```
-
-**Benefits:**
-- **Performance**: CSS inheritance resolved once per frame, not per widget
-- **Simplicity**: Widgets receive pre-resolved style via context
-- **Consistency**: Single source of truth for visual properties
-- **Immutability**: `resolved_style` is POD-like with copy semantics
-
-**Complete resolved_style structure:**
-
-The `resolved_style` includes optional widget-specific properties wrapped in strong-typed containers:
-
-```cpp
-template<UIBackend Backend>
-struct resolved_style {
-    // Required properties (always present)
-    color_type background_color;
-    color_type foreground_color;
-    color_type border_color;
-    box_style_type box_style;
-    font_type font;
-    float opacity;
-    std::optional<icon_style_type> icon_style;
-
-    // Optional widget-specific properties (strong-typed wrappers)
-    padding_horizontal_t padding_horizontal;  // std::optional<int> internally
-    padding_vertical_t padding_vertical;      // std::optional<int> internally
-    mnemonic_font_t mnemonic_font;            // std::optional<font_type> internally
-
-    // Access optional values with .value.value_or(default)
-    int h_pad = style.padding_horizontal.value.value_or(2);
-};
-```
-
-**Theme pointer in render_context:**
-
-For rare widget-specific properties not in `resolved_style` (like `text_align`, `line_style`), widgets access the theme via `ctx.theme()`:
-
-```cpp
-template<UIBackend Backend>
-class render_context {
-    // Access resolved style (common properties)
-    [[nodiscard]] const resolved_style<Backend>& style() const noexcept;
-
-    // Access theme for rare properties (nullable)
-    [[nodiscard]] const ui_theme<Backend>* theme() const noexcept;
-};
-```
-
-**Widget property access pattern:**
-
-Widgets follow a two-tier access pattern:
-
-```cpp
-template<UIBackend Backend>
-class button : public stateful_widget<Backend> {
-    void do_render(render_context<Backend>& ctx) const override {
-        // Common properties: Use pre-resolved style (fast, O(1))
-        auto const& fg = ctx.style().foreground_color;
-        auto const& font = ctx.style().font;
-        int padding = ctx.style().padding_horizontal.value.value_or(2);
-
-        // Rare properties: Access via theme pointer (nullable)
-        if (auto* theme = ctx.theme()) {
-            auto text_align = theme->button.text_align;
-        }
-
-        // NEVER directly access ui_services::themes() from widgets!
-    }
-};
-```
-
-**Why two-tier access?**
-
-- **Common properties** (colors, fonts, padding) → `resolved_style` → O(1) access
-- **Rare properties** (text_align, line_style) → `ctx.theme()` → Minimal overhead
-- **Performance**: Avoids bloating `resolved_style` with rarely-used fields
-- **Type safety**: Optional properties enforce explicit default handling
-
-**4. Stateful Widget Helper**
-
-New base class for interactive widgets with visual states that automatically integrates with the global theme:
-
-```cpp
-template<UIBackend Backend>
-class stateful_widget : public widget<Backend> {
-public:
-    enum class interaction_state {
-        normal, hover, pressed, disabled
-    };
-
-protected:
-    // State management
-    void set_interaction_state(interaction_state state);
-    [[nodiscard]] interaction_state get_interaction_state() const noexcept;
-
-    // State-based color helpers (use global theme automatically)
-    template<typename WidgetTheme>
-    [[nodiscard]] color_type get_state_background(const WidgetTheme& widget_theme) const noexcept;
-
-    template<typename WidgetTheme>
-    [[nodiscard]] color_type get_state_foreground(const WidgetTheme& widget_theme) const noexcept;
-
-    // Convenience queries
-    [[nodiscard]] bool is_normal() const noexcept;
-    [[nodiscard]] bool is_hovered() const noexcept;
-    [[nodiscard]] bool is_pressed() const noexcept;
-    [[nodiscard]] bool is_disabled() const noexcept;
-
-    void enable();
-    void disable();
-};
-```
-
-**Usage pattern:**
-
-```cpp
-template<UIBackend Backend>
-class button : public stateful_widget<Backend> {
-    // Override theme accessors to return state-dependent colors
-    [[nodiscard]] color_type get_theme_background_color(const theme_type& theme) const override {
-        return this->get_state_background(theme.button);  // Uses global theme!
-    }
-
-    [[nodiscard]] color_type get_theme_foreground_color(const theme_type& theme) const override {
-        return this->get_state_foreground(theme.button);  // Uses global theme!
-    }
-
-    void on_mouse_enter() override {
-        this->set_interaction_state(interaction_state::hover);
-        // Automatically calls invalidate_arrange() to trigger redraw
-    }
-};
-```
-
-**Global theme structure:**
-```cpp
-struct ui_theme {
-    struct button_theme {
-        color_type bg_normal, fg_normal;
-        color_type bg_hover, fg_hover;
-        color_type bg_pressed, fg_pressed;
-        color_type bg_disabled, fg_disabled;
-    } button;
-
-    // Other widget themes...
-};
-```
-
-**How it works:**
-1. Global theme applied at root contains `button_theme` settings
-2. Button overrides `get_theme_background_color()` to select color based on state
-3. `resolve_style()` calls `get_theme_background_color()` during CSS inheritance
-4. Result: buttons automatically use correct state colors from global theme
-
-**Architecture Summary:**
-
-1. **CSS Inheritance** → Resolves to `resolved_style`
-2. **resolved_style** → Passed to `render_context` (draw/measure)
-3. **render_context** → Provides style to widgets during rendering
-4. **Widgets** → Use pre-resolved style, no repeated lookups
-
-**Performance characteristics:**
-- **Style resolution**: O(depth) once per frame with single parent cache
-- **Widget rendering**: O(1) style access via pre-resolved context
-- **Thread-safe**: Reader-writer locking on registry
-- **Memory**: POD-like resolved_style (~50-100 bytes)
-- **Scalability**: Tested with 100+ widget trees (both wide and deep)
-
-**See also:**
-- `include/onyxui/resolved_style.hh` - Style structure
-- `include/onyxui/render_context.hh` - Visitor pattern base
-- `include/onyxui/draw_context.hh` - Rendering implementation
-- `include/onyxui/measure_context.hh` - Measurement implementation
-- `include/onyxui/widgets/stateful_widget.hh` - Interactive widget helper
-- `include/onyxui/theme_registry.hh` - Thread-safe registry
-- `include/onyxui/themeable.hh` - Global theming implementation
-- `unittest/theming/test_resolved_style.cc` - Style resolution tests
-- `unittest/theming/test_style_inheritance.cc` - CSS inheritance tests
-- `unittest/theming/test_style_edge_cases.cc` - Edge case coverage (100+ widgets)
-
-### Widget Library
-
-High-level widgets built on ui_element:
+## Widget Library
 
 **Containers:**
 - `vbox` / `hbox` - Vertical/horizontal stacking
@@ -622,726 +268,56 @@ High-level widgets built on ui_element:
 - `scrollbar` - Visual scrollbar widget
 - `scroll_controller` - Bidirectional synchronization
 
+See [Scrolling Guide](docs/scrolling_guide.md) for comprehensive scrolling documentation.
+
 **Other:**
 - `status_bar` - Bottom status display
 
-All widgets support:
-- Actions (trigger callbacks)
-- Mnemonics (Alt+key shortcuts)
-- Theming (CSS-style inheritance)
-- Focus management
-
-### Hotkey System
-
-**Two-Layer System:**
-1. **Framework Semantic Actions** (NEW) - Scheme-based keyboard layouts
-2. **Application Actions** - User-defined shortcuts
-
-#### Hotkey Schemes (Customizable Keyboard Layouts)
-
-Users can switch between different keyboard layouts at runtime:
-
-```cpp
-// Access via ui_context (auto-configured)
-scoped_ui_context<Backend> ctx;
-
-// Current scheme is "Windows" (F10 for menu)
-auto* current = ctx.hotkey_schemes().get_current_scheme();
-
-// Switch to Norton Commander (F9 for menu)
-ctx.hotkey_schemes().set_current_scheme("Norton Commander");
-
-// Register framework semantic action handlers
-ctx.hotkeys().register_semantic_action(
-    hotkey_action::activate_menu_bar,
-    [&menu]() { menu->activate(); }
-);
-
-// Now F10 (Windows) or F9 (Norton) will activate menu!
-```
-
-**Built-in Schemes:**
-- **Windows**: F10 for menu (standard modern UI convention)
-- **Norton Commander**: F9 for menu (classic DOS feel)
-
-**Custom Schemes:**
-```cpp
-hotkey_scheme vim_scheme;
-vim_scheme.name = "Vim-style";
-vim_scheme.set_binding(hotkey_action::menu_down, parse_key_sequence("j"));
-vim_scheme.set_binding(hotkey_action::menu_up, parse_key_sequence("k"));
-// ... etc
-
-ctx.hotkey_schemes().register_scheme(std::move(vim_scheme));
-ctx.hotkey_schemes().set_current_scheme("Vim-style");
-```
-
-#### Application Actions
-
-Application-defined keyboard shortcuts:
-
-```cpp
-hotkey_manager<Backend> hotkeys;
-
-// Register hotkeys
-auto save_action = std::make_shared<action<Backend>>();
-save_action->set_shortcut('s', key_modifier::ctrl);
-hotkeys.register_action(save_action);
-
-// Process events
-hotkeys.handle_key_event(event);  // Triggers matching actions
-```
-
-**Priority System:**
-1. Framework semantic actions (from current scheme) - FIRST
-2. Element-scoped application actions
-3. Global application actions
-4. Widget keyboard events - LAST
-
-**Features:**
-- Conflict detection with policy enforcement
-- Scope management (global, element-scoped)
-- Key sequence parsing ("Ctrl+Shift+A", "Alt+F4", "F10", etc.)
-- Integration with action system
-- Graceful fallback (no binding = mouse still works)
-
-See `include/onyxui/hotkeys/` for implementation.
-
-### Layout Strategies
-
-Pluggable layout algorithms (Strategy pattern):
-
-- **linear_layout** - Stack children horizontally/vertically
-- **grid_layout** - Grid with cell spanning
-- **anchor_layout** - Position at anchor points
-- **absolute_layout** - Fixed coordinates
-
-Each implements:
-- `measure_children(parent, available_width, available_height) -> size`
-- `arrange_children(parent, content_area)`
-
-### Size Policies
-
-Elements use `size_constraint` with policies:
-- `fixed` - Exact preferred_size
-- `content` - Size based on content (default)
-- `expand` - Grow to fill space
-- `fill_parent` - Match parent dimension
-- `percentage` - Percentage of parent
-- `weighted` - Proportional distribution
-
-All policies respect `min_size` and `max_size` bounds.
-
-### Memory Management
-
-- Tree structure uses `std::unique_ptr<ui_element>` for ownership
-- Parent pointers are raw non-owning pointers
-- Layout strategies owned by `std::unique_ptr<layout_strategy>`
-- `add_child()` takes ownership, `remove_child()` returns ownership
-- Signal connections managed by `scoped_connection` (RAII)
-
-### Background Rendering
-
-The framework separates background rendering from the widget tree for architectural clarity and performance.
-
-**Why Not a Widget?**
-
-Background rendering is a **global UI concern**, not a widget:
-- Renders before the widget tree (establishes drawing surface)
-- Not part of the layout hierarchy (no measure/arrange)
-- Supports modes impossible for widgets (transparency for game overlays)
-- Avoids performance overhead of widget tree traversal
-
-**Architecture:**
-
-```cpp
-// Service managed by ui_context (not a widget!)
-background_renderer<Backend>  // Per-context instance
-  ├─ Accessed via ui_services<Backend>::background()
-  ├─ Renders before widget tree in ui_handle::display()
-  ├─ Supports dirty region optimization
-  └─ Automatically syncs with theme changes via signal/slot
-```
-
-**Automatic Theme Synchronization (NEW):**
-
-Background automatically synchronizes with the current theme via signal/slot pattern:
-
-```cpp
-// 1. Set theme (in application code)
-ctx.themes().set_current_theme("Norton Blue");
-
-// 2. theme_registry emits theme_changed signal
-// 3. background_renderer automatically receives notification
-// 4. Background updates to match theme->window_bg
-
-// NO manual synchronization needed!
-```
-
-**How It Works:**
-
-```cpp
-// In ui_context constructor (automatic setup):
-m_theme_connection = s_shared_themes->theme_changed.connect([this](const theme_type* theme) {
-    m_background_renderer.on_theme_changed(theme);  // Auto-sync!
-});
-```
-
-**Two Rendering Modes:**
-
-1. **Opaque** - Background style is set
-   - Respects dirty regions (only fills changed areas)
-   - Suitable for traditional desktop applications
-   - Optimized: O(dirty_regions) draw calls
-
-2. **Transparent** - No background style
-   - UI widgets overlay game/3D rendering
-   - Suitable for game HUDs, in-game menus
-   - Zero overhead: no rendering
-
-**Usage Pattern:**
-
-```cpp
-// Option 1: Automatic sync with theme (RECOMMENDED)
-ctx.themes().set_current_theme("Borland Turbo");
-// Background automatically updates to theme->window_bg!
-
-// Option 2: Manual control (if needed)
-auto* bg = ui_services<Backend>::background();
-bg->set_color({0, 0, 170});  // Blue background
-bg->clear_style();            // Transparent mode
-
-// Changes take effect on next display() call
-ui.display();  // Background rendered first, then widgets
-```
-
-**Frame-Based Behavior:**
-
-Background changes apply on the **next frame** (next `display()` call):
-- No immediate redraw triggered
-- Application controls when to redraw
-- Consistent with event-driven architecture
-
-**Integration with ui_handle:**
-
-```cpp
-void ui_handle::display() {
-    auto dirty_regions = m_root->get_and_clear_dirty_regions();
-
-    // 1. Render background FIRST (from ui_services)
-    if (auto* bg = ui_services<Backend>::background()) {
-        bg->render(m_renderer, viewport, dirty_regions);
-    }
-
-    // 2. Measure/arrange widget tree
-    m_root->measure(viewport.w, viewport.h);
-    m_root->arrange(viewport);
-
-    // 3. Render widgets on top of background
-    m_root->render(m_renderer, dirty_regions);
-
-    // 4. Render popup layers (menus, dialogs)
-    layers->render_all_layers(m_renderer, viewport);
-}
-```
-
-**Per-Context Independence:**
-
-Each `ui_context` has its own `background_renderer`:
-```cpp
-{
-    scoped_ui_context<Backend> ctx1;
-    auto* bg1 = ui_services<Backend>::background();
-    bg1->set_color({255, 0, 0});  // Red
-
-    {
-        scoped_ui_context<Backend> ctx2;
-        auto* bg2 = ui_services<Backend>::background();
-        bg2->set_color({0, 255, 0});  // Green
-        // ctx2 is active - green background
-    }
-    // ctx1 is active again - red background preserved
-}
-```
-
-**Backend-Specific Styles:**
-
-Each backend defines its own `background_style` type via the `RenderLike` concept:
-
-```cpp
-// conio backend (TUI)
-struct background_style {
-    color bg_color;
-    char fill_char = ' ';  // Pattern support: '░', '▒', '▓', etc.
-};
-
-// canvas backend (testing)
-struct background_style {
-    uint8_t fg, bg, attrs;
-    char fill_char = ' ';
-};
-```
-
-**RenderLike Concept Extension:**
-
-```cpp
-template<typename T, typename R>
-concept RenderLike = RectLike<R> && requires(T renderer,
-                                              const typename T::background_style& bg) {
-    typename T::background_style;  // Backend-specific type
-
-    // Draw background (optimized clearing)
-    { renderer.draw_background(rect, bg) } -> std::same_as<void>;
-    { renderer.draw_background(rect, bg, regions) } -> std::same_as<void>;
-};
-```
-
-**Testing:**
-
-Comprehensive tests in `unittest/core/test_background_renderer.cc`:
-- 7 test cases, 62 assertions
-- Style management (has_style, set_style, clear_style)
-- Opaque/transparent rendering
-- Dirty region optimization
-- ui_context integration
-- Copy/move semantics
-
-**See also:**
-- `include/onyxui/background_renderer.hh` - Implementation
-- `include/onyxui/theme_registry.hh` - Signal emission
-- `include/onyxui/ui_context.hh` - Signal connection
-- `include/onyxui/concepts/render_like.hh` - Background style concept
-- `include/onyxui/ui_handle.hh` - Rendering pipeline
-- `examples/demo.cc` - Automatic sync demonstration
-
-### Scrolling System (NEW - October 2025)
-
-A comprehensive scrolling system with three levels of abstraction for different use cases.
-
-**Three-Layer Architecture:**
-
-```
-┌─────────────────────────────────┐
-│       scroll_view (wrapper)      │  ← High-level (recommended)
-├─────────────────────────────────┤
-│  ┌──────────┐  ┌────────────┐  │
-│  │scrollable│←→│  scrollbar │  │  ← Manual composition
-│  │ (logic)  │  │  (visual)  │  │
-│  └──────────┘  └────────────┘  │
-│        ↑             ↑           │
-│        └──controller─┘           │  ← Coordination layer
-└─────────────────────────────────┘
-```
-
-**1. High-Level: scroll_view (Recommended)**
-
-Batteries-included wrapper combining scrollable, scrollbars, and controller:
-
-```cpp
-#include <onyxui/widgets/scroll_view_presets.hh>
-
-// Quick start with presets
-auto view = modern_scroll_view<Backend>();      // Auto-hide scrollbars
-auto view = classic_scroll_view<Backend>();     // Always visible
-auto view = vertical_only_scroll_view<Backend>(); // Vertical scrolling only
-
-// Add content
-view->add_child(create_my_content());
-view->emplace_child<label>("Item 1");
-view->emplace_child<button>("Click me");
-
-// Set layout for multiple children
-view->set_layout_strategy(
-    std::make_unique<linear_layout<Backend>>(direction::vertical, 5)
-);
-
-// Programmatic scrolling
-view->scroll_to(0, 100);        // Absolute position
-view->scroll_by(0, 50);         // Relative delta
-view->scroll_into_view(widget); // Ensure widget is visible
-```
-
-**Available Presets:**
-
-| Preset | Scrollbars | Use Case |
-|--------|-----------|----------|
-| `modern_scroll_view()` | Auto-hide | Modern apps, clean UI |
-| `classic_scroll_view()` | Always visible | Traditional desktop apps |
-| `compact_scroll_view()` | Auto-hide | Space-constrained layouts |
-| `vertical_only_scroll_view()` | Vertical only | Lists, documents, feeds |
-
-**2. Manual Composition: scrollable + scrollbar + scroll_controller**
-
-For custom layouts requiring precise control:
-
-```cpp
-// Create components
-auto scrollable = std::make_unique<scrollable<Backend>>();
-auto vscrollbar = std::make_unique<scrollbar<Backend>>(orientation::vertical);
-auto hscrollbar = std::make_unique<scrollbar<Backend>>(orientation::horizontal);
-
-// Connect with controller (bidirectional sync)
-auto controller = std::make_unique<scroll_controller<Backend>>(
-    scrollable.get(),
-    vscrollbar.get(),
-    hscrollbar.get()
-);
-
-// Add to your custom layout
-my_container->add_child(std::move(scrollable));
-my_container->add_child(std::move(vscrollbar));
-my_container->add_child(std::move(hscrollbar));
-```
-
-**3. Scrollable Alone: For Overlay or Custom UI**
-
-Use scrollable without visible scrollbars:
-
-```cpp
-auto scrollable = std::make_unique<scrollable<Backend>>();
-scrollable->set_scrollbar_visibility_policy({
-    .horizontal = scrollbar_visibility::hidden,
-    .vertical = scrollbar_visibility::hidden
-});
-
-// Programmatic scrolling only (mouse wheel still works)
-scrollable->scroll_to(0, 50);
-```
-
-**Core Components:**
-
-**scrollable<Backend>** - Logic layer:
-- Viewport clipping (content outside viewport not rendered)
-- Scroll offset management (x, y coordinates)
-- Mouse wheel handling (automatic)
-- Content size tracking
-- Layout support (can contain multiple children with layout strategy)
-
-```cpp
-// Key methods
-void scroll_to(int x, int y);                    // Absolute position
-void scroll_by(int dx, int dy);                  // Relative delta
-void scroll_into_view(const ui_element<Backend>* widget);
-scroll_info get_scroll_info() const;             // Viewport/content sizes
-point_type get_scroll_offset() const;            // Current scroll position
-void set_scrollbar_visibility_policy(scrollbar_visibility_policy policy);
-```
-
-**scrollbar<Backend>** - Visual layer:
-- Orientation (vertical/horizontal)
-- Thumb (draggable indicator)
-- Track (background)
-- Arrow buttons (optional, theme-dependent)
-- Mouse interaction (drag thumb, click track, click arrows)
-- Visibility policies (always, auto_hide, hidden)
-
-```cpp
-// Construction
-scrollbar(orientation orient);  // vertical or horizontal
-
-// Key methods
-void set_scroll_info(const scroll_info& info);  // Update from scrollable
-scroll_info get_scroll_info() const;
-signal<point_type> scroll_changed;  // Emitted on user interaction
-```
-
-**scroll_controller<Backend>** - Coordination layer:
-- Bidirectional synchronization between scrollable and scrollbars
-- Automatic updates on scroll events
-- Handles measure/arrange coordination
-
-```cpp
-// Construction (connects components via signal/slot)
-scroll_controller(
-    scrollable<Backend>* scrollable_ptr,
-    scrollbar<Backend>* vertical_scrollbar_ptr,
-    scrollbar<Backend>* horizontal_scrollbar_ptr
-);
-
-// Automatic synchronization via signals:
-// scrollable->scroll_changed → update scrollbars
-// scrollbar->scroll_changed → update scrollable
-```
-
-**Scrollbar Visibility Policies:**
-
-```cpp
-enum class scrollbar_visibility : std::uint8_t {
-    always,      // Always visible, even if not needed
-    auto_hide,   // Visible when content exceeds viewport
-    hidden       // Never visible (programmatic scroll only)
-};
-
-struct scrollbar_visibility_policy {
-    scrollbar_visibility horizontal;
-    scrollbar_visibility vertical;
-};
-```
-
-**scroll_info Structure:**
-
-```cpp
-template<UIBackend Backend>
-struct scroll_info {
-    size_type viewport_size;  // Visible area
-    size_type content_size;   // Total scrollable content
-    point_type scroll_offset; // Current scroll position
-
-    // Computed properties
-    point_type max_scroll() const;      // Maximum valid scroll offset
-    bool needs_horizontal_scroll() const;
-    bool needs_vertical_scroll() const;
-};
-```
-
-**Real-World Usage Patterns:**
-
-**Vertical List (Log Viewer):**
-```cpp
-auto view = vertical_only_scroll_view<Backend>();
-view->set_layout_strategy(
-    std::make_unique<linear_layout<Backend>>(direction::vertical, 2)
-);
-
-for (const auto& entry : log_entries) {
-    view->emplace_child<label>(entry.message);
-}
-
-// Auto-scroll to bottom (newest log)
-auto info = view->content()->get_scroll_info();
-int max_y = info.content_size.h - info.viewport_size.h;
-view->scroll_to(0, max_y);
-```
-
-**Settings Panel:**
-```cpp
-auto view = modern_scroll_view<Backend>();
-view->set_layout_strategy(
-    std::make_unique<linear_layout<Backend>>(direction::vertical, 10)
-);
-
-view->emplace_child<label>("Display Settings");
-view->emplace_child<checkbox>("Enable dark mode");
-view->emplace_child<slider>("Font size");
-// ... many more settings ...
-
-// Scrollbars appear automatically when content exceeds viewport
-```
-
-**Data Grid:**
-```cpp
-auto view = classic_scroll_view<Backend>();  // Always-visible scrollbars
-
-auto grid = std::make_unique<grid<Backend>>(5);  // 5 columns
-grid->emplace_child<label>("ID");
-grid->emplace_child<label>("Name");
-// ... add headers and rows ...
-
-view->add_child(std::move(grid));
-```
-
-**Performance Characteristics:**
-
-- **Viewport Clipping**: Only visible items rendered (O(visible) not O(total))
-- **Large Content**: Tested with 10,000+ items in linear_layout
-- **Smooth Scrolling**: Sub-pixel precision for smooth animation support
-- **Dirty Regions**: Scrolling triggers minimal redraws
-- **Memory**: O(total items) for widget tree, O(visible) for rendering
-
-**Mouse & Keyboard:**
-
-Mouse wheel scrolling is automatic:
-- Wheel up/down: Vertical scroll
-- Shift + wheel: Horizontal scroll (if enabled)
-
-Keyboard navigation via custom event handlers:
-```cpp
-view->key_pressed.connect([view_ptr](const auto& event) {
-    switch (event.key) {
-        case key::page_down:
-            view_ptr->scroll_by(0, viewport_height);
-            break;
-        case key::page_up:
-            view_ptr->scroll_by(0, -viewport_height);
-            break;
-        case key::home:
-            view_ptr->scroll_to(0, 0);
-            break;
-        case key::end:
-            auto info = view_ptr->content()->get_scroll_info();
-            int max_y = info.content_size.h - info.viewport_size.h;
-            view_ptr->scroll_to(0, max_y);
-            break;
-    }
-});
-```
-
-**Configuration Options:**
-
-```cpp
-// Scrollbar visibility
-view->set_scrollbar_policy(scrollbar_visibility::always);
-view->set_scrollbar_policy(
-    scrollbar_visibility::auto_hide,  // horizontal
-    scrollbar_visibility::always      // vertical
-);
-
-// Enable/disable axes
-view->set_horizontal_scroll_enabled(false);
-view->set_vertical_scroll_enabled(true);
-```
-
-**Accessing Internals (Advanced):**
-
-```cpp
-auto view = modern_scroll_view<Backend>();
-
-// Access components
-auto* scrollable = view->content();             // The scrollable area
-auto* vscrollbar = view->vertical_scrollbar();  // Vertical scrollbar
-auto* hscrollbar = view->horizontal_scrollbar();// Horizontal scrollbar
-auto* controller = view->controller();          // Scroll controller
-
-// Listen to scroll events
-view->content()->scroll_changed.connect([](const auto& offset) {
-    std::cout << "Scrolled to: " << offset.y << "\n";
-});
-```
-
-**Testing Coverage:**
-
-Comprehensive test suite with 137 tests covering:
-- **scroll_info** (7 tests) - Structure validation
-- **scrollable** (66 tests) - Core scrolling logic, layout, edge cases
-- **scrollbar** (40 tests) - Visual widget, mouse interaction, rendering
-- **scroll_controller** (24 tests) - Bidirectional synchronization
-- **scroll_view** (26 tests) - High-level wrapper, forwarding
-- **Presets** (16 tests) - Factory functions, policy validation
-- **Integration** (16 tests) - Real-world scenarios (lists, grids, nested, dynamic content)
-
-All 996 tests passing with zero warnings.
-
-**Theming:**
-
-Scrollbars support theming via `scrollbar_theme`:
-
-```cpp
-struct scrollbar_theme {
-    color_type thumb_color;
-    color_type track_color;
-    color_type arrow_color;
-    scrollbar_style style;  // simple, arrows, modern
-};
-```
-
-Automatically inherits from global theme via CSS inheritance.
-
-**See also:**
-- `include/onyxui/widgets/scroll_view.hh` - High-level wrapper
-- `include/onyxui/widgets/scroll_view_presets.hh` - Preset factory functions
-- `include/onyxui/widgets/scrollable.hh` - Core scrolling logic
-- `include/onyxui/widgets/scrollbar.hh` - Visual scrollbar widget
-- `include/onyxui/widgets/scroll_controller.hh` - Coordination layer
-- `include/onyxui/widgets/scroll_info.hh` - Information structure
-- `docs/scrolling_guide.md` - Comprehensive user guide
-- `unittest/widgets/test_scroll*.cc` - Test suite (137 tests)
+---
 
 ## Project Structure
 
 ```
 include/onyxui/
-  concepts/              # C++20 concepts
-    backend.hh           # UIBackend concept
-    rect_like.hh         # Rectangle concepts
-    size_like.hh         # Size concepts
-    color_like.hh        # Color concepts
-    render_like.hh       # Renderer concepts
-    event_like.hh        # Event concepts
-
-  element.hh             # Core ui_element class
-  event_target.hh        # Event handling base class
-  themeable.hh           # CSS-style theming base class
-  theme.hh               # Theme structure
-  signal.hh              # Signal/slot implementation
-  focus_manager.hh       # Focus navigation
-  layout_strategy.hh     # Layout base class + enums
-  render_context.hh      # Abstract visitor base for rendering/measurement
-  measure_context.hh     # Concrete visitor for measurement
-  draw_context.hh        # Concrete visitor for rendering
-
-  layout/
-    linear_layout.hh     # Vertical/horizontal stacking
-    grid_layout.hh       # Grid with spanning
-    anchor_layout.hh     # Anchor positioning
-    absolute_layout.hh   # Fixed positioning
-
-  widgets/
-    widget.hh            # Base widget class
-    button.hh            # Button widget
-    label.hh             # Text label
-    panel.hh             # Container panel
-    vbox.hh / hbox.hh    # Stack layouts
-    grid.hh              # Grid container
-    menu*.hh             # Menu system
-    group_box.hh         # Bordered group
-    status_bar.hh        # Status bar
-    spacer.hh / spring.hh # Spacing elements
-    action.hh            # Action system
-    mnemonic_parser.hh   # Mnemonic parsing
-    scroll_info.hh       # Scroll information structure
-    scrollable.hh        # Scrollable viewport (logic)
-    scrollbar.hh         # Scrollbar widget (visual)
-    scroll_controller.hh # Scroll synchronization (coordination)
-    scroll_view.hh       # High-level scroll wrapper
-    scroll_view_presets.hh # Preset factory functions
-
-  hotkeys/
-    key_sequence.hh      # Key combination parsing
-    hotkey_manager.hh    # Global hotkey management
-
-  utils/
-    safe_math.hh         # Overflow-safe arithmetic
+  actions/               # Command pattern (action, action_group, mnemonic_parser)
+  concepts/              # C++20 concepts (backend, rect, size, color, render, event)
+  core/                  # Framework fundamentals (element, signal, event_target)
+    raii/                # RAII guards (scoped_clip, scoped_layer, scoped_tooltip)
+    rendering/           # Render contexts (render_context, draw_context, measure_context, resolved_style)
+  events/                # Event system (ui_event)
+  hotkeys/               # Keyboard shortcuts (hotkey_manager, key_sequence, hotkey_schemes)
+  layout/                # Layout strategies (linear, grid, anchor, absolute)
+  services/              # Framework services (ui_context, focus_manager, layer_manager, background_renderer)
+  theming/               # Theme system (theme, themeable, theme_registry, theme_loader)
+  utils/                 # Utilities (safe_math, fkyaml_adapter)
+  widgets/               # UI components (button, label, status_bar, styled_text)
+    containers/          # Layout containers (panel, grid, hbox, vbox, group_box)
+      scroll/            # Scrolling subsystem (scrollable, scrollbar, scroll_view, scroll_controller)
+    core/                # Base widget classes (widget, widget_container, stateful_widget)
+    layout/              # Layout helper widgets (spacer, spring)
+    menu/                # Menu subsystem (menu, menu_bar, menu_item)
 
 unittest/
-  core/                  # Core functionality tests
-    test_signal_slot.cc  # Signal/slot tests (92 test cases)
-    test_rule_of_five.cc # Move semantics tests
-
-  layout/                # Layout algorithm tests
-    test_composition.cc  # Nested layout tests
-
-  widgets/               # Widget tests (200+ test cases)
-    test_button.cc
-    test_label.cc
-    test_menus.cc
-    test_group_box.cc
-    test_status_bar.cc
-    test_scroll_info.cc
-    test_scrollable.cc
-    test_scrollbar.cc
-    test_scroll_controller.cc
-    test_scroll_view.cc
-    test_scroll_view_presets.cc
-    test_scrolling_integration.cc
-    # ... and more
-
-  hotkeys/               # Hotkey system tests
-    test_hotkeys.cc
-    test_hotkey_manager.cc
-
+  core/                  # Core tests (signal, element, rendering, layer_manager, etc.)
+  events/                # Event system tests
   focus/                 # Focus management tests
-    test_focus_manager.cc
+  hotkeys/               # Hotkey tests
+  layout/                # Layout strategy tests
+  layer/                 # Layer management tests
+  reflection/            # YAML/theme reflection tests
+  utils/                 # Test utilities and helpers
+  widgets/               # Widget tests (button, label, scrolling, menus, etc.)
 
 backends/
   conio/                 # DOS/TUI backend example
-    conio_backend.hh     # Backend implementation
-    main.cc              # Demo application
 
 docs/
+  CLAUDE/                # Claude Code documentation (architecture, theming, hotkeys, testing)
   scrolling_guide.md     # Comprehensive scrolling system user guide
-
-.clang-tidy              # Linter configuration
+  REFACTORING_PLAN.md    # Code quality improvements
 ```
+
+---
 
 ## Development Guidelines
 
@@ -1354,22 +330,14 @@ docs/
 5. Write comprehensive tests in `unittest/widgets/`
 
 Example:
+
 ```cpp
 template<UIBackend Backend>
 class my_widget : public widget<Backend> {
-    using base = widget<Backend>;
-    using render_context_type = render_context<Backend>;
-
-    void do_render(render_context_type& ctx) const override {
-        // Same code handles BOTH measurement and rendering!
-        auto bounds = this->bounds();
-
-        // Draw operations automatically track size for measurement
-        ctx.draw_rect(bounds, m_box_style);
+    void do_render(render_context<Backend>& ctx) const override {
+        // Same code handles both measurement AND rendering!
+        ctx.draw_rect(this->bounds(), m_box_style);
         auto text_size = ctx.draw_text(m_text, {x, y}, m_font, m_color);
-
-        // Measurement happens automatically via widget<Backend>::get_content_size()
-        // which calls this method with measure_context
     }
 
 private:
@@ -1380,22 +348,7 @@ private:
 };
 ```
 
-### Working with ui_element
-
-- Always call `measure()` before `arrange()`
-- Use `invalidate_measure()` when size-affecting properties change
-- Use `invalidate_arrange()` when position-affecting properties change
-- Access children via `children()` getter
-- Results cached in `m_last_measured_size`
-
-### Coordinate System
-
-- All coordinates are integers
-- Origin is top-left (standard UI convention)
-- Width/height must be non-negative
-- **Margin**: External spacing (outside bounds)
-- **Padding**: Internal spacing (inside bounds)
-- **Spacing**: Gap between siblings (in layout)
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md) for architectural details.
 
 ### Code Quality Standards
 
@@ -1420,66 +373,16 @@ The project enforces strict quality standards via clang-tidy:
 
 See `.clang-tidy` for full configuration.
 
-### Testing Strategy
+### Testing
 
-The project uses **doctest** (fetched via CMake FetchContent).
+See [Testing Guide](docs/CLAUDE/TESTING.md) for comprehensive testing documentation.
 
-**Test organization:**
-- 996 test cases across 34 test files
-- 5533 assertions total
-- All tests must pass with zero warnings
-
-**Writing tests for widgets (requires theme):**
-
-Widgets need a ui_context with registered themes. Use the `ui_context_fixture` helper:
-
-```cpp
-#include <doctest/doctest.h>
-#include "../utils/test_helpers.hh"
-#include "../utils/test_canvas_backend.hh"
-
-using namespace onyxui;
-using namespace onyxui::testing;
-
-TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Widget - Basic functionality") {
-    SUBCASE("First scenario") {
-        button<test_canvas_backend> btn("Click me");
-
-        // The fixture provides ctx which sets up themes automatically
-        auto size = btn.measure(100, 50);
-        CHECK(size_utils::get_width(size) > 0);
-    }
-
-    SUBCASE("Second scenario") {
-        label<test_canvas_backend> lbl("Text");
-        CHECK_FALSE(lbl.is_focusable());
-    }
-}
-```
-
-**Writing tests without widgets (no theme needed):**
-
-For non-widget tests, use regular TEST_CASE:
-
-```cpp
-#include <doctest/doctest.h>
-
-TEST_CASE("Core - Basic functionality") {
-    SUBCASE("First scenario") {
-        // Test code
-        CHECK(condition);
-    }
-}
-```
-
-**Best practices:**
+**Quick summary:**
 - Use `ui_context_fixture<test_canvas_backend>` for widget tests
-- Use `test_canvas_backend` (not `test_backend`) for consistency
+- Use regular `TEST_CASE` for non-widget tests
 - Test both measure and arrange phases
-- Verify exact bounds, not just success
 - Test edge cases (empty, zero size, max values)
-- Use SUBCASEs for related scenarios
-- Each test should be independent
+- All tests must pass with zero warnings
 
 ### Common Pitfalls
 
@@ -1489,6 +392,8 @@ TEST_CASE("Core - Basic functionality") {
 4. **Cache Invalidation** - Any property change must invalidate layout appropriately
 5. **Ownership** - Use `std::move()` when passing children to `add_child()`
 6. **Signals** - Use `scoped_connection` for automatic cleanup
+
+---
 
 ## Compiler Requirements
 
@@ -1500,100 +405,60 @@ TEST_CASE("Core - Basic functionality") {
   - MSVC 2019+ (with `/W4 /permissive-`)
 - **Comprehensive warning flags** enabled by default
 
-## Key Files for Reference
+---
 
-- `include/onyxui/element.hh` - Core layout algorithm (800+ lines, well-documented)
-- `include/onyxui/render_context.hh` - Abstract visitor base for measurement/rendering
-- `include/onyxui/measure_context.hh` - Concrete visitor for size measurement
-- `include/onyxui/draw_context.hh` - Concrete visitor for rendering
-- `include/onyxui/layout_strategy.hh` - Layout documentation (600+ lines of design docs)
-- `include/onyxui/signal.hh` - Signal/slot pattern implementation
-- `include/onyxui/themeable.hh` - CSS-style inheritance system
+## Key Reference Files
+
+- `include/onyxui/core/element.hh` - Core layout algorithm (800+ lines, well-documented)
+- `include/onyxui/core/rendering/render_context.hh` - Abstract visitor base for measurement/rendering
+- `include/onyxui/core/rendering/draw_context.hh` - Concrete rendering visitor
+- `include/onyxui/core/rendering/measure_context.hh` - Concrete measurement visitor
+- `include/onyxui/layout/layout_strategy.hh` - Layout documentation (600+ lines of design docs)
+- `include/onyxui/core/signal.hh` - Signal/slot pattern implementation
+- `include/onyxui/core/raii/scoped_clip.hh` - RAII clipping guard
+- `include/onyxui/theming/themeable.hh` - CSS-style inheritance system
+- `include/onyxui/theming/theme.hh` - Theme structure definition
+- `include/onyxui/actions/action.hh` - Command pattern for UI actions
 - `.clang-tidy` - Code quality standards
 - `unittest/widgets/test_*.cc` - Widget usage examples
 
-## Recent Major Changes
+---
 
-**Latest work:** Comprehensive Scrolling System (October 2025)
-- **Phase 0**: Test infrastructure and scrollbar_theme placeholder
-- **Phase 1**: scroll_info structure and scrollable container (66 tests)
-- **Phase 2**: Scrollbar visibility policies (20 tests)
-- **Phase 3**: Visual scrollbar widget with theming (40 tests)
-- **Phase 4**: scroll_controller coordination layer (24 tests)
-- **Phase 5**: scroll_view high-level wrapper + presets (42 tests)
-- **Phase 6**: Integration tests for real-world scenarios (16 tests)
-- **Phase 7**: Documentation (scrolling_guide.md, CLAUDE.md updates)
-- 996 tests passing (was 859), 5533 assertions
-- 137 new scrolling tests across 7 test files
-- Zero breaking changes
+## Current Status
 
-**Key features:**
-- **Three-Layer Architecture**: High-level scroll_view, manual composition, scrollable alone
-- **Preset Variants**: modern, classic, compact, vertical-only scroll views
-- **Bidirectional Sync**: scroll_controller keeps scrollable and scrollbars in sync via signals
-- **Viewport Clipping**: Only visible items rendered (O(visible) not O(total))
-- **Large Content**: Tested with 10,000+ items in linear_layout
-- **Theming Support**: Scrollbars inherit from global theme via CSS inheritance
-- **Mouse & Keyboard**: Automatic wheel scrolling, optional keyboard navigation
-- **Performance**: Sub-pixel precision, dirty region optimization, minimal redraws
+**Version:** 2025-10 (October 2025)
 
-**Previous work:** Hotkey Scheme System (October 2025)
-- **Phase 1**: Core structures (hotkey_action, hotkey_scheme, key_sequence parsing)
-- **Phase 2**: Registry + built-in schemes (Windows with F10, Norton Commander with F9)
-- **Phase 3**: hotkey_manager enhancement (scheme-aware semantic actions with priority)
-- 859 tests passing (was 855), 6236 assertions (was 6184)
-- Runtime scheme switching (user can choose Windows vs Norton Commander keyboard layout)
-- Priority system: Semantic actions → Application actions → Widget keyboard events
-- Zero breaking changes (backward compatible with existing hotkey code)
+**Test Coverage:**
+- **1039 test cases** across 36 test files
+- **5636 assertions**
+- **Zero warnings**
+- **100% widget coverage**
 
-**Key features:**
-- **Customizable Keyboard Layouts**: Users can switch between Windows (F10) and Norton Commander (F9) at runtime
-- **Semantic Actions**: Framework-level actions (menu navigation, focus) separate from application hotkeys
-- **Priority System**: Framework shortcuts take precedence over application shortcuts
-- **Graceful Fallback**: Missing binding = mouse still works (progressive enhancement)
-- **Auto-Configuration**: Built-in schemes pre-registered in ui_context, no manual setup required
-- **Library-Level**: NOT backend-specific (keys are universal, unlike themes)
+**Recent Major Features:**
+- Comprehensive scrolling system (137 new tests)
+- Hotkey schemes (Windows vs Norton Commander)
+- Theme system v2.0 refactoring (thread-safe, style-based rendering)
 
-**Previous work:** Theme System v2.0 Refactoring (October 2025)
-- **Phase 1**: Added thread-safe theme registry with failsafe logging
-- **Phase 2**: Implemented three-way theme API (by-name, by-value, by-shared_ptr)
-- **Phase 3**: Style-based rendering architecture with `resolved_style`
-- **Phase 4**: Comprehensive testing (11 new test cases, 88 assertions)
-- **Phase 5**: Documentation and polish
-- **Phase 6**: Widget refactoring to enforce style-based rendering
-  - Extended `resolved_style` with optional properties (padding, mnemonic_font)
-  - Added theme pointer to `render_context` for rare widget-specific properties
-  - Refactored all widgets (button, label, menu_item, menu_bar_item, separator, stateful_widget)
-  - Eliminated all direct theme access from widgets (zero `ui_services::themes()` calls)
-  - Implemented lazy mnemonic parsing for button, label, and menu_item
-  - All 736 tests passing, 4660 assertions, zero breaking changes
-- Removed unsafe `apply_theme(const theme_type&)` API
-- All 736 tests passing (was 653), zero warnings
+See [Changelog](docs/CLAUDE/CHANGELOG.md) for detailed recent changes.
 
-**Key architectural improvements:**
-- **Thread Safety**: Reader-writer locking on theme registry
-- **Performance**: CSS inheritance resolved once per frame, not per widget
-- **Safety**: No dangling pointer risk with new ownership semantics
-- **Simplicity**: Widgets receive pre-resolved style via render_context
-- **Stateful Widgets**: New helper base class for interactive widgets
-- **Two-Tier Access**: Common properties via `ctx.style()`, rare properties via `ctx.theme()`
-- **Lazy Parsing**: Mnemonics parsed on-demand during render with caching
-- **Type Safety**: Optional properties enforce explicit default handling
+---
 
-**Previous work:** Comprehensive layout testing implementation (2025)
-- Implemented 57 new layout tests across all priority levels
-- Fixed critical y=65541 overflow bug in element.hh
-- Created visual testing framework with canvas-based validation
-- Added edge case, robustness, and complex scenario coverage
+## Getting Help
 
-**Key features:**
-- Complete widget library (16+ widgets including scrolling)
-- CSS-style theming with inheritance (v2.0 refactored)
-- Render context pattern (visitor) for unified measurement/rendering
-- Comprehensive scrolling system (scroll_view, scrollable, scrollbar, scroll_controller)
-- Comprehensive hotkey system with customizable schemes (Windows vs Norton Commander)
-- Signal/slot for event handling
-- Mnemonic support (Alt+key shortcuts)
-- 996 tests with 5533 assertions
-- Visual testing framework for layout validation
-- Thread-safe theme management with failsafe logging
+For detailed information on specific topics:
+- **Architecture & Design Patterns** → [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md)
+- **Theming & Styling** → [Theming Guide](docs/CLAUDE/THEMING.md)
+- **Keyboard Shortcuts** → [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md)
+- **Writing Tests** → [Testing Guide](docs/CLAUDE/TESTING.md)
+- **Recent Changes** → [Changelog](docs/CLAUDE/CHANGELOG.md)
+- **Scrolling System** → [Scrolling Guide](docs/scrolling_guide.md)
+- **Code Quality** → [Refactoring Plan](docs/REFACTORING_PLAN.md)
+
+For examples, see:
+- `backends/conio/main.cc` - Complete demo application
+- `unittest/widgets/test_*.cc` - Widget usage examples
+- `unittest/widgets/test_scrolling_integration.cc` - Real-world integration tests
+
+---
+
+**Happy coding with OnyxUI!** 🚀

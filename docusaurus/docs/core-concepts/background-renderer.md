@@ -555,8 +555,8 @@ ui_handle ui(root);  // Background is independent
 ## API Reference
 
 For complete API documentation, see:
-- `include/onyxui/background_renderer.hh` - Full implementation
-- `include/onyxui/theme_registry.hh` - Signal emission
-- `include/onyxui/ui_context.hh` - Signal connection
+- `include/onyxui/services/background_renderer.hh` - Full implementation
+- `include/onyxui/theming/theme_registry.hh` - Signal emission
+- `include/onyxui/services/ui_context.hh` - Signal connection
 - `include/onyxui/concepts/render_like.hh` - Background style concept
 - `unittest/core/test_background_renderer.cc` - Usage examples
