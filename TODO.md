@@ -2,8 +2,8 @@
 
 This document tracks non-implemented features, placeholders, and future enhancements for OnyxUI.
 
-**Last Updated**: 2025-10-29
-**Status**: 996 tests passing, 5533 assertions
+**Last Updated**: 2025-10-30
+**Status**: 1039 tests passing, 5636 assertions
 
 ---
 
@@ -24,7 +24,7 @@ This document tracks non-implemented features, placeholders, and future enhancem
 ### Layout System
 
 - [ ] **size_policy::percentage** - Percentage-based sizing
-  - Location: `include/onyxui/layout_strategy.hh` (defined)
+  - Location: `include/onyxui/layout/layout_strategy.hh` (defined)
   - Status: Defined in enum but not implemented in any layout
   - Implementation needed in:
     - `linear_layout.hh` - Horizontal/vertical layouts
@@ -35,43 +35,23 @@ This document tracks non-implemented features, placeholders, and future enhancem
 
 ### Scrolling System
 
-- [ ] **Viewport clipping** - Clip content outside scrollable viewport
-  - Location: `include/onyxui/widgets/scrollable.hh:466`
-  - Status: TODO comment - "Phase 2: Add viewport clipping via renderer.push_clip/pop_clip"
-  - Impact: Content outside viewport is rendered but not visible (performance waste)
-  - Implementation:
-    ```cpp
-    // In scrollable::do_render()
-    renderer.push_clip(viewport_bounds);
-    // ... render children ...
-    renderer.pop_clip();
-    ```
-  - Requires: `push_clip()` / `pop_clip()` in RenderLike concept
+- [ ] **Scrollbar arrow glyphs** - Render arrow symbols in arrow buttons
+  - Location: `include/onyxui/widgets/containers/scroll/scrollbar.hh:392,399`
+  - Status: Arrow buttons render with themed styles but no arrow glyphs
+  - Current: Boxes render correctly, but no up/down/left/right symbols
+  - Implementation: Use renderer to draw arrow characters or glyphs
+  - Depends on: Backend icon/glyph rendering support
 
-- [ ] **scrollbar_style rendering** - Classic/compact/minimal scrollbar styles
-  - Location: `include/onyxui/theme.hh:21` (enum defined)
-  - Status: Enum exists, YAML serialization works, but not used in rendering
-  - Implementation needed in: `include/onyxui/widgets/scrollbar.hh:185-187`
-  - Current: All scrollbars render as minimal (no arrow buttons)
-  - TODO:
-    - `classic`: Arrow buttons at both ends (Windows style)
-    - `compact`: Arrow buttons at one end only
-    - `minimal`: No arrow buttons (current)
-
-- [ ] **Scrollbar theme properties** - Use detailed theme settings
-  - Location: `include/onyxui/theme.hh:170-199`
-  - Status: Extensive `scrollbar_theme` struct defined but mostly unused
-  - Current rendering: Placeholder rect at `scrollbar.hh:189`
-  - Unused properties:
-    - Component states (track/thumb/arrow normal/hover/pressed/disabled)
-    - Geometry (width, min_thumb_size from theme)
-    - Animation settings (fade_duration_ms, inactive_delay_ms)
-  - Implementation: Replace placeholder rendering with proper themed rendering
+- [ ] **Scrollbar line increment from theme** - Use theme value for arrow click scrolling
+  - Location: `include/onyxui/widgets/containers/scroll/scrollbar.hh:213,225`
+  - Status: Hardcoded to 20 pixels, should use theme value
+  - Current: `int const line_increment = 20;  // TODO: Use theme value`
+  - Implementation: Add `line_increment` to `scrollbar_theme` in `include/onyxui/theming/theme.hh`
 
 ### Widget Rendering
 
 - [ ] **group_box title** - Title inset into top border
-  - Location: `include/onyxui/widgets/group_box.hh:270`
+  - Location: `include/onyxui/widgets/containers/group_box.hh:270`
   - Status: TODO comment
   - Current: Border renders, title does not
   - Test: `unittest/widgets/test_group_box_layout.cc:95` has TODO
@@ -148,19 +128,19 @@ Additional keyboard layouts for different user preferences:
 These are placeholders in the rendering system:
 
 - [ ] **draw_line()** - Line drawing support
-  - Location: `include/onyxui/draw_context.hh:275-285`
+  - Location: `include/onyxui/core/rendering/draw_context.hh:284`
   - Status: Placeholder - "Most renderers don't have draw_line yet"
   - Current: Returns without drawing
   - Use cases: Separators, underlines, custom graphics
 
 - [ ] **draw_icon()** - Icon rendering support
-  - Location: `include/onyxui/draw_context.hh:300`
+  - Location: `include/onyxui/core/rendering/draw_context.hh:300`
   - Status: Placeholder - "Not all renderers support icons yet"
   - Current: Limited support in test backends
   - Use cases: Menu item icons, toolbar buttons
 
 - [ ] **Animation system** - Smooth transitions
-  - Location: `include/onyxui/layer_manager.hh:211`
+  - Location: `include/onyxui/services/layer_manager.hh:209`
   - Status: `enable_animations = false` - TODO comment
   - Use cases:
     - Scrollbar fade in/out (theme has `fade_duration_ms`)
@@ -215,6 +195,10 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+- [x] **Directory reorganization** - Logical include/ structure - 2025-10-30
+- [x] **Viewport clipping** - scoped_clip RAII guard for scrollable - 2025-10-30
+- [x] **Scrollbar theme integration** - All theme properties in use - 2025-10-29
+- [x] **Scrollbar style rendering** - classic/compact/minimal with arrows - 2025-10-29
 - [x] Comprehensive scrolling system (137 tests) - 2025-10-29
 - [x] scroll_view, scrollable, scrollbar, scroll_controller - 2025-10-29
 - [x] Preset scroll view variants (modern, classic, compact, vertical-only) - 2025-10-29
@@ -258,4 +242,4 @@ Based on `docs/unittest-review.md` recommendations:
 
 ---
 
-**Auto-generated by code review on 2025-10-29**
+**Last verified against codebase: 2025-10-30**
