@@ -190,6 +190,7 @@ namespace onyxui {
             // Geometry
             int width = 16;                     ///< Width for vertical (swapped for horizontal)
             int min_thumb_size = 20;            ///< Minimum thumb size in pixels
+            int line_increment = 20;            ///< Scroll amount per arrow click (pixels)
 
             // Visual style
             scrollbar_style style = scrollbar_style::classic;

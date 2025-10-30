@@ -42,12 +42,6 @@ This document tracks non-implemented features, placeholders, and future enhancem
   - Implementation: Use renderer to draw arrow characters or glyphs
   - Depends on: Backend icon/glyph rendering support
 
-- [ ] **Scrollbar line increment from theme** - Use theme value for arrow click scrolling
-  - Location: `include/onyxui/widgets/containers/scroll/scrollbar.hh:213,225`
-  - Status: Hardcoded to 20 pixels, should use theme value
-  - Current: `int const line_increment = 20;  // TODO: Use theme value`
-  - Implementation: Add `line_increment` to `scrollbar_theme` in `include/onyxui/theming/theme.hh`
-
 ### Widget Rendering
 
 - [ ] **group_box title** - Title inset into top border
@@ -195,6 +189,7 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+- [x] **Scrollbar line increment from theme** - Arrow clicks use theme value - 2025-10-30
 - [x] **Directory reorganization** - Logical include/ structure - 2025-10-30
 - [x] **Viewport clipping** - scoped_clip RAII guard for scrollable - 2025-10-30
 - [x] **Scrollbar theme integration** - All theme properties in use - 2025-10-29

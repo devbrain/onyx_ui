@@ -210,7 +210,7 @@ namespace onyxui {
             // Check if click is in decrement arrow
             if (layout.has_arrows() && point_in_rect({x, y}, layout.arrow_decrement)) {
                 // Scroll up/left by one line
-                int const line_increment = 20;  // TODO: Use theme value
+                int const line_increment = theme->scrollbar.line_increment;
                 if (m_orientation == orientation::vertical) {
                     scroll_requested.emit(-line_increment);  // Negative = scroll up
                 } else {
@@ -222,7 +222,7 @@ namespace onyxui {
             // Check if click is in increment arrow
             if (layout.has_arrows() && point_in_rect({x, y}, layout.arrow_increment)) {
                 // Scroll down/right by one line
-                int const line_increment = 20;  // TODO: Use theme value
+                int const line_increment = theme->scrollbar.line_increment;
                 if (m_orientation == orientation::vertical) {
                     scroll_requested.emit(line_increment);  // Positive = scroll down
                 } else {
