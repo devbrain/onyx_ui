@@ -112,10 +112,23 @@ namespace onyxui {
             font_type mnemonic_font{};     // Font for mnemonic character (typically underlined)
         };
 
+        /**
+         * @brief Shadow configuration for popup elements (menus, dialogs, tooltips)
+         * @details
+         * Defines whether shadows are enabled and their offset.
+         * Backend determines rendering method (e.g., darkening, shading characters).
+         */
+        struct shadow_config {
+            bool enabled = false;      ///< Enable/disable shadow rendering
+            int offset_x = 1;          ///< Horizontal shadow offset (pixels/cells to the right)
+            int offset_y = 1;          ///< Vertical shadow offset (pixels/cells down)
+        };
+
         struct menu_style {
             color_type background;
             color_type border_color;
             box_style_type box_style{};  // Use {} to trigger default member initializers
+            shadow_config shadow;        // Shadow configuration for dropdown menus
         };
 
         struct menu_bar_style {
@@ -125,6 +138,7 @@ namespace onyxui {
         };
 
         struct separator_style {
+            color_type foreground;          // Color for separator line
             line_style_type line_style{};   // Line drawing style for separators
         };
 
@@ -146,8 +160,9 @@ namespace onyxui {
             int padding_horizontal = 8;
             int padding_vertical = 1;
 
-            // NOTE: Submenu indicator rendering is deferred to Phase 4/5
-            // Each backend can decide how to render the "▶" indicator
+            // Submenu indicator icon (backend-specific)
+            // Backends should use appropriate icons (arrow_right, triangle, etc.)
+            icon_style_type submenu_icon{};  ///< Icon shown for items with submenus
         };
 
         /**

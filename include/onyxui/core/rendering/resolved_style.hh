@@ -166,6 +166,17 @@ namespace onyxui {
             operator const std::optional<font_type>&() const { return value; }
         };
 
+        /**
+         * @brief Strong type for submenu icon - optional, menu_item-specific
+         * @details Used by menu_item to show submenu indicator (arrow right, etc.)
+         */
+        struct submenu_icon_t {
+            std::optional<icon_style_type> value;
+            submenu_icon_t() = delete;
+            submenu_icon_t(std::optional<icon_style_type> i) : value(i) {}
+            operator const std::optional<icon_style_type>&() const { return value; }
+        };
+
         // ===================================================================
         // Visual Properties (Inherited, Always Present)
         // ===================================================================
@@ -185,6 +196,7 @@ namespace onyxui {
         padding_horizontal_t padding_horizontal; ///< Horizontal padding (widget-specific)
         padding_vertical_t padding_vertical;     ///< Vertical padding (widget-specific)
         mnemonic_font_t mnemonic_font;           ///< Font for mnemonic character (widget-specific)
+        submenu_icon_t submenu_icon;             ///< Submenu indicator icon (menu_item-specific)
 
         // ===================================================================
         // Construction
@@ -226,7 +238,8 @@ namespace onyxui {
                 .icon_style = std::optional<icon_style_type>{},
                 .padding_horizontal = std::optional<int>{},      // Optional layout properties
                 .padding_vertical = std::optional<int>{},
-                .mnemonic_font = std::optional<font_type>{}
+                .mnemonic_font = std::optional<font_type>{},
+                .submenu_icon = std::optional<icon_style_type>{}  // Optional submenu indicator
             };
         }
 
@@ -250,7 +263,8 @@ namespace onyxui {
                 && icon_style.value == other.icon_style.value
                 && padding_horizontal.value == other.padding_horizontal.value
                 && padding_vertical.value == other.padding_vertical.value
-                && mnemonic_font.value == other.mnemonic_font.value;
+                && mnemonic_font.value == other.mnemonic_font.value
+                && submenu_icon.value == other.submenu_icon.value;
         }
 
         bool operator!=(const resolved_style& other) const noexcept {

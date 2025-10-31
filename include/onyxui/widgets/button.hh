@@ -313,7 +313,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::make_optional(theme.button.padding_horizontal),  // Button has padding
                 .padding_vertical = std::make_optional(theme.button.padding_vertical),
-                .mnemonic_font = std::make_optional(theme.button.mnemonic_font)  // Button has mnemonics
+                .mnemonic_font = std::make_optional(theme.button.mnemonic_font),  // Button has mnemonics
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}  // Button has no submenu icons
             };
         }
 

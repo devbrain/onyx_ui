@@ -86,6 +86,7 @@ namespace {
         test_backend::rect get_clip_rect() const { return {0, 0, 80, 25}; }
         void present() {}
         void on_resize() {}
+        void draw_shadow(const test_backend::rect&, int, int) {}
     };
 
     /**

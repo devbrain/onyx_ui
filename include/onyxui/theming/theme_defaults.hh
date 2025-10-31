@@ -53,6 +53,9 @@ struct theme_completeness {
     bool has_menu_bar_item_hover = false;
     bool has_menu_bar_item_open = false;
 
+    // Separator
+    bool has_separator_foreground = false;
+
     // Scrollbar (simplified - track major components)
     bool has_scrollbar_track = false;
     bool has_scrollbar_thumb_normal = false;
@@ -126,6 +129,9 @@ template<UIBackend Backend>
                                        theme.menu_bar_item.hover.background != default_color);
     result.has_menu_bar_item_open = (theme.menu_bar_item.open.foreground != default_color ||
                                       theme.menu_bar_item.open.background != default_color);
+
+    // Separator
+    result.has_separator_foreground = (theme.separator.foreground != default_color);
 
     // Scrollbar (simplified)
     result.has_scrollbar_track = (theme.scrollbar.track_normal.background != default_color);
@@ -383,6 +389,12 @@ void apply_defaults(ui_theme<Backend>& theme) {
         theme.scrollbar.arrow_normal = theme.scrollbar.thumb_normal;
         theme.scrollbar.arrow_hover = theme.scrollbar.thumb_hover;
         theme.scrollbar.arrow_pressed = theme.scrollbar.thumb_pressed;
+    }
+
+    // === Separator defaults ===
+    // Default separator color = border color (used for menu separators)
+    if (!completeness.has_separator_foreground && completeness.has_border_color) {
+        theme.separator.foreground = theme.border_color;
     }
 }
 

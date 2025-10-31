@@ -321,10 +321,10 @@ namespace onyxui {
             auto text_size = renderer_type::measure_text(m_text, text_font);
             int text_width = size_utils::get_width(text_size);
 
-            // Submenu indicator width (Phase 5)
+            // Submenu indicator width (backend-specific icon from theme)
             int submenu_indicator_width = 0;
-            if (has_submenu()) {
-                auto indicator_size = renderer_type::measure_text("\x10", text_font);  // ►
+            if (has_submenu() && ctx.theme() && ctx.style().submenu_icon.value.has_value()) {
+                auto indicator_size = renderer_type::get_icon_size(ctx.style().submenu_icon.value.value());
                 submenu_indicator_width = size_utils::get_width(indicator_size) + 1;  // +1 for spacing
             }
 
@@ -392,8 +392,8 @@ namespace onyxui {
                 ctx.draw_text(m_text, text_pos, text_font, fg);
             }
 
-            // Draw submenu indicator if item has submenu (Phase 5)
-            if (has_submenu()) {
+            // Draw submenu indicator if item has submenu (backend-specific icon from theme)
+            if (has_submenu() && ctx.theme() && ctx.style().submenu_icon.value.has_value()) {
                 // Position indicator to the right of shortcut (or text if no shortcut)
                 int indicator_x;
                 if (!shortcut.empty()) {
@@ -403,8 +403,9 @@ namespace onyxui {
                     // After text
                     indicator_x = base_x + effective_width - RIGHT_PADDING - 1;
                 }
-                typename Backend::point_type const indicator_pos{indicator_x, base_y};
-                ctx.draw_text("\x10", indicator_pos, text_font, fg);  // ► (CP437: 0x10 = right-pointing triangle)
+                // Draw icon at calculated position
+                typename Backend::point_type const icon_pos{indicator_x, base_y};
+                ctx.draw_icon(ctx.style().submenu_icon.value.value(), icon_pos);
             }
 
             // Draw shortcut if present (right-aligned within effective width)
@@ -470,7 +471,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::make_optional(theme.menu_item.padding_horizontal),  // Menu item has padding
                 .padding_vertical = std::make_optional(theme.menu_item.padding_vertical),
-                .mnemonic_font = std::make_optional(theme.menu_item.mnemonic_font)  // Menu item has mnemonics
+                .mnemonic_font = std::make_optional(theme.menu_item.mnemonic_font),  // Menu item has mnemonics
+                .submenu_icon = std::make_optional(theme.menu_item.submenu_icon)  // Menu item submenu indicator
             };
         }
 

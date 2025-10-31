@@ -103,7 +103,7 @@ palette:
   invalid: "not a hex color"
 )delim";
 
-    CHECK_THROWS_AS(extract_palette_from_string(yaml), std::runtime_error);
+    CHECK_THROWS_AS(static_cast<void>(extract_palette_from_string(yaml)), std::runtime_error);
 }
 
 TEST_CASE("theme_palette::extract_palette_from_string - Wrong length hex") {
@@ -112,7 +112,7 @@ palette:
   wrong_length: "0xFFF"
 )delim";
 
-    CHECK_THROWS_AS(extract_palette_from_string(yaml), std::runtime_error);
+    CHECK_THROWS_AS(static_cast<void>(extract_palette_from_string(yaml)), std::runtime_error);
 }
 
 // ===========================================================================
@@ -189,7 +189,7 @@ button:
   foreground: "$undefined"
 )delim";
 
-    CHECK_THROWS_AS(resolve_references_in_string(yaml, palette), std::runtime_error);
+    CHECK_THROWS_AS(static_cast<void>(resolve_references_in_string(yaml, palette)), std::runtime_error);
 }
 
 TEST_CASE("theme_palette::resolve_references_in_string - Mixed references and literals") {
@@ -338,7 +338,7 @@ button:
     foreground: "$fg"
 )delim";
 
-    CHECK_THROWS_AS(apply_palette_preprocessing(yaml), std::runtime_error);
+    CHECK_THROWS_AS(static_cast<void>(apply_palette_preprocessing(yaml)), std::runtime_error);
 }
 
 TEST_CASE("theme_palette::apply_palette_preprocessing - Invalid palette color error") {
@@ -351,7 +351,7 @@ button:
     background: "$bg"
 )delim";
 
-    CHECK_THROWS_AS(apply_palette_preprocessing(yaml), std::runtime_error);
+    CHECK_THROWS_AS(static_cast<void>(apply_palette_preprocessing(yaml)), std::runtime_error);
 }
 
 #else // !ONYXUI_ENABLE_YAML_THEMES

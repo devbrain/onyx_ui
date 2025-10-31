@@ -88,6 +88,9 @@ namespace onyxui::builtin_hotkey_schemes {
             // Focus Navigation
             {hotkey_action::focus_next, parse_key_sequence("Tab")},
             {hotkey_action::focus_previous, parse_key_sequence("Shift+Tab")},
+
+            // Widget Activation
+            {hotkey_action::activate_focused, parse_key_sequence("Enter")},
         };
 
         return scheme;
@@ -146,6 +149,9 @@ namespace onyxui::builtin_hotkey_schemes {
             // Focus Navigation
             {hotkey_action::focus_next, parse_key_sequence("Tab")},
             {hotkey_action::focus_previous, parse_key_sequence("Shift+Tab")},
+
+            // Widget Activation
+            {hotkey_action::activate_focused, parse_key_sequence("Enter")},
         };
 
         return scheme;

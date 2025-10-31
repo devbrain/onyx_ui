@@ -218,7 +218,7 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::move(child2));
 
         // Parent width = 400, so children should be 200 (50%) and 120 (30%)
-        parent->measure(1000, 1000);
+        [[maybe_unused]] auto size = parent->measure(1000, 1000);
         parent->arrange({0, 0, 400, 100});
 
         CHECK(parent->child_at(0)->bounds().w == 200);  // 50% of 400
@@ -243,7 +243,7 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::move(child2));
 
         // Parent height = 500, so children should be 200 (40%) and 125 (25%)
-        parent->measure(1000, 1000);
+        [[maybe_unused]] auto size2 = parent->measure(1000, 1000);
         parent->arrange({0, 0, 100, 500});
 
         CHECK(parent->child_at(0)->bounds().h == 200);  // 40% of 500
@@ -262,7 +262,7 @@ TEST_SUITE("linear_layout") {
         parent->add_test_child(std::move(child));
 
         // Parent width = 400, 80% would be 320, but clamped to max 150
-        parent->measure(1000, 1000);
+        [[maybe_unused]] auto size3 = parent->measure(1000, 1000);
         parent->arrange({0, 0, 400, 100});
 
         CHECK(parent->child_at(0)->bounds().w == 150);  // Clamped to max

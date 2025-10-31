@@ -77,6 +77,9 @@ namespace onyxui {
         focus_next,         ///< Move focus to next widget (Tab)
         focus_previous,     ///< Move focus to previous widget (Shift+Tab)
 
+        // Widget Activation
+        activate_focused,   ///< Activate currently focused widget (Enter/Space in most schemes)
+
         // Sentinel value for iteration/validation
         action_count        ///< Total number of actions (not a valid action)
     };
@@ -101,6 +104,7 @@ namespace onyxui {
             case hotkey_action::menu_cancel: return "menu_cancel";
             case hotkey_action::focus_next: return "focus_next";
             case hotkey_action::focus_previous: return "focus_previous";
+            case hotkey_action::activate_focused: return "activate_focused";
             case hotkey_action::action_count: return "action_count";
         }
         return "unknown";

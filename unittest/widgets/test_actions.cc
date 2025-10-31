@@ -6,8 +6,7 @@
 #include <doctest/doctest.h>
 
 #include <memory>
-#include <onyxui/actions/action.hh>
-#include <onyxui/actions/action_group.hh>
+#include <onyxui/actions/action_impl.hh>  // Includes both action.hh and action_group.hh with implementations
 #include <onyxui/widgets/button.hh>
 #include <string_view>
 #include "../utils/test_backend.hh"

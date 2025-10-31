@@ -5,13 +5,13 @@
 #pragma once
 #include <algorithm>
 #include <iostream>
-#include <../include/onyxui/widgets/containers/panel.hh>
+#include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
-#include <../include/onyxui/widgets/menu/menu.hh>
-#include <../include/onyxui/widgets/menu/menu_bar.hh>
-#include <../include/onyxui/widgets/menu/menu_item.hh>
-#include <../include/onyxui/services/ui_services.hh>
+#include <onyxui/widgets/menu/menu.hh>
+#include <onyxui/widgets/menu/menu_bar.hh>
+#include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/services/ui_services.hh>
 
 
 template <onyxui::UIBackend Backend>
@@ -41,7 +41,7 @@ public:
         }
 
         // Find Norton Blue theme index (default theme, registered first by conio_backend)
-        auto norton_it = std::find(m_theme_names.begin(), m_theme_names.end(), "Norton Blue");
+        auto norton_it = std::find(m_theme_names.begin(), m_theme_names.end(), "NU8");
         if (norton_it != m_theme_names.end()) {
             m_current_theme_index = std::distance(m_theme_names.begin(), norton_it);
         } else {
@@ -104,11 +104,16 @@ private:
 
         // Button section
         add_label(*this, "Button States:");
-        add_button(*this, "Normal");
-        add_button(*this, "Focused");
+
+        auto* normal_btn = add_button(*this, "Normal");
+        normal_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
+
+        auto* focused_btn = add_button(*this, "Focused");
+        focused_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
         auto* disabled_btn = add_button(*this, "Disabled");
         disabled_btn->set_enabled(false);
+        disabled_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
         // Spacer
         add_label(*this, "");
@@ -116,6 +121,7 @@ private:
         // Quit button (test mouse interaction!)
         auto* quit_btn = add_button(*this, "Quit");
         quit_btn->set_focusable(true);
+        quit_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
         quit_btn->clicked.connect([this]() {
             quit();
         });

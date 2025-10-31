@@ -365,18 +365,22 @@ TEST_CASE("Widget Styles - Text alignment variations") {
     SUBCASE("Left alignment") {
         button_style style{
             .normal = {
+                .font = {},
                 .foreground = color{255, 255, 255},
                 .background = color{0, 0, 0}
             },
             .hover = {
+                .font = {},
                 .foreground = color{255, 255, 255},
                 .background = color{0, 0, 0}
             },
             .pressed = {
+                .font = {},
                 .foreground = color{255, 255, 255},
                 .background = color{0, 0, 0}
             },
             .disabled = {
+                .font = {},
                 .foreground = color{255, 255, 255},
                 .background = color{0, 0, 0}
             },

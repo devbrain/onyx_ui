@@ -220,6 +220,24 @@ namespace onyxui::conio {
             void clear_region(const rect& r, const color& bg);
 
             /**
+             * @brief Draw shadow for popup elements (menus, dialogs, tooltips)
+             * @param widget_bounds Bounds of the widget casting the shadow
+             * @param offset_x Horizontal shadow offset (cells to the right)
+             * @param offset_y Vertical shadow offset (cells down)
+             *
+             * @details
+             * Draws a drop shadow by darkening existing background colors in the
+             * shadow region (right and bottom margins). Creates classic DOS-style
+             * shadow effect for popup elements.
+             *
+             * Backend-specific rendering:
+             * - Uses 50% darkening factor
+             * - Respects clipping boundaries
+             * - Works in all color modes (truecolor, 256-color, ANSI)
+             */
+            void draw_shadow(const rect& widget_bounds, int offset_x, int offset_y);
+
+            /**
              * @brief Draw a horizontal line
              * @param r Rectangle defining the line bounds (y and height define line position, x and w define extent)
              * @param style Line drawing style

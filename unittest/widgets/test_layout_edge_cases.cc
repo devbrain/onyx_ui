@@ -30,7 +30,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         scoped_ui_context<Backend> ctx;
 
         template<typename Widget>
-        void apply_default_theme(Widget& w) {
+        void apply_default_theme([[maybe_unused]] Widget& w) {
             if (auto* theme = ctx.themes().get_theme("Test Theme")) {
 //                 w.apply_theme(*theme);  // No longer needed - widgets use global theme
             }

@@ -23,6 +23,7 @@
 #include <onyxui/actions/action.hh>
 #include <onyxui/services/ui_context.hh>
 #include <onyxui/hotkeys/key_sequence.hh>
+#include <onyxui/theming/theme_builder.hh>
 
 #include <onyxui/services/layer_manager.hh>
 #include "utils/test_backend.hh"
@@ -363,6 +364,28 @@ TEST_SUITE("menu_bar") {
 
         CHECK(bar->menu_count() == 0);
         CHECK(!bar->has_open_menu());
+    }
+
+    TEST_CASE("menu_bar reads spacing from theme") {
+        scoped_ui_context<test_canvas_backend> ctx;
+
+        // Create theme with custom spacing
+        auto builder = theme_builder<test_canvas_backend>::create("Test", "Test")
+            .with_palette(0x0000AA, 0xFFFFFF, 0xFFFF00);
+
+        builder.with_menu_bar()
+            .item_spacing(0);  // Continuous menu bar (no gaps)
+
+        auto theme = builder.build();
+
+        ctx.themes().register_theme(theme);
+        ctx.themes().set_current_theme("Test");
+
+        // Create menu_bar after theme is set
+        auto bar = std::make_unique<menu_bar<test_canvas_backend>>();
+
+        // Verify spacing was read from theme
+        CHECK(bar->spacing() == 0);
     }
 
     TEST_CASE("Add menu to bar") {
@@ -720,7 +743,7 @@ TEST_SUITE("menu_integration") {
     }
 
     TEST_CASE("menu_bar - clicking different menu button switches menus") {
-        using Backend = test_backend;
+        using Backend = test_canvas_backend;
 
         // Setup context (provides both layer and focus managers)
         scoped_ui_context<Backend> ctx;

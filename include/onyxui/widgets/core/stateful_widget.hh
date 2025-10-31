@@ -127,6 +127,9 @@ namespace onyxui {
          * Expects the widget theme to have these properties:
          * - bg_normal, bg_hover, bg_pressed, bg_disabled
          *
+         * Uses `get_effective_state()` which considers both mouse interaction
+         * state AND keyboard focus, so focused widgets show hover state.
+         *
          * @example
          * @code
          * auto bg = get_state_background(theme->button);
@@ -134,7 +137,7 @@ namespace onyxui {
          */
         template<typename WidgetTheme>
         [[nodiscard]] color_type get_state_background(const WidgetTheme& widget_theme) const noexcept {
-            switch (m_state) {
+            switch (get_effective_state()) {
                 case interaction_state::disabled:
                     return widget_theme.disabled.background;
                 case interaction_state::pressed:
@@ -158,6 +161,9 @@ namespace onyxui {
          * Expects the widget theme to have these properties:
          * - fg_normal, fg_hover, fg_pressed, fg_disabled
          *
+         * Uses `get_effective_state()` which considers both mouse interaction
+         * state AND keyboard focus, so focused widgets show hover state.
+         *
          * @example
          * @code
          * auto fg = get_state_foreground(theme->button);
@@ -165,7 +171,7 @@ namespace onyxui {
          */
         template<typename WidgetTheme>
         [[nodiscard]] color_type get_state_foreground(const WidgetTheme& widget_theme) const noexcept {
-            switch (m_state) {
+            switch (get_effective_state()) {
                 case interaction_state::disabled:
                     return widget_theme.disabled.foreground;
                 case interaction_state::pressed:
@@ -189,6 +195,9 @@ namespace onyxui {
          * Expects the widget theme to have visual_state bundles:
          * - normal, hover, pressed, disabled (each with .font property)
          *
+         * Uses `get_effective_state()` which considers both mouse interaction
+         * state AND keyboard focus, so focused widgets show hover state.
+         *
          * @example
          * @code
          * auto font = get_state_font(theme->button);
@@ -196,7 +205,7 @@ namespace onyxui {
          */
         template<typename WidgetTheme>
         [[nodiscard]] font_type get_state_font(const WidgetTheme& widget_theme) const noexcept {
-            switch (m_state) {
+            switch (get_effective_state()) {
                 case interaction_state::disabled:
                     return widget_theme.disabled.font;
                 case interaction_state::pressed:
@@ -309,6 +318,48 @@ namespace onyxui {
 
             // Chain to base class for standard event processing
             return base::handle_mouse(mouse);
+        }
+
+        // ===================================================================
+        // Effective State (considers both interaction state AND focus)
+        // ===================================================================
+
+        /**
+         * @brief Get effective interaction state considering focus
+         * @return Effective state for rendering
+         *
+         * @details
+         * Returns the interaction state that should be used for rendering,
+         * taking into account both the mouse interaction state AND keyboard focus.
+         *
+         * **Priority:**
+         * 1. Disabled state (highest priority)
+         * 2. Pressed state
+         * 3. Hover state OR focused state (keyboard focus shows as hover)
+         * 4. Normal state (default)
+         *
+         * This allows keyboard focus (Tab navigation) to show the same visual
+         * feedback as mouse hover, providing clear indication of which widget
+         * is active.
+         */
+        [[nodiscard]] interaction_state get_effective_state() const noexcept {
+            // Disabled always takes priority
+            if (m_state == interaction_state::disabled) {
+                return interaction_state::disabled;
+            }
+
+            // Pressed state takes second priority
+            if (m_state == interaction_state::pressed) {
+                return interaction_state::pressed;
+            }
+
+            // Keyboard focus OR mouse hover both show as hover state
+            if (this->has_focus() || m_state == interaction_state::hover) {
+                return interaction_state::hover;
+            }
+
+            // Default to normal
+            return interaction_state::normal;
         }
 
         // ===================================================================

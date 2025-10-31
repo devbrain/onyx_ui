@@ -18,6 +18,7 @@
 #include <onyxui/hotkeys/hotkey_manager.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <../../include/onyxui/services/ui_context.hh>
+#include "../utils/warnings.hh"
 #include "utils/test_backend.hh"
 
 using namespace onyxui;
@@ -231,8 +232,10 @@ TEST_SUITE("semantic_action_guard::move_semantics") {
 
         CHECK(guard.is_valid());
 
-        // Self-move (should be no-op)
+        // Self-move (should be no-op) - intentionally testing this edge case
+        SUPPRESS_SELF_MOVE_BEGIN
         guard = std::move(guard);
+        SUPPRESS_SELF_MOVE_END
 
         CHECK(guard.is_valid());
         CHECK(hotkeys.has_semantic_handler(hotkey_action::activate_menu_bar));

@@ -636,6 +636,20 @@ namespace onyxui {
             })
         {
             ensure_shared_services_initialized();
+
+            // Register global semantic action for activating focused widget
+            // This allows Enter (or any key bound to activate_focused) to trigger clicks
+            // on widgets that have accept_keys_as_click enabled (buttons, etc.)
+            hotkeys().register_semantic_action(
+                hotkey_action::activate_focused,
+                [this]() {
+                    auto* focused = m_input_manager.get_focused();
+                    if (focused && focused->accepts_keys_as_click()) {
+                        // Trigger click at (0, 0) - widgets can override handle_click if needed
+                        focused->handle_click(0, 0);
+                    }
+                }
+            );
         }
 
         /**

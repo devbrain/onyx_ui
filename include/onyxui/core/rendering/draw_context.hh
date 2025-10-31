@@ -357,6 +357,24 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw shadow for popup elements
+         * @param widget_bounds Bounds of widget casting shadow
+         * @param offset_x Horizontal shadow offset (cells right)
+         * @param offset_y Vertical shadow offset (cells down)
+         *
+         * @details
+         * Delegates to renderer for backend-specific shadow rendering.
+         * Backend determines darkening factor, shading pattern, etc.
+         */
+        void draw_shadow(
+            const rect_type& widget_bounds,
+            int offset_x,
+            int offset_y
+        ) override {
+            m_renderer->draw_shadow(widget_bounds, offset_x, offset_y);
+        }
+
+        /**
          * @brief Check if context is rendering
          * @return true (draw_context is always rendering)
          */

@@ -18,6 +18,7 @@
 #include <onyxui/services/layer_manager.hh>
 #include <onyxui/core/raii/scoped_layer.hh>
 #include "../utils/test_helpers.hh"
+#include "../utils/warnings.hh"
 #include "utils/test_backend.hh"
 #include <memory>
 #include <stdexcept>
@@ -394,10 +395,9 @@ TEST_SUITE("scoped_layer - Edge Cases") {
         [[maybe_unused]] layer_id const id = layer.get();
 
         // Self move assignment should be safe (intentional test)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wself-move"
+        SUPPRESS_SELF_MOVE_BEGIN
         layer = std::move(layer);
-#pragma GCC diagnostic pop
+        SUPPRESS_SELF_MOVE_END
 
         // Behavior after self-move is implementation-defined
         // but should not crash

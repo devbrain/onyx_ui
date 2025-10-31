@@ -221,7 +221,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::optional<int>{},  // Label has no padding
                 .padding_vertical = std::optional<int>{},
-                .mnemonic_font = std::make_optional(theme.label.mnemonic_font)  // Label has mnemonics
+                .mnemonic_font = std::make_optional(theme.label.mnemonic_font),  // Label has mnemonics
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}  // Label has no submenu icons
             };
         }
 

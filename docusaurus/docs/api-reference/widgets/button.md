@@ -13,9 +13,10 @@ A button is a simple widget that the user can click to trigger an action. It can
 ## Key Features
 
 -   **Clickable:** The button emits a `clicked` signal when the user clicks on it.
+-   **Keyboard Activation:** When focused, the button can be activated via the Enter key (or any key bound to the `activate_focused` semantic action).
 -   **Text Label:** It can display a simple text label.
 -   **Themable:** The button's appearance can be customized using the `button_style` in the `ui_theme`.
--   **Stateful:** The button has different visual states for `normal`, `hover`, `pressed`, and `disabled`.
+-   **Stateful:** The button has different visual states for `normal`, `hover`, `pressed`, `disabled`, and `focused`.
 
 ## Usage
 
@@ -35,6 +36,26 @@ button->clicked().connect([]() {
 
 // Add the button to a parent container
 parent->add_child(std::move(button));
+```
+
+## Keyboard Interaction
+
+Buttons are focusable and can be activated using the keyboard:
+
+1. **Tab Navigation:** Press `Tab` to move focus between widgets until the button is focused.
+2. **Activation:** Press `Enter` (or any key bound to `activate_focused` in the current hotkey scheme) to trigger the button's `clicked` signal.
+3. **Visual Feedback:** When focused, the button displays the same visual state as when hovered.
+
+### Customizing Activation Key
+
+The activation key is configurable via hotkey schemes:
+
+```cpp
+// Users can customize which key activates focused buttons
+auto& schemes = ctx.hotkey_schemes();
+auto* scheme = schemes.get_scheme("Windows");
+scheme->set_binding(hotkey_action::activate_focused,
+                    parse_key_sequence("Space"));  // Use Space instead of Enter
 ```
 
 ## API Reference

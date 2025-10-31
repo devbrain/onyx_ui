@@ -72,6 +72,19 @@ namespace onyxui::conio {
             void put(int x, int y, int ch, color fg, color bg,
                      text_attribute attr = text_attribute::none);
 
+            /**
+             * @brief Darken a rectangular region for shadow effect
+             *
+             * @param shadow_rect Rectangle to darken
+             * @param factor Darkening factor (0.0 = black, 1.0 = unchanged)
+             *
+             * @details
+             * Multiplies the background color of each cell in the region by the factor.
+             * Used for rendering drop shadows on menus, dialogs, and tooltips.
+             * Respects clipping boundaries.
+             */
+            void darken_region(const rect& shadow_rect, float factor);
+
             [[nodiscard]] int get_width() const;
             [[nodiscard]] int get_height() const;
 

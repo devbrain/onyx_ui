@@ -243,6 +243,25 @@ namespace onyxui {
         ) = 0;
 
         /**
+         * @brief Draw shadow for popup elements (menus, dialogs, tooltips)
+         * @param widget_bounds Bounds of widget casting shadow
+         * @param offset_x Horizontal shadow offset (cells/pixels to the right)
+         * @param offset_y Vertical shadow offset (cells/pixels down)
+         *
+         * @details
+         * Creates classic DOS-style drop shadow effect by darkening background
+         * in shadow region (right and bottom margins). Backend determines
+         * rendering method (darkening factor, shading characters, etc.).
+         *
+         * Only called during rendering pass - measure_context can no-op this.
+         */
+        virtual void draw_shadow(
+            const rect_type& widget_bounds,
+            int offset_x,
+            int offset_y
+        ) = 0;
+
+        /**
          * @brief Check if context is in rendering mode
          * @return true for draw_context, false for measure_context
          *
@@ -642,7 +661,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::optional<int>{},
                 .padding_vertical = std::optional<int>{},
-                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
             } {
             // Member variables are default-initialized to zero
             size_utils::set_size(m_available_size, 0, 0);

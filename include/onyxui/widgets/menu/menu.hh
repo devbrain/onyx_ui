@@ -63,6 +63,7 @@
 #include <onyxui/widgets/menu/separator.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <onyxui/core/rendering/resolved_style.hh>
 
 namespace onyxui {
 
@@ -97,6 +98,7 @@ namespace onyxui {
         using renderer_type = typename Backend::renderer_type;
         using rect_type = typename Backend::rect_type;
         using size_type = typename Backend::size_type;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Construct an empty menu
@@ -377,6 +379,69 @@ namespace onyxui {
 
             // Don't call base implementation - we don't want the menu itself to handle clicks
             return false;
+        }
+
+        /**
+         * @brief Menu does NOT inherit colors from parent
+         * @return false - menu has its own distinct background and border colors
+         *
+         * @details
+         * Menus must use their own theme colors (white in NU8) and not inherit
+         * the parent window's background color. This ensures the menu popup
+         * has the correct background and border styling.
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Menu has distinct background (white in NU8)
+        }
+
+        /**
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with menu-specific theme values
+         *
+         * @details
+         * Uses menu.background for the dropdown background and menu.border_color
+         * for the box drawing border (black in NU8 theme).
+         * Separators get their color directly from theme.separator.foreground.
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            return resolved_style<Backend>{
+                .background_color = theme.menu.background,
+                .foreground_color = theme.menu.border_color,  // Used by box border
+                .border_color = theme.menu.border_color,
+                .box_style = theme.menu.box_style,
+                .font = theme.label.font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+            };
+        }
+
+        /**
+         * @brief Render menu with shadow effect
+         * @param ctx Render context
+         *
+         * @details
+         * Draws menu using base implementation, then adds drop shadow
+         * if enabled in theme.
+         */
+        void do_render(render_context<Backend>& ctx) const override {
+            // Draw menu normally
+            base::do_render(ctx);
+
+            // Draw shadow if enabled in theme
+            if (auto* theme = ctx.theme()) {
+                if (theme->menu.shadow.enabled) {
+                    ctx.draw_shadow(
+                        this->bounds(),
+                        theme->menu.shadow.offset_x,
+                        theme->menu.shadow.offset_y
+                    );
+                }
+            }
         }
 
         /**

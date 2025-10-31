@@ -283,6 +283,18 @@ namespace onyxui {
             void on_resize() {
                 // Stub for testing - no actual resize handling needed
             }
+
+            /**
+             * @brief Draw shadow for popup elements (stub for testing)
+             * @param widget_bounds Bounds of the widget casting the shadow
+             * @param offset_x Horizontal shadow offset
+             * @param offset_y Vertical shadow offset
+             */
+            void draw_shadow([[maybe_unused]] const rect& widget_bounds,
+                            [[maybe_unused]] int offset_x,
+                            [[maybe_unused]] int offset_y) {
+                // Stub for testing - no actual shadow drawing
+            }
         };
 
         // Simple event types for testing

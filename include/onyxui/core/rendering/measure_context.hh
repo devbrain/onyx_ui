@@ -272,6 +272,23 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw shadow (no-op during measurement)
+         * @param widget_bounds Widget bounds (unused)
+         * @param offset_x Horizontal offset (unused)
+         * @param offset_y Vertical offset (unused)
+         *
+         * @details
+         * Shadows don't affect widget measurement, so this is a no-op.
+         */
+        void draw_shadow(
+            [[maybe_unused]] const rect_type& widget_bounds,
+            [[maybe_unused]] int offset_x,
+            [[maybe_unused]] int offset_y
+        ) override {
+            // No-op: shadows don't affect measurement
+        }
+
+        /**
          * @brief Access underlying renderer
          * @return nullptr (no renderer during measurement)
          */

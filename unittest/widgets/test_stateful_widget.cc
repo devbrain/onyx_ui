@@ -796,12 +796,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Button integration with automatic state syncing") {
     test_button<Backend> btn("Test");
-    scoped_ui_context<Backend> ctx;
-    ctx.themes().register_theme(create_state_test_theme());
-//     btn.apply_theme("State Test", ctx.themes());  // No longer needed - widgets use global theme
+    scoped_ui_context<Backend> local_ctx;
+    local_ctx.themes().register_theme(create_state_test_theme());
+//     btn.apply_theme("State Test", local_ctx.themes());  // No longer needed - widgets use global theme
 
     // Get the registered theme
-    auto* test_theme_ptr = ctx.themes().get_theme("State Test");
+    auto* test_theme_ptr = local_ctx.themes().get_theme("State Test");
     if (!test_theme_ptr) {
         throw std::runtime_error("Theme not found!");
     }

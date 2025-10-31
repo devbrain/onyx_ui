@@ -54,6 +54,7 @@ namespace onyxui {
     template<UIBackend Backend> class focus_manager;
     template<UIBackend Backend> class input_manager;
     template<UIBackend Backend> class ui_handle;
+    template<UIBackend Backend> class ui_context;
 
     /**
      * @class event_target
@@ -99,6 +100,8 @@ namespace onyxui {
         friend class focus_manager<Backend>;
         // Allow ui_handle to access protected mouse event handlers
         friend class ui_handle<Backend>;
+        // Allow ui_context to access protected handle_click for semantic actions
+        friend class ui_context<Backend>;
 
         public:
             // Type aliases from backend
@@ -327,6 +330,13 @@ namespace onyxui {
              * @note Exception safety: No-throw guarantee (noexcept)
              */
             [[nodiscard]] bool is_enabled() const noexcept { return m_enabled; }
+
+            /**
+             * @brief Check if this target accepts keyboard keys as clicks
+             * @return True if Enter/Space (or keys bound to activate_focused) trigger clicks
+             * @note Exception safety: No-throw guarantee (noexcept)
+             */
+            [[nodiscard]] bool accepts_keys_as_click() const noexcept { return m_accept_keys_as_click; }
 
             /**
              * @brief Get the tab navigation order index

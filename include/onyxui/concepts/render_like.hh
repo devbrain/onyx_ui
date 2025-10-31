@@ -121,6 +121,10 @@ namespace onyxui {
         // Clearing method (for dirty rectangle support - stateless)
         { renderer.clear_region(rect, color) } -> std::same_as<void>;
 
+        // Shadow drawing (for popup elements like menus, dialogs, tooltips)
+        // Draws shadow margins to the right and bottom of widget_bounds
+        { renderer.draw_shadow(rect, 1, 1) } -> std::same_as<void>;
+
         // Clipping methods
         { renderer.push_clip(rect) } -> std::same_as<void>;
         { renderer.pop_clip() } -> std::same_as<void>;

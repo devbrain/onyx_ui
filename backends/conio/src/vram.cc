@@ -1,17 +1,18 @@
 //
 // Created by igor on 13/10/2025.
 //
+#include "onyxui/conio/geometry.hh"
 #ifdef _WIN32
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 
+#include <cstdint>
 #include <vector>
 #include <stdexcept>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 
 #include "vram.hh"
 
@@ -23,7 +24,7 @@ namespace onyxui::conio {
 
     using color_t = uint32_t;
 
-    constexpr std::uint32_t rgb24(std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept {
+    static constexpr std::uint32_t rgb24(std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept {
         return (static_cast <std::uint32_t>(r) << 16) |
                (static_cast <std::uint32_t>(g) << 8) |
                (static_cast <std::uint32_t>(b));
@@ -36,7 +37,7 @@ namespace onyxui::conio {
         uint32_t attr {0};  ///< Text attributes (termbox2 format)
     };
 
-    enum colorcap_t {
+    enum colorcap_t : uint8_t {
         COLORCAP_TRUECOLOR,
         COLORCAP_256,
         COLORCAP_ANSI
@@ -276,6 +277,42 @@ namespace onyxui::conio {
         c.fg = m_pimpl->m_mapper_fn(fg.r, fg.g, fg.b);
         c.bg = m_pimpl->m_mapper_fn(bg.r, bg.g, bg.b);
         c.attr = detail::to_tb_attr(attr);
+
+        m_pimpl->m_dirty = true;
+    }
+
+    void vram::darken_region(const rect& shadow_rect, float factor) {
+        // Helper to extract RGB from mapped color (works for all color modes)
+        auto extract_rgb = [](uint32_t mapped) -> color {
+            // For truecolor mode: rgb24(r,g,b) = (r<<16)|(g<<8)|b
+            // For 256/ANSI modes: approximate back to RGB (lossy but good enough)
+            uint8_t r = static_cast<uint8_t>((mapped >> 16) & 0xFF);
+            uint8_t g = static_cast<uint8_t>((mapped >> 8) & 0xFF);
+            uint8_t b = static_cast<uint8_t>(mapped & 0xFF);
+            return color{r, g, b};
+        };
+
+        // Darken each cell in the shadow region
+        for (int y = shadow_rect.y; y < shadow_rect.y + shadow_rect.h; ++y) {
+            for (int x = shadow_rect.x; x < shadow_rect.x + shadow_rect.w; ++x) {
+                if (!m_pimpl->clip(x, y)) {
+                    continue;  // Respect clipping
+                }
+
+                auto& c = m_pimpl->get_cell(x, y);
+
+                // Extract current background RGB
+                color bg = extract_rgb(c.bg);
+
+                // Darken by multiplying each component
+                uint8_t darkened_r = static_cast<uint8_t>(static_cast<float>(bg.r) * factor);
+                uint8_t darkened_g = static_cast<uint8_t>(static_cast<float>(bg.g) * factor);
+                uint8_t darkened_b = static_cast<uint8_t>(static_cast<float>(bg.b) * factor);
+
+                // Re-map to current color mode
+                c.bg = m_pimpl->m_mapper_fn(darkened_r, darkened_g, darkened_b);
+            }
+        }
 
         m_pimpl->m_dirty = true;
     }

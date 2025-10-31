@@ -48,8 +48,28 @@ ctx.hotkeys().register_semantic_action(
 
 ### Built-in Schemes
 
-- **Windows**: F10 for menu (standard modern UI convention)
-- **Norton Commander**: F9 for menu (classic DOS feel)
+- **Windows**: F10 for menu, Enter for activate_focused (standard modern UI convention)
+- **Norton Commander**: F9 for menu, Enter for activate_focused (classic DOS feel)
+
+### Semantic Actions
+
+Framework-level actions that are automatically handled:
+
+**Menu Navigation:**
+- `activate_menu_bar` - Open/close menu bar (F10 or F9)
+- `menu_up`, `menu_down`, `menu_left`, `menu_right` - Navigate menus
+- `menu_select` - Select menu item (Enter)
+- `menu_cancel` - Close menu (Escape)
+
+**Focus Management:**
+- `focus_next` - Tab to next widget (Tab)
+- `focus_previous` - Tab to previous widget (Shift+Tab)
+
+**Widget Activation:**
+- `activate_focused` - Activate currently focused widget (Enter)
+  - Automatically registered by `ui_context`
+  - Triggers click on focused buttons, checkbox toggles, etc.
+  - Configurable binding (users can bind any key)
 
 ### Custom Schemes
 

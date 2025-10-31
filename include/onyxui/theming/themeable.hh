@@ -456,7 +456,8 @@ namespace onyxui {
                     .icon_style = std::optional<icon_style_type>(std::nullopt),  // No icon by default
                     .padding_horizontal = std::optional<int>{},  // No padding by default
                     .padding_vertical = std::optional<int>{},
-                    .mnemonic_font = std::optional<font_type>{}  // No mnemonic by default
+                    .mnemonic_font = std::optional<font_type>{},  // No mnemonic by default
+                    .submenu_icon = std::optional<icon_style_type>{}  // No submenu icon by default
                 };
             }
 

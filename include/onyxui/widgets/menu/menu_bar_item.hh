@@ -68,7 +68,9 @@ namespace onyxui {
          */
         explicit menu_bar_item(std::string text = "", ui_element<Backend>* parent = nullptr)
             : base(parent), m_text(std::move(text)) {
-            this->set_focusable(true);  // Menu bar items are focusable
+            // NOTE: Menu bar items should NOT be in the Tab order
+            // They are only navigable when menu bar is activated via F10/F9
+            this->set_focusable(false);
             this->set_accept_keys_as_click(true);  // Enter/Space triggers click
         }
 
@@ -171,12 +173,11 @@ namespace onyxui {
             int const total_width = text_width + 2 * horizontal_padding;
             int const total_height = text_height + 2 * vertical_padding;
 
-            // Draw background if hovered or menu is open (for highlighting)
-            if (this->is_hovered() || m_is_menu_open) {
-                typename Backend::rect_type bg_rect;
-                rect_utils::set_bounds(bg_rect, x, y, total_width, total_height);
-                ctx.fill_rect(bg_rect);
-            }
+            // Always draw background (creates continuous stripe in menu bar)
+            // In Norton Utilities 8 style, all menu items contribute to the continuous white stripe
+            typename Backend::rect_type bg_rect;
+            rect_utils::set_bounds(bg_rect, x, y, total_width, total_height);
+            ctx.fill_rect(bg_rect);
 
             // Draw text with theme-configured padding
             int const text_x = x + horizontal_padding;
@@ -232,7 +233,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::make_optional(theme.menu_bar.item_padding_horizontal),  // Menu bar item has padding
                 .padding_vertical = std::make_optional(theme.menu_bar.item_padding_vertical),
-                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}  // Menu bar item has no mnemonics (unused)
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},  // Menu bar item has no mnemonics (unused)
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}  // Menu bar item has no submenu icons
             };
         }
 

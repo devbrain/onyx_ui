@@ -48,6 +48,7 @@
 
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/layout/layout_strategy.hh>
+#include <onyxui/core/rendering/resolved_style.hh>
 
 namespace onyxui {
 
@@ -170,6 +171,35 @@ namespace onyxui {
 
     protected:
         /**
+         * @brief Separator does NOT inherit colors from parent
+         * @return false - separator has its own color from theme
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Use separator-specific color from theme
+        }
+
+        /**
+         * @brief Get separator style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with separator foreground color
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            return resolved_style<Backend>{
+                .background_color = theme.menu.background,  // Same as menu background
+                .foreground_color = theme.separator.foreground,  // Separator-specific color (black in NU8)
+                .border_color = theme.border_color,
+                .box_style = typename Backend::renderer_type::box_style{},
+                .font = theme.label.font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+            };
+        }
+
+        /**
          * @brief Render the separator line
          */
         void do_render(render_context<Backend>& ctx) const override {
@@ -192,7 +222,7 @@ namespace onyxui {
             }
 
             // Draw line based on orientation
-            // Note: draw_context auto-syncs renderer state with resolved style
+            // Colors come from resolved style (foreground = separator color, background = menu background)
             if (m_orientation == orientation::horizontal) {
                 ctx.draw_horizontal_line(line_rect, line_style);
             } else {

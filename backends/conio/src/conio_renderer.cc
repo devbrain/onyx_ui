@@ -264,6 +264,34 @@ namespace onyxui::conio {
     }
 
     // ======================================================================
+    // Shadow Drawing
+    // ======================================================================
+
+    void conio_renderer::draw_shadow(const rect& widget_bounds, int offset_x, int offset_y) {
+        constexpr float SHADOW_DARKEN_FACTOR = 0.5f;  // Backend-specific constant
+
+        // Shadow to the right (vertical strip) - stops before corner to avoid double-darkening
+        rect shadow_right{
+            widget_bounds.x + widget_bounds.w,
+            widget_bounds.y + offset_y,
+            offset_x,
+            widget_bounds.h - offset_y  // Don't extend into corner
+        };
+
+        // Shadow at the bottom (horizontal strip) - includes corner area
+        rect shadow_bottom{
+            widget_bounds.x + offset_x,
+            widget_bounds.y + widget_bounds.h,
+            widget_bounds.w,
+            offset_y
+        };
+
+        // Darken both shadow regions (they don't overlap now)
+        m_pimpl->m_vram.darken_region(shadow_right, SHADOW_DARKEN_FACTOR);
+        m_pimpl->m_vram.darken_region(shadow_bottom, SHADOW_DARKEN_FACTOR);
+    }
+
+    // ======================================================================
     // Line Drawing
     // ======================================================================
 

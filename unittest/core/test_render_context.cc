@@ -30,7 +30,8 @@ inline resolved_style<Backend> make_default_style() {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 }
 
@@ -256,7 +257,8 @@ TEST_CASE("render_context - Style accessor returns resolved_style") {
             .icon_style = std::optional<Backend::renderer_type::icon_style>{},
             .padding_horizontal = std::optional<int>{},
             .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
         };
 
         measure_context<Backend> ctx(style);
@@ -277,7 +279,8 @@ TEST_CASE("render_context - Style accessor returns resolved_style") {
             .icon_style = std::optional<Backend::renderer_type::icon_style>{},
             .padding_horizontal = std::optional<int>{},
             .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
         };
 
         draw_context<Backend> ctx(renderer, style);
@@ -299,7 +302,8 @@ TEST_CASE("draw_context - Constructor accepts resolved_style") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     draw_context<Backend> ctx(renderer, style);
@@ -319,7 +323,8 @@ TEST_CASE("measure_context - Constructor accepts resolved_style") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     measure_context<Backend> ctx(style);
@@ -340,7 +345,8 @@ TEST_CASE("render_context - Style is passed to context") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     resolved_style<Backend> style2{
@@ -353,7 +359,8 @@ TEST_CASE("render_context - Style is passed to context") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     measure_context<Backend> ctx1(style1);
@@ -378,7 +385,8 @@ TEST_CASE("render_context - Style default construction") {
             .icon_style = std::optional<Backend::renderer_type::icon_style>{},
             .padding_horizontal = std::optional<int>{},
             .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
         };
         measure_context<Backend> ctx(style);
 
@@ -400,7 +408,8 @@ TEST_CASE("render_context - Style default construction") {
             .icon_style = std::optional<Backend::renderer_type::icon_style>{},
             .padding_horizontal = std::optional<int>{},
             .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+            .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
         };
         draw_context<Backend> ctx(renderer, style);
 
@@ -422,13 +431,14 @@ TEST_CASE("render_context - Style is copied on construction") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     measure_context<Backend> ctx(style);
 
-    // Create new style with different values
-    resolved_style<Backend> modified_style{
+    // Create new style with different values (intentionally unused to verify ctx doesn't reference it)
+    [[maybe_unused]] resolved_style<Backend> modified_style{
         .background_color = Backend::color_type{0, 0, 0},
         .foreground_color = Backend::color_type{255, 255, 255},
         .border_color = Backend::color_type{0, 0, 0},
@@ -438,7 +448,8 @@ TEST_CASE("render_context - Style is copied on construction") {
         .icon_style = std::optional<Backend::renderer_type::icon_style>{},
         .padding_horizontal = std::optional<int>{},
         .padding_vertical = std::optional<int>{},
-        .mnemonic_font = std::optional<Backend::renderer_type::font>{}
+        .mnemonic_font = std::optional<Backend::renderer_type::font>{},
+        .submenu_icon = std::optional<Backend::renderer_type::icon_style>{}
     };
 
     // Context should retain original values

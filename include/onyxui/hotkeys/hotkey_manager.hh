@@ -590,6 +590,53 @@ namespace onyxui {
         }
 
         /**
+         * @brief Check if a keyboard event matches a semantic action binding
+         * @param kbd The keyboard event to check
+         * @param action The semantic action to match against
+         * @return True if the event matches the action's bound key
+         *
+         * @details
+         * Checks if the given keyboard event matches the key binding for the
+         * specified semantic action in the current hotkey scheme.
+         *
+         * **Usage:**
+         * This allows widgets to check if a key press corresponds to a semantic
+         * action without hardcoding specific keys.
+         *
+         * @example
+         * @code
+         * if (hotkeys->matches_action(kbd, hotkey_action::activate_focused)) {
+         *     trigger_button_click();
+         * }
+         * @endcode
+         */
+        [[nodiscard]] bool matches_action(const keyboard_event& kbd, hotkey_action action) const {
+            if (!m_scheme_registry) {
+                return false;  // No scheme registry, can't check bindings
+            }
+
+            // Get the current scheme's binding for this action
+            auto* scheme = m_scheme_registry->get_current_scheme();
+            if (!scheme) {
+                return false;  // No active scheme
+            }
+
+            auto binding_opt = scheme->get_binding(action);
+            if (!binding_opt) {
+                return false;  // Action not bound in current scheme
+            }
+
+            const auto& bound_seq = *binding_opt;
+
+            // Match key code and modifiers
+            if (bound_seq.empty()) {
+                return false;
+            }
+
+            return (bound_seq.key == kbd.key && bound_seq.modifiers == kbd.modifiers);
+        }
+
+        /**
          * @brief Check if a key sequence is registered
          *
          * @param seq The key sequence to check

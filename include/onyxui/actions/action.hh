@@ -347,6 +347,8 @@ namespace onyxui {
              * an exclusive action group, checking it will uncheck other actions
              * in the group.
              *
+             * **Implementation:** Defined at end of file or in action_impl.hh
+             *
              * **Exception Safety:** No-throw guarantee (noexcept)
              *
              * @example
@@ -355,7 +357,7 @@ namespace onyxui {
              * left_align->set_checked(true);   // Select left alignment (unchecks others in group)
              * @endcode
              */
-            void set_checked(bool checked) noexcept;  // Implemented after action_group definition
+            void set_checked(bool checked) noexcept;
 
             /**
              * @brief Check if action is checked
@@ -543,25 +545,6 @@ namespace onyxui {
 
 } // namespace onyxui
 
-// Include action_group to complete the action implementation
-#include <onyxui/actions/action_group.hh>
-
-namespace onyxui {
-    // Implementation of set_checked (needs action_group definition)
-    template<UIBackend Backend>
-    inline void action<Backend>::set_checked(bool checked) noexcept {
-        if (!m_checkable) return;  // Only checkable actions can be checked
-
-        if (m_checked != checked) {
-            m_checked = checked;
-            checked_changed.emit(checked);
-
-            // Notify action group if this action is being checked
-            if (checked) {
-                if (auto group = m_group.lock()) {
-                    group->on_action_checked(this->shared_from_this());
-                }
-            }
-        }
-    }
-} // namespace onyxui
+// Include implementation that requires both action and action_group
+// This is placed at the end to break circular dependency
+#include <onyxui/actions/action_impl.hh>

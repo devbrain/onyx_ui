@@ -30,7 +30,7 @@ TEST_SUITE("Theme - Layout Integration") {
         scoped_ui_context<Backend> ctx;
 
         template<typename Widget>
-        void apply_default_theme(Widget& w) {
+        void apply_default_theme([[maybe_unused]] Widget& w) {
             // Use v2.0 by-name API (recommended)
 //             w.apply_theme("Test Theme", ctx.themes());  // No longer needed - widgets use global theme
         }

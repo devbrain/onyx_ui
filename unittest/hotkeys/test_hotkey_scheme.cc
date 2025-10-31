@@ -478,8 +478,9 @@ TEST_SUITE("Hotkey Scheme") {
         CHECK(scheme.has_binding(hotkey_action::menu_cancel));
         CHECK(scheme.has_binding(hotkey_action::focus_next));
         CHECK(scheme.has_binding(hotkey_action::focus_previous));
+        CHECK(scheme.has_binding(hotkey_action::activate_focused));
 
-        CHECK(scheme.binding_count() == 9);
+        CHECK(scheme.binding_count() == 10);
     }
 
     TEST_CASE("builtin_hotkey_schemes - Norton Commander scheme") {
@@ -494,6 +495,6 @@ TEST_SUITE("Hotkey Scheme") {
         CHECK(function_key_to_number(menu_key->key) == 9);
 
         // Should have same number of bindings as Windows scheme
-        CHECK(scheme.binding_count() == 9);
+        CHECK(scheme.binding_count() == 10);
     }
 }

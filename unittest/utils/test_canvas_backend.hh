@@ -390,6 +390,18 @@ namespace onyxui::testing {
             // No-op for test canvas (size is fixed at construction)
         }
 
+        /**
+         * @brief Draw shadow for popup elements (stub for testing)
+         * @param widget_bounds Bounds of the widget casting the shadow
+         * @param offset_x Horizontal shadow offset
+         * @param offset_y Vertical shadow offset
+         */
+        void draw_shadow([[maybe_unused]] const canvas_rect& widget_bounds,
+                        [[maybe_unused]] int offset_x,
+                        [[maybe_unused]] int offset_y) {
+            // Stub for testing - no actual shadow drawing in canvas backend
+        }
+
     private:
         std::shared_ptr<test_canvas> m_canvas;
         std::stack<canvas_rect> m_clip_stack;

@@ -63,11 +63,14 @@
 #include <vector>
 #include <memory>
 #include <optional>
-#include <onyxui/widgets/containers/hbox.hh>
+#include <onyxui/widgets/core/widget_container.hh>
+#include <onyxui/layout/linear_layout.hh>
+#include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/widgets/menu/menu.hh>
 #include <onyxui/widgets/menu/menu_bar_item.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/core/raii/scoped_layer.hh>
+#include <onyxui/core/rendering/resolved_style.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/widgets/menu/menu_system.hh>
@@ -97,6 +100,7 @@ namespace onyxui {
      *
      * @details
      * Menu bar manages top-level menu titles and their associated dropdowns.
+     * Inherits from widget_container and uses horizontal linear_layout.
      * It handles:
      * - Horizontal layout of menu titles
      * - Opening/closing dropdown menus
@@ -115,21 +119,36 @@ namespace onyxui {
      * Dropdown menus are not children - they're shown as overlays/popups.
      */
     template<UIBackend Backend>
-    class menu_bar : public hbox<Backend> {
+    class menu_bar : public widget_container<Backend> {
     public:
-        using base = hbox<Backend>;
+        using base = widget_container<Backend>;
         using renderer_type = typename Backend::renderer_type;
         using rect_type = typename Backend::rect_type;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Construct an empty menu bar
          * @param parent Parent element
          */
         explicit menu_bar(ui_element<Backend>* parent = nullptr)
-            : base(1, horizontal_alignment::left, vertical_alignment::top, parent)  // 1px spacing between menu items
+            : base(parent)
+            , m_spacing(0)
+            , m_h_align(horizontal_alignment::left)
+            , m_v_align(vertical_alignment::top)
             , m_open_menu_index(std::nullopt)
             , m_menu_system(this) {  // Phase 4: Initialize menu_system with this pointer
-            this->set_focusable(true);
+
+            // Set up horizontal layout strategy
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::horizontal, m_spacing, m_h_align, m_v_align));
+
+            // Menu bar should expand to fill parent width (creates continuous stripe)
+            this->set_width_constraint({size_policy::expand});
+
+            // NOTE: Menu bar should NOT be in Tab order
+            // It's activated via F10/F9 semantic action, not Tab navigation
+            this->set_focusable(false);
             initialize_hotkeys();
         }
 
@@ -334,8 +353,59 @@ namespace onyxui {
             }
         }
 
+        /**
+         * @brief Set spacing between menu items
+         * @param spacing New spacing in pixels
+         */
+        void set_spacing(int spacing) {
+            if (m_spacing != spacing) {
+                m_spacing = spacing;
+                recreate_layout();
+            }
+        }
+
+        /**
+         * @brief Get current spacing between menu items
+         * @return Spacing in pixels
+         */
+        [[nodiscard]] int spacing() const noexcept { return m_spacing; }
 
     protected:
+        /**
+         * @brief Menu bar does NOT inherit colors from parent
+         * @return false - menu bar has its own distinct background color
+         *
+         * @details
+         * Menu bar must use its own theme colors (white stripe) and not inherit
+         * the parent's background color (which is typically black window background).
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Menu bar has distinct background (white stripe in NU8)
+        }
+
+        /**
+         * @brief Get complete widget style from theme
+         * @param theme Theme to extract properties from
+         * @return Resolved style with menu_bar background (same as menu_bar_item normal)
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
+            // Menu bar uses the same background as normal menu bar items
+            // This creates the continuous stripe effect (Norton Utilities 8 style)
+            return resolved_style<Backend>{
+                .background_color = theme.menu_bar_item.normal.background,
+                .foreground_color = theme.text_fg,
+                .border_color = theme.border_color,
+                .box_style = typename Backend::renderer_type::box_style{},
+                .font = theme.label.font,
+                .opacity = 1.0f,
+                .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+                .padding_horizontal = std::optional<int>{},
+                .padding_vertical = std::optional<int>{},
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+            };
+        }
+
         /**
          * @brief Handle keyboard events
          *
@@ -379,11 +449,45 @@ namespace onyxui {
             );
         }
 
+        /**
+         * @brief Render menu bar, updating spacing from theme if needed
+         * @param ctx Render context (provides access to current theme)
+         */
+        void do_render(render_context<Backend>& ctx) const override {
+            // Update spacing from theme before rendering
+            if (auto* theme = ctx.theme()) {
+                int theme_spacing = theme->menu_bar.item_spacing;
+                if (theme_spacing != m_spacing) {
+                    // Need to update spacing - cast away const (spacing is mutable layout state)
+                    const_cast<menu_bar*>(this)->set_spacing(theme_spacing);
+                }
+            }
+
+            // Draw continuous background stripe (Norton Utilities 8 style)
+            // This fills the entire menu bar width, creating a continuous colored bar
+            ctx.fill_rect(this->bounds());
+
+            // Render children on top of background
+            base::do_render(ctx);
+        }
+
     private:
-        std::vector<menu_entry<Backend>> m_menus;  ///< Menu entries with owned dropdown menus
-        std::optional<std::size_t> m_open_menu_index;  ///< Currently open menu
-        scoped_layer<Backend> m_current_menu;      ///< Current menu popup (RAII cleanup)
-        menu_system<Backend> m_menu_system;        ///< Centralized menu navigation coordinator (Phase 4)
+        /**
+         * @brief Recreate the layout strategy with current settings
+         */
+        void recreate_layout() {
+            auto new_layout = std::make_unique<linear_layout<Backend>>(
+                direction::horizontal, m_spacing, m_h_align, m_v_align);
+            this->set_layout_strategy(std::move(new_layout));
+        }
+
+        int m_spacing;                                 ///< Spacing between menu items (from theme)
+        horizontal_alignment m_h_align;               ///< Horizontal alignment for items
+        vertical_alignment m_v_align;                 ///< Vertical alignment for items
+        std::vector<menu_entry<Backend>> m_menus;     ///< Menu entries with owned dropdown menus
+        std::optional<std::size_t> m_open_menu_index; ///< Currently open menu
+        scoped_layer<Backend> m_current_menu;         ///< Current menu popup (RAII cleanup)
+        menu_system<Backend> m_menu_system;           ///< Centralized menu navigation coordinator (Phase 4)
     };
 
 } // namespace onyxui

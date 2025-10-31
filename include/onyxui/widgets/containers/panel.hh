@@ -127,7 +127,8 @@ namespace onyxui {
                 .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
                 .padding_horizontal = std::optional<int>{},  // Panel has no padding
                 .padding_vertical = std::optional<int>{},
-                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{}  // Panel has no mnemonics
+                .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},  // Panel has no mnemonics
+                .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}  // Panel has no submenu icons
             };
         }
 

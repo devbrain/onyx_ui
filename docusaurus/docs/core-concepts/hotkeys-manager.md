@@ -177,6 +177,9 @@ enum class hotkey_action : uint8_t {
     focus_next,         // Tab to next widget
     focus_previous,     // Shift+Tab to previous
 
+    // Widget activation
+    activate_focused,   // Activate currently focused widget (Enter)
+
     // Dialog actions
     dialog_ok,          // Confirm (Enter)
     dialog_cancel,      // Cancel (Esc)
@@ -190,6 +193,16 @@ enum class hotkey_action : uint8_t {
     select_all,        // Ctrl+A
 };
 ```
+
+### Global Semantic Actions
+
+Some semantic actions are automatically registered by the framework:
+
+**`activate_focused`** - Registered by `ui_context` to trigger clicks on focused widgets:
+- Default binding: Enter key
+- Triggers `handle_click(0, 0)` on focused widget
+- Only activates widgets with `accepts_keys_as_click()` enabled (e.g., buttons)
+- Configurable via hotkey schemes - users can bind any key to activate focused widgets
 
 ### Registering Semantic Handlers
 
