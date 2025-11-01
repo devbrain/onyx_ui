@@ -185,6 +185,40 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get mnemonic foreground color for current state
+         *
+         * @tparam WidgetTheme Widget-specific theme structure type
+         * @param widget_theme The widget theme (e.g., theme.button)
+         * @return Mnemonic foreground color appropriate for current state
+         *
+         * @details
+         * Expects the widget theme to have visual_state bundles with mnemonic_foreground:
+         * - normal.mnemonic_foreground, hover.mnemonic_foreground, etc.
+         *
+         * Uses `get_effective_state()` which considers both mouse interaction
+         * state AND keyboard focus, so focused widgets show hover state.
+         *
+         * @example
+         * @code
+         * auto mnemonic_fg = get_state_mnemonic_foreground(theme->button);
+         * @endcode
+         */
+        template<typename WidgetTheme>
+        [[nodiscard]] color_type get_state_mnemonic_foreground(const WidgetTheme& widget_theme) const noexcept {
+            switch (get_effective_state()) {
+                case interaction_state::disabled:
+                    return widget_theme.disabled.mnemonic_foreground;
+                case interaction_state::pressed:
+                    return widget_theme.pressed.mnemonic_foreground;
+                case interaction_state::hover:
+                    return widget_theme.hover.mnemonic_foreground;
+                case interaction_state::normal:
+                default:
+                    return widget_theme.normal.mnemonic_foreground;
+            }
+        }
+
+        /**
          * @brief Get font for current state
          *
          * @tparam WidgetTheme Widget-specific theme structure type

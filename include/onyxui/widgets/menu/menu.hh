@@ -408,6 +408,7 @@ namespace onyxui {
             return resolved_style<Backend>{
                 .background_color = theme.menu.background,
                 .foreground_color = theme.menu.border_color,  // Used by box border
+                .mnemonic_foreground = theme.text_fg,  // Mnemonics same as text (menu container has no mnemonics)
                 .border_color = theme.menu.border_color,
                 .box_style = theme.menu.box_style,
                 .font = theme.label.font,

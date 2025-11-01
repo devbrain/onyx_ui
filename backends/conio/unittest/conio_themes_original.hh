@@ -96,22 +96,26 @@ namespace onyxui::conio {
             theme.button.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 255},  // White
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{255, 255, 255}  // Same as foreground (backward compat)
             };
             theme.button.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 0},    // Yellow
-                .background = color{0, 0, 255}       // Bright blue
+                .background = color{0, 0, 255},      // Bright blue
+                .mnemonic_foreground = color{255, 255, 0}  // Same as foreground (backward compat)
             };
             theme.button.pressed = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},        // Black
-                .background = color{170, 170, 170}   // Light gray
+                .background = color{170, 170, 170},  // Light gray
+                .mnemonic_foreground = color{0, 0, 0}  // Same as foreground (backward compat)
             };
             theme.button.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},     // Dark gray
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (backward compat)
             };
             theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
@@ -145,22 +149,26 @@ namespace onyxui::conio {
             theme.menu_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 255},  // White
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{255, 255, 255}  // Same as foreground (backward compat)
             };
             theme.menu_item.highlighted = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
                 .foreground = color{255, 255, 0},    // Yellow
-                .background = color{0, 0, 255}       // Bright blue
+                .background = color{0, 0, 255},      // Bright blue
+                .mnemonic_foreground = color{255, 255, 0}  // Same as foreground (backward compat)
             };
             theme.menu_item.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},     // Dark gray
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (backward compat)
             };
             theme.menu_item.shortcut = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{170, 170, 170},  // Gray (dimmed)
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{170, 170, 170}  // Same as foreground (shortcuts don't have mnemonics)
             };
             theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_item.padding_horizontal = 8;
@@ -170,17 +178,20 @@ namespace onyxui::conio {
             theme.menu_bar_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 255},  // White
-                .background = color{0, 0, 170}       // Dark blue
+                .background = color{0, 0, 170},      // Dark blue
+                .mnemonic_foreground = color{255, 255, 255}  // Same as foreground (backward compat)
             };
             theme.menu_bar_item.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 0},    // Yellow
-                .background = color{0, 0, 255}       // Bright blue
+                .background = color{0, 0, 255},      // Bright blue
+                .mnemonic_foreground = color{255, 255, 0}  // Same as foreground (backward compat)
             };
             theme.menu_bar_item.open = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
                 .foreground = color{0, 0, 0},        // Black
-                .background = color{0, 255, 255}     // Cyan
+                .background = color{0, 255, 255},    // Cyan
+                .mnemonic_foreground = color{0, 0, 0}  // Same as foreground (backward compat)
             };
             theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_bar_item.padding_horizontal = 4;
@@ -207,22 +218,26 @@ namespace onyxui::conio {
             theme.button.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{170, 170, 170}  // Light gray
+                .background = color{170, 170, 170},  // Light gray
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.button.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 255},
-                .background = color{0, 85, 85}
+                .background = color{0, 85, 85},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.button.pressed = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.button.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}
             };
             theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
@@ -256,22 +271,26 @@ namespace onyxui::conio {
             theme.menu_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{0, 170, 170}    // Cyan
+                .background = color{0, 170, 170},   // Cyan
+                .mnemonic_foreground = color{0, 0, 0}  // Same as foreground (backward compat)
             };
             theme.menu_item.highlighted = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
                 .foreground = color{255, 255, 255},
-                .background = color{0, 85, 85}
+                .background = color{0, 85, 85},
+                .mnemonic_foreground = color{255, 255, 255}  // Same as foreground (backward compat)
             };
             theme.menu_item.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},
-                .background = color{0, 170, 170}
+                .background = color{0, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (backward compat)
             };
             theme.menu_item.shortcut = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},    // Dark gray (dimmed)
-                .background = color{0, 170, 170}
+                .background = color{0, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (shortcuts don't have mnemonics)
             };
             theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_item.padding_horizontal = 8;
@@ -281,17 +300,20 @@ namespace onyxui::conio {
             theme.menu_bar_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{0, 170, 170}    // Cyan
+                .background = color{0, 170, 170},   // Cyan
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.menu_bar_item.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 255},
-                .background = color{0, 85, 85}
+                .background = color{0, 85, 85},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.menu_bar_item.open = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_bar_item.padding_horizontal = 4;
@@ -318,22 +340,26 @@ namespace onyxui::conio {
             theme.button.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{0, 170, 170}    // Cyan
+                .background = color{0, 170, 170},   // Cyan
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.button.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 255},
-                .background = color{0, 85, 85}
+                .background = color{0, 85, 85},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.button.pressed = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{255, 255, 0}
+                .background = color{255, 255, 0},
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.button.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},
-                .background = color{0, 170, 170}
+                .background = color{0, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}
             };
             theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
@@ -367,22 +393,26 @@ namespace onyxui::conio {
             theme.menu_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 85},   // Light yellow
-                .background = color{0, 0, 85}        // Dark blue
+                .background = color{0, 0, 85},       // Dark blue
+                .mnemonic_foreground = color{255, 255, 85}  // Same as foreground (backward compat)
             };
             theme.menu_item.highlighted = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
                 .foreground = color{255, 255, 0},    // Bright yellow
-                .background = color{0, 0, 170}       // Brighter blue
+                .background = color{0, 0, 170},      // Brighter blue
+                .mnemonic_foreground = color{255, 255, 0}  // Same as foreground (backward compat)
             };
             theme.menu_item.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},     // Dark gray
-                .background = color{0, 0, 85}
+                .background = color{0, 0, 85},
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (backward compat)
             };
             theme.menu_item.shortcut = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{170, 170, 170},  // Gray (dimmed)
-                .background = color{0, 0, 85}
+                .background = color{0, 0, 85},
+                .mnemonic_foreground = color{170, 170, 170}  // Same as foreground (shortcuts don't have mnemonics)
             };
             theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_item.padding_horizontal = 8;
@@ -392,17 +422,20 @@ namespace onyxui::conio {
             theme.menu_bar_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{255, 255, 85},   // Light yellow
-                .background = color{0, 0, 85}        // Dark blue
+                .background = color{0, 0, 85},       // Dark blue
+                .mnemonic_foreground = color{255, 255, 85}
             };
             theme.menu_bar_item.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 0},    // Bright yellow
-                .background = color{0, 0, 170}
+                .background = color{0, 0, 170},
+                .mnemonic_foreground = color{255, 255, 0}
             };
             theme.menu_bar_item.open = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
                 .foreground = color{0, 0, 0},        // Black
-                .background = color{255, 255, 0}     // Bright yellow
+                .background = color{255, 255, 0},    // Bright yellow
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_bar_item.padding_horizontal = 4;
@@ -429,22 +462,26 @@ namespace onyxui::conio {
             theme.button.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.button.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.button.pressed = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{255, 255, 255}
+                .background = color{255, 255, 255},
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.button.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}
             };
             theme.button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
@@ -478,22 +515,26 @@ namespace onyxui::conio {
             theme.menu_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{170, 170, 170}   // Light gray
+                .background = color{170, 170, 170},  // Light gray
+                .mnemonic_foreground = color{0, 0, 0}  // Same as foreground (backward compat)
             };
             theme.menu_item.highlighted = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when selected
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}  // Same as foreground (backward compat)
             };
             theme.menu_item.disabled = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},     // Dark gray
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (backward compat)
             };
             theme.menu_item.shortcut = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{85, 85, 85},     // Dark gray (dimmed)
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{85, 85, 85}  // Same as foreground (shortcuts don't have mnemonics)
             };
             theme.menu_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_item.padding_horizontal = 8;
@@ -503,17 +544,20 @@ namespace onyxui::conio {
             theme.menu_bar_item.normal = {
                 .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
                 .foreground = color{0, 0, 0},
-                .background = color{170, 170, 170}   // Light gray
+                .background = color{170, 170, 170},  // Light gray
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.menu_bar_item.hover = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold on hover
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             };
             theme.menu_bar_item.open = {
                 .font = conio_renderer::font{.bold = true, .underline = false, .reverse = false},  // Bold when open
                 .foreground = color{0, 0, 0},
-                .background = color{255, 255, 255}
+                .background = color{255, 255, 255},
+                .mnemonic_foreground = color{0, 0, 0}
             };
             theme.menu_bar_item.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
             theme.menu_bar_item.padding_horizontal = 4;

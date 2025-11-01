@@ -83,6 +83,16 @@ namespace onyxui {
         };
 
         /**
+         * @brief Strong type for mnemonic foreground color
+         */
+        struct mnemonic_foreground_t {
+            color_type value;
+            mnemonic_foreground_t() = delete;
+            mnemonic_foreground_t(color_type c) : value(c) {}
+            operator const color_type&() const { return value; }
+        };
+
+        /**
          * @brief Strong type for border color
          */
         struct border_color_t {
@@ -181,13 +191,14 @@ namespace onyxui {
         // Visual Properties (Inherited, Always Present)
         // ===================================================================
 
-        background_color_t background_color;   ///< Background color (not inherited in CSS)
-        foreground_color_t foreground_color;   ///< Text/foreground color (inherited)
-        border_color_t border_color;           ///< Border color (inherited)
-        box_style_t box_style;                 ///< Border style (not inherited in CSS)
-        font_t font;                           ///< Font (inherited)
-        opacity_t opacity;                     ///< Opacity 0.0-1.0 (multiplicative, inherited)
-        icon_style_t icon_style;               ///< Icon rendering style (inherited, optional)
+        background_color_t background_color;           ///< Background color (not inherited in CSS)
+        foreground_color_t foreground_color;           ///< Text/foreground color (inherited)
+        mnemonic_foreground_t mnemonic_foreground;     ///< Mnemonic character color (inherited)
+        border_color_t border_color;                   ///< Border color (inherited)
+        box_style_t box_style;                         ///< Border style (not inherited in CSS)
+        font_t font;                                   ///< Font (inherited)
+        opacity_t opacity;                             ///< Opacity 0.0-1.0 (multiplicative, inherited)
+        icon_style_t icon_style;                       ///< Icon rendering style (inherited, optional)
 
         // ===================================================================
         // Layout Properties (Widget-Specific, Optional, Not Inherited)
@@ -231,6 +242,7 @@ namespace onyxui {
             return resolved_style{
                 .background_color = theme.window_bg,
                 .foreground_color = theme.text_fg,
+                .mnemonic_foreground = theme.text_fg,    // Default to same as foreground
                 .border_color = theme.border_color,
                 .box_style = theme.panel.box_style,     // Default to panel style
                 .font = theme.label.font,                // Default to label font
@@ -256,6 +268,7 @@ namespace onyxui {
         bool operator==(const resolved_style& other) const noexcept {
             return background_color.value == other.background_color.value
                 && foreground_color.value == other.foreground_color.value
+                && mnemonic_foreground.value == other.mnemonic_foreground.value
                 && border_color.value == other.border_color.value
                 && box_style.value == other.box_style.value
                 && font.value == other.font.value
@@ -286,6 +299,7 @@ namespace onyxui {
             return resolved_style{
                 .background_color = background_color.value,
                 .foreground_color = foreground_color.value,
+                .mnemonic_foreground = mnemonic_foreground.value,
                 .border_color = border_color.value,
                 .box_style = box_style.value,
                 .font = font.value,
@@ -293,7 +307,8 @@ namespace onyxui {
                 .icon_style = icon_style.value,
                 .padding_horizontal = padding_horizontal.value,
                 .padding_vertical = padding_vertical.value,
-                .mnemonic_font = mnemonic_font.value
+                .mnemonic_font = mnemonic_font.value,
+                .submenu_icon = submenu_icon.value
             };
         }
 

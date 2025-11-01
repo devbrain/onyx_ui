@@ -214,6 +214,7 @@ namespace onyxui {
             return resolved_style<Backend>{
                 .background_color = theme.label.background,
                 .foreground_color = theme.label.text,
+                .mnemonic_foreground = theme.label.text,  // Mnemonics same as text (non-stateful widget)
                 .border_color = theme.label.text,  // Use text color for border
                 .box_style = theme.panel.box_style,  // Labels use panel box style
                 .font = theme.label.font,

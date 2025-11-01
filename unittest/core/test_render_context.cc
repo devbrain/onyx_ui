@@ -23,6 +23,7 @@ inline resolved_style<Backend> make_default_style() {
     return resolved_style<Backend>{
         .background_color = Backend::color_type{},
         .foreground_color = Backend::color_type{},
+        .mnemonic_foreground = Backend::color_type{},
         .border_color = Backend::color_type{},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -250,6 +251,7 @@ TEST_CASE("render_context - Style accessor returns resolved_style") {
         resolved_style<Backend> style{
             .background_color = Backend::color_type{0, 255, 0},
             .foreground_color = Backend::color_type{255, 0, 0},
+            .mnemonic_foreground = Backend::color_type{255, 0, 0},
             .border_color = Backend::color_type{0, 0, 0},
             .box_style = Backend::renderer_type::box_style{},
             .font = Backend::renderer_type::font{},
@@ -272,6 +274,7 @@ TEST_CASE("render_context - Style accessor returns resolved_style") {
         resolved_style<Backend> style{
             .background_color = Backend::color_type{200, 200, 200},
             .foreground_color = Backend::color_type{100, 100, 100},
+            .mnemonic_foreground = Backend::color_type{100, 100, 100},
             .border_color = Backend::color_type{0, 0, 0},
             .box_style = Backend::renderer_type::box_style{},
             .font = Backend::renderer_type::font{},
@@ -295,6 +298,7 @@ TEST_CASE("draw_context - Constructor accepts resolved_style") {
     resolved_style<Backend> style{
         .background_color = Backend::color_type{0, 0, 0},
         .foreground_color = Backend::color_type{100, 100, 100},
+        .mnemonic_foreground = Backend::color_type{100, 100, 100},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -316,6 +320,7 @@ TEST_CASE("measure_context - Constructor accepts resolved_style") {
     resolved_style<Backend> style{
         .background_color = Backend::color_type{200, 200, 200},
         .foreground_color = Backend::color_type{50, 50, 50},
+        .mnemonic_foreground = Backend::color_type{50, 50, 50},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -338,6 +343,7 @@ TEST_CASE("render_context - Style is passed to context") {
     resolved_style<Backend> style1{
         .background_color = Backend::color_type{50, 50, 50},
         .foreground_color = Backend::color_type{100, 100, 100},
+        .mnemonic_foreground = Backend::color_type{100, 100, 100},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -352,6 +358,7 @@ TEST_CASE("render_context - Style is passed to context") {
     resolved_style<Backend> style2{
         .background_color = Backend::color_type{150, 150, 150},
         .foreground_color = Backend::color_type{200, 200, 200},
+        .mnemonic_foreground = Backend::color_type{200, 200, 200},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -378,6 +385,7 @@ TEST_CASE("render_context - Style default construction") {
         resolved_style<Backend> style{
             .background_color = Backend::color_type{0, 0, 0},
             .foreground_color = Backend::color_type{0, 0, 0},
+            .mnemonic_foreground = Backend::color_type{0, 0, 0},
             .border_color = Backend::color_type{0, 0, 0},
             .box_style = Backend::renderer_type::box_style{},
             .font = Backend::renderer_type::font{},
@@ -401,6 +409,7 @@ TEST_CASE("render_context - Style default construction") {
         resolved_style<Backend> style{
             .background_color = Backend::color_type{0, 0, 0},
             .foreground_color = Backend::color_type{0, 0, 0},
+            .mnemonic_foreground = Backend::color_type{0, 0, 0},
             .border_color = Backend::color_type{0, 0, 0},
             .box_style = Backend::renderer_type::box_style{},
             .font = Backend::renderer_type::font{},
@@ -424,6 +433,7 @@ TEST_CASE("render_context - Style is copied on construction") {
     resolved_style<Backend> style{
         .background_color = Backend::color_type{0, 0, 0},
         .foreground_color = Backend::color_type{123, 45, 67},
+        .mnemonic_foreground = Backend::color_type{123, 45, 67},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},
@@ -441,6 +451,7 @@ TEST_CASE("render_context - Style is copied on construction") {
     [[maybe_unused]] resolved_style<Backend> modified_style{
         .background_color = Backend::color_type{0, 0, 0},
         .foreground_color = Backend::color_type{255, 255, 255},
+        .mnemonic_foreground = Backend::color_type{255, 255, 255},
         .border_color = Backend::color_type{0, 0, 0},
         .box_style = Backend::renderer_type::box_style{},
         .font = Backend::renderer_type::font{},

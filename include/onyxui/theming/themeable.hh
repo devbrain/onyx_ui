@@ -340,6 +340,7 @@ namespace onyxui {
                     if (m_icon_style_override) style.icon_style = std::make_optional(*m_icon_style_override);
                     style.opacity = get_effective_opacity(parent_style);
                     style.border_color = style.foreground_color.value;
+                    style.mnemonic_foreground = parent_style.mnemonic_foreground.value;
                     return style;
                 }
 
@@ -356,6 +357,7 @@ namespace onyxui {
                 if (should_inherit_colors()) {
                     style.background_color = parent_style.background_color.value;
                     style.foreground_color = parent_style.foreground_color.value;
+                    style.mnemonic_foreground = parent_style.mnemonic_foreground.value;
                 }
                 // box_style is NOT inherited (borders don't inherit in CSS)
                 // style.box_style = parent_style.box_style.value;  // REMOVED - breaks CSS compliance
@@ -449,6 +451,7 @@ namespace onyxui {
                 return resolved_style<Backend>{
                     .background_color = theme.window_bg,
                     .foreground_color = theme.text_fg,
+                    .mnemonic_foreground = theme.text_fg,  // Default to same as foreground
                     .border_color = theme.border_color,
                     .box_style = theme.panel.box_style,   // Default to panel
                     .font = theme.label.font,              // Default to label

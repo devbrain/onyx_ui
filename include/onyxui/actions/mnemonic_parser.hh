@@ -259,7 +259,8 @@ namespace onyxui {
                     if (!current_segment.empty()) {
                         result.text.push_back(text_segment<Backend>{
                             std::move(current_segment),
-                            normal_font
+                            normal_font,
+                            false  // Not a mnemonic
                         });
                         current_segment.clear();
                     }
@@ -267,7 +268,8 @@ namespace onyxui {
                     // Add mnemonic character with mnemonic font
                     result.text.push_back(text_segment<Backend>{
                         std::string(1, mnemonic),
-                        mnemonic_font
+                        mnemonic_font,
+                        true  // This IS a mnemonic
                     });
 
                     // Store mnemonic (normalized to lowercase)
@@ -292,7 +294,8 @@ namespace onyxui {
         if (!current_segment.empty()) {
             result.text.push_back(text_segment<Backend>{
                 std::move(current_segment),
-                normal_font
+                normal_font,
+                false  // Not a mnemonic
             });
         }
 
@@ -300,7 +303,8 @@ namespace onyxui {
         if (result.text.empty()) {
             result.text.push_back(text_segment<Backend>{
                 std::string(input),
-                normal_font
+                normal_font,
+                false  // Not a mnemonic
             });
         }
 

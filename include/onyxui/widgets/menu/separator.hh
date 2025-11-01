@@ -187,6 +187,7 @@ namespace onyxui {
             return resolved_style<Backend>{
                 .background_color = theme.menu.background,  // Same as menu background
                 .foreground_color = theme.separator.foreground,  // Separator-specific color (black in NU8)
+                .mnemonic_foreground = theme.text_fg,  // Mnemonics same as text (separator has no mnemonics)
                 .border_color = theme.border_color,
                 .box_style = typename Backend::renderer_type::box_style{},
                 .font = theme.label.font,

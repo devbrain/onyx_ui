@@ -111,10 +111,12 @@ button:
     font: { bold: false, underline: false, reverse: false }
     foreground: 0xE0F7FA
     background: 0x1A1B26
+    mnemonic_foreground: 0xE0F7FA  # Color for underlined mnemonic characters (optional)
   hover:
     font: { bold: true, underline: false, reverse: false }
     foreground: 0x2980B9
     background: 0x222D3C
+    mnemonic_foreground: 0x3498DB  # Brighter blue for mnemonic when hovering
   # ... rest of button states
 
 # ... rest of widgets
@@ -149,10 +151,12 @@ button:
   normal:
     foreground: $fg_light
     background: $bg_dark
+    mnemonic_foreground: $fg_light  # Optional: mnemonic color (defaults to foreground)
   hover:
     font: { bold: true }
     foreground: $accent
     background: $bg_medium
+    mnemonic_foreground: $accent_bright  # Brighter mnemonic on hover
   pressed:
     font: { reverse: true }
     foreground: $bg_dark
@@ -208,10 +212,11 @@ border_color: 0x2980B9   # Ocean blue
 # ✓ Button: hover (lightened background + accent)
 # ✓ Button: pressed (inverted colors)
 # ✓ Button: disabled (darkened foreground)
+# ✓ Button: mnemonic colors (defaults to match foreground for each state)
 # ✓ Label: text color (from text_fg)
 # ✓ Label: background (from window_bg)
 # ✓ Panel: border (from border_color)
-# ✓ Menu: all states (auto-generated)
+# ✓ Menu: all states (auto-generated, including mnemonics)
 # ✓ Scrollbar: all components (auto-generated)
 # ... and 40+ more values!
 ```

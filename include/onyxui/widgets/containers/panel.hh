@@ -120,6 +120,7 @@ namespace onyxui {
             return resolved_style<Backend>{
                 .background_color = theme.panel.background,
                 .foreground_color = theme.text_fg,  // Use default text color
+                .mnemonic_foreground = theme.text_fg,  // Mnemonics same as text (panels don't typically have mnemonics)
                 .border_color = theme.panel.border_color,
                 .box_style = theme.panel.box_style,
                 .font = theme.label.font,  // Use default label font

@@ -71,9 +71,10 @@ namespace onyxui {
          *       Use explicit initialization with designated initializers
          */
         struct visual_state {
-            font_type font;           ///< Font style (normal, bold, italic, etc.)
-            color_type foreground;    ///< Text/foreground color
-            color_type background;    ///< Background color
+            font_type font;                  ///< Font style (normal, bold, italic, etc.)
+            color_type foreground;           ///< Text/foreground color
+            color_type background;           ///< Background color
+            color_type mnemonic_foreground;  ///< Mnemonic character color (defaults to foreground if not set)
         };
 
         /**

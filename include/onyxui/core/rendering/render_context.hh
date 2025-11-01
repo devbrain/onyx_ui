@@ -654,6 +654,7 @@ namespace onyxui {
             : m_style{
                 .background_color = typename Backend::color_type{},
                 .foreground_color = typename Backend::color_type{},
+                .mnemonic_foreground = typename Backend::color_type{},
                 .border_color = typename Backend::color_type{},
                 .box_style = typename Backend::renderer_type::box_style{},
                 .font = typename Backend::renderer_type::font{},

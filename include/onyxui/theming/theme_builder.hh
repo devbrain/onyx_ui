@@ -457,6 +457,26 @@ public:
     }
 
     /**
+     * @brief Set mnemonic foreground color by palette name
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    state_builder& mnemonic_foreground(std::string_view color_name) {
+        m_state.mnemonic_foreground = m_root.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set mnemonic foreground color by hex value
+     * @param hex Hex color (0xRRGGBB)
+     * @return *this (for chaining)
+     */
+    state_builder& mnemonic_foreground(std::uint32_t hex) {
+        m_state.mnemonic_foreground = m_root.resolve_color(hex);
+        return *this;
+    }
+
+    /**
      * @brief Set font (perfect forwarding to backend font constructor)
      * @param args Constructor arguments for Backend::renderer_type::font
      * @return *this (for chaining)

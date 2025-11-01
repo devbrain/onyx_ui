@@ -206,26 +206,30 @@ namespace onyxui {
          */
         [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
             // Determine which menu_bar_item state to use
-            typename Backend::color_type bg, fg;
+            typename Backend::color_type bg, fg, mnemonic_fg;
             typename Backend::renderer_type::font font;
 
             if (m_is_menu_open) {
                 bg = theme.menu_bar_item.open.background;
                 fg = theme.menu_bar_item.open.foreground;
+                mnemonic_fg = theme.menu_bar_item.open.mnemonic_foreground;
                 font = theme.menu_bar_item.open.font;
             } else if (this->is_hovered()) {
                 bg = theme.menu_bar_item.hover.background;
                 fg = theme.menu_bar_item.hover.foreground;
+                mnemonic_fg = theme.menu_bar_item.hover.mnemonic_foreground;
                 font = theme.menu_bar_item.hover.font;
             } else {
                 bg = theme.menu_bar_item.normal.background;
                 fg = theme.menu_bar_item.normal.foreground;
+                mnemonic_fg = theme.menu_bar_item.normal.mnemonic_foreground;
                 font = theme.menu_bar_item.normal.font;
             }
 
             return resolved_style<Backend>{
                 .background_color = bg,
                 .foreground_color = fg,
+                .mnemonic_foreground = mnemonic_fg,
                 .border_color = theme.border_color,
                 .box_style = typename Backend::renderer_type::box_style{},  // Menu bar items NEVER have borders!
                 .font = font,

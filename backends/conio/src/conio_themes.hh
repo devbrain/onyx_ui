@@ -230,7 +230,9 @@ namespace onyxui::conio {
                 // Text color: same as button normal state
                 .foreground = builder.resolve_color("button_fg"),
                 // Background color: same as button normal state
-                .background = builder.resolve_color("button_bg")
+                .background = builder.resolve_color("button_bg"),
+                // Mnemonic color: same as foreground (will be customized per-theme)
+                .mnemonic_foreground = builder.resolve_color("button_fg")
             };
 
             // HOVER state: mouse hovering over menu bar item or keyboard navigation
@@ -240,7 +242,9 @@ namespace onyxui::conio {
                 // Text color: same as button hover state (highlighted)
                 .foreground = builder.resolve_color("button_hover_fg"),
                 // Background color: same as button hover state (highlighted)
-                .background = builder.resolve_color("button_hover_bg")
+                .background = builder.resolve_color("button_hover_bg"),
+                // Mnemonic color: same as foreground (will be customized per-theme)
+                .mnemonic_foreground = builder.resolve_color("button_hover_fg")
             };
 
             // OPEN state: menu bar item with its dropdown menu currently displayed
@@ -250,7 +254,9 @@ namespace onyxui::conio {
                 // Text color: distinct color for open state (often inverted or bright)
                 .foreground = builder.resolve_color("menu_bar_open_fg"),
                 // Background color: distinct color for open state (often inverted or bright)
-                .background = builder.resolve_color("menu_bar_open_bg")
+                .background = builder.resolve_color("menu_bar_open_bg"),
+                // Mnemonic color: same as foreground (will be customized per-theme)
+                .mnemonic_foreground = builder.resolve_color("menu_bar_open_fg")
             };
 
             // Mnemonic font: appearance of mnemonic characters (e.g., underlined 'F' in "File")
@@ -607,6 +613,7 @@ namespace onyxui::conio {
             constexpr color black{32, 32, 32};  // Dark grey instead of pure black (0,0,0) - avoids terminal contrast adjustments
             constexpr color light_gray{170, 170, 170};
             constexpr color dark_gray{85, 85, 85};
+            constexpr color red{255, 85, 85};  // Bright red for mnemonics (Norton Utilities 8 style)
 
             // Global colors
             theme.window_bg = color{80, 87, 255};
@@ -614,12 +621,13 @@ namespace onyxui::conio {
             theme.border_color = white;
 
             // Button colors - Norton Utilities 8 style
-            // Normal (inactive): gray bg, black fg
-            // Active/Hover: white bg, black fg
-            // Disabled: grey bg, dark grey fg
+            // Normal (inactive): gray bg, black fg, red mnemonics
+            // Active/Hover: white bg, black fg, red mnemonics
+            // Disabled: grey bg, dark grey fg, dark grey mnemonics
             color button_bg = light_gray;
             color button_hover_bg = white;
             color button_pressed_bg = white;
+            color button_mnemonic_fg = red;  // Bright red for mnemonics (Norton Utilities 8 style)
 
 
             // Apply button styling
@@ -629,12 +637,16 @@ namespace onyxui::conio {
 
             theme.button.normal.background = button_bg;
             theme.button.normal.foreground = black;
+            theme.button.normal.mnemonic_foreground = button_mnemonic_fg;
             theme.button.hover.background = button_hover_bg;
             theme.button.hover.foreground = black;
+            theme.button.hover.mnemonic_foreground = button_mnemonic_fg;
             theme.button.pressed.background = button_pressed_bg;
             theme.button.pressed.foreground = black;
+            theme.button.pressed.mnemonic_foreground = button_mnemonic_fg;
             theme.button.disabled.background = light_gray;
             theme.button.disabled.foreground = dark_gray;
+            theme.button.disabled.mnemonic_foreground = dark_gray;  // Dimmed when disabled
 
             theme.label.text = theme.text_fg;
             theme.label.background = theme.window_bg;
@@ -657,30 +669,34 @@ namespace onyxui::conio {
             // Menu item styling - white bg, black fg in normal state
             theme.menu_item.normal.background = white;
             theme.menu_item.normal.foreground = black;
+            theme.menu_item.normal.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
 
             // Menu item highlighted - black bg, white fg
             theme.menu_item.highlighted.background = black;
             theme.menu_item.highlighted.foreground = white;
+            theme.menu_item.highlighted.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
 
             // Disabled items
             theme.menu_item.disabled.background = white;
             theme.menu_item.disabled.foreground = dark_gray;
+            theme.menu_item.disabled.mnemonic_foreground = dark_gray;  // Dimmed when disabled
 
-            // Keyboard shortcut text (e.g., "Ctrl+S")
+            // Keyboard shortcut text (e.g., "Ctrl+S") - appears on right side of menu items
             theme.menu_item.shortcut.background = white;
-            theme.menu_item.shortcut.foreground = dark_gray;
-
-            // NOTE: Mnemonic color cannot be customized separately in current theme system
-            // Mnemonics use the same foreground color as the menu item (black or white)
+            theme.menu_item.shortcut.foreground = red;  // Bright red to match mnemonics (NU8 style)
+            theme.menu_item.shortcut.mnemonic_foreground = red;  // Not used for shortcuts (no mnemonics in shortcuts)
 
             // Menu bar - continuous white stripe with black text (Norton Utilities 8 style)
             theme.menu_bar.item_spacing = 1;  // Remove gaps to create continuous stripe
             theme.menu_bar_item.normal.background = white;
             theme.menu_bar_item.normal.foreground = black;
+            theme.menu_bar_item.normal.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
             theme.menu_bar_item.hover.background = black;
             theme.menu_bar_item.hover.foreground = white;
+            theme.menu_bar_item.hover.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
             theme.menu_bar_item.open.background = black;
             theme.menu_bar_item.open.foreground = white;
+            theme.menu_bar_item.open.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
 
             return theme;
         }

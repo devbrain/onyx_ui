@@ -44,6 +44,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/core/element.hh>
+#include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/services/focus_manager.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/widgets/core/widget.hh>
@@ -388,6 +389,17 @@ namespace onyxui {
                 if (auto* input = ui_services<Backend>::input()) {
                     auto* focused_target = input->get_focused();
                     focused = static_cast<widget_type*>(focused_target);
+                }
+
+                // 3.5. Handle activate_focused semantic action for widgets that accept keys as clicks
+                if (focused && focused->accepts_keys_as_click()) {
+                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::activate_focused)) {
+                            // Trigger click on the focused widget (usually button, checkbox, etc.)
+                            focused->handle_click(0, 0);
+                            return true;  // Activation handled
+                        }
+                    }
                 }
 
                 // 4. Forward keyboard event to focused widget

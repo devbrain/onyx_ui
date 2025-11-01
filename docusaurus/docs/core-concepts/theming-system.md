@@ -22,10 +22,19 @@ struct ui_theme {
     using color_type = typename Backend::color_type;
     // ... other backend-specific types
 
+    struct visual_state {
+        font_type font;                  // Font style (bold, italic, etc.)
+        color_type foreground;           // Text/foreground color
+        color_type background;           // Background color
+        color_type mnemonic_foreground;  // Mnemonic character color (optional, defaults to foreground)
+    };
+
     struct button_style {
-        color_type fg_normal;
-        color_type bg_normal;
-        // ... styles for hover, pressed, disabled states
+        visual_state normal;
+        visual_state hover;
+        visual_state pressed;
+        visual_state disabled;
+        // ... other button properties
     };
 
     struct panel_style {
@@ -422,6 +431,7 @@ border_color: 0x007ACC  # Blue accents
 
 # Smart defaults automatically generate 50+ theme values:
 # ✓ Button states (normal, hover, pressed, disabled)
+# ✓ Mnemonic colors (defaults to foreground for each state)
 # ✓ Label styles, Panel styles, Menu styles
 # ✓ Scrollbar components (track, thumb, arrows, hover)
 # ✓ All hover effects (lightened backgrounds, bold fonts)

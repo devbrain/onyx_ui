@@ -3,11 +3,12 @@
 //
 #include <doctest/doctest.h>
 
-
-
 #include "../utils/test_backend.hh"
 #include "../utils/rule_of_five_tests.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/widgets/button.hh"
+#include "onyxui/widgets/containers/panel.hh"
+#include "onyxui/services/ui_services.hh"
 #include "widgets.hh"
 using namespace onyxui;
 
@@ -46,4 +47,157 @@ TEST_CASE("Button - Clickable widget") {
 
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five_text_widget<button<test_backend>>("Modified");
+}
+
+TEST_CASE("Button - Keyboard activation") {
+    using traits = event_traits<test_backend::test_keyboard_event>;
+
+    // Helper class to access protected focus methods
+    class test_button_with_focus : public button<test_backend> {
+    public:
+        using button<test_backend>::button;
+
+        void give_focus() {
+            this->handle_focus_gained();  // Call protected method
+        }
+    };
+
+    SUBCASE("Enter key triggers click when focused") {
+        test_button_with_focus btn("Test");
+        int click_count = 0;
+
+        btn.clicked.connect([&]() { click_count++; });
+
+        // Give button focus
+        btn.give_focus();
+        CHECK(btn.has_focus());
+
+        // Create Enter key press event
+        test_backend::test_keyboard_event key_event;
+        key_event.pressed = true;
+        key_event.key_code = traits::KEY_ENTER;
+
+        // Process the keyboard event
+        bool handled = btn.process_event_impl(key_event);
+
+        // Verify the click was triggered
+        CHECK(handled);
+        CHECK(click_count == 1);
+    }
+
+    SUBCASE("Space key triggers click when focused") {
+        test_button_with_focus btn("Test");
+        int click_count = 0;
+
+        btn.clicked.connect([&]() { click_count++; });
+
+        // Give button focus
+        btn.give_focus();
+        CHECK(btn.has_focus());
+
+        // Create Space key press event
+        test_backend::test_keyboard_event key_event;
+        key_event.pressed = true;
+        key_event.key_code = traits::KEY_SPACE;
+
+        // Process the keyboard event
+        bool handled = btn.process_event_impl(key_event);
+
+        // Verify the click was triggered
+        CHECK(handled);
+        CHECK(click_count == 1);
+    }
+
+    SUBCASE("Keyboard does NOT trigger click when not focused") {
+        button<test_backend> btn("Test");
+        int click_count = 0;
+
+        btn.clicked.connect([&]() { click_count++; });
+
+        // Button is NOT focused
+        CHECK_FALSE(btn.has_focus());
+
+        // Create Enter key press event
+        test_backend::test_keyboard_event key_event;
+        key_event.pressed = true;
+        key_event.key_code = traits::KEY_ENTER;
+
+        // Process the keyboard event
+        bool handled = btn.process_event_impl(key_event);
+
+        // Should NOT trigger click (not handled when unfocused)
+        CHECK_FALSE(handled);
+        CHECK(click_count == 0);
+    }
+
+    SUBCASE("Tab navigation and Enter activation - Full workflow") {
+        // Create UI context with input manager
+        ui_context_fixture<test_backend> fixture;
+
+        // Create a container with two buttons
+        auto root = std::make_unique<panel<test_backend>>();
+        root->set_vbox_layout(1);
+
+        auto* btn1 = root->template emplace_child<button>(std::string("Button 1"));
+        auto* btn2 = root->template emplace_child<button>(std::string("Button 2"));
+
+        int btn1_clicks = 0;
+        int btn2_clicks = 0;
+
+        btn1->clicked.connect([&]() { btn1_clicks++; });
+        btn2->clicked.connect([&]() { btn2_clicks++; });
+
+        // Layout the UI
+        [[maybe_unused]] auto measured_size = root->measure(80, 25);
+        root->arrange({0, 0, 80, 25});
+
+        // Get input manager
+        auto* input = ui_services<test_backend>::input();
+        REQUIRE(input != nullptr);
+
+        // Initially no button has focus
+        CHECK_FALSE(btn1->has_focus());
+        CHECK_FALSE(btn2->has_focus());
+
+        // Simulate Tab key to focus first button
+        test_backend::test_keyboard_event tab_event;
+        tab_event.pressed = true;
+        tab_event.key_code = traits::KEY_TAB;
+        tab_event.shift = false;
+
+        bool tab1_handled = input->handle_tab_navigation_in_tree(tab_event, root.get());
+        CHECK(tab1_handled);
+        CHECK(btn1->has_focus());  // First button should be focused
+        CHECK_FALSE(btn2->has_focus());
+
+        // Simulate Tab key again to focus second button
+        bool tab2_handled = input->handle_tab_navigation_in_tree(tab_event, root.get());
+        CHECK(tab2_handled);
+        CHECK_FALSE(btn1->has_focus());  // First button lost focus
+        CHECK(btn2->has_focus());  // Second button should be focused
+
+        // Simulate Enter key to activate second button
+        test_backend::test_keyboard_event enter_event;
+        enter_event.pressed = true;
+        enter_event.key_code = traits::KEY_ENTER;
+
+        bool enter_handled = btn2->process_event_impl(enter_event);
+        CHECK(enter_handled);
+
+        // Verify ONLY the second button was clicked
+        CHECK(btn1_clicks == 0);
+        CHECK(btn2_clicks == 1);
+
+        // Simulate Space key to activate second button again
+        test_backend::test_keyboard_event space_event;
+        space_event.pressed = true;
+        space_event.key_code = traits::KEY_SPACE;
+
+        bool space_handled = btn2->process_event_impl(space_event);
+        CHECK(space_handled);
+
+        // Verify second button was clicked again
+        CHECK(btn1_clicks == 0);
+        CHECK(btn2_clicks == 2);
+    }
 }

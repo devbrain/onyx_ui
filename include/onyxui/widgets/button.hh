@@ -224,6 +224,7 @@ namespace onyxui {
 
             // Use pre-resolved style from context (state already resolved during CSS phase)
             auto fg = ctx.style().foreground_color;
+            auto mnemonic_fg = ctx.style().mnemonic_foreground;
 
             // Draw button box/border using resolved style
             ctx.draw_rect(button_rect, ctx.style().box_style);
@@ -265,11 +266,13 @@ namespace onyxui {
                 );
 
                 if (!mnemonic_info.text.empty()) {
-                    // Render styled text with multiple fonts (multi-segment)
+                    // Render styled text with multiple fonts and colors (multi-segment)
                     int segment_x = text_x;
                     for (const auto& segment : mnemonic_info.text) {
                         typename Backend::point_type const text_pos{segment_x, text_y};
-                        auto seg_size = ctx.draw_text(segment.text, text_pos, segment.font, fg);
+                        // Use mnemonic color for mnemonic segments, normal color for others
+                        auto segment_color = segment.is_mnemonic ? mnemonic_fg.value : fg.value;
+                        auto seg_size = ctx.draw_text(segment.text, text_pos, segment.font, segment_color);
                         segment_x += size_utils::get_width(seg_size);
                     }
                 } else {
@@ -306,6 +309,7 @@ namespace onyxui {
             return resolved_style<Backend>{
                 .background_color = this->get_state_background(theme.button),
                 .foreground_color = this->get_state_foreground(theme.button),
+                .mnemonic_foreground = this->get_state_mnemonic_foreground(theme.button),
                 .border_color = theme.border_color,
                 .box_style = theme.button.box_style,
                 .font = theme.button.normal.font,

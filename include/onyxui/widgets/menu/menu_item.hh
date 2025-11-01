@@ -307,6 +307,7 @@ namespace onyxui {
             // Use resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
             auto const& fg = ctx.style().foreground_color;
+            auto const& mnemonic_fg = ctx.style().mnemonic_foreground;
 
             // Calculate sizes (needed for both measurement and rendering)
             std::string const shortcut = get_shortcut_text();
@@ -378,7 +379,9 @@ namespace onyxui {
                     int segment_x = text_x;
                     for (const auto& segment : mnemonic_info.text) {
                         typename Backend::point_type const seg_pos{segment_x, base_y};
-                        auto seg_size = ctx.draw_text(segment.text, seg_pos, segment.font, fg);
+                        // Use mnemonic color for mnemonic segments, normal color for others
+                        auto segment_color = segment.is_mnemonic ? mnemonic_fg.value : fg.value;
+                        auto seg_size = ctx.draw_text(segment.text, seg_pos, segment.font, segment_color);
                         segment_x += size_utils::get_width(seg_size);
                     }
                 } else {
@@ -409,10 +412,12 @@ namespace onyxui {
             }
 
             // Draw shortcut if present (right-aligned within effective width)
-            if (!shortcut.empty()) {
+            if (!shortcut.empty() && ctx.theme()) {
                 int const shortcut_x = base_x + effective_width - shortcut_width - RIGHT_PADDING;
                 typename Backend::point_type const shortcut_pos{shortcut_x, base_y};
-                ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, fg);
+                // Use shortcut color from theme (shortcuts use a dimmed color for subtlety)
+                auto shortcut_color = ctx.theme()->menu_item.shortcut.foreground;
+                ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, shortcut_color);
             }
 
             // Ensure measurement includes right padding by drawing marker at rightmost edge
@@ -444,26 +449,30 @@ namespace onyxui {
          */
         [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override {
             // Determine which menu_item state to use
-            typename Backend::color_type bg, fg;
+            typename Backend::color_type bg, fg, mnemonic_fg;
             typename Backend::renderer_type::font font;
 
             if (!this->is_enabled()) {
                 bg = theme.menu_item.disabled.background;
                 fg = theme.menu_item.disabled.foreground;
+                mnemonic_fg = theme.menu_item.disabled.mnemonic_foreground;
                 font = theme.menu_item.disabled.font;
             } else if (this->is_hovered() || this->has_focus()) {
                 bg = theme.menu_item.highlighted.background;
                 fg = theme.menu_item.highlighted.foreground;
+                mnemonic_fg = theme.menu_item.highlighted.mnemonic_foreground;
                 font = theme.menu_item.highlighted.font;
             } else {
                 bg = theme.menu_item.normal.background;
                 fg = theme.menu_item.normal.foreground;
+                mnemonic_fg = theme.menu_item.normal.mnemonic_foreground;
                 font = theme.menu_item.normal.font;
             }
 
             return resolved_style<Backend>{
                 .background_color = bg,
                 .foreground_color = fg,
+                .mnemonic_foreground = mnemonic_fg,
                 .border_color = theme.border_color,
                 .box_style = theme.menu.box_style,  // Use menu's box_style
                 .font = font,

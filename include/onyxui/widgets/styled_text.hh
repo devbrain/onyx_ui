@@ -112,20 +112,23 @@ namespace onyxui {
     struct text_segment {
         std::string text;                             ///< The text content
         typename Backend::renderer_type::font font;   ///< The font to render with
+        bool is_mnemonic = false;                     ///< True if this segment is a mnemonic character
 
         /**
          * @brief Construct a text segment
          *
          * @param t Text content
          * @param f Font for rendering
+         * @param mnemonic True if this is a mnemonic character
          *
          * @details
          * Text is moved if passed as rvalue, copied if lvalue.
          * Font is copied (assumed lightweight).
          */
-        text_segment(std::string t, typename Backend::renderer_type::font f)
+        text_segment(std::string t, typename Backend::renderer_type::font f, bool mnemonic = false)
             : text(std::move(t))
-            , font(f) {}
+            , font(f)
+            , is_mnemonic(mnemonic) {}
 
         /**
          * @brief Default constructor
