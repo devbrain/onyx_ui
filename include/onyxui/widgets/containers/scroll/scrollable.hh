@@ -430,14 +430,27 @@ namespace onyxui {
                 return;
             }
 
-            // Calculate child position with negative scroll offset
-            int const base_x = rect_utils::get_x(content_area);
-            int const base_y = rect_utils::get_y(content_area);
-            int const scroll_x = point_utils::get_x(m_scroll_offset);
-            int const scroll_y = point_utils::get_y(m_scroll_offset);
+            // Check if we're at relative coordinates (nested inside another container)
+            // If our bounds start at (0,0) or near it, we're likely nested
+            bool const is_nested = (rect_utils::get_x(this->bounds()) < 2 &&
+                                    rect_utils::get_y(this->bounds()) < 2);
 
-            int const child_x = base_x - scroll_x;  // Negative offset scrolls left
-            int const child_y = base_y - scroll_y;  // Negative offset scrolls up
+            int child_x, child_y;
+            if (is_nested) {
+                // We're nested - use relative coordinates
+                int const scroll_x = point_utils::get_x(m_scroll_offset);
+                int const scroll_y = point_utils::get_y(m_scroll_offset);
+                child_x = 0 - scroll_x;
+                child_y = 0 - scroll_y;
+            } else {
+                // We're at top level - use absolute coordinates (framework limitation)
+                int const base_x = rect_utils::get_x(content_area);
+                int const base_y = rect_utils::get_y(content_area);
+                int const scroll_x = point_utils::get_x(m_scroll_offset);
+                int const scroll_y = point_utils::get_y(m_scroll_offset);
+                child_x = base_x - scroll_x;
+                child_y = base_y - scroll_y;
+            }
 
             // Arrange children at scrolled position
             for (auto& child : this->children()) {

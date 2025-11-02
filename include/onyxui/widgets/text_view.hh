@@ -42,7 +42,6 @@
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/layout/linear_layout.hh>
-#include <onyxui/core/raii/scoped_clip.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <string>
 #include <vector>
@@ -175,43 +174,31 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Override do_arrange to properly position the scroll_view
+         * @brief Override do_arrange to position scroll_view at relative coordinates
          * @param final_bounds The final bounds assigned to this widget
+         *
+         * @details
+         * Due to lack of coordinate translation in the rendering pipeline,
+         * we need to arrange the scroll_view at (0,0) relative coordinates
+         * to prevent content from rendering at absolute screen positions.
          */
         void do_arrange(const rect_type& final_bounds) override {
-            (void)final_bounds; // Suppress unused parameter warning
+            (void)final_bounds;
 
-            // Arrange scroll_view within our content area
+            // Call base to update our bounds
+            base::do_arrange(final_bounds);
+
+            // Arrange scroll_view at relative (0,0) position
             if (!this->children().empty()) {
                 auto* scroll_view = this->children()[0].get();
                 auto content_area = this->get_content_area();
 
-                // Use the content area directly (it's already in absolute coordinates)
-                scroll_view->arrange(content_area);
-            }
-        }
+                // Use relative coordinates (0,0) with content area size
+                rect_type relative_bounds{0, 0,
+                                         rect_utils::get_width(content_area),
+                                         rect_utils::get_height(content_area)};
 
-        /**
-         * @brief Override do_render to ensure proper clipping
-         * @param ctx The render context
-         */
-        void do_render(render_context<Backend>& ctx) const override {
-            // During measurement, just use base implementation
-            if (!ctx.is_rendering()) {
-                base::do_render(ctx);
-                return;
-            }
-
-            // During rendering, clip to our bounds to prevent overflow
-            auto our_bounds = this->bounds();
-
-            // Create a clipping region for our bounds
-            {
-                scoped_clip<Backend> clip(ctx, our_bounds);
-
-                // Call base implementation which will handle rendering
-                // children properly within the clipped region
-                base::do_render(ctx);
+                scroll_view->arrange(relative_bounds);
             }
         }
 
@@ -245,21 +232,14 @@ namespace onyxui {
                 content_container_ptr->add_child(std::move(label_widget));
             }
 
-            // WORKAROUND: Pre-arrange the panel before adding to scroll_view
-            // Without this, the panel's children won't be positioned correctly.
-            // This appears to be a bug in how scrollable interacts with freshly
-            // created containers that haven't been arranged yet.
-            // TODO: Fix the root cause in scrollable/panel interaction
-            //
-            // Only do this if we have content - measuring requires a theme which
-            // may not be available during initial construction
+            // Pre-measure and pre-arrange the panel to ensure proper layout
+            // Use relative coordinates (0,0) now that scrollable is fixed
             if (!m_lines.empty()) {
                 try {
                     auto panel_size = content_container_ptr->measure_unconstrained();
                     content_container_ptr->arrange({0, 0, panel_size.w, panel_size.h});
                 } catch (const std::exception&) {
                     // Ignore measurement errors during construction when no theme is set
-                    // The workaround will be applied later when content is added with a theme
                 }
             }
 
