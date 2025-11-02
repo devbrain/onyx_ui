@@ -69,6 +69,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <utility>  // for std::exchange
 
@@ -364,6 +365,23 @@ namespace onyxui {
              * @note Results are cached - repeated calls with same parameters return cached value
              */
             [[nodiscard]] size_type measure(int available_width, int available_height);
+
+            /**
+             * @brief Measure element with no constraints (natural size)
+             * @return The natural/preferred size of the element
+             *
+             * @details
+             * Convenience method that measures the element with unconstrained space.
+             * This returns the element's preferred size when it has unlimited room.
+             * Useful for determining the minimum size needed to display content
+             * without clipping or wrapping.
+             *
+             * @note Equivalent to measure(std::numeric_limits<int>::max(), std::numeric_limits<int>::max())
+             */
+            [[nodiscard]] size_type measure_unconstrained() {
+                return measure(std::numeric_limits<int>::max(),
+                              std::numeric_limits<int>::max());
+            }
 
             /**
              * @brief Arrange phase: assign final bounds

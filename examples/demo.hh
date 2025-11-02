@@ -166,9 +166,17 @@ private:
 
         text_view_widget->set_text(demo_text);
 
-        // Set alignment to stretch horizontally
+        // Set alignment - stretch horizontally but not vertically
         text_view_widget->set_horizontal_align(onyxui::horizontal_alignment::stretch);
-        text_view_widget->set_vertical_align(onyxui::vertical_alignment::top);
+        text_view_widget->set_vertical_align(onyxui::vertical_alignment::center);
+
+        // Constrain height to prevent overlap with menu and other elements
+        onyxui::size_constraint height_constraint;
+        height_constraint.policy = onyxui::size_policy::content;  // Size based on content
+        height_constraint.preferred_size = 8;  // Preferred height of 8 lines
+        height_constraint.min_size = 5;        // Minimum 5 lines
+        height_constraint.max_size = 8;        // Maximum 8 lines (prevents growing too tall)
+        text_view_widget->set_height_constraint(height_constraint);
 
         this->add_child(std::move(text_view_widget));
 

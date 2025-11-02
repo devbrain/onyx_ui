@@ -8,9 +8,249 @@
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
 #include "onyxui/widgets/text_view.hh"
+#include "onyxui/widgets/containers/panel.hh"
+#include "onyxui/widgets/containers/scroll/scrollable.hh"
+#include "onyxui/widgets/containers/scroll/scroll_view_presets.hh"
+#include "onyxui/widgets/label.hh"
+#include "onyxui/layout/linear_layout.hh"
+#include <limits>
+#include <algorithm>
 
 using namespace onyxui;
 using namespace onyxui::testing;
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with linear layout") {
+    SUBCASE("Three labels in panel") {
+        panel<test_canvas_backend> panel;
+        panel.set_layout_strategy(
+            std::make_unique<linear_layout<test_canvas_backend>>(
+                direction::vertical,
+                0,  // No spacing
+                horizontal_alignment::left,
+                vertical_alignment::top));
+        panel.set_padding(thickness::all(1));
+
+        // Add three labels
+        panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
+        panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 2"));
+        panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
+
+        // Measure
+        auto size = panel.measure(100, 100);
+        std::cerr << "Panel measured: " << size.w << "x" << size.h << std::endl;
+
+        // Arrange and render
+        panel.arrange({0, 0, 40, 10});
+
+        auto canvas = render_to_canvas(panel, 40, 10);
+
+        // Check canvas
+        std::cerr << "=== Panel canvas ===" << std::endl;
+        for (int row = 0; row < std::min(5, canvas->height()); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+
+        CHECK(content.find("Line 1") != std::string::npos);
+        CHECK(content.find("Line 2") != std::string::npos);
+        CHECK(content.find("Line 3") != std::string::npos);
+    }
+
+    SUBCASE("Panel inside scrollable") {
+        scrollable<test_canvas_backend> scrollable_widget;
+
+        // Create panel with labels
+        auto panel_ptr = std::make_unique<panel<test_canvas_backend>>();
+        panel_ptr->set_layout_strategy(
+            std::make_unique<linear_layout<test_canvas_backend>>(
+                direction::vertical,
+                0,  // No spacing
+                horizontal_alignment::left,
+                vertical_alignment::top));
+        panel_ptr->set_padding(thickness::all(1));
+
+        // Add three labels
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 2"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
+
+        // Add panel to scrollable
+        scrollable_widget.add_child(std::move(panel_ptr));
+
+        // Measure scrollable
+        auto size = scrollable_widget.measure(100, 100);
+        std::cerr << "Scrollable measured: " << size.w << "x" << size.h << std::endl;
+
+        // Check scrollable's content size
+        auto scroll_info = scrollable_widget.get_scroll_info();
+        std::cerr << "Scrollable content_size: " << scroll_info.content_size.w << "x" << scroll_info.content_size.h << std::endl;
+
+        // Arrange and render
+        scrollable_widget.arrange({0, 0, 40, 10});
+
+        auto canvas = render_to_canvas(scrollable_widget, 40, 10);
+
+        // Check canvas
+        std::cerr << "=== Scrollable canvas ===" << std::endl;
+        for (int row = 0; row < std::min(5, canvas->height()); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+
+        CHECK(content.find("Line 1") != std::string::npos);
+        CHECK(content.find("Line 2") != std::string::npos);
+        CHECK(content.find("Line 3") != std::string::npos);
+    }
+}
+
+// Debug test removed - was used to investigate scroll_view child positioning issue
+// The issue was identified and fixed in text_view with the pre-arrange workaround
+#if 0
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view structure") {
+    SUBCASE("Test with scroll_view") {
+        // Create the same structure as text_view
+        auto scroll_view_ptr = classic_scroll_view<test_canvas_backend>();
+
+        // Create panel with labels
+        auto panel_ptr = std::make_unique<panel<test_canvas_backend>>();
+        panel_ptr->set_layout_strategy(
+            std::make_unique<linear_layout<test_canvas_backend>>(
+                direction::vertical,
+                0,  // No spacing
+                horizontal_alignment::left,
+                vertical_alignment::top));
+        panel_ptr->set_padding(thickness::all(1));
+
+        // Add three labels (same as text_view would)
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 2"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
+
+        // Don't pre-measure or pre-arrange the panel
+
+        // Add to scroll_view (this forwards to scrollable)
+        scroll_view_ptr->add_child(std::move(panel_ptr));
+
+        // Measure and arrange
+        auto size = scroll_view_ptr->measure(40, 10);
+        std::cerr << "scroll_view measured: " << size.w << "x" << size.h << std::endl;
+
+        scroll_view_ptr->arrange({0, 0, 40, 10});
+
+        // Render
+        auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
+
+        std::cerr << "=== Canvas ===" << std::endl;
+        for (int row = 0; row < std::min(5, canvas->height()); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+
+        CHECK(content.find("Line 1") != std::string::npos);
+        CHECK(content.find("Line 2") != std::string::npos);
+        CHECK(content.find("Line 3") != std::string::npos);
+    }
+
+    SUBCASE("Test with scrollable directly") {
+        // Create the same structure as text_view but with scrollable directly
+        scrollable<test_canvas_backend> scrollable_widget;
+
+        // Create panel with labels
+        auto panel_ptr = std::make_unique<panel<test_canvas_backend>>();
+        panel_ptr->set_layout_strategy(
+            std::make_unique<linear_layout<test_canvas_backend>>(
+                direction::vertical,
+                0,  // No spacing
+                horizontal_alignment::left,
+                vertical_alignment::top));
+        panel_ptr->set_padding(thickness::all(1));
+
+        // Add three labels (same as text_view would)
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 2"));
+        panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
+
+        // Add to scrollable
+        scrollable_widget.add_child(std::move(panel_ptr));
+
+        // Measure and arrange
+        auto size = scrollable_widget.measure(40, 10);
+        std::cerr << "Scrollable measured: " << size.w << "x" << size.h << std::endl;
+
+        scrollable_widget.arrange({0, 0, 40, 10});
+
+        // Render
+        auto canvas = render_to_canvas(scrollable_widget, 40, 10);
+
+        std::cerr << "=== Canvas ===" << std::endl;
+        for (int row = 0; row < std::min(5, canvas->height()); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+
+        CHECK(content.find("Line 1") != std::string::npos);
+        CHECK(content.find("Line 2") != std::string::npos);
+        CHECK(content.find("Line 3") != std::string::npos);
+    }
+
+    SUBCASE("Test scroll_view with labels directly (no panel)") {
+        // Test adding labels directly to scroll_view (bypassing panel)
+        auto scroll_view_ptr = classic_scroll_view<test_canvas_backend>();
+
+        // Set layout on the scrollable content area (via scroll_view)
+        scroll_view_ptr->set_layout_strategy(
+            std::make_unique<linear_layout<test_canvas_backend>>(
+                direction::vertical,
+                0,
+                horizontal_alignment::left,
+                vertical_alignment::top));
+
+        // Add labels directly to scroll_view (forwards to scrollable)
+        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 1"));
+        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 2"));
+        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 3"));
+
+        // Measure and arrange
+        auto size = scroll_view_ptr->measure(40, 10);
+        std::cerr << "Direct labels scroll_view measured: " << size.w << "x" << size.h << std::endl;
+
+        scroll_view_ptr->arrange({0, 0, 40, 10});
+
+        // Render
+        auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
+
+        std::cerr << "=== Direct labels to scroll_view ===" << std::endl;
+        for (int row = 0; row < std::min(5, canvas->height()); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        // Check if all lines are visible
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+        CHECK(content.find("Direct 1") != std::string::npos);
+        CHECK(content.find("Direct 2") != std::string::npos);
+        CHECK(content.find("Direct 3") != std::string::npos);
+    }
+}
+#endif // Debug test disabled
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic text display") {
     SUBCASE("Empty text view") {
@@ -43,6 +283,50 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
     SUBCASE("Multiple lines") {
         text_view<test_canvas_backend> view;
         view.set_text("Line 1\nLine 2\nLine 3");
+
+        CHECK(view.line_count() == 3);
+        CHECK(view.get_line(0) == "Line 1");
+        CHECK(view.get_line(1) == "Line 2");
+        CHECK(view.get_line(2) == "Line 3");
+
+        // First measure to see what size it reports
+        auto measured_size = view.measure(40, 10);
+        std::cerr << "=== text_view measured: " << measured_size.w << "x" << measured_size.h << std::endl;
+
+        // Now let's manually check the hierarchy
+        if (!view.children().empty()) {
+            auto* scroll_view = view.children()[0].get();
+            auto scroll_measured = scroll_view->measure(40, 10);
+            std::cerr << "=== scroll_view measured: " << scroll_measured.w << "x" << scroll_measured.h << std::endl;
+
+            if (!scroll_view->children().empty()) {
+                auto* grid = scroll_view->children()[0].get();
+                if (grid->children().size() >= 1) {
+                    auto* scrollable = grid->children()[0].get();
+
+                    // Measure scrollable
+                    auto scrollable_measured = scrollable->measure(40, 10);
+                    std::cerr << "=== scrollable measured: " << scrollable_measured.w << "x" << scrollable_measured.h << std::endl;
+
+                    if (!scrollable->children().empty()) {
+                        auto* content_panel = scrollable->children()[0].get();
+
+                        // Measure content_panel with unconstrained size (like scrollable does)
+                        constexpr int UNCONSTRAINED = std::numeric_limits<int>::max() - 1;
+                        auto content_measured = content_panel->measure(UNCONSTRAINED, UNCONSTRAINED);
+                        std::cerr << "=== content_panel measured (unconstrained): " << content_measured.w << "x" << content_measured.h << std::endl;
+
+                        // Check each child
+                        std::cerr << "=== content_panel has " << content_panel->children().size() << " children" << std::endl;
+                        for (size_t i = 0; i < content_panel->children().size(); ++i) {
+                            auto* label = content_panel->children()[i].get();
+                            auto label_measured = label->measure(UNCONSTRAINED, UNCONSTRAINED);
+                            std::cerr << "===   Label[" << i << "] measured: " << label_measured.w << "x" << label_measured.h << std::endl;
+                        }
+                    }
+                }
+            }
+        }
 
         auto canvas = render_to_canvas(view, 40, 10);
 
@@ -130,6 +414,132 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Content 
         CHECK(view.line_count() == 2);
         CHECK(view.get_line(0) == "New line 1");
         CHECK(view.get_line(1) == "New line 2");
+    }
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo layout with menu bar") {
+    SUBCASE("text_view should not overlap with menu bar") {
+        // Simulate the demo layout: vbox with menu bar, labels, and text_view
+        panel<test_canvas_backend> root;
+        root.set_vbox_layout(0);
+
+        // Add a simple menu bar (using label as placeholder)
+        auto menu_bar = std::make_unique<label<test_canvas_backend>>("[File] [Edit] [Help]");
+        root.add_child(std::move(menu_bar));
+
+        // Add title
+        auto title = std::make_unique<label<test_canvas_backend>>("Demo Title");
+        root.add_child(std::move(title));
+
+        // Add text_view with content
+        auto text_view_widget = std::make_unique<text_view<test_canvas_backend>>();
+        std::string content;
+        for (int i = 1; i <= 15; i++) {
+            content += "[LOG " + std::to_string(i) + "] Entry at line " + std::to_string(i) + "\n";
+        }
+        text_view_widget->set_text(content);
+
+        // Set constraints like in demo
+        text_view_widget->set_horizontal_align(horizontal_alignment::stretch);
+        size_constraint height_constraint;
+        height_constraint.policy = size_policy::fixed;
+        height_constraint.preferred_size = 5;  // Small height for testing
+        height_constraint.min_size = 5;
+        height_constraint.max_size = 5;
+        text_view_widget->set_height_constraint(height_constraint);
+
+        root.add_child(std::move(text_view_widget));
+
+        // Add bottom label
+        auto bottom = std::make_unique<label<test_canvas_backend>>("Press ESC to quit");
+        root.add_child(std::move(bottom));
+
+        // Measure and arrange before render
+        [[maybe_unused]] auto measured_size = root.measure(40, 10);
+        root.arrange({0, 0, 40, 10});
+
+        // Debug: Check bounds of each widget
+        const auto& children = root.children();
+        std::cerr << "=== Widget bounds ===" << std::endl;
+
+        auto print_bounds = [](const char* name, const auto& bounds) {
+            std::cerr << name << ": " << bounds.x << "," << bounds.y
+                     << " " << bounds.w << "x" << bounds.h << std::endl;
+        };
+
+        print_bounds("Menu bar bounds", children[0]->bounds());
+        print_bounds("Title bounds", children[1]->bounds());
+        print_bounds("text_view bounds", children[2]->bounds());
+        print_bounds("Instructions bounds", children[3]->bounds());
+
+        // Get text_view and check its internal structure
+        auto* text_view_ptr = dynamic_cast<text_view<test_canvas_backend>*>(children[2].get());
+        if (text_view_ptr && !text_view_ptr->children().empty()) {
+            auto* scroll_view = text_view_ptr->children()[0].get();
+            print_bounds("  scroll_view bounds", scroll_view->bounds());
+
+            // Try to get the grid inside scroll_view
+            if (!scroll_view->children().empty()) {
+                auto* grid = scroll_view->children()[0].get();
+                print_bounds("    grid bounds", grid->bounds());
+
+                // Get the scrollable (should be first child of grid)
+                if (!grid->children().empty()) {
+                    auto* scrollable = grid->children()[0].get();
+                    print_bounds("      scrollable bounds", scrollable->bounds());
+
+                    // Get the panel inside scrollable
+                    if (!scrollable->children().empty()) {
+                        auto* panel = scrollable->children()[0].get();
+                        print_bounds("        panel bounds", panel->bounds());
+
+                        // Show first few label bounds
+                        for (size_t i = 0; i < std::min(size_t(3), panel->children().size()); i++) {
+                            auto label_bounds = panel->children()[i]->bounds();
+                            std::cerr << "          label " << i << " bounds: "
+                                     << label_bounds.x << "," << label_bounds.y
+                                     << " " << label_bounds.w << "x" << label_bounds.h << std::endl;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Render
+        auto canvas = render_to_canvas(root, 40, 10);
+
+        // Debug output
+        std::cerr << "=== Demo layout test ===" << std::endl;
+        for (int row = 0; row < canvas->height(); row++) {
+            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
+        }
+
+        // Visual assertions
+        std::string first_line = canvas->get_row(0);
+        std::string second_line = canvas->get_row(1);
+
+        // Menu bar should be on first line
+        CHECK(first_line.find("[File]") != std::string::npos);
+        CHECK(first_line.find("[Edit]") != std::string::npos);
+        CHECK(first_line.find("[Help]") != std::string::npos);
+
+        // Title should be on second line
+        CHECK(second_line.find("Demo Title") != std::string::npos);
+
+        // text_view content should NOT be on first or second line (no overlap)
+        CHECK(first_line.find("[LOG") == std::string::npos);
+        CHECK(second_line.find("[LOG") == std::string::npos);
+
+        // text_view should start with LOG 1, not LOG 15 (should scroll to top)
+        bool found_log1 = false;
+        for (int row = 2; row < canvas->height() - 1; row++) {  // Skip menu and bottom label
+            std::string line = canvas->get_row(row);
+            if (line.find("[LOG 1]") != std::string::npos) {
+                found_log1 = true;
+                break;
+            }
+        }
+        CHECK(found_log1);
     }
 }
 
