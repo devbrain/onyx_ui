@@ -7,25 +7,16 @@
 
 #pragma once
 
-
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/widgets/containers/scroll/scroll_info.hh>
 #include <onyxui/core/signal.hh>
+#include <onyxui/core/orientation.hh>
 #include <onyxui/ui_constants.hh>  // For default scrollbar dimensions
 #include <onyxui/theming/theme.hh>
 #include <onyxui/services/ui_services.hh>
 #include <algorithm>
 
 namespace onyxui {
-
-    /**
-     * @enum orientation
-     * @brief Scrollbar orientation
-     */
-    enum class orientation : std::uint8_t {
-        horizontal,   ///< Horizontal scrollbar (bottom of viewport)
-        vertical      ///< Vertical scrollbar (right side of viewport)
-    };
 
     /**
      * @class scrollbar

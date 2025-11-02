@@ -8,9 +8,11 @@
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
+#include <onyxui/widgets/text_view.hh>
 #include <onyxui/widgets/menu/menu.hh>
 #include <onyxui/widgets/menu/menu_bar.hh>
 #include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/widgets/containers/scroll/scroll_view_presets.hh>
 #include <onyxui/services/ui_services.hh>
 
 
@@ -125,6 +127,50 @@ private:
         quit_btn->clicked.connect([this]() {
             quit();
         });
+
+        // Spacer
+        add_label(*this, "");
+
+        // Text View Section (Scrollable text display)
+        add_label(*this, "Scrollable Text View (Arrow keys, PgUp/PgDn, Home/End):");
+
+        // Create text view with demo content
+        auto text_view_widget = std::make_unique<onyxui::text_view<Backend>>();
+
+        // Generate demo text content
+        std::string demo_text =
+            "Welcome to OnyxUI Text View Demo!\n"
+            "\n"
+            "This widget demonstrates:\n"
+            "  * Multi-line text display\n"
+            "  * Automatic scrolling\n"
+            "  * Keyboard navigation:\n"
+            "    - Arrow Up/Down: Scroll line by line\n"
+            "    - Page Up/Down: Scroll by viewport\n"
+            "    - Home: Jump to top\n"
+            "    - End: Jump to bottom\n"
+            "\n"
+            "The text view uses scroll_view internally,\n"
+            "so it inherits all scrolling features!\n"
+            "\n"
+            "Try switching themes (1-4 keys) to see\n"
+            "how the scrollbar and text colors adapt.\n"
+            "\n"
+            "Log Entries:\n";
+
+        // Add simulated log entries to demonstrate scrolling
+        for (int i = 1; i <= 15; i++) {
+            demo_text += "[LOG " + std::to_string(i) + "] Entry at timestamp " +
+                        std::to_string(1000 + i * 100) + " ms\n";
+        }
+
+        text_view_widget->set_text(demo_text);
+
+        // Set alignment to stretch horizontally
+        text_view_widget->set_horizontal_align(onyxui::horizontal_alignment::stretch);
+        text_view_widget->set_vertical_align(onyxui::vertical_alignment::top);
+
+        this->add_child(std::move(text_view_widget));
 
         // Spacer and instructions
         add_label(*this, "");

@@ -49,17 +49,9 @@
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/core/rendering/resolved_style.hh>
+#include <onyxui/core/orientation.hh>
 
 namespace onyxui {
-
-    /**
-     * @enum orientation
-     * @brief Direction of separator line
-     */
-    enum class orientation : uint8_t {
-        horizontal,  ///< Horizontal line (for menus, dividing vertical stacks)
-        vertical     ///< Vertical line (for toolbars, dividing horizontal layouts)
-    };
 
     /**
      * @class separator
