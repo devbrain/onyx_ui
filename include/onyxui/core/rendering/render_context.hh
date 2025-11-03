@@ -468,6 +468,98 @@ namespace onyxui {
         }
 
         /**
+         * @brief Get final width for expandable widgets
+         *
+         * @param natural_width The natural/intrinsic width of the widget
+         * @return Final width to use for rendering
+         *
+         * @details
+         * Convenience helper for expandable widgets that implements the pattern:
+         * "use assigned width if available, otherwise use natural width".
+         *
+         * - **During measurement**: available_size is {0,0} → returns natural_width
+         * - **During rendering**: available_size is assigned → returns assigned width
+         *
+         * This encapsulates the "0 means use natural size" convention.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     int natural_width = text_width + padding*2;
+         *     int final_width = ctx.get_final_width(natural_width);
+         *     // Use final_width for drawing
+         * }
+         * @endcode
+         */
+        [[nodiscard]] int get_final_width(int natural_width) const noexcept {
+            int const avail = size_utils::get_width(m_available_size);
+            return (avail > 0) ? avail : natural_width;
+        }
+
+        /**
+         * @brief Get final height for expandable widgets
+         *
+         * @param natural_height The natural/intrinsic height of the widget
+         * @return Final height to use for rendering
+         *
+         * @details
+         * Convenience helper for expandable widgets that implements the pattern:
+         * "use assigned height if available, otherwise use natural height".
+         *
+         * - **During measurement**: available_size is {0,0} → returns natural_height
+         * - **During rendering**: available_size is assigned → returns assigned height
+         *
+         * This encapsulates the "0 means use natural size" convention.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     int natural_height = text_height + padding*2;
+         *     int final_height = ctx.get_final_height(natural_height);
+         *     // Use final_height for drawing
+         * }
+         * @endcode
+         */
+        [[nodiscard]] int get_final_height(int natural_height) const noexcept {
+            int const avail = size_utils::get_height(m_available_size);
+            return (avail > 0) ? avail : natural_height;
+        }
+
+        /**
+         * @brief Get final dimensions for expandable widgets
+         *
+         * @param natural_width The natural/intrinsic width of the widget
+         * @param natural_height The natural/intrinsic height of the widget
+         * @return Pair of (final_width, final_height) to use for rendering
+         *
+         * @details
+         * Convenience helper that returns both dimensions at once.
+         * Most useful with C++17 structured bindings for clean code.
+         *
+         * - **During measurement**: available_size is {0,0} → returns (natural_width, natural_height)
+         * - **During rendering**: available_size is assigned → returns (assigned_width, assigned_height)
+         *
+         * This is the preferred helper for widgets that need both dimensions.
+         *
+         * @example
+         * @code
+         * void do_render(render_context& ctx) const {
+         *     int natural_width = text_width + padding*2;
+         *     int natural_height = text_height + padding*2;
+         *
+         *     // Clean one-liner with structured bindings!
+         *     auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
+         *
+         *     // Use final dimensions for drawing
+         *     ctx.draw_rect({{x, y}, {final_width, final_height}}, box_style);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] std::pair<int, int> get_final_dims(int natural_width, int natural_height) const noexcept {
+            return {get_final_width(natural_width), get_final_height(natural_height)};
+        }
+
+        /**
          * @brief Get the theme pointer for accessing rare widget-specific properties
          *
          * @return Pointer to theme (should not be nullptr in normal usage)

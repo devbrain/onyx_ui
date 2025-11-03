@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <algorithm>
+#include <optional>
 #include <string>
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/actions/action.hh>
@@ -204,14 +206,8 @@ namespace onyxui {
             int const natural_width = text_width + (padding_horizontal * 2) + (border * 2);
             int const natural_height = text_height + (padding_vertical * 2) + (border * 2);
 
-            // Get available size from context (0,0 during measurement, bounds.size during rendering)
-            auto const& avail_size = ctx.available_size();
-            int const avail_width = size_utils::get_width(avail_size);
-            int const avail_height = size_utils::get_height(avail_size);
-
-            // Use available size if provided, otherwise natural size
-            int const final_width = (avail_width > 0) ? avail_width : natural_width;
-            int const final_height = (avail_height > 0) ? avail_height : natural_height;
+            // Get final dimensions (context returns assigned size during rendering, natural size during measurement)
+            auto const [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
 
             // Get position from context (decoupled from element state!)
             auto const& pos = ctx.position();

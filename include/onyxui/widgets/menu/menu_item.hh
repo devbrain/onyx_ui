@@ -344,12 +344,8 @@ namespace onyxui {
                                   submenu_indicator_width +
                                   RIGHT_PADDING;
 
-            // Get available size from context (0 during measurement, actual size during rendering)
-            auto const& avail_size = ctx.available_size();
-            int const avail_width = size_utils::get_width(avail_size);
-
-            // Use available size if provided, otherwise use minimum (natural size)
-            int const effective_width = (avail_width > 0) ? avail_width : min_width;
+            // Get final width (context returns assigned width during rendering, natural width during measurement)
+            int const effective_width = ctx.get_final_width(min_width);
 
             // Get text height for background rectangle
             int const text_height = size_utils::get_height(text_size);

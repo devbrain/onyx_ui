@@ -515,18 +515,16 @@ void do_render(render_context<Backend>& ctx) const override {
     // Measure text
     auto text_size = renderer_type::measure_text(m_text, font);
     int text_width = size_utils::get_width(text_size);
+    int text_height = size_utils::get_height(text_size);
 
     // Calculate natural size
     int natural_width = text_width + padding*2 + border*2;
+    int natural_height = text_height + padding*2 + border*2;
 
-    // Check available size from parent
-    auto avail = ctx.available_size();
-    int avail_width = size_utils::get_width(avail);
-
-    // Use available size if provided, otherwise natural size
-    // During measurement: avail is {0,0} → use natural_width
-    // During rendering: avail is actual bounds → use avail_width
-    int final_width = (avail_width > 0) ? avail_width : natural_width;
+    // Get final dimensions using context helpers
+    // During measurement: returns (natural_width, natural_height)
+    // During rendering: returns parent's assigned size
+    auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
 
     // Draw at calculated size
     rect_type button_rect{pos.x, pos.y, final_width, final_height};
@@ -536,9 +534,21 @@ void do_render(render_context<Backend>& ctx) const override {
 ```
 
 **How it works:**
-- During measurement: `available_size()` is {0,0} → widget calculates natural size
-- During rendering: `available_size()` is parent's assigned size → widget fills it
+- During measurement: `available_size()` is {0,0} → `get_final_dims()` returns natural size
+- During rendering: `available_size()` is parent's assigned size → `get_final_dims()` returns assigned size
 - Single code path, no explicit phase checking!
+
+**Convenience helpers available:**
+```cpp
+// For width only
+int final_width = ctx.get_final_width(natural_width);
+
+// For height only
+int final_height = ctx.get_final_height(natural_height);
+
+// For both dimensions (preferred)
+auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
+```
 
 ### Key Differences: available_size() vs this->bounds()
 
@@ -547,12 +557,16 @@ void do_render(render_context<Backend>& ctx) const override {
 auto bounds = this->bounds();  // Relative coordinates, not useful for drawing!
 int width = rect_utils::get_width(bounds);
 
-// ✅ CORRECT - Use available_size() to check assigned size
+// ✅ CORRECT - Use context helpers
+auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
+
+// ✅ ALSO CORRECT - Use available_size() directly
 auto avail = ctx.available_size();
 int width = size_utils::get_width(avail);  // 0 during measurement, actual size during rendering
+int final_width = (width > 0) ? width : natural_width;
 ```
 
-**Rule:** Use `ctx.available_size()` to distinguish between natural size and parent-assigned size, not `is_measuring()`!
+**Rule:** Use `ctx.get_final_dims()` helpers or `ctx.available_size()` to distinguish between natural size and parent-assigned size, not `is_measuring()`!
 
 ---
 
