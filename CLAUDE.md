@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **onyx_ui** is a modern C++20 header-only UI framework featuring:
+- **Relative Coordinate System**: Children store bounds relative to parent's content area (0,0 origin) for efficient repositioning and clean architecture
 - **Layout System**: Two-pass measure/arrange algorithm with smart caching
 - **Widget Library**: Buttons, labels, menus, status bars, group boxes, scrolling, and more
 - **Scrolling System**: Three-layer architecture (scroll_view, scrollable, scrollbar) with presets
@@ -66,7 +67,7 @@ cmake --build build --target conio -j8
 ### Running Tests
 
 ```bash
-# Run all 996 unit tests
+# Run all 1184 unit tests
 ./build/bin/ui_unittest
 
 # List all test cases
@@ -85,7 +86,7 @@ cmake --build build --target conio -j8
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
 
-# All 996 tests should pass with zero warnings
+# All 1184 tests should pass with zero warnings
 ```
 
 ---
@@ -426,15 +427,16 @@ See [Testing Guide](docs/CLAUDE/TESTING.md) for comprehensive testing documentat
 
 ## Current Status
 
-**Version:** 2025-10 (October 2025)
+**Version:** 2025-11 (November 2025)
 
 **Test Coverage:**
-- **1039 test cases** across 36 test files
-- **5636 assertions**
+- **1184 test cases** across 38 test files
+- **6764 assertions**
 - **Zero warnings**
 - **100% widget coverage**
 
 **Recent Major Features:**
+- **Relative coordinate system refactoring** (Nov 2025) - Children store relative bounds for efficient repositioning and clean architecture
 - Comprehensive scrolling system (137 new tests)
 - Hotkey schemes (Windows vs Norton Commander)
 - Theme system v2.0 refactoring (thread-safe, style-based rendering)

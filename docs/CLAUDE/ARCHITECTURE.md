@@ -5,6 +5,7 @@ This document provides deep technical details about the OnyxUI framework archite
 ## Table of Contents
 
 - [Backend Pattern](#backend-pattern)
+- [Relative Coordinate System](#relative-coordinate-system)
 - [Core Concepts](#core-concepts)
 - [Two-Pass Layout Algorithm](#two-pass-layout-algorithm)
 - [Render Context Pattern (Visitor)](#render-context-pattern-visitor-pattern)
@@ -83,6 +84,218 @@ ctx.themes().apply_theme("Borland Turbo");
 - Consistent default theme across all uses of a backend
 - Themes available immediately after context creation
 - Backend authors control the theme selection and defaults
+
+---
+
+## Relative Coordinate System
+
+**Since:** November 2025
+
+OnyxUI uses a **relative coordinate system** where children store bounds relative to their parent's content area, not absolute screen positions.
+
+### Overview
+
+```cpp
+// Widget bounds are RELATIVE to parent's content area
+auto child_bounds = child->bounds();  // {x: 0, y: 0, w: 100, h: 50}
+// Child is at (0,0) relative to parent's content area
+
+// During rendering, context provides ABSOLUTE screen position
+void do_render(render_context<Backend>& ctx) const override {
+    const auto& pos = ctx.position();     // Absolute screen coords
+    const auto& bounds = this->bounds();   // Relative to parent
+
+    // For drawing, use absolute position from context
+    ctx.draw_text("Hello", pos, font, color);
+}
+```
+
+### Why Relative Coordinates?
+
+**Problems with absolute coordinates:**
+- Repositioning a parent requires updating all descendant coordinates
+- Complex hit testing and clipping logic
+- Coordinate space confusion in scrollable/nested widgets
+- Bugs with offset calculations in menus and containers
+
+**Benefits of relative coordinates:**
+✅ **Simplified Layout** - Children don't need absolute screen position
+✅ **Efficient Repositioning** - Moving parent automatically moves all children
+✅ **Clean Architecture** - Clear separation: relative storage, absolute rendering
+✅ **Correct Clipping** - Clipping rects calculated in absolute space
+✅ **Accurate Hit Testing** - Coordinate conversion at each level
+
+### How It Works
+
+#### 1. Storage: Relative Bounds
+
+Children store bounds relative to parent's content area (0,0 origin):
+
+```cpp
+// After arrange(), child bounds are RELATIVE
+panel.arrange({10, 10, 200, 200});    // Parent at screen (10,10)
+child->bounds();  // {0, 0, 50, 50}  <- Relative to parent's content area!
+```
+
+#### 2. Rendering: Absolute Coordinates
+
+During render traversal, offsets accumulate to produce absolute screen positions:
+
+```cpp
+// Root starts at (0, 0)
+root->render(renderer, theme);
+  // Child receives absolute position through context
+  -> child->do_render(ctx);  // ctx.position() = (10, 10) absolute
+     -> grandchild->do_render(ctx);  // ctx.position() = (20, 30) absolute
+```
+
+The `render_context` provides **absolute screen coordinates** via `ctx.position()`.
+
+#### 3. Hit Testing: Coordinate Conversion
+
+Hit testing converts absolute screen coords to relative at each level:
+
+```cpp
+// User clicks at absolute screen position (45, 35)
+auto* hit = root->hit_test(45, 35);
+
+// hit_test() implementation:
+// 1. Check if point is in this element's bounds (absolute check at root)
+// 2. Get content_area offset (e.g., {10, 10, ...} for border/padding)
+// 3. Convert to child coordinates: child_coords = (45-10, 35-10) = (35, 25)
+// 4. Recursively call child->hit_test(35, 25)
+```
+
+#### 4. Dirty Regions: Relative→Absolute Conversion
+
+Dirty regions are tracked in absolute coordinates:
+
+```cpp
+// Child marks itself dirty
+child->mark_dirty();
+
+// mark_dirty() walks up parent chain:
+// 1. Start with relative bounds: {0, 0, 50, 50}
+// 2. Add parent's content area offset: {10, 10}
+// 3. Add grandparent's offset: {0, 0}
+// 4. Result: absolute bounds {10, 10, 50, 50}
+// 5. Propagate absolute bounds to root
+```
+
+### Content Area
+
+The **content area** is the region inside margins, padding, and borders where children are positioned:
+
+```cpp
+// Element with padding and border
+element.set_padding({5, 5, 5, 5});
+element.set_has_border(true);  // +1 pixel border
+
+// Content area is RELATIVE to element's bounds
+auto content_area = element.get_content_area();
+// {x: 6, y: 6, w: width-12, h: height-12}
+//  ^^^
+//  margin(0) + border(1) + padding(5) = 6
+
+// Children positioned relative to content area
+child->arrange({0, 0, 100, 50});  // At content area origin
+```
+
+### Layout Strategy Integration
+
+All layout strategies use relative positioning:
+
+```cpp
+// linear_layout.hh - vertical stacking
+int current_y = 0;  // Start at content area origin (relative)
+for (auto& child : children) {
+    child->arrange({0, current_y, child_width, child_height});
+    current_y += child_height + spacing;
+}
+```
+
+### Widget Rendering Pattern
+
+**Correct pattern** for custom widgets:
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // Get absolute screen position from context
+    const auto& pos = ctx.position();
+    const auto& bounds = this->bounds();  // Relative
+
+    // Use absolute position for drawing
+    int x = point_utils::get_x(pos);
+    int y = point_utils::get_y(pos);
+
+    ctx.draw_text(m_text, {x, y}, font, color);
+
+    // For rects/borders, reconstruct absolute bounds
+    rect_type abs_bounds;
+    rect_utils::set_bounds(abs_bounds, x, y,
+        rect_utils::get_width(bounds),
+        rect_utils::get_height(bounds));
+    ctx.draw_rect(abs_bounds, box_style);
+}
+```
+
+**Common mistake** (will cause offset bugs):
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    const auto& bounds = this->bounds();  // WRONG! Relative coords
+
+    // This will render at wrong position if widget has parent offset
+    int x = rect_utils::get_x(bounds);  // ❌ Relative, not absolute!
+    ctx.draw_text(m_text, {x, y}, font, color);
+}
+```
+
+### Testing
+
+Tests verify the coordinate system works correctly:
+
+```cpp
+// unittest/core/test_relative_coordinates.cc
+TEST_CASE("Children have relative bounds, not absolute") {
+    panel root;
+    root.set_padding({10, 10, 0, 0});
+    auto* child = root.emplace_child<label>("Text");
+
+    root.measure(200, 200);
+    root.arrange({0, 0, 200, 200});
+
+    // Child is at RELATIVE (0,0), not absolute (10,10)
+    auto bounds = child->bounds();
+    CHECK(rect_utils::get_x(bounds) == 0);
+    CHECK(rect_utils::get_y(bounds) == 0);
+
+    // But hit testing at ABSOLUTE (15, 15) finds the child
+    auto* hit = root.hit_test(15, 15);
+    CHECK(hit == child);  // Coordinate conversion works!
+}
+```
+
+### Migration from Old System
+
+**Before (absolute coordinates):**
+```cpp
+// Children stored absolute screen positions
+child->bounds();  // {10, 10, 50, 50} - absolute!
+```
+
+**After (relative coordinates):**
+```cpp
+// Children store relative positions
+child->bounds();  // {0, 0, 50, 50} - relative!
+```
+
+**Breaking change:** Internal only. No API changes for application code.
+
+**See also:**
+- `docs/RELATIVE_COORDINATES_PLAN.md` - Detailed implementation plan
+- `docs/CLAUDE/CHANGELOG.md` - Migration notes
+- `unittest/core/test_relative_coordinates.cc` - Comprehensive tests
 
 ---
 

@@ -2,6 +2,129 @@
 
 This document tracks recent major changes and feature additions to the OnyxUI framework.
 
+## November 2025 - Relative Coordinate System Refactoring
+
+**Status:** ✅ Complete (1184 tests passing, 6764 assertions)
+
+### Overview
+
+Complete refactoring of the coordinate system from absolute to relative bounds. Children now store coordinates relative to their parent's content area (0,0 origin) instead of absolute screen positions. This enables efficient repositioning, cleaner architecture, and fixes bugs in nested widgets.
+
+### Problem Statement
+
+The previous system stored absolute screen coordinates for all widgets:
+- Repositioning a parent required updating all descendant coordinates
+- Scrollable widgets had coordinate space confusion causing overlapping children
+- Hit testing and clipping were complex due to mixing absolute and relative coordinates
+- Menu rendering had offset bugs due to incorrect coordinate usage
+
+### Solution: Relative Coordinates
+
+Children store bounds relative to parent's content area:
+- **Relative Storage**: Widget bounds use (0,0) origin relative to parent's content area
+- **Absolute Rendering**: During render traversal, offsets accumulate to produce absolute screen coordinates
+- **Coordinate Conversion**: Hit testing converts absolute→relative at each level, dirty regions convert relative→absolute
+
+### Core Changes
+
+#### element.hh - Coordinate System Overhaul
+- `get_content_area()`: Returns relative coordinates (0,0 origin)
+- `arrange()`: Positions children relative to content area, not absolute
+- `render()`: Fixed clipping and child offset calculations
+- `hit_test()`: Converts absolute screen coords to relative at content area boundary
+- `mark_dirty()`: Converts relative bounds to absolute before propagating to root
+
+#### Widget Rendering Fixes
+- `label.hh`: Use `ctx.position()` (absolute) not `bounds()` (relative)
+- `menu_item.hh`: Same rendering fix for menu items
+- `menu.hh`: Reconstruct absolute bounds for shadow drawing
+- `widget_container.hh`: Reconstruct absolute bounds for border drawing
+
+#### Layout Strategies
+All four layout strategies updated to use relative positioning:
+- `linear_layout.hh`: Children positioned at (0,0) relative to content area
+- `grid_layout.hh`: Grid cells use relative coordinates
+- `anchor_layout.hh`: Anchored children positioned relatively
+- `absolute_layout.hh`: Explicit positions are relative to content area
+
+### Test Updates
+
+- **New Tests**: 12 comprehensive tests added
+  - `test_relative_coordinates.cc`: 9 tests for core coordinate system
+  - `test_menu_visual.cc`: 3 visual rendering tests for menus
+- **Updated Tests**: 30+ test assertions fixed to expect relative coordinates
+  - test_content_area.cc, test_panel_layout.cc, test_group_box_layout.cc
+  - test_complex_layouts.cc, test_composition.cc, test_scrollable.cc
+  - test_theme_layout_integration.cc, test_menu_border_layout.cc
+
+### Benefits
+
+✅ **Simplified Layout**: Children don't need to know absolute screen position
+✅ **Efficient Repositioning**: Moving a parent automatically moves all children
+✅ **Clean Architecture**: Clear separation between relative storage and absolute rendering
+✅ **Correct Clipping**: Clipping rectangles properly calculated in absolute space
+✅ **Accurate Hit Testing**: Coordinate conversion at each level for precise hit detection
+✅ **Fixed Bugs**: Menu rendering offset bug resolved
+✅ **Solid Foundation**: Rock-solid base for future development
+
+### Statistics
+
+- **Tests Added**: 12 new tests (9 relative coordinates + 3 menu visual)
+- **Tests Updated**: 30+ assertions fixed for relative coordinates
+- **Total Tests**: 1184 (was 1172)
+- **Total Assertions**: 6764 (was 6743)
+- **Breaking Changes**: Internal only (no API changes)
+- **Files Modified**: 21 files
+
+### Files Modified
+
+**Core:**
+- `include/onyxui/core/element.hh` (6 methods updated)
+
+**Widgets:**
+- `include/onyxui/widgets/core/widget_container.hh`
+- `include/onyxui/widgets/label.hh`
+- `include/onyxui/widgets/menu/menu.hh`
+- `include/onyxui/widgets/menu/menu_item.hh`
+
+**Layout:**
+- `include/onyxui/layout/linear_layout.hh`
+- `include/onyxui/layout/grid_layout.hh`
+- `include/onyxui/layout/anchor_layout.hh`
+- `include/onyxui/layout/absolute_layout.hh`
+
+**Tests:**
+- `unittest/core/test_relative_coordinates.cc` (NEW - 9 tests)
+- `unittest/widgets/test_menu_visual.cc` (NEW - 3 tests)
+- 8 existing test files updated
+
+**Documentation:**
+- `docs/RELATIVE_COORDINATES_PLAN.md` (NEW)
+
+### Migration Notes
+
+**For Framework Developers:**
+- When rendering widgets, use `ctx.position()` for absolute screen coordinates
+- `bounds()` now returns RELATIVE coordinates (0,0 origin)
+- For drawing operations (borders, shadows), reconstruct absolute bounds:
+  ```cpp
+  const auto& pos = ctx.position();
+  const auto& bounds = this->bounds();
+  rect_type absolute_bounds;
+  rect_utils::set_bounds(absolute_bounds,
+      point_utils::get_x(pos),
+      point_utils::get_y(pos),
+      rect_utils::get_width(bounds),
+      rect_utils::get_height(bounds));
+  ```
+
+**For Application Developers:**
+- No API changes - existing code continues to work
+- Improved performance when moving/repositioning widgets
+- More predictable behavior in nested containers
+
+---
+
 ## October 2025 - Comprehensive Scrolling System
 
 **Status:** ✅ Complete (996 tests passing, 5533 assertions)
