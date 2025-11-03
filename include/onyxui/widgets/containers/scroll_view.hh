@@ -13,6 +13,8 @@
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/containers/grid.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <onyxui/events/ui_event.hh>
+#include <onyxui/hotkeys/key_code.hh>
 #include <memory>
 
 namespace onyxui {
@@ -290,6 +292,74 @@ namespace onyxui {
                 return m_grid_ptr->measure(available_width, available_height);
             }
             return base::do_measure(available_width, available_height);
+        }
+
+        /**
+         * @brief Handle keyboard events for scrolling
+         * @param kbd Keyboard event
+         * @return True if event was handled
+         *
+         * @details
+         * Implements standard keyboard scrolling:
+         * - Arrow Up/Down: Scroll by 1 line
+         * - Page Up/Down: Scroll by viewport height
+         * - Home: Jump to top
+         * - End: Jump to bottom
+         */
+        bool handle_keyboard(const keyboard_event& kbd) override {
+            // Only handle key press (pressed = true), not release
+            if (!kbd.pressed) {
+                return false;
+            }
+
+            // Arrow keys - scroll by line
+            if (kbd.key == key_code::arrow_up) {
+                m_content_ptr->scroll_by(0, -1);
+                return true;
+            }
+            if (kbd.key == key_code::arrow_down) {
+                m_content_ptr->scroll_by(0, 1);
+                return true;
+            }
+            if (kbd.key == key_code::arrow_left) {
+                m_content_ptr->scroll_by(-1, 0);
+                return true;
+            }
+            if (kbd.key == key_code::arrow_right) {
+                m_content_ptr->scroll_by(1, 0);
+                return true;
+            }
+
+            // Page Up/Down - scroll by viewport height
+            if (kbd.key == key_code::page_up) {
+                // Use scrollable bounds to get viewport height
+                auto viewport_bounds = m_content_ptr->bounds();
+                int viewport_height = rect_utils::get_height(viewport_bounds);
+                m_content_ptr->scroll_by(0, -viewport_height);
+                return true;
+            }
+            if (kbd.key == key_code::page_down) {
+                // Use scrollable bounds to get viewport height
+                auto viewport_bounds = m_content_ptr->bounds();
+                int viewport_height = rect_utils::get_height(viewport_bounds);
+                m_content_ptr->scroll_by(0, viewport_height);
+                return true;
+            }
+
+            // Home/End - jump to top/bottom
+            if (kbd.key == key_code::home) {
+                m_content_ptr->scroll_to(0, 0);
+                return true;
+            }
+            if (kbd.key == key_code::end) {
+                // Scroll to large number to ensure we reach the end
+                // scrollable will clamp this to max scroll position
+                m_content_ptr->scroll_to(0, 9999);
+                return true;
+            }
+
+            // Not handled - let parent handle it
+            return base::handle_keyboard(kbd);
         }
 
     private:
