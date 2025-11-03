@@ -78,6 +78,7 @@ add_executable(ui_unittest
         widgets/test_scroll_controller.cc
         widgets/test_scroll_view.cc
         widgets/test_scroll_view_presets.cc
+        widgets/test_scroll_view_keyboard.cc
         widgets/test_scrolling_integration.cc
         widgets/test_scrollable_clipping.cc
         widgets/test_text_view.cc

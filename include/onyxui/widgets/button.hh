@@ -7,6 +7,7 @@
 
 #pragma once
 
+
 #include <algorithm>
 #include <optional>
 #include <string>
@@ -15,6 +16,7 @@
 #include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/ui_constants.hh>  // For default padding values
+#include "onyxui/core/rendering/render_context.hh"
 
 namespace onyxui {
     /**

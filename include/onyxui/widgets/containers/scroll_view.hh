@@ -80,14 +80,18 @@ namespace onyxui {
             std::unique_ptr<scrollbar_type> hscrollbar = std::make_unique<scrollbar_type>(orientation::horizontal);
             std::unique_ptr<panel<Backend>> corner = std::make_unique<panel<Backend>>();
 
-            // Create 2x2 grid layout (2 columns, 2 rows)
-            // Grid will use content-based sizing from its children
-            auto grid_widget = std::make_unique<grid<Backend>>(2, 2);
-
             // Store raw pointers BEFORE moving
             m_content_ptr = content.get();
             m_vscrollbar_ptr = vscrollbar.get();
             m_hscrollbar_ptr = hscrollbar.get();
+
+            // Set default vertical layout for scrollable content
+            // This ensures children are arranged vertically by default
+            m_content_ptr->set_layout_strategy(std::make_unique<linear_layout<Backend>>(direction::vertical));
+
+            // Create 2x2 grid layout (2 columns, 2 rows)
+            // Grid will use content-based sizing from its children
+            auto grid_widget = std::make_unique<grid<Backend>>(2, 2);
             auto* grid_ptr = grid_widget.get();
 
             // Add components to grid (grid will auto-assign to 2x2 cells)
