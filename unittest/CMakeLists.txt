@@ -13,6 +13,7 @@ add_executable(ui_unittest
         core/test_scoped_layer.cc
         core/test_render_context.cc
         core/test_content_area.cc
+        core/test_relative_coordinates.cc
         core/test_background_renderer.cc
         events/test_events.cc
         events/test_event_target.cc
@@ -56,6 +57,7 @@ add_executable(ui_unittest
         widgets/test_menu_system.cc
         widgets/test_menu_item_measurement.cc
         widgets/test_menu_border_layout.cc
+        widgets/test_menu_visual.cc
         widgets/test_menu_hotkey_integration.cc
         widgets/test_theme_switching.cc
         widgets/test_status_bar.cc

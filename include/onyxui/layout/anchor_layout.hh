@@ -394,8 +394,9 @@ namespace onyxui {
     template<UIBackend Backend>
     void anchor_layout<Backend>::calculate_anchor_position(const rect_type& content_area, const size_type& child_size,
                                                                  const anchor_info& info, int& out_x, int& out_y) {
-        const int content_x = rect_utils::get_x(content_area);
-        const int content_y = rect_utils::get_y(content_area);
+        // RELATIVE coordinates - 0,0 = top-left of content area
+        const int content_x = 0;
+        const int content_y = 0;
         const int content_w = rect_utils::get_width(content_area);
         const int content_h = rect_utils::get_height(content_area);
         const int child_w = size_utils::get_width(child_size);

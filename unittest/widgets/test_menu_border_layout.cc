@@ -99,12 +99,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
     }
 
     SUBCASE("All items are inside border (not on border edge)") {
-        // Menu draws a border, so items should start at menu.y + 1 (inside border)
-        int menu_content_y = rect_utils::get_y(menu_final_bounds) + 1;  // +1 for border
+        // RELATIVE COORDINATES: items positioned at (0,0) relative to menu's content area
+        // Menu's content area already accounts for border offset internally
 
-        // First item should start at content area (inside border)
+        // First item should start at content area origin
         auto b1 = item1_ptr->bounds();
-        CHECK(rect_utils::get_y(b1) == menu_content_y);
+        CHECK(rect_utils::get_y(b1) == 0);  // Relative to menu's content area
 
         // Last item should end before border (menu_bottom - 1)
         auto b5 = item5_ptr->bounds();

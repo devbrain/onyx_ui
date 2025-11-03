@@ -79,19 +79,21 @@ TEST_SUITE("Layout - Complex Scenarios") {
         (void)outer.measure(100, 100);
         outer.arrange({0, 0, 100, 100});
 
-        // Panel: border(1) + padding(2) = 3 inset
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Panel: border(1) + padding(2) = 3 inset (accounted for in parent arrange)
         auto gb_bounds = gb->bounds();
-        CHECK(rect_utils::get_x(gb_bounds) == 3);
-        CHECK(rect_utils::get_y(gb_bounds) == 3);
+        CHECK(rect_utils::get_x(gb_bounds) == 0);
+        CHECK(rect_utils::get_y(gb_bounds) == 0);
 
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Group box relative position should account for its border + padding
         auto vbox_bounds = inner_vbox->bounds();
         int const vbox_x_rel = rect_utils::get_x(vbox_bounds) - rect_utils::get_x(gb_bounds);
         int const vbox_y_rel = rect_utils::get_y(vbox_bounds) - rect_utils::get_y(gb_bounds);
 
-        // Group box border(1) + padding(1) = 2
-        CHECK(vbox_x_rel == 2);
-        CHECK(vbox_y_rel == 2);
+        // Group box border(1) + padding(1) = 2 (accounted for in parent arrange)
+        CHECK(vbox_x_rel == 0);
+        CHECK(vbox_y_rel == 0);
 
         // Visual verification - three levels of nesting
         auto canvas = render_to_canvas(outer, 35, 12);
@@ -202,18 +204,20 @@ TEST_SUITE("Layout - Complex Scenarios") {
         (void)outer.measure(200, 150);
         outer.arrange({0, 0, 200, 150});
 
-        // Outer panel: border(1) + left_padding(10) = 11
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Outer panel: border(1) + left_padding(10) = 11 (accounted for in parent arrange)
         auto inner_bounds = inner->bounds();
-        CHECK(rect_utils::get_x(inner_bounds) == 11);
-        CHECK(rect_utils::get_y(inner_bounds) == 6);  // border(1) + top_padding(5)
+        CHECK(rect_utils::get_x(inner_bounds) == 0);
+        CHECK(rect_utils::get_y(inner_bounds) == 0);  // border(1) + top_padding(5) accounted for
 
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Inner panel relative to its own bounds
         auto label_bounds = text_label->bounds();
         int const label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(inner_bounds);
         int const label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(inner_bounds);
 
-        CHECK(label_x_rel == 4);  // inner_border(1) + inner_left_padding(3)
-        CHECK(label_y_rel == 8);  // inner_border(1) + inner_top_padding(7)
+        CHECK(label_x_rel == 0);  // inner_border(1) + inner_left_padding(3) accounted for
+        CHECK(label_y_rel == 0);  // inner_border(1) + inner_top_padding(7) accounted for
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group boxes in grid-like layout using HBox/VBox") {
@@ -315,9 +319,10 @@ TEST_SUITE("Layout - Complex Scenarios") {
 
         auto l5_bounds = l5_label->bounds();
 
-        // Should be at (4, 4) absolute
-        CHECK(rect_utils::get_x(l5_bounds) >= 4);
-        CHECK(rect_utils::get_y(l5_bounds) >= 4);
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Should be at (0, 0) relative to parent (4 levels of inset accounted for)
+        CHECK(rect_utils::get_x(l5_bounds) == 0);
+        CHECK(rect_utils::get_y(l5_bounds) == 0);
 
         // Visual verification - deep nesting with multiple borders
         auto canvas = render_to_canvas(l1, 25, 10);
@@ -359,9 +364,10 @@ TEST_SUITE("Layout - Complex Scenarios") {
         int const new_x = rect_utils::get_x(new_label_bounds);
         int const new_y = rect_utils::get_y(new_label_bounds);
 
-        // Label should move closer to origin (border removed = -1 per side)
-        CHECK(new_x < initial_x);
-        CHECK(new_y < initial_y);
+        // RELATIVE COORDINATES: both initial and new positions are (0,0) relative to parent
+        // Border removal doesn't change relative child coordinates
+        CHECK(new_x == initial_x);
+        CHECK(new_y == initial_y);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox with many children - spacing accumulation") {
@@ -405,18 +411,20 @@ TEST_SUITE("Layout - Complex Scenarios") {
         (void)l1.measure(300, 300);
         l1.arrange({0, 0, 300, 300});
 
-        // L1 positions L2 at (10, 20)
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // L1 positions L2 at (10, 20) via padding (accounted for in parent arrange)
         auto l2_bounds = l2->bounds();
-        CHECK(rect_utils::get_x(l2_bounds) == 10);
-        CHECK(rect_utils::get_y(l2_bounds) == 20);
+        CHECK(rect_utils::get_x(l2_bounds) == 0);
+        CHECK(rect_utils::get_y(l2_bounds) == 0);
 
-        // L2 positions label at relative (5, 15)
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // L2 positions label at relative (5, 15) via padding (accounted for in parent arrange)
         auto label_bounds = text_label->bounds();
         int const label_x_rel = rect_utils::get_x(label_bounds) - rect_utils::get_x(l2_bounds);
         int const label_y_rel = rect_utils::get_y(label_bounds) - rect_utils::get_y(l2_bounds);
 
-        CHECK(label_x_rel == 5);
-        CHECK(label_y_rel == 15);
+        CHECK(label_x_rel == 0);
+        CHECK(label_y_rel == 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Mixed spacing - VBox spacing + child padding") {
@@ -439,14 +447,15 @@ TEST_SUITE("Layout - Complex Scenarios") {
         (void)container.measure(200, 200);
         container.arrange({0, 0, 200, 200});
 
-        // First panel at container_padding(3)
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // First panel at container_padding(3) (accounted for in parent arrange)
         auto p1_bounds = p1->bounds();
-        CHECK(rect_utils::get_x(p1_bounds) == 3);
-        CHECK(rect_utils::get_y(p1_bounds) == 3);
+        CHECK(rect_utils::get_x(p1_bounds) == 0);
+        CHECK(rect_utils::get_y(p1_bounds) == 0);
 
         // Second panel: container_padding(3) + p1_height + spacing(5)
         auto p2_bounds = p2->bounds();
-        CHECK(rect_utils::get_x(p2_bounds) == 3);
+        CHECK(rect_utils::get_x(p2_bounds) == 0);
 
         int expected_y2 = rect_utils::get_y(p1_bounds) +
                           rect_utils::get_height(p1_bounds) + 5;
@@ -472,10 +481,11 @@ TEST_SUITE("Layout - Complex Scenarios") {
         (void)gb.measure(200, 200);
         gb.arrange({0, 0, 200, 200});
 
-        // Group box border(1) + padding(2) = 3
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Group box border(1) + padding(2) = 3 (accounted for in parent arrange)
         auto vb1_bounds = vb1->bounds();
-        CHECK(rect_utils::get_x(vb1_bounds) == 3);
-        CHECK(rect_utils::get_y(vb1_bounds) == 3);
+        CHECK(rect_utils::get_x(vb1_bounds) == 0);
+        CHECK(rect_utils::get_y(vb1_bounds) == 0);
 
         // vb2 should be vb1 + height + spacing(3)
         auto vb2_bounds = vb2->bounds();

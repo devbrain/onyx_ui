@@ -495,9 +495,9 @@ namespace onyxui {
                                    ? available_height - (expand_height * num_expanding)
                                    : 0;
 
-        // Position children
-        int current_y = rect_utils::get_y(content_area);
-        int const content_x = rect_utils::get_x(content_area);
+        // Position children (RELATIVE coordinates - 0,0 = top-left of content area)
+        int current_y = 0;  // Relative to content area, not absolute screen position
+        int const content_x = 0;  // Relative to content area
         int const content_w = rect_utils::get_width(content_area);
         size_t weighted_index = 0;
         int expand_child_count = 0;
@@ -622,9 +622,9 @@ namespace onyxui {
                                    ? available_width - (expand_width * num_expanding)
                                    : 0;
 
-        // Position children
-        int current_x = rect_utils::get_x(content_area);
-        int const content_y = rect_utils::get_y(content_area);
+        // Position children (RELATIVE coordinates - 0,0 = top-left of content area)
+        int current_x = 0;  // Relative to content area, not absolute screen position
+        int const content_y = 0;  // Relative to content area
         int const content_h = rect_utils::get_height(content_area);
         size_t weighted_index = 0;
         int expand_child_count = 0;

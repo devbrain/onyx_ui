@@ -17,6 +17,7 @@
 #include <../../include/onyxui/services/ui_context.hh>
 #include <vector>
 #include "../utils/test_canvas_backend.hh"
+#include "../utils/test_helpers.hh"
 #include "onyxui/concepts/rect_like.hh"
 #include "../../include/onyxui/core/element.hh"
 
@@ -26,44 +27,27 @@ using namespace onyxui::testing;
 TEST_SUITE("Theme - Layout Integration") {
     using Backend = test_canvas_backend;
 
-    struct test_fixture {
-        scoped_ui_context<Backend> ctx;
-
-        template<typename Widget>
-        void apply_default_theme([[maybe_unused]] Widget& w) {
-            // Use v2.0 by-name API (recommended)
-//             w.apply_theme("Test Theme", ctx.themes());  // No longer needed - widgets use global theme
-        }
-    };
-
-    TEST_CASE_FIXTURE(test_fixture, "Theme application - layout remains valid") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme application - layout remains valid") {
         panel<Backend> p;
         p.set_has_border(true);
         p.set_vbox_layout(0);
 
         auto* child = p.emplace_child<label>("Test");
 
-        // Measure/arrange before theme
-        (void)p.measure(100, 100);  // Call for side effect (layout calculation)
-        p.arrange({0, 0, 100, 100});
-
-        // Apply theme
-        apply_default_theme(p);
-
-        // Re-measure/arrange
+        // Measure/arrange with theme active
         (void)p.measure(100, 100);  // Call for side effect (layout calculation)
         p.arrange({0, 0, 100, 100});
 
         auto bounds_after = child->bounds();
 
-        // Layout should still be valid (child inside border)
-        CHECK(rect_utils::get_x(bounds_after) >= 1);
-        CHECK(rect_utils::get_y(bounds_after) >= 1);
+        // Layout should still be valid
+        // Child coordinates are relative to parent's content area (after border is removed)
+        CHECK(rect_utils::get_x(bounds_after) == 0);
+        CHECK(rect_utils::get_y(bounds_after) == 0);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Theme inheritance - child inherits parent theme") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme inheritance - child inherits parent theme") {
         panel<Backend> parent;
-        apply_default_theme(parent);
         parent.set_vbox_layout(0);
 
         auto* child = parent.emplace_child<label>("Child");
@@ -78,9 +62,8 @@ TEST_SUITE("Theme - Layout Integration") {
         CHECK(rect_utils::get_height(child_bounds) > 0);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Theme switch - layout updates correctly") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme switch - layout updates correctly") {
         vbox<Backend> container(2);
-        apply_default_theme(container);
 
         container.emplace_child<label>("Item 1");
         container.emplace_child<label>("Item 2");
@@ -97,7 +80,6 @@ TEST_SUITE("Theme - Layout Integration") {
         }
 
         // Apply theme again (simulating theme switch)
-        apply_default_theme(container);
 
         (void)container.measure(100, 100);
         container.arrange({0, 0, 100, 100});
@@ -110,9 +92,8 @@ TEST_SUITE("Theme - Layout Integration") {
         }
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Themed panel with border - content area correct") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Themed panel with border - content area correct") {
         panel<Backend> p;
-        apply_default_theme(p);
         p.set_has_border(true);
         p.set_padding(thickness::all(5));
         p.set_vbox_layout(0);
@@ -122,15 +103,15 @@ TEST_SUITE("Theme - Layout Integration") {
         (void)p.measure(100, 100);
         p.arrange({0, 0, 100, 100});
 
-        // Border(1) + padding(5) = 6
+        // Child coordinates are relative to parent's content area
+        // Border and padding are already removed from the content rect before children are positioned
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 6);
-        CHECK(rect_utils::get_y(child_bounds) == 6);
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Nested themed widgets - inheritance chain") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Nested themed widgets - inheritance chain") {
         panel<Backend> outer;
-        apply_default_theme(outer);
         outer.set_vbox_layout(0);
 
         auto* middle = outer.emplace_child<group_box>();
@@ -148,9 +129,8 @@ TEST_SUITE("Theme - Layout Integration") {
         CHECK(rect_utils::get_width(inner->bounds()) > 0);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Theme application - multiple children preserve spacing") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme application - multiple children preserve spacing") {
         vbox<Backend> vb(3);  // 3px spacing
-        apply_default_theme(vb);
 
         vb.emplace_child<label>("A");
         vb.emplace_child<label>("B");
@@ -172,9 +152,8 @@ TEST_SUITE("Theme - Layout Integration") {
         }
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Group box with theme - title doesn't affect content layout") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Group box with theme - title doesn't affect content layout") {
         group_box<Backend> gb;
-        apply_default_theme(gb);
         gb.set_title("Themed Title");
         gb.set_vbox_layout(0);
 
@@ -183,13 +162,14 @@ TEST_SUITE("Theme - Layout Integration") {
         (void)gb.measure(100, 100);
         gb.arrange({0, 0, 100, 100});
 
-        // Content should be inset by border only (title is in border area)
+        // Child coordinates are relative to parent's content area
+        // Title and border are handled by group_box; children positioned within content rect
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 1);
-        CHECK(rect_utils::get_y(child_bounds) == 1);
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
     }
 
-    TEST_CASE_FIXTURE(test_fixture, "Theme on already-laid-out tree - invalidation works") {
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme on already-laid-out tree - invalidation works") {
         panel<Backend> p;
         p.set_vbox_layout(0);
         p.emplace_child<label>("Text");
@@ -199,7 +179,6 @@ TEST_SUITE("Theme - Layout Integration") {
         p.arrange({0, 0, 100, 100});
 
         // Now apply theme (should invalidate and require re-layout)
-        apply_default_theme(p);
 
         // Re-layout should work correctly
         (void)p.measure(100, 100);

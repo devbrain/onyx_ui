@@ -436,8 +436,19 @@ namespace onyxui {
             // Draw shadow if enabled in theme
             if (auto* theme = ctx.theme()) {
                 if (theme->menu.shadow.enabled) {
+                    // RELATIVE COORDINATES: Reconstruct absolute bounds from context position
+                    // bounds() returns RELATIVE coordinates after coordinate system refactoring
+                    const auto& pos = ctx.position();
+                    const auto& bounds = this->bounds();
+                    typename Backend::rect_type absolute_bounds;
+                    rect_utils::set_bounds(absolute_bounds,
+                        point_utils::get_x(pos),
+                        point_utils::get_y(pos),
+                        rect_utils::get_width(bounds),
+                        rect_utils::get_height(bounds));
+
                     ctx.draw_shadow(
-                        this->bounds(),
+                        absolute_bounds,
                         theme->menu.shadow.offset_x,
                         theme->menu.shadow.offset_y
                     );

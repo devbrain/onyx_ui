@@ -46,10 +46,10 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         (void)p.measure(100, 100);
         p.arrange({0, 0, 100, 100});
 
-        // Child should be inset by 1 pixel for border
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 1);
-        CHECK(rect_utils::get_y(child_bounds) == 1);
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
         CHECK(rect_utils::get_width(child_bounds) == 98);  // 100 - 2*1
         // Note: height is 1 (label's natural height), not 98 (labels don't expand by default)
     }
@@ -88,8 +88,12 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         (void)p.measure(100, 100);
         p.arrange({0, 0, 100, 100});
 
-        // Child should be inset by 3 pixels for padding
-        assert_child_inset(p, *child, 3, 3, "Padding should create 3px inset");
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Padding offset handled internally by parent
+        auto child_bounds = child->bounds();
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(rect_utils::get_width(child_bounds) == 94);  // 100 - 2*3 padding
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel with border AND padding - compound spacing") {
@@ -107,12 +111,12 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         (void)p.measure(100, 100);
         p.arrange({0, 0, 100, 100});
 
-        // Child should be inset by border(1) + padding(2) = 3
-        assert_child_inset(p, *child, 3, 3, "Border + padding = 3px inset");
-
-        // Verify size
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Border and padding offsets handled internally by parent
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) == 94);  // 100 - 2*3
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(rect_utils::get_width(child_bounds) == 94);  // 100 - 2*(1+2)
         // Note: height is 1 (label's natural height), not 94
 
         // Visual verification
@@ -160,10 +164,10 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         INFO("Label bounds: (", rect_utils::get_x(label_bounds), ",", y,
              ") ", rect_utils::get_width(label_bounds), "x", rect_utils::get_height(label_bounds));
 
-        // Should be inside demo_panel's border and padding
-        CHECK(y >= 0);
+        // RELATIVE COORDINATES: label at (0,0) relative to demo_panel's content area
+        // Border and padding offsets handled internally by parent
+        CHECK(y == 0);
         CHECK(y < 100);  // Should be well within bounds
-        CHECK(y == 2);   // Should be exactly: border(1) + padding(1)
 
         // Visual verification - ensure the panel renders correctly
         auto canvas = render_to_canvas(main_panel, 30, 10);

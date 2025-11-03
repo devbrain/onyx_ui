@@ -350,8 +350,9 @@ namespace onyxui {
     // -----------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
     void absolute_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
-        int const content_x = rect_utils::get_x(content_area);
-        int const content_y = rect_utils::get_y(content_area);
+        // RELATIVE coordinates - positions are relative to content area (0,0)
+        // pos.x and pos.y are already relative offsets
+        (void)content_area;  // Unused in relative coordinate system (only dimensions matter, from measure phase)
 
         for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
@@ -365,8 +366,9 @@ namespace onyxui {
             int const meas_w = size_utils::get_width(measured);
             int const meas_h = size_utils::get_height(measured);
 
-            int const child_x = content_x + pos.x;
-            int const child_y = content_y + pos.y;
+            // Position is relative to content area
+            int const child_x = pos.x;
+            int const child_y = pos.y;
             int const child_width = (pos.width > 0) ? pos.width : meas_w;
             int const child_height = (pos.height > 0) ? pos.height : meas_h;
 

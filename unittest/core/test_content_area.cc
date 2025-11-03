@@ -45,9 +45,10 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
         auto content = elem.get_content_area();
 
-        // Should match bounds exactly
-        CHECK(rect_utils::get_x(content) == 10);
-        CHECK(rect_utils::get_y(content) == 20);
+        // RELATIVE COORDINATES: content_area is relative to widget's own bounds origin (0, 0)
+        // Widget arranged at absolute (10, 20), but content_area is relative
+        CHECK(rect_utils::get_x(content) == 0);
+        CHECK(rect_utils::get_y(content) == 0);
         CHECK(rect_utils::get_width(content) == 100);
         CHECK(rect_utils::get_height(content) == 50);
     }
@@ -127,9 +128,10 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
         auto child_bounds = child->bounds();
 
-        // Child should be inset by border
-        CHECK(rect_utils::get_x(child_bounds) == 1);
-        CHECK(rect_utils::get_y(child_bounds) == 1);
+        // RELATIVE COORDINATES: child positioned at (0,0) relative to parent's content area
+        // Border offset is handled internally by parent, not in child's bounds
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Panel - border + padding compound offset") {
@@ -145,9 +147,10 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
         auto child_bounds = child->bounds();
 
-        // Content area should account for border THEN padding
-        CHECK(rect_utils::get_x(child_bounds) == 3);  // border(1) + left_pad(2)
-        CHECK(rect_utils::get_y(child_bounds) == 4);  // border(1) + top_pad(3)
+        // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
+        // Border and padding offsets handled internally by parent
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
     }
 
     TEST_CASE("Content area - safe math prevents overflow") {

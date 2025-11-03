@@ -46,10 +46,11 @@ TEST_SUITE("Group Box - Layout Integration") {
         (void)gb.measure(100, 100);
         gb.arrange({0, 0, 100, 100});
 
-        // Group box always has border, child should be inset by 1 pixel
+        // Group box always has border, child should be at (0,0) relative to parent's content area
+        // (border offset is handled internally by group_box)
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 1);
-        CHECK(rect_utils::get_y(child_bounds) == 1);
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
         CHECK(rect_utils::get_width(child_bounds) == 98);  // 100 - 2*1
 
         // Visual verification
@@ -78,9 +79,10 @@ TEST_SUITE("Group Box - Layout Integration") {
         gb.arrange({0, 0, 100, 100});
 
         // Title appears in border, doesn't affect content area
+        // Child is at (0,0) relative to parent's content area (border offset handled internally)
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 1);
-        CHECK(rect_utils::get_y(child_bounds) == 1);
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
 
         // Visual verification - border should still be drawn
         auto canvas = render_to_canvas(gb, 30, 6);
@@ -109,8 +111,11 @@ TEST_SUITE("Group Box - Layout Integration") {
         (void)gb.measure(100, 100);
         gb.arrange({0, 0, 100, 100});
 
-        // Child inset by border(1) + padding(3) = 4
-        assert_child_inset(gb, *child, 4, 4, "Border + padding = 4px inset");
+        // Child is at (0,0) relative to parent's content area
+        // (border and padding offsets are handled internally by group_box)
+        auto child_bounds = child->bounds();
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
 
         // Visual verification
         auto canvas = render_to_canvas(gb, 25, 8);
@@ -124,6 +129,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box with asymmetric padding") {
+        // Set Canvas Test Theme as current
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding({5, 3, 7, 9});  // L, T, R, B
@@ -135,10 +143,10 @@ TEST_SUITE("Group Box - Layout Integration") {
         gb.arrange({0, 0, 100, 100});
 
         auto child_bounds = child->bounds();
-        // Border(1) + left_padding(5) = 6
-        // Border(1) + top_padding(3) = 4
-        CHECK(rect_utils::get_x(child_bounds) == 6);
-        CHECK(rect_utils::get_y(child_bounds) == 4);
+        // Child is at (0,0) relative to parent's content area
+        // (border and padding offsets are handled internally by group_box)
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
 
         // Width: 100 - border(2) - left_pad(5) - right_pad(7) = 86
         CHECK(rect_utils::get_width(child_bounds) == 86);
@@ -162,10 +170,11 @@ TEST_SUITE("Group Box - Layout Integration") {
         (void)gb.measure(100, 100);
         gb.arrange({0, 0, 100, 100});
 
-        // All children should start at x = border(1) + padding(2) = 3
-        CHECK(rect_utils::get_x(child1->bounds()) == 3);
-        CHECK(rect_utils::get_x(child2->bounds()) == 3);
-        CHECK(rect_utils::get_x(child3->bounds()) == 3);
+        // All children should start at x = 0 (relative to parent's content area)
+        // (border and padding offsets are handled internally by group_box)
+        CHECK(rect_utils::get_x(child1->bounds()) == 0);
+        CHECK(rect_utils::get_x(child2->bounds()) == 0);
+        CHECK(rect_utils::get_x(child3->bounds()) == 0);
 
         // Y positions should account for spacing
         int const y1 = rect_utils::get_y(child1->bounds());
@@ -175,7 +184,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         int const h1 = rect_utils::get_height(child1->bounds());
         int const h2 = rect_utils::get_height(child2->bounds());
 
-        CHECK(y1 == 3);  // border + padding
+        CHECK(y1 == 0);  // First child at (0,0) relative to content area
         CHECK(y2 == y1 + h1 + 1);  // child1 + spacing
         CHECK(y3 == y2 + h2 + 1);  // child2 + spacing
 
@@ -196,6 +205,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - empty title vs no title") {
+        // Set Canvas Test Theme as current
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb1;
         apply_default_theme(gb1);
         gb1.set_title("");  // Empty string
@@ -220,6 +232,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - content area calculation") {
+        // Set Canvas Test Theme as current
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding({5, 3, 7, 9});
@@ -232,9 +247,10 @@ TEST_SUITE("Group Box - Layout Integration") {
 
         auto child_bounds = child->bounds();
 
-        // Position: border(1) + padding
-        CHECK(rect_utils::get_x(child_bounds) == 6);   // 1 + 5
-        CHECK(rect_utils::get_y(child_bounds) == 4);   // 1 + 3
+        // Child is at (0,0) relative to parent's content area
+        // (border and padding offsets are handled internally by group_box)
+        CHECK(rect_utils::get_x(child_bounds) == 0);
+        CHECK(rect_utils::get_y(child_bounds) == 0);
 
         // Size: total - border(2) - padding(left+right or top+bottom)
         CHECK(rect_utils::get_width(child_bounds) == 186);   // 200 - 2 - 5 - 7
@@ -242,6 +258,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - border styles don't affect layout") {
+        // Set Canvas Test Theme as current
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb1, gb2;
         apply_default_theme(gb1);
         apply_default_theme(gb2);
@@ -268,6 +287,9 @@ TEST_SUITE("Group Box - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - long title doesn't affect child position") {
+        // Set Canvas Test Theme as current
+        ctx.themes().set_current_theme("Canvas Test Theme");
+
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_title("This is a very long title that might wrap or truncate");
@@ -279,8 +301,9 @@ TEST_SUITE("Group Box - Layout Integration") {
         gb.arrange({0, 0, 100, 100});
 
         // Child position should be same regardless of title length
-        CHECK(rect_utils::get_x(child->bounds()) == 1);
-        CHECK(rect_utils::get_y(child->bounds()) == 1);
+        // Child is at (0,0) relative to parent's content area (border offset handled internally)
+        CHECK(rect_utils::get_x(child->bounds()) == 0);
+        CHECK(rect_utils::get_y(child->bounds()) == 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - nested inside panel") {
@@ -302,18 +325,20 @@ TEST_SUITE("Group Box - Layout Integration") {
         (void)outer.measure(100, 100);
         outer.arrange({0, 0, 100, 100});
 
-        // Panel: border(1) + padding(2) = 3
+        // Group box is at (0,0) relative to panel's content area
+        // (panel's border and padding offsets are handled internally by panel)
         auto gb_bounds = gb->bounds();
-        CHECK(rect_utils::get_x(gb_bounds) == 3);
-        CHECK(rect_utils::get_y(gb_bounds) == 3);
+        CHECK(rect_utils::get_x(gb_bounds) == 0);
+        CHECK(rect_utils::get_y(gb_bounds) == 0);
 
-        // Group box adds its own border(1)
+        // Child is at (0,0) relative to group box's content area
+        // (group box's border offset is handled internally by group_box)
         auto child_bounds = child->bounds();
         int const child_x_rel = rect_utils::get_x(child_bounds) - rect_utils::get_x(gb_bounds);
         int const child_y_rel = rect_utils::get_y(child_bounds) - rect_utils::get_y(gb_bounds);
 
-        CHECK(child_x_rel == 1);  // Group box border
-        CHECK(child_y_rel == 1);
+        CHECK(child_x_rel == 0);  // Relative to group box's content area
+        CHECK(child_y_rel == 0);
 
         // Visual verification - nested borders
         auto canvas = render_to_canvas(outer, 30, 10);

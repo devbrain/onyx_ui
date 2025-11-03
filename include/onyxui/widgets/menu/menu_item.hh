@@ -301,7 +301,9 @@ namespace onyxui {
          * During rendering: draws background, text, and shortcut with state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            // Get bounds for positioning
+            // RELATIVE COORDINATES: Use context position (absolute screen coords) for rendering
+            // bounds() returns RELATIVE coordinates after coordinate system refactoring
+            const auto& pos = ctx.position();
             const auto& item_bounds = this->bounds();
 
             // Use resolved style from context (includes state-dependent font!)
@@ -334,9 +336,9 @@ namespace onyxui {
             constexpr int RIGHT_PADDING = 2;
             constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
 
-            // Use bounds for positioning during rendering (already declared above for debug)
-            int const base_x = rect_utils::get_x(item_bounds);
-            int const base_y = rect_utils::get_y(item_bounds);
+            // Use absolute screen position from context (not relative bounds!)
+            int const base_x = point_utils::get_x(pos);
+            int const base_y = point_utils::get_y(pos);
             int const item_width = rect_utils::get_width(item_bounds);
 
             // Calculate minimum width needed (includes submenu indicator if present)

@@ -170,10 +170,11 @@ namespace onyxui {
             auto const& font = ctx.style().font;
             auto* theme = ctx.theme();
 
-            // Use bounds for positioning (measure_context tracks bounding box, ignores position)
-            const auto& bounds = this->bounds();
-            int x = rect_utils::get_x(bounds);
-            int y = rect_utils::get_y(bounds);
+            // Use context position (absolute coordinates) for rendering
+            // bounds() are now RELATIVE, but ctx.position() is absolute screen coords
+            const auto& pos = ctx.position();
+            int x = point_utils::get_x(pos);
+            int y = point_utils::get_y(pos);
 
             // Render text (mnemonic segments if available, otherwise plain text)
             if (!m_mnemonic_markup.empty()) {

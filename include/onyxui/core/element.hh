@@ -80,6 +80,7 @@
 #include <onyxui/utils/safe_math.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/core/rendering/draw_context.hh>
+#include <onyxui/core/rendering/render_info.hh>
 
 namespace onyxui {
     /**
@@ -565,7 +566,8 @@ namespace onyxui {
        * instead of O(depth), following the same pattern used by browser rendering engines.
        */
             void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions,
-                       const theme_type* theme, const resolved_style<Backend>& parent_style) {
+                       const theme_type* theme, const resolved_style<Backend>& parent_style,
+                       point_type const& offset = point_type{0, 0}) {
                 if (!m_visible) {
                     return;
                 }
@@ -573,21 +575,32 @@ namespace onyxui {
                 // Resolve style by merging parent_style with my overrides (no recursion!)
                 auto style = this->resolve_style(theme, parent_style);
 
-                // Extract position and size from bounds for render context
-                point_type pos{rect_utils::get_x(m_bounds), rect_utils::get_y(m_bounds)};
+                // Bounds are now RELATIVE to parent's content area
+                // Add accumulated offset to get absolute screen position
+                point_type absolute_pos{
+                    rect_utils::get_x(m_bounds) + point_utils::get_x(offset),
+                    rect_utils::get_y(m_bounds) + point_utils::get_y(offset)
+                };
 
                 size_type size;
                 size_utils::set_size(size,
                     rect_utils::get_width(m_bounds),
                     rect_utils::get_height(m_bounds));
 
-                // Create draw context with resolved style, position, size, dirty regions, and theme
-                // Passing position/size decouples widgets from element state (pure visitor pattern)
-                // Theme pointer allows widgets to access rare properties (text_align, line_style, etc.)
-                draw_context<Backend> ctx(renderer, style, pos, size, dirty_regions, theme);
+                // Create draw context with resolved style, ABSOLUTE position, size, dirty regions, and theme
+                // The absolute_pos accounts for all parent content area offsets
+                draw_context<Backend> ctx(renderer, style, absolute_pos, size, dirty_regions, theme);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
-                if (!ctx.should_render(m_bounds)) {
+                // TODO: Need to check absolute bounds, not relative
+                rect_type absolute_bounds;
+                rect_utils::set_bounds(absolute_bounds,
+                    point_utils::get_x(absolute_pos),
+                    point_utils::get_y(absolute_pos),
+                    rect_utils::get_width(m_bounds),
+                    rect_utils::get_height(m_bounds));
+
+                if (!ctx.should_render(absolute_bounds)) {
                     // Early return - don't render this element or its children
                     return;
                 }
@@ -598,13 +611,28 @@ namespace onyxui {
                 // Set clip rect for children (content area only)
                 rect_type const content_area = get_content_area();
 
+                // Calculate absolute clip rect
+                // content_area position is now relative to widget's bounds origin, so add absolute_pos
+                rect_type absolute_clip;
+                rect_utils::set_bounds(absolute_clip,
+                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area),
+                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area),
+                    rect_utils::get_width(content_area),
+                    rect_utils::get_height(content_area));
+
                 // Push clip rect before rendering children
-                renderer.push_clip(content_area);
+                renderer.push_clip(absolute_clip);
 
                 // Render children in z-order (they're already clipped)
-                // Pass my resolved style down to children (top-down accumulation, no recursion!)
+                // Children are arranged at RELATIVE coordinates (0,0 = top-left of content area)
+                // Accumulate offset for children: widget's absolute position + content area offset
+                point_type child_offset{
+                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area),
+                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area)
+                };
+
                 for (const auto& child : m_children) {
-                    child->render(renderer, dirty_regions, theme, style);
+                    child->render(renderer, dirty_regions, theme, style, child_offset);
                 }
 
                 // Restore previous clip rect
@@ -669,8 +697,13 @@ namespace onyxui {
             /**
              * @brief Check if a point is inside this element
              * Implementation for event_target's pure virtual method
+             *
+             * NOTE: This is only correct for root elements at (0,0).
+             * For nested elements, use the full widget hierarchy hit_test().
              */
             [[nodiscard]] bool is_inside(int x, int y) const override {
+                // For root elements, relative = absolute
+                // For nested elements, this is incorrect but required by event_target interface
                 return rect_utils::contains(m_bounds, x, y);
             }
 
@@ -728,11 +761,10 @@ namespace onyxui {
              * @note virtual - subclasses can override to account for borders
              */
             virtual rect_type get_content_area() const noexcept {
-                // Calculate position with safe addition
-                const int x = safe_math::add_clamped(rect_utils::get_x(m_bounds),
-                                                safe_math::add_clamped(m_margin.left, m_padding.left));
-                const int y = safe_math::add_clamped(rect_utils::get_y(m_bounds),
-                                                safe_math::add_clamped(m_margin.top, m_padding.top));
+                // RELATIVE COORDINATES: Position is relative to widget's own bounds origin (0, 0)
+                // NOT relative to parent - that's handled during rendering via offset accumulation
+                const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
+                const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
 
                 // Calculate dimensions with safe subtraction
                 const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
@@ -1022,13 +1054,12 @@ namespace onyxui {
         }
 
         // Calculate content area using safe arithmetic
+        // RELATIVE COORDINATES: content_area position is relative to widget's own bounds origin
         rect_type content_area;
 
-        // Calculate position with safe addition
-        const int x = safe_math::add_clamped(rect_utils::get_x(final_bounds),
-                                        safe_math::add_clamped(m_margin.left, m_padding.left));
-        const int y = safe_math::add_clamped(rect_utils::get_y(final_bounds),
-                                        safe_math::add_clamped(m_margin.top, m_padding.top));
+        // Position is relative to bounds origin (0, 0), not absolute
+        const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
+        const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
 
         // Calculate dimensions with safe subtraction
         const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
@@ -1073,13 +1104,35 @@ namespace onyxui {
     // Note: Recursive tree traversal for hit testing, bounded by UI tree height
     template<UIBackend Backend>
     ui_element <Backend>* ui_element <Backend>::hit_test(int x, int y) {
-        if (!m_visible || !rect_utils::contains(m_bounds, x, y)) {
+        if (!m_visible) {
             return nullptr;
         }
 
+        // RELATIVE COORDINATES: Calculate absolute bounds for hit testing
+        // For root elements, m_bounds is at (0,0) so relative = absolute
+        // For nested elements, we need to account for parent positions
+        // This implementation assumes root element is at screen (0,0)
+
+        // Calculate absolute bounds (assuming parent offset has been applied)
+        rect_type absolute_bounds = m_bounds;  // For root, this is correct
+
+        if (!rect_utils::contains(absolute_bounds, x, y)) {
+            return nullptr;
+        }
+
+        // For children, convert absolute point to relative coordinates
+        // Children are positioned relative to our content area
+        rect_type content_area = get_content_area();
+        int const child_offset_x = rect_utils::get_x(content_area);
+        int const child_offset_y = rect_utils::get_y(content_area);
+
+        // Convert absolute coordinates to relative for children
+        int const child_x = x - child_offset_x;
+        int const child_y = y - child_offset_y;
+
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(x, y)) {
+            if (ui_element* hit = (*it)->hit_test(child_x, child_y)) {
                 return hit;
             }
         }
@@ -1131,16 +1184,38 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void ui_element<Backend>::mark_dirty() {
-        mark_dirty_region(m_bounds);
+        // Convert relative bounds to absolute before marking dirty
+        // Walk up parent chain to accumulate absolute position
+        int abs_x = rect_utils::get_x(m_bounds);
+        int abs_y = rect_utils::get_y(m_bounds);
+
+        ui_element* current_parent = m_parent;
+        while (current_parent) {
+            // Add parent's content area offset
+            rect_type parent_content = current_parent->get_content_area();
+            abs_x += rect_utils::get_x(parent_content);
+            abs_y += rect_utils::get_y(parent_content);
+            current_parent = current_parent->m_parent;
+        }
+
+        // Create absolute bounds rectangle
+        rect_type absolute_bounds;
+        rect_utils::set_bounds(absolute_bounds,
+            abs_x, abs_y,
+            rect_utils::get_width(m_bounds),
+            rect_utils::get_height(m_bounds));
+
+        mark_dirty_region(absolute_bounds);
     }
 
     template<UIBackend Backend>
     void ui_element<Backend>::mark_dirty_region(const rect_type& region) {
-        // If we have a parent, propagate up to the root
+        // Region is expected to be in ABSOLUTE coordinates
+        // Propagate up to root
         if (m_parent) {
             m_parent->mark_dirty_region(region);
         } else {
-            // We're the root - store the dirty region
+            // We're the root - store the absolute dirty region
             m_dirty_regions.push_back(region);
         }
     }

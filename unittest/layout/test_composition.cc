@@ -316,10 +316,10 @@ TEST_SUITE("layout_composition") {
         CHECK(tb->bounds().y == 0);
         CHECK(tb->bounds().h == 40);
 
-        // Verify toolbar's buttons
-        CHECK(tb->child_at(0)->bounds().x == 205);
-        CHECK(tb->child_at(1)->bounds().x == 270);  // 205 + 60 + 5
-        CHECK(tb->child_at(2)->bounds().x == 335);  // 205 + 60 + 5 + 60 + 5
+        // Verify toolbar's buttons (coordinates are relative to toolbar parent)
+        CHECK(tb->child_at(0)->bounds().x == 0);
+        CHECK(tb->child_at(1)->bounds().x == 65);  // 60 + 5
+        CHECK(tb->child_at(2)->bounds().x == 130);  // 60 + 5 + 60 + 5
 
         // Verify sidebar (anchored at center_left)
         auto sb = window->child_at(1);
@@ -389,9 +389,9 @@ TEST_SUITE("layout_composition") {
         CHECK(p1->bounds().w == 100);  // Explicit width
         CHECK(p1->bounds().h == 65);  // 2*30 + 5 spacing
 
-        // Verify panel1's children
-        CHECK(p1->child_at(0)->bounds().y == 50);
-        CHECK(p1->child_at(1)->bounds().y == 85);  // 50 + 30 + 5
+        // Verify panel1's children (coordinates are relative to panel1 parent)
+        CHECK(p1->child_at(0)->bounds().y == 0);
+        CHECK(p1->child_at(1)->bounds().y == 35);  // 30 + 5
 
         // Verify panel2
         auto p2 = canvas->child_at(1);
@@ -400,10 +400,10 @@ TEST_SUITE("layout_composition") {
         CHECK(p2->bounds().w == 130);  // 3*40 + 2*5
         CHECK(p2->bounds().h == 25);
 
-        // Verify panel2's buttons
-        CHECK(p2->child_at(0)->bounds().x == 200);
-        CHECK(p2->child_at(1)->bounds().x == 245);  // 200 + 40 + 5
-        CHECK(p2->child_at(2)->bounds().x == 290);  // 200 + 40 + 5 + 40 + 5
+        // Verify panel2's buttons (coordinates are relative to panel2 parent)
+        CHECK(p2->child_at(0)->bounds().x == 0);
+        CHECK(p2->child_at(1)->bounds().x == 45);  // 40 + 5
+        CHECK(p2->child_at(2)->bounds().x == 90);  // 40 + 5 + 40 + 5
     }
 
     /**

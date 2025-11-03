@@ -308,10 +308,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Arrange
     [[maybe_unused]] auto size = scroll.measure(120, 170);
     scroll.arrange({0, 0, 120, 170});
 
-    // Child should be positioned inside padding
+    // Child coordinates are relative to scrollable's content area, not absolute screen coordinates
+    // With padding (10,10,10,10), child is positioned at content area origin (0,0)
     auto child_bounds = child_ptr->bounds();
-    CHECK(rect_utils::get_x(child_bounds) == 10);
-    CHECK(rect_utils::get_y(child_bounds) == 10);
+    CHECK(rect_utils::get_x(child_bounds) == 0);
+    CHECK(rect_utils::get_y(child_bounds) == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Viewport size updated after arrange") {
@@ -367,10 +368,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Arrange
     [[maybe_unused]] auto size = scroll.measure(100, 150);
     scroll.arrange({50, 60, 100, 150});
 
-    // Child should be positioned relative to scrollable's position
+    // Child coordinates are relative to scrollable's content area, not absolute screen coordinates
+    // Even when scrollable is positioned at (50,60), child is at content area origin (0,0)
     auto child_bounds = child_ptr->bounds();
-    CHECK(rect_utils::get_x(child_bounds) == 50);
-    CHECK(rect_utils::get_y(child_bounds) == 60);
+    CHECK(rect_utils::get_x(child_bounds) == 0);
+    CHECK(rect_utils::get_y(child_bounds) == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Content area calculation with border") {

@@ -542,24 +542,23 @@ namespace onyxui {
     // -------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
     void grid_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
+        (void)content_area;  // Unused in relative coordinate system (grid uses pre-computed dimensions)
         if (parent->children().empty()) return;
 
         const int actual_rows = static_cast<int>(m_row_heights.size());
 
-        // Calculate cell positions
+        // Calculate cell positions (RELATIVE coordinates - 0,0 = top-left of content area)
         std::vector <int> column_positions(static_cast<size_t>(m_num_columns));
         std::vector <int> row_positions(static_cast<size_t>(actual_rows));
 
-        int const content_x = rect_utils::get_x(content_area);
-        int const content_y = rect_utils::get_y(content_area);
-
-        column_positions[0] = content_x;
+        // Grid starts at 0,0 relative to content area
+        column_positions[0] = 0;
         for (int i = 1; i < m_num_columns; ++i) {
             column_positions[static_cast<size_t>(i)] = column_positions[static_cast<size_t>(i - 1)] +
                                   m_column_widths[static_cast<size_t>(i - 1)] + m_column_spacing;
         }
 
-        row_positions[0] = content_y;
+        row_positions[0] = 0;
         for (int i = 1; i < actual_rows; ++i) {
             row_positions[static_cast<size_t>(i)] = row_positions[static_cast<size_t>(i - 1)] +
                                m_row_heights[static_cast<size_t>(i - 1)] + m_row_spacing;
