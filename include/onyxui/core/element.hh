@@ -594,11 +594,7 @@ namespace onyxui {
                 // Skip rendering if this element doesn't intersect with any dirty region
                 // TODO: Need to check absolute bounds, not relative
                 rect_type absolute_bounds;
-                rect_utils::set_bounds(absolute_bounds,
-                    point_utils::get_x(absolute_pos),
-                    point_utils::get_y(absolute_pos),
-                    rect_utils::get_width(m_bounds),
-                    rect_utils::get_height(m_bounds));
+                rect_utils::make_absolute_bounds(absolute_bounds, absolute_pos, m_bounds);
 
                 if (!ctx.should_render(absolute_bounds)) {
                     // Early return - don't render this element or its children
@@ -1200,10 +1196,7 @@ namespace onyxui {
 
         // Create absolute bounds rectangle
         rect_type absolute_bounds;
-        rect_utils::set_bounds(absolute_bounds,
-            abs_x, abs_y,
-            rect_utils::get_width(m_bounds),
-            rect_utils::get_height(m_bounds));
+        rect_utils::make_absolute_bounds(absolute_bounds, abs_x, abs_y, m_bounds);
 
         mark_dirty_region(absolute_bounds);
     }

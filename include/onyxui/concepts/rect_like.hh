@@ -139,5 +139,70 @@ namespace onyxui {
             return get_x(a) == get_x(b) && get_y(a) == get_y(b) &&
                    get_width(a) == get_width(b) && get_height(a) == get_height(b);
         }
+
+        /**
+         * @brief Create absolute bounds from position and relative bounds
+         * @param result Output rectangle to store the absolute bounds
+         * @param x Absolute x coordinate (screen position)
+         * @param y Absolute y coordinate (screen position)
+         * @param relative_bounds Rectangle containing width and height (position is ignored)
+         *
+         * @details
+         * Helper for the relative coordinate system. Combines an absolute screen position
+         * (x, y) with the dimensions from a relative bounds rectangle to create a new
+         * rectangle with absolute screen coordinates.
+         *
+         * Common use case: Converting relative widget bounds to absolute screen bounds
+         * during rendering by combining ctx.position() with this->bounds().
+         *
+         * @example
+         * @code
+         * // In do_render():
+         * const auto& pos = ctx.position();
+         * const auto& bounds = this->bounds();  // Relative coords
+         * typename Backend::rect_type absolute_bounds;
+         * rect_utils::make_absolute_bounds(absolute_bounds,
+         *     point_utils::get_x(pos), point_utils::get_y(pos), bounds);
+         * ctx.draw_rect(absolute_bounds, style);
+         * @endcode
+         */
+        template<RectLike ROut, RectLike RIn>
+            requires detail::has_member_x<ROut> && detail::has_member_y<ROut> &&
+                     (detail::has_member_w<ROut> || detail::has_member_width<ROut>) &&
+                     (detail::has_member_h<ROut> || detail::has_member_height<ROut>)
+        constexpr void make_absolute_bounds(ROut& result, int x, int y, const RIn& relative_bounds) noexcept {
+            set_bounds(result, x, y, get_width(relative_bounds), get_height(relative_bounds));
+        }
+
+        /**
+         * @brief Create absolute bounds from point position and relative bounds
+         * @param result Output rectangle to store the absolute bounds
+         * @param position Absolute screen position (point type)
+         * @param relative_bounds Rectangle containing width and height (position is ignored)
+         *
+         * @details
+         * Overload that accepts a point type for position. Commonly used with ctx.position()
+         * during widget rendering.
+         *
+         * @example
+         * @code
+         * // In do_render():
+         * const auto& pos = ctx.position();
+         * const auto& bounds = this->bounds();  // Relative coords
+         * typename Backend::rect_type absolute_bounds;
+         * rect_utils::make_absolute_bounds(absolute_bounds, pos, bounds);
+         * ctx.draw_rect(absolute_bounds, style);
+         * @endcode
+         */
+        template<RectLike ROut, PointLike P, RectLike RIn>
+            requires detail::has_member_x<ROut> && detail::has_member_y<ROut> &&
+                     (detail::has_member_w<ROut> || detail::has_member_width<ROut>) &&
+                     (detail::has_member_h<ROut> || detail::has_member_height<ROut>)
+        constexpr void make_absolute_bounds(ROut& result, const P& position, const RIn& relative_bounds) noexcept {
+            make_absolute_bounds(result,
+                point_utils::get_x(position),
+                point_utils::get_y(position),
+                relative_bounds);
+        }
     }
 }
