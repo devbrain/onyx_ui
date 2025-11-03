@@ -301,10 +301,8 @@ namespace onyxui {
          * During rendering: draws background, text, and shortcut with state colors
          */
         void do_render(render_context<Backend>& ctx) const override {
-            // RELATIVE COORDINATES: Use context position (absolute screen coords) for rendering
-            // bounds() returns RELATIVE coordinates after coordinate system refactoring
+            // Use context position (absolute screen coords) for rendering
             const auto& pos = ctx.position();
-            const auto& item_bounds = this->bounds();
 
             // Use resolved style from context (includes state-dependent font!)
             auto const& text_font = ctx.style().font;
@@ -336,10 +334,9 @@ namespace onyxui {
             constexpr int RIGHT_PADDING = 2;
             constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
 
-            // Use absolute screen position from context (not relative bounds!)
+            // Use absolute screen position from context
             int const base_x = point_utils::get_x(pos);
             int const base_y = point_utils::get_y(pos);
-            int const item_width = rect_utils::get_width(item_bounds);
 
             // Calculate minimum width needed (includes submenu indicator if present)
             int const min_width = LEFT_PADDING + text_width +
@@ -347,9 +344,12 @@ namespace onyxui {
                                   submenu_indicator_width +
                                   RIGHT_PADDING;
 
-            // Use actual width if available (rendering), otherwise use minimum (measurement)
-            // During measurement, item_width is 0, so we use min_width
-            int const effective_width = (item_width > 0) ? item_width : min_width;
+            // Get available size from context (0 during measurement, actual size during rendering)
+            auto const& avail_size = ctx.available_size();
+            int const avail_width = size_utils::get_width(avail_size);
+
+            // Use available size if provided, otherwise use minimum (natural size)
+            int const effective_width = (avail_width > 0) ? avail_width : min_width;
 
             // Get text height for background rectangle
             int const text_height = size_utils::get_height(text_size);
