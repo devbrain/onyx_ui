@@ -219,15 +219,13 @@ void color_box<Backend>::do_render(render_context<Backend>& ctx) const {
         x + MARGIN, y + MARGIN,
         w - 2*MARGIN, h - 2*MARGIN);
 
-    // Custom drawing with our color
-    if (ctx.is_measuring()) {
-        // During measurement, just track bounding box
-        // (fill_rect/draw_text automatically expand bounding box)
-    } else {
-        // During rendering, actually draw
-        auto& renderer = ctx.renderer();
-        renderer.fill_rect(color_rect, m_color);
+    // For custom colors not in style, direct renderer access is needed
+    // Context methods use style colors, but we need our custom color
+    if (auto* renderer = ctx.renderer()) {
+        // During rendering: renderer is not null
+        renderer->fill_rect(color_rect, m_color);
     }
+    // During measurement: renderer is null, no-op (bounding box tracked)
 
     // Draw text centered
     if (!m_text.empty()) {
@@ -421,9 +419,9 @@ public:
             20);  // 20 pixel tall title bar
 
         typename Backend::color_type title_color{0, 100, 200};
-        auto& renderer = ctx.renderer();
-        if (!ctx.is_measuring()) {
-            renderer.fill_rect(title_rect, title_color);
+        // For custom title bar color, use direct renderer access
+        if (auto* renderer = ctx.renderer()) {
+            renderer->fill_rect(title_rect, title_color);
         }
     }
 
@@ -465,63 +463,96 @@ this->set_layout_strategy(std::make_unique<linear_layout<Backend>>(...));
 
 The **render context** is a visitor that handles both **measurement** and **rendering** in a single `do_render()` method.
 
+**Key Principle:** Widgets should NOT distinguish between measurement and rendering phases. The same drawing code works for both!
+
 ### Context Methods
 
 ```cpp
 void do_render(render_context<Backend>& ctx) const override {
     // Query context
-    bool measuring = ctx.is_measuring();  // true during measure pass
     const auto& pos = ctx.position();     // Absolute screen position
-    auto& renderer = ctx.renderer();      // Access renderer
+    const auto& avail = ctx.available_size(); // Size from parent layout
     auto& style = ctx.style();            // Resolved style (state-dependent)
-    auto* theme = ctx.theme();            // Current theme
+    auto* theme = ctx.theme();            // Current theme (for rare properties)
 
-    // Drawing operations (expand bounding box during measurement)
-    ctx.draw_text(text, pos, font, color);      // Draws text
+    // Drawing operations work transparently for both measurement and rendering
+    ctx.draw_text(text, pos, font, color);      // Returns text size
     ctx.fill_rect(rect);                        // Fills with style background
     ctx.draw_rect(rect, box_style);             // Draws border
     ctx.draw_shadow(rect, offset_x, offset_y);  // Draws shadow
-
-    // Direct renderer access (when you need full control)
-    if (!measuring) {
-        renderer.fill_rect(rect, custom_color);
-        renderer.draw_line(x1, y1, x2, y2, color);
-    }
 }
 ```
 
-### Measurement vs Rendering
+### Two Widget Patterns
 
-The context automatically switches between two modes:
+#### Pattern 1: Fixed Content Size (like label)
 
-**During `measure()` pass:**
-- `is_measuring()` returns `true`
-- Drawing operations calculate bounding box
-- No actual rendering happens
-- Result: widget's minimum size
+**Use when:** Widget size is determined purely by its content.
 
-**During `render()` pass:**
-- `is_measuring()` returns `false`
-- Drawing operations render to screen
-- Uses absolute coordinates from `ctx.position()`
-
-**Example:**
 ```cpp
 void do_render(render_context<Backend>& ctx) const override {
     const auto& pos = ctx.position();
+    int x = point_utils::get_x(pos);
+    int y = point_utils::get_y(pos);
 
-    if (ctx.is_measuring()) {
-        // Measurement: just track bounds
-        auto text_size = renderer_type::measure_text(m_text, font);
-        // Context expands to include text size automatically
-    } else {
-        // Rendering: actually draw
-        ctx.draw_text(m_text, pos, font, color);
-    }
+    // Just draw content at natural size
+    // Context figures out the size automatically!
+    ctx.draw_text(m_text, {x, y}, ctx.style().font, ctx.style().foreground_color);
 }
 ```
 
-**Tip:** Most drawing operations work in both modes, so you rarely need to check `is_measuring()` explicitly!
+**How it works:**
+- During measurement: `ctx.draw_text()` returns size, measure_context tracks bounds
+- During rendering: `ctx.draw_text()` draws text, same size calculation
+- No branching needed!
+
+#### Pattern 2: Expandable Widget (like button)
+
+**Use when:** Widget can expand to fill parent's available space.
+
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // Measure text
+    auto text_size = renderer_type::measure_text(m_text, font);
+    int text_width = size_utils::get_width(text_size);
+
+    // Calculate natural size
+    int natural_width = text_width + padding*2 + border*2;
+
+    // Check available size from parent
+    auto avail = ctx.available_size();
+    int avail_width = size_utils::get_width(avail);
+
+    // Use available size if provided, otherwise natural size
+    // During measurement: avail is {0,0} → use natural_width
+    // During rendering: avail is actual bounds → use avail_width
+    int final_width = (avail_width > 0) ? avail_width : natural_width;
+
+    // Draw at calculated size
+    rect_type button_rect{pos.x, pos.y, final_width, final_height};
+    ctx.draw_rect(button_rect, ctx.style().box_style);
+    ctx.draw_text(m_text, text_pos, font, color);
+}
+```
+
+**How it works:**
+- During measurement: `available_size()` is {0,0} → widget calculates natural size
+- During rendering: `available_size()` is parent's assigned size → widget fills it
+- Single code path, no explicit phase checking!
+
+### Key Differences: available_size() vs this->bounds()
+
+```cpp
+// ❌ WRONG - Don't use bounds() for size during rendering
+auto bounds = this->bounds();  // Relative coordinates, not useful for drawing!
+int width = rect_utils::get_width(bounds);
+
+// ✅ CORRECT - Use available_size() to check assigned size
+auto avail = ctx.available_size();
+int width = size_utils::get_width(avail);  // 0 during measurement, actual size during rendering
+```
+
+**Rule:** Use `ctx.available_size()` to distinguish between natural size and parent-assigned size, not `is_measuring()`!
 
 ---
 
@@ -815,24 +846,62 @@ void set_text(std::string text) {
 }
 ```
 
-### Pitfall 3: Direct Renderer Access During Measurement
+### Pitfall 3: Using `is_measuring()` to Branch Logic
 
 **Problem:**
 ```cpp
 void do_render(render_context<Backend>& ctx) const override {
-    auto& renderer = ctx.renderer();
-    renderer.draw_text(...);  // ❌ Doesn't track bounds during measure!
+    if (ctx.is_measuring()) {
+        // ❌ ANTIPATTERN - Branching between measurement and rendering!
+        calculate_size();
+    } else {
+        draw_content();
+    }
 }
 ```
 
 **Solution:**
 ```cpp
 void do_render(render_context<Backend>& ctx) const override {
-    ctx.draw_text(...);  // ✅ Works in both measure and render
+    // ✅ CORRECT - Same code for both phases
+    // Use available_size() if you need to distinguish natural vs assigned size
+    auto avail = ctx.available_size();
+    int width = (size_utils::get_width(avail) > 0)
+        ? size_utils::get_width(avail)  // Assigned size
+        : calculate_natural_width();      // Natural size
+
+    ctx.draw_rect({pos.x, pos.y, width, height}, style);
 }
 ```
 
-### Pitfall 4: Modifying State in `do_render()`
+**Why:** The render context pattern means the SAME code should handle both measurement and rendering. Use `available_size()` to distinguish between natural size (measurement) and assigned size (rendering), not `is_measuring()`.
+
+**Exception:** Only check `renderer()` for null when you need direct renderer access for custom operations not covered by context methods.
+
+### Pitfall 4: Direct Renderer Access Without Checking
+
+**Problem:**
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    auto& renderer = ctx.renderer();
+    renderer.draw_text(...);  // ❌ Crashes during measurement (renderer is null)!
+}
+```
+
+**Solution:**
+```cpp
+void do_render(render_context<Backend>& ctx) const override {
+    // ✅ Use context methods (work in both phases)
+    ctx.draw_text(...);
+
+    // ✅ Or check renderer for custom operations
+    if (auto* renderer = ctx.renderer()) {
+        renderer->draw_custom(...);  // Only during rendering
+    }
+}
+```
+
+### Pitfall 5: Modifying State in `do_render()`
 
 **Problem:**
 ```cpp
@@ -943,8 +1012,8 @@ protected:
         auto& style = ctx.style();
         ctx.draw_rect(bg_rect, style.box_style);
 
-        // Draw filled portion
-        if (m_value > 0.0 && !ctx.is_measuring()) {
+        // Draw filled portion with custom color
+        if (m_value > 0.0) {
             int fill_width = static_cast<int>(w * m_value);
             typename Backend::rect_type fill_rect;
             constexpr int BORDER = 1;
@@ -954,8 +1023,10 @@ protected:
                 fill_width - 2*BORDER,
                 h - 2*BORDER);
 
-            auto& renderer = ctx.renderer();
-            renderer.fill_rect(fill_rect, m_fill_color);
+            // Use direct renderer for custom fill color
+            if (auto* renderer = ctx.renderer()) {
+                renderer->fill_rect(fill_rect, m_fill_color);
+            }
         }
 
         // Draw percentage text
