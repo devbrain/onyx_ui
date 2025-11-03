@@ -111,6 +111,9 @@ namespace onyxui {
             // Add grid as our only child (use base class add_child, not our forwarding method)
             base::add_child(std::move(grid_widget));
             m_grid_ptr = grid_ptr;
+
+            // Make scroll_view focusable by default so it can receive keyboard/mouse events for scrolling
+            this->set_focusable(true);
         }
 
         // =====================================================================
