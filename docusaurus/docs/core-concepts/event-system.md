@@ -6,72 +6,193 @@ sidebar_position: 4
 
 OnyxUI provides a flexible and powerful event system that allows you to respond to user input and other important events in your application. The system is composed of two complementary mechanisms:
 
-1.  **The `event_target` Observer Pattern:** A classic, inheritance-based approach for handling low-level events like mouse clicks and key presses.
-2.  **The Signal/Slot System:** A modern, publish-subscribe mechanism for creating high-level, custom events.
+1.  **Three-Phase Event Routing:** Industry-standard capture/target/bubble event propagation (DOM/WPF model)
+2.  **The Signal/Slot System:** A modern, publish-subscribe mechanism for decoupled communication
 
 Understanding both of these systems is key to building interactive and responsive UIs with OnyxUI.
 
-## The `event_target` Observer Pattern
+## Three-Phase Event Routing
 
-The `event_target` class is a base class that all `ui_element`s inherit from. It provides a set of virtual methods that you can override to handle low-level UI events.
+OnyxUI implements the industry-standard three-phase event routing model used in DOM (web) and WPF (Windows). Events propagate through three distinct phases:
 
-Here's a simplified look at the `event_target` interface:
+1. **CAPTURE** - Event travels DOWN from root to target (parent intercepts BEFORE children)
+2. **TARGET** - Event delivered to target element (the element at the click/interaction point)
+3. **BUBBLE** - Event travels UP from target to root (child handles BEFORE parent)
 
-```cpp
-template<UIBackend Backend>
-class event_target {
-public:
-    virtual void on_mouse_down(const typename Backend::event_type& e);
-    virtual void on_mouse_up(const typename Backend::event_type& e);
-    virtual void on_mouse_move(const typename Backend::event_type& e);
-    virtual void on_key_down(const typename Backend::event_type& e);
-    // ... and so on
-};
+### Example Event Flow
+
+When a user clicks on a label nested inside a text_view:
+
+```
+Widget Tree:
+  root
+    └─ panel
+         └─ text_view
+              └─ scroll_view
+                   └─ label  ← clicked here
+
+Event Routing:
+  Phase 1 (CAPTURE): root → panel → text_view → scroll_view
+  Phase 2 (TARGET):  label
+  Phase 3 (BUBBLE):  scroll_view → text_view → panel → root
 ```
 
-To handle an event, you simply create a custom widget that inherits from `ui_element` (or one of its subclasses) and override the appropriate `on_...` method.
+Any handler can **stop propagation** by returning `true`.
+
+### Handling Events by Phase
+
+Override `handle_event` with phase awareness:
 
 ```cpp
-template<UIBackend Backend>
-class my_button : public onyxui::button<Backend> {
-public:
-    void on_mouse_down(const typename Backend::event_type& e) override {
-        // Handle the mouse down event here
-        std::cout << "Mouse down!" << std::endl;
+#include <onyxui/events/event_phase.hh>
 
-        // It's often a good idea to call the base class implementation
-        onyxui::button<Backend>::on_mouse_down(e);
+template<UIBackend Backend>
+class my_composite_widget : public onyxui::widget<Backend> {
+public:
+    bool handle_event(const onyxui::ui_event& evt, onyxui::event_phase phase) override {
+        // CAPTURE: Intercept before children
+        if (phase == onyxui::event_phase::capture) {
+            if (auto* mouse = std::get_if<onyxui::mouse_event>(&evt)) {
+                if (mouse->act == onyxui::mouse_event::action::press) {
+                    this->request_focus();  // Focus composite, not child
+                    return false;           // Let children handle too
+                }
+            }
+        }
+
+        // TARGET: Handle if this widget is the target
+        if (phase == onyxui::event_phase::target) {
+            // Process event normally
+            return this->base::handle_event(evt, phase);
+        }
+
+        // BUBBLE: Cleanup or logging after children
+        if (phase == onyxui::event_phase::bubble) {
+            log_interaction(evt);
+            return false;  // Don't consume
+        }
+
+        return false;
     }
 };
 ```
 
-### When to use `event_target`
+### When to Use Each Phase
 
-The `event_target` system is best suited for:
+#### CAPTURE Phase
+Best for:
+- **Composite widgets requesting focus** (text_view, custom input controls)
+- **Input validation** before children process events
+- **Event filtering or transformation**
+- **Preventing child interaction** in disabled states
 
--   **Handling low-level input:** When you need to respond directly to mouse clicks, key presses, etc.
--   **Implementing widget logic:** It's the primary mechanism used internally by the OnyxUI widgets to implement their behavior.
--   **When you need to modify or consume an event:** The `on_...` methods can be used to intercept an event and prevent it from propagating further up the UI tree.
+Example: text_view captures mouse press to request focus before any child label handles the click.
+
+#### TARGET Phase
+Best for:
+- **Most widget interactions** (button clicks, text input)
+- **Direct event handling**
+- **Simple widgets** that don't need special routing
+
+This is the **default phase** for widgets that don't override special behavior.
+
+#### BUBBLE Phase
+Best for:
+- **Event logging and analytics**
+- **Cleanup** after child processing
+- **Event delegation** patterns
+- **Parent notification** after child handling
+
+Example: Panel logs all child interactions by handling bubble phase without consuming the event.
+
+### Routing API
+
+For advanced use cases, you can manually route events:
+
+```cpp
+#include <onyxui/events/event_router.hh>
+#include <onyxui/events/hit_test_path.hh>
+
+// Perform hit test to build path from root to target
+onyxui::hit_test_path<Backend> path;
+auto* target = root->hit_test(x, y, path);
+
+if (target) {
+    // Route event through all three phases
+    bool handled = onyxui::route_event(ui_evt, path);
+
+    if (handled) {
+        // Event was consumed by a handler
+        std::cout << "Event handled!" << std::endl;
+    }
+}
+```
+
+### Common Patterns
+
+#### Pattern 1: Composite Focus Management
+
+```cpp
+// text_view requests focus on any click, not just on deepest label
+bool handle_event(const ui_event& evt, event_phase phase) override {
+    if (phase == event_phase::capture) {
+        if (is_mouse_press(evt)) {
+            request_focus();
+            return false;  // Continue to children
+        }
+    }
+    return base::handle_event(evt, phase);
+}
+```
+
+#### Pattern 2: Input Validation
+
+```cpp
+// Validate input before child processes it
+bool handle_event(const ui_event& evt, event_phase phase) override {
+    if (phase == event_phase::capture) {
+        if (auto* kbd = std::get_if<keyboard_event>(&evt)) {
+            if (!is_valid_char(kbd->key)) {
+                return true;  // Stop propagation - invalid input
+            }
+        }
+    }
+    return base::handle_event(evt, phase);
+}
+```
+
+#### Pattern 3: Event Logging
+
+```cpp
+// Log all child interactions without consuming events
+bool handle_event(const ui_event& evt, event_phase phase) override {
+    if (phase == event_phase::bubble) {
+        analytics.log_interaction(evt);
+        return false;  // Don't consume - let others handle
+    }
+    return base::handle_event(evt, phase);
+}
+```
 
 ## The Signal/Slot System
 
-The signal/slot system is a more modern and flexible way to handle events. It's based on the publish-subscribe pattern, where an object (the "signal") can emit an event, and any number of other objects (the "slots") can subscribe to that event.
+The signal/slot system is a more modern and flexible way to handle high-level events. It's based on the publish-subscribe pattern, where an object (the "signal") can emit an event, and any number of other objects (the "slots") can subscribe to that event.
 
-Here's how it works:
+### Basic Usage
 
-1.  **Define a signal:** A signal is a member variable of a class. It's defined using the `onyxui::signal` template.
+1.  **Define a signal:** A signal is a member variable of a class defined using the `onyxui::signal` template.
 
     ```cpp
-    #include <onyxui/signal.hh>
+    #include <onyxui/core/signal.hh>
 
     class my_button {
     public:
-        onyxui::signal<> clicked; // A signal with no arguments
-        onyxui::signal<int> value_changed; // A signal with an int argument
+        onyxui::signal<> clicked;         // Signal with no arguments
+        onyxui::signal<int> value_changed; // Signal with an int argument
     };
     ```
 
-2.  **Connect a slot:** A slot is a function, lambda, or member function that will be called when the signal is emitted. You connect a slot to a signal using the `connect()` method.
+2.  **Connect a slot:** A slot is a function, lambda, or member function that will be called when the signal is emitted. Connect using `connect()`.
 
     ```cpp
     my_button button;
@@ -84,7 +205,7 @@ Here's how it works:
     });
     ```
 
-3.  **Emit the signal:** To trigger the event, you call the `emit()` method on the signal.
+3.  **Emit the signal:** Trigger the event by calling `emit()` on the signal.
 
     ```cpp
     // This will call all connected slots
@@ -94,16 +215,18 @@ Here's how it works:
 
 ### `scoped_connection` for Automatic Cleanup
 
-The `connect()` method returns a connection ID that can be used to disconnect the slot later. However, a more convenient and safer way to manage the lifetime of a connection is to use the `onyxui::scoped_connection` class. This is an RAII wrapper that automatically disconnects the slot when it goes out of scope.
+The `scoped_connection` class provides RAII-based automatic disconnection:
 
 ```cpp
+#include <onyxui/core/signal.hh>
+
 class my_dialog {
     my_button m_ok_button;
     onyxui::scoped_connection m_ok_connection;
 
 public:
     my_dialog() {
-        // The connection is automatically disconnected when the dialog is destroyed
+        // Connection automatically disconnected when dialog is destroyed
         m_ok_connection = onyxui::scoped_connection(
             m_ok_button.clicked,
             [this]() { this->on_ok(); }
@@ -114,14 +237,83 @@ public:
 };
 ```
 
-### When to use Signals and Slots
+### Common Widget Signals
+
+Built-in widgets provide standard signals:
+
+- **button::clicked** - Emitted when button is activated
+- **text_input::text_changed** - Emitted when text changes
+- **menu_item::triggered** - Emitted when menu item selected
+
+### When to Use Signals and Slots
 
 The signal/slot system is ideal for:
 
--   **High-level, custom events:** When you want to create your own events that are specific to your application's logic (e.g., `document_saved`, `user_logged_in`).
--   **Decoupling components:** Signals and slots allow you to create components that can communicate with each other without having direct dependencies.
--   **One-to-many communication:** When you need to notify multiple objects that an event has occurred.
+-   **High-level, custom events:** Application-specific events (e.g., `document_saved`, `user_logged_in`)
+-   **Decoupling components:** Communicate without direct dependencies
+-   **One-to-many communication:** Notify multiple objects of an event
+-   **Widget communication:** Connect widgets together declaratively
+
+## Choosing the Right System
+
+Use **three-phase event routing** when:
+- Handling low-level input (mouse, keyboard)
+- Implementing widget behavior
+- Need to intercept events before/after children
+- Building composite widgets with focus management
+
+Use **signals/slots** when:
+- Creating high-level application events
+- Connecting widgets together
+- Decoupling application components
+- Broadcasting state changes
+
+## Advanced Topics
+
+### Event Types
+
+OnyxUI supports several event types wrapped in `ui_event`:
+
+```cpp
+#include <onyxui/events/ui_event.hh>
+
+// Check event type and extract data
+if (auto* mouse = std::get_if<onyxui::mouse_event>(&evt)) {
+    // Handle mouse event
+    if (mouse->act == onyxui::mouse_event::action::press) {
+        // Mouse button pressed at (mouse->x, mouse->y)
+    }
+}
+
+if (auto* kbd = std::get_if<onyxui::keyboard_event>(&evt)) {
+    // Handle keyboard event
+    if (kbd->pressed) {
+        // Key pressed: kbd->key
+    }
+}
+```
+
+### Stopping Event Propagation
+
+Return `true` from `handle_event()` to stop propagation:
+
+```cpp
+bool handle_event(const ui_event& evt, event_phase phase) override {
+    if (phase == event_phase::capture) {
+        if (should_block_event(evt)) {
+            return true;  // Stop - children never see this event
+        }
+    }
+    return false;  // Continue propagation
+}
+```
 
 ## Conclusion
 
-OnyxUI's dual event systems provide a comprehensive and flexible solution for handling events in your application. By understanding the strengths of both the `event_target` and signal/slot systems, you can choose the right tool for the job and build UIs that are both interactive and well-structured.
+OnyxUI's dual event systems provide a comprehensive and flexible solution for handling events in your application. The **three-phase routing** gives you fine-grained control over low-level input handling, while **signals/slots** enable clean, decoupled high-level communication. By understanding the strengths of both systems, you can build UIs that are both interactive and well-architected.
+
+## See Also
+
+- [Architecture Guide - Event System](/docs/CLAUDE/ARCHITECTURE.md#event-system)
+- [Focus Manager](/docs/core-concepts/focus-manager.md)
+- [Widget Development Guide](/docs/guides/widget-development.md)

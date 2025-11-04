@@ -48,6 +48,8 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/events/ui_event.hh>
+#include <onyxui/events/event_phase.hh>
+#include <onyxui/hotkeys/hotkey_action.hh>
 
 namespace onyxui {
     // Forward declarations for friend declarations
@@ -162,22 +164,23 @@ namespace onyxui {
             bool process_event_impl(const E& event);
 
             /**
-             * @brief Handle framework-level ui_event (Phase 3 API)
-             * @param evt Framework event (from backend's create_event())
-             * @return true if the event was handled
+             * @brief Handle event with phase information (capture/target/bubble)
+             * @param evt The event to handle
+             * @param phase Which phase of event propagation this is
+             * @return true if event was handled/consumed
              *
              * @details
-             * New unified event API that accepts ui_event variant directly.
-             * Dispatches to type-specific handlers:
-             * - keyboard_event → handle_keyboard()
-             * - mouse_event → handle_mouse()
-             * - resize_event → handle_resize()
+             * Three-phase event routing following DOM/WPF model:
+             * - CAPTURE: Event traveling down from root to target (parent first)
+             * - TARGET: Event delivered to target element
+             * - BUBBLE: Event traveling up from target to root (child first)
              *
-             * This is the preferred API for new code using the unified event system.
-             * The old template-based process_event_impl() is maintained for backward
-             * compatibility with event_traits-based code.
+             * Default implementation only handles events in TARGET phase by
+             * dispatching to type-specific handlers via handle_keyboard(),
+             * handle_mouse(), and handle_resize(). Override to handle
+             * capture/bubble phases for advanced scenarios.
              *
-             * ## Type Dispatch
+             * ## Type Dispatch (TARGET phase only in base implementation)
              *
              * Uses std::visit to dispatch to the appropriate handler:
              * - keyboard_event: Extracted and passed to handle_keyboard()
@@ -186,21 +189,26 @@ namespace onyxui {
              *
              * @example
              * @code
-             * // Backend converts native event to ui_event
-             * std::optional<ui_event> evt = Backend::create_event(native_event);
-             * if (!evt) return false;
-             *
-             * // Process with event target
-             * if (widget->handle_event(evt.value())) {
-             *     return true;  // Event consumed
+             * // Override for capture phase handling (e.g., focus on click)
+             * bool handle_event(const ui_event& evt, event_phase phase) override {
+             *     if (phase == event_phase::capture) {
+             *         if (auto* mouse = std::get_if<mouse_event>(&evt)) {
+             *             if (mouse->act == mouse_event::action::press) {
+             *                 ui_services<Backend>::input()->set_focus(this);
+             *                 return false;  // Continue to children
+             *             }
+             *         }
+             *     }
+             *     return base::handle_event(evt, phase);
              * }
              * @endcode
              *
+             * @see event_phase For phase documentation
              * @see handle_keyboard For keyboard event handling
              * @see handle_mouse For mouse event handling
              * @see handle_resize For resize event handling
              */
-            virtual bool handle_event(const ui_event& evt);
+            virtual bool handle_event(const ui_event& evt, event_phase phase);
 
             // -----------------------------------------------------------------------
             // Callback Setters
@@ -367,6 +375,36 @@ namespace onyxui {
              * @note Lower indices receive focus first during tab navigation
              */
             void set_tab_index(int index) noexcept { m_tab_index = index; }
+
+            /**
+             * @brief Handle semantic action event
+             * @param action The semantic action to handle
+             * @return true if event was consumed
+             *
+             * @details
+             * Override this method to handle semantic actions (menu navigation, scrolling, etc.).
+             * Default implementation returns false (not handled).
+             *
+             * Semantic actions are dispatched by hotkey_manager to the focused widget.
+             * Each widget handles the actions it understands and ignores the rest.
+             *
+             * This enables context-dependent behavior where the same key can trigger
+             * different actions based on which widget has focus:
+             * - Up arrow in text_view → scroll_up
+             * - Up arrow in menu → menu_up
+             *
+             * @example
+             * @code
+             * bool handle_semantic_action(hotkey_action action) override {
+             *     if (action == hotkey_action::scroll_up) {
+             *         scroll_by(0, -1);
+             *         return true;
+             *     }
+             *     return base::handle_semantic_action(action); // Let parent try
+             * }
+             * @endcode
+             */
+            virtual bool handle_semantic_action(hotkey_action action);
 
             // -----------------------------------------------------------------------
             // Virtual Handlers - Override these in derived classes
@@ -694,6 +732,13 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
+    bool event_target<Backend>::handle_semantic_action([[maybe_unused]] hotkey_action action) {
+        // Base implementation does nothing
+        // Derived classes override to handle actions they understand
+        return false;
+    }
+
+    template<UIBackend Backend>
     bool event_target<Backend>::process_mouse_move(int x, int y) {
         bool const in_bounds = is_inside(x, y);
         bool const was_hovered = m_is_hovered;
@@ -782,11 +827,17 @@ namespace onyxui {
     }
 
     // ===============================================================================
-    // Phase 3 Event Handling - Unified ui_event API
+    // Phase-Aware Event Handling
     // ===============================================================================
 
     template<UIBackend Backend>
-    bool event_target<Backend>::handle_event(const ui_event& evt) {
+    bool event_target<Backend>::handle_event(const ui_event& evt, event_phase phase) {
+        // Default: only handle in target phase
+        // Derived classes override to handle capture/bubble phases
+        if (phase != event_phase::target) {
+            return false;  // Ignore capture/bubble by default
+        }
+
         if (!m_enabled) {
             return false;
         }

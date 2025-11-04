@@ -480,7 +480,8 @@ TEST_SUITE("Hotkey Scheme") {
         CHECK(scheme.has_binding(hotkey_action::focus_previous));
         CHECK(scheme.has_binding(hotkey_action::activate_focused));
 
-        CHECK(scheme.binding_count() == 10);
+        // 10 original bindings + 6 scrolling actions (scroll_up, scroll_down, scroll_page_up, scroll_page_down, scroll_home, scroll_end)
+        CHECK(scheme.binding_count() == 16);
     }
 
     TEST_CASE("builtin_hotkey_schemes - Norton Commander scheme") {
@@ -495,6 +496,7 @@ TEST_SUITE("Hotkey Scheme") {
         CHECK(function_key_to_number(menu_key->key) == 9);
 
         // Should have same number of bindings as Windows scheme
-        CHECK(scheme.binding_count() == 10);
+        // 10 original bindings + 6 scrolling actions
+        CHECK(scheme.binding_count() == 16);
     }
 }

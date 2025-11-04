@@ -444,6 +444,11 @@ namespace onyxui {
             {"Tab", key_code::tab},
             {"Space", key_code::space},
             {"Backspace", key_code::backspace},
+            // Navigation keys
+            {"Home", key_code::home},
+            {"End", key_code::end},
+            {"PageUp", key_code::page_up},
+            {"PageDown", key_code::page_down},
         };
     }
 
@@ -457,7 +462,7 @@ namespace onyxui {
      * Supported formats:
      * - Modifiers: "Ctrl+", "Alt+", "Shift+"
      * - F-keys: "F1" through "F12"
-     * - Special keys: "Up", "Down", "Left", "Right", "Enter", "Escape", "Tab"
+     * - Special keys: "Up", "Down", "Left", "Right", "Enter", "Escape", "Tab", "Home", "End", "PageUp", "PageDown"
      * - Single characters: "a", "s", "A" (case insensitive)
      *
      * @example

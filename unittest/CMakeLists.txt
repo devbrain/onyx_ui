@@ -15,10 +15,13 @@ add_executable(ui_unittest
         core/test_content_area.cc
         core/test_relative_coordinates.cc
         core/test_background_renderer.cc
+        core/test_hit_test_path.cc
         events/test_events.cc
         events/test_event_target.cc
         events/test_ui_event.cc
         events/test_event_target_ui_event.cc
+        events/test_event_phase.cc
+        events/test_event_routing.cc
         focus/test_focus_manager.cc
         layout/test_absolute.cc
         layout/test_anchor.cc
@@ -82,6 +85,9 @@ add_executable(ui_unittest
         widgets/test_scrolling_integration.cc
         widgets/test_scrollable_clipping.cc
         widgets/test_text_view.cc
+        widgets/test_text_view_keyboard.cc
+        widgets/test_text_view_focus.cc
+        widgets/test_text_view_focus_debug.cc
         utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc

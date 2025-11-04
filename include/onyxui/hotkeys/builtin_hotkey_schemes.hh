@@ -91,6 +91,14 @@ namespace onyxui::builtin_hotkey_schemes {
 
             // Widget Activation
             {hotkey_action::activate_focused, parse_key_sequence("Enter")},
+
+            // Scrolling Navigation
+            {hotkey_action::scroll_up, parse_key_sequence("Up")},
+            {hotkey_action::scroll_down, parse_key_sequence("Down")},
+            {hotkey_action::scroll_page_up, parse_key_sequence("PageUp")},
+            {hotkey_action::scroll_page_down, parse_key_sequence("PageDown")},
+            {hotkey_action::scroll_home, parse_key_sequence("Home")},
+            {hotkey_action::scroll_end, parse_key_sequence("End")},
         };
 
         return scheme;
@@ -152,6 +160,14 @@ namespace onyxui::builtin_hotkey_schemes {
 
             // Widget Activation
             {hotkey_action::activate_focused, parse_key_sequence("Enter")},
+
+            // Scrolling Navigation
+            {hotkey_action::scroll_up, parse_key_sequence("Up")},
+            {hotkey_action::scroll_down, parse_key_sequence("Down")},
+            {hotkey_action::scroll_page_up, parse_key_sequence("PageUp")},
+            {hotkey_action::scroll_page_down, parse_key_sequence("PageDown")},
+            {hotkey_action::scroll_home, parse_key_sequence("Home")},
+            {hotkey_action::scroll_end, parse_key_sequence("End")},
         };
 
         return scheme;

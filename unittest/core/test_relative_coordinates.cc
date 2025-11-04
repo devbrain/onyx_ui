@@ -33,7 +33,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* child = root.emplace_child<label>("Child");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // Child should be at (0,0) relative to root's content area
@@ -53,7 +53,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* inner_label = middle_panel->emplace_child<label>("Inner");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // Middle panel at (0,0) relative to root
@@ -79,7 +79,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* child_button = parent_panel->emplace_child<button>("Click");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // Child button is at relative (0,0) but absolute (12,12) on screen
@@ -124,7 +124,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* level3_label = level2->emplace_child<label>("Deep");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // level3_label should be at absolute (17, 17) = root(1) + level1(5) + level1_content + level2(10) + level2_content
@@ -160,7 +160,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* child_label = parent_panel->emplace_child<label>("Child");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // Clear any initial dirty regions
@@ -209,7 +209,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* deep_label = level2->emplace_child<label>("Deep");
 
-        root.measure(200, 200);
+        [[maybe_unused]] auto _ = root.measure(200, 200);
         root.arrange({0, 0, 200, 200});
 
         // Clear initial dirty regions
@@ -251,7 +251,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
         middle_panel->set_padding(thickness{2, 0, 0, 0});
         auto* nested_label = middle_panel->emplace_child<label>("Nested");
 
-        root.measure(40, 10);
+        [[maybe_unused]] auto _ = root.measure(40, 10);
         root.arrange({0, 0, 40, 10});
 
         // Verify relative bounds
@@ -283,7 +283,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* child = bordered_panel->emplace_child<label>("Child");
 
-        root.measure(100, 100);
+        [[maybe_unused]] auto _ = root.measure(100, 100);
         root.arrange({0, 0, 100, 100});
 
         // Child should be at relative (0,0)
@@ -310,7 +310,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
         auto* child2 = root.emplace_child<label>("Child2");
         auto* child3 = root.emplace_child<label>("Child3");
 
-        root.measure(100, 100);
+        [[maybe_unused]] auto _ = root.measure(100, 100);
         root.arrange({0, 0, 100, 100});
 
         // All children should have x=0 (relative to root)

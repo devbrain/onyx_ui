@@ -2,6 +2,138 @@
 
 This document tracks recent major changes and feature additions to the OnyxUI framework.
 
+## January 2025 - Three-Phase Event Routing (Capture/Target/Bubble)
+
+**Status:** ✅ Complete (1212 tests passing, 7004 assertions, zero warnings)
+
+### Overview
+
+Implemented industry-standard three-phase event routing (DOM/WPF model) with capture, target, and bubble phases. This enables composite widgets to intercept events before their children, solving focus management challenges in complex widgets like text_view.
+
+### Problem Statement
+
+Previous event system only supported direct target handling:
+- Composite widgets couldn't intercept events before children processed them
+- text_view couldn't request focus when clicking on internal labels/scroll views
+- No way for parents to validate/filter input before children handled it
+- Event delegation patterns (logging, analytics) required cumbersome manual propagation
+
+### Solution: Three-Phase Event Routing
+
+Events now propagate through three distinct phases:
+
+1. **CAPTURE Phase** - Event travels DOWN from root to target (parent sees event BEFORE children)
+2. **TARGET Phase** - Event delivered to target element (the element returned by hit_test())
+3. **BUBBLE Phase** - Event travels UP from target to root (child handles event BEFORE parent)
+
+Each phase can be handled independently, and any handler can stop propagation by returning `true`.
+
+### Core Changes
+
+#### New Event System Components
+
+**event_phase.hh** - Phase enumeration
+- `event_phase::capture` - Parent intercepts before children
+- `event_phase::target` - Direct target handling (default)
+- `event_phase::bubble` - Parent cleanup after children
+- `to_string(event_phase)` - Debug helper
+
+**hit_test_path.hh** - Path recording
+- `hit_test_path<Backend>` - Stores path from root to target
+- `push(element*)` - Record element during traversal
+- `target()`, `root()` - Access endpoints
+- `contains(element*)`, `depth_of(element*)` - Path queries
+
+**event_router.hh** - Routing engine
+- `route_event(ui_event, hit_test_path)` - Routes through all three phases
+- Implements capture (forward), target (at target), bubble (backward) traversal
+- Stops on first handler that returns true
+
+#### API Changes
+
+**event_target.hh** - Phase-aware handling
+- **NEW:** `bool handle_event(const ui_event&, event_phase)` - Phase-aware handler
+- **REMOVED:** `bool handle_event(const ui_event&)` - Old single-phase API
+- Default implementation only handles `event_phase::target`
+
+**ui_element.hh** - Hit test path recording
+- **UPDATED:** `hit_test(x, y, path)` - Records path during traversal
+- Each element pushes itself onto path before testing children
+
+### Example Usage
+
+```cpp
+class text_view : public widget<Backend> {
+    bool handle_event(const ui_event& evt, event_phase phase) override {
+        // CAPTURE: Request focus before children handle click
+        if (phase == event_phase::capture) {
+            if (auto* mouse = std::get_if<mouse_event>(&evt)) {
+                if (mouse->act == mouse_event::action::press) {
+                    request_focus();  // Focus composite, not child label
+                    return false;     // Let children handle too
+                }
+            }
+        }
+
+        return base::handle_event(evt, phase);
+    }
+};
+```
+
+### Migration from Old API
+
+Code using old `handle_event(evt)` must update to `handle_event(evt, phase)`:
+
+```cpp
+// OLD API (removed):
+bool handle_event(const ui_event& evt) override {
+    return handle_mouse(...);
+}
+
+// NEW API:
+bool handle_event(const ui_event& evt, event_phase phase) override {
+    if (phase != event_phase::target) {
+        return false;  // Ignore capture/bubble by default
+    }
+    return handle_mouse(...);
+}
+```
+
+### Test Updates
+
+**New test files:**
+- `unittest/events/test_event_phase.cc` - Phase infrastructure tests (49 tests)
+- `unittest/core/test_hit_test_path.cc` - Path recording tests (38 tests)
+- `unittest/events/test_event_routing.cc` - Routing integration tests
+
+**Updated test files:**
+- All `test_event_target_*.cc` files migrated to new API
+- `test_text_view_focus.cc` - Validates composite focus handling
+- Zero warnings in clean build
+
+### Documentation
+
+**Updated docs:**
+- `docs/CLAUDE/ARCHITECTURE.md` - Comprehensive event routing section
+- `CLAUDE.md` - Quick reference with three-phase example
+- All header files have extensive inline documentation
+
+**Key files:**
+- `include/onyxui/events/event_phase.hh` - 170 lines of docs + examples
+- `include/onyxui/events/hit_test_path.hh` - Complete path API docs
+- `include/onyxui/events/event_router.hh` - Routing algorithm docs
+
+### Benefits
+
+1. **Composite Widget Control** - Parents can intercept events before children
+2. **Focus Management** - text_view, custom inputs can request focus on any click
+3. **Input Validation** - Validate before children process
+4. **Event Delegation** - Logging, analytics via bubble phase
+5. **Standard Model** - Familiar to web/WPF developers
+6. **Backward Compatible** - Widgets work with default TARGET-only handling
+
+---
+
 ## November 2025 - Relative Coordinate System Refactoring
 
 **Status:** ✅ Complete (1184 tests passing, 6764 assertions)

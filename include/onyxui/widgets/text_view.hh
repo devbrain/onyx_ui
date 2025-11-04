@@ -43,10 +43,13 @@
 #include <onyxui/widgets/label.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/concepts/rect_like.hh>
+#include <onyxui/hotkeys/hotkey_action.hh>
+#include <onyxui/events/event_phase.hh>
 #include <string>
 #include <vector>
 #include <sstream>
 #include <exception>
+#include <iostream>
 
 namespace onyxui {
 
@@ -66,6 +69,7 @@ namespace onyxui {
         using element_type = ui_element<Backend>;
         using size_type = typename Backend::size_type;
         using rect_type = typename Backend::rect_type;
+        using scroll_view_type = scroll_view<Backend>;
 
     public:
         /**
@@ -75,6 +79,9 @@ namespace onyxui {
         explicit text_view(element_type* parent = nullptr)
             : base(parent)
         {
+            // Make text_view itself focusable for keyboard scrolling
+            base::set_focusable(true);
+
             // Set layout strategy to measure single child (scroll_view)
             base::set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(
@@ -172,6 +179,59 @@ namespace onyxui {
             return m_lines;
         }
 
+        /**
+         * @brief Handle semantic actions for scrolling
+         * @param action The semantic action to handle
+         * @return true if action was handled
+         *
+         * @details
+         * Public override to handle keyboard scrolling actions.
+         * Dispatches to internal scroll_view for actual scrolling.
+         */
+        bool handle_semantic_action(hotkey_action action) override {
+            if (!m_scroll_view) {
+                return base::handle_semantic_action(action);
+            }
+
+            switch (action) {
+                case hotkey_action::scroll_up:
+                    m_scroll_view->scroll_by(0, -1);
+                    return true;
+
+                case hotkey_action::scroll_down:
+                    m_scroll_view->scroll_by(0, 1);
+                    return true;
+
+                case hotkey_action::scroll_page_up: {
+                    auto viewport_bounds = m_scroll_view->bounds();
+                    int viewport_height = rect_utils::get_height(viewport_bounds);
+                    m_scroll_view->scroll_by(0, -viewport_height);
+                    return true;
+                }
+
+                case hotkey_action::scroll_page_down: {
+                    auto viewport_bounds = m_scroll_view->bounds();
+                    int viewport_height = rect_utils::get_height(viewport_bounds);
+                    m_scroll_view->scroll_by(0, viewport_height);
+                    return true;
+                }
+
+                case hotkey_action::scroll_home:
+                    m_scroll_view->scroll_to(0, 0);
+                    return true;
+
+                case hotkey_action::scroll_end:
+                    m_scroll_view->scroll_to(0, 999999);
+                    return true;
+
+                default:
+                    return base::handle_semantic_action(action);
+            }
+        }
+
+        // Bring base class handle_event into scope (avoid hiding it)
+        using base::handle_event;
+
     protected:
         /**
          * @brief Override do_arrange to position scroll_view at relative coordinates
@@ -200,6 +260,52 @@ namespace onyxui {
 
                 scroll_view->arrange(relative_bounds);
             }
+        }
+
+        /**
+         * @brief Override handle_event to intercept mouse clicks in capture phase
+         * @param event The event to handle
+         * @param phase The event routing phase (capture/target/bubble)
+         * @return true to consume event, false to continue propagation
+         *
+         * @details
+         * Uses capture phase to intercept mouse clicks BEFORE they reach child labels.
+         * This solves the focus problem: clicking anywhere inside text_view gives it focus,
+         * not just on empty areas.
+         *
+         * ## Why Capture Phase?
+         * Without capture phase, hit-test returns the deepest child (label), and text_view
+         * never sees the event. With capture phase, text_view intercepts BEFORE children,
+         * can request focus, then lets the event continue to children normally.
+         *
+         * ## Event Flow Example:
+         * 1. User clicks on label inside text_view
+         * 2. CAPTURE: text_view gets event first, requests focus, returns false
+         * 3. TARGET: label gets event (might not handle it)
+         * 4. BUBBLE: event bubbles back up
+         *
+         * This is why we need three-phase routing!
+         */
+        bool handle_event(const ui_event& event, event_phase phase) override {
+            // Only intercept in CAPTURE phase (before children)
+            if (phase == event_phase::capture) {
+                // Check if this is a mouse button press
+                if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
+                    if (mouse_evt->act == mouse_event::action::press) {
+                        // Request focus for text_view when any mouse button is pressed inside it
+                        auto* input = ui_services<Backend>::input();
+                        if (input && base::is_focusable()) {
+                            input->set_focus(this);
+                        }
+                        // Return false to allow event to continue to children
+                        // (label might want to handle clicks for selection, etc.)
+                        return false;
+                    }
+                }
+            }
+
+            // Pass all other phases to base class
+            return base::handle_event(event, phase);
         }
 
     private:
@@ -233,14 +339,9 @@ namespace onyxui {
             }
 
             // Pre-measure and pre-arrange the panel to ensure proper layout
-            // Use relative coordinates (0,0) now that scrollable is fixed
             if (!m_lines.empty()) {
-                try {
-                    auto panel_size = content_container_ptr->measure_unconstrained();
-                    content_container_ptr->arrange({0, 0, panel_size.w, panel_size.h});
-                } catch (const std::exception&) {
-                    // Ignore measurement errors during construction when no theme is set
-                }
+                auto panel_size = content_container_ptr->measure_unconstrained();
+                content_container_ptr->arrange({0, 0, panel_size.w, panel_size.h});
             }
 
             // Add content to scroll view
@@ -252,6 +353,9 @@ namespace onyxui {
 
             // Ensure scroll starts at the top
             scroll_view_ptr->scroll_to(0, 0);
+
+            // Store pointer to scroll_view before moving
+            m_scroll_view = scroll_view_ptr.get();
 
             // Add scroll view as child of this widget
             base::add_child(std::move(scroll_view_ptr));
@@ -268,7 +372,12 @@ namespace onyxui {
             create_scroll_view();
         }
 
+        // =====================================================================
+        // Member Variables
+        // =====================================================================
+
         std::vector<std::string> m_lines;
+        scroll_view_type* m_scroll_view = nullptr;  ///< Non-owning pointer to internal scroll_view
     };
 
 } // namespace onyxui

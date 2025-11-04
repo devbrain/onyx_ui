@@ -44,6 +44,8 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/core/element.hh>
+#include <onyxui/events/event_router.hh>
+#include <onyxui/events/hit_test_path.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/services/focus_manager.hh>
 #include <onyxui/services/ui_services.hh>
@@ -403,9 +405,9 @@ namespace onyxui {
                 }
 
                 // 4. Forward keyboard event to focused widget
-                // NEW Phase 6: Use handle_event() instead of process_event()
+                // NEW Phase 6: Use handle_event() with TARGET phase
                 if (focused) {
-                    return focused->handle_event(ui_evt);
+                    return focused->handle_event(ui_evt, event_phase::target);
                 }
             }
 
@@ -427,11 +429,21 @@ namespace onyxui {
                 bool is_press = (mouse_evt->act == mouse_event::action::press);
 
                 // Determine target widget:
-                // - If mouse is captured, route to captured widget
-                // - Otherwise, hit test to find widget under mouse
+                // - If mouse is captured, route to captured widget (direct, no path)
+                // - Otherwise, hit test with path recording for three-phase routing
                 auto* captured_target = input->get_captured();
                 auto* captured = static_cast<widget_type*>(captured_target);
-                widget_type* target_widget = captured ? captured : m_root->hit_test(mouse_x, mouse_y);
+
+                widget_type* target_widget = nullptr;
+                hit_test_path<Backend> hit_path;
+
+                if (captured) {
+                    // Captured widget gets event directly (no three-phase routing)
+                    target_widget = captured;
+                } else {
+                    // Hit test with path recording for three-phase event routing
+                    target_widget = m_root->hit_test(mouse_x, mouse_y, hit_path);
+                }
 
                 // Handle hover changes (only when NOT captured)
                 if (!captured) {
@@ -462,15 +474,22 @@ namespace onyxui {
 
                         // After releasing capture, update hover state based on current mouse position
                         // This ensures is_hovered() is correct when handle_mouse_up() is called
-                        widget_type* hover_target = m_root->hit_test(mouse_x, mouse_y);
+                        hit_test_path<Backend> hover_path;  // Temporary path for hover update
+                        widget_type* hover_target = m_root->hit_test(mouse_x, mouse_y, hover_path);
                         input->set_hover(hover_target);
                     }
                 }
 
-                // Route event to target widget (either captured or under mouse)
-                // NEW Phase 6: Use handle_event() instead of process_event()
+                // Route event to target widget
                 if (target_widget) {
-                    return target_widget->handle_event(ui_evt);
+                    if (captured) {
+                        // Captured widget: direct routing to TARGET phase only
+                        return target_widget->handle_event(ui_evt, event_phase::target);
+                    } else {
+                        // Non-captured: three-phase routing (NEW!)
+                        // This enables text_view to intercept clicks in capture phase
+                        return route_event(ui_evt, hit_path);
+                    }
                 }
             }
 

@@ -36,8 +36,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
 
         // Measure
-        auto size = panel.measure(100, 100);
-        std::cerr << "Panel measured: " << size.w << "x" << size.h << std::endl;
+        [[maybe_unused]] auto size = panel.measure(100, 100);
 
         // Arrange and render
         panel.arrange({0, 0, 40, 10});
@@ -45,9 +44,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         auto canvas = render_to_canvas(panel, 40, 10);
 
         // Check canvas
-        std::cerr << "=== Panel canvas ===" << std::endl;
         for (int row = 0; row < std::min(5, canvas->height()); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
         }
 
         std::string content;
@@ -82,12 +79,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         scrollable_widget.add_child(std::move(panel_ptr));
 
         // Measure scrollable
-        auto size = scrollable_widget.measure(100, 100);
-        std::cerr << "Scrollable measured: " << size.w << "x" << size.h << std::endl;
+        [[maybe_unused]] auto size = scrollable_widget.measure(100, 100);
 
         // Check scrollable's content size
-        auto scroll_info = scrollable_widget.get_scroll_info();
-        std::cerr << "Scrollable content_size: " << scroll_info.content_size.w << "x" << scroll_info.content_size.h << std::endl;
+        [[maybe_unused]] auto scroll_info = scrollable_widget.get_scroll_info();
 
         // Arrange and render
         scrollable_widget.arrange({0, 0, 40, 10});
@@ -95,9 +90,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
 
         // Check canvas
-        std::cerr << "=== Scrollable canvas ===" << std::endl;
         for (int row = 0; row < std::min(5, canvas->height()); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
         }
 
         std::string content;
@@ -141,16 +134,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
 
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40, 10);
-        std::cerr << "scroll_view measured: " << size.w << "x" << size.h << std::endl;
 
         scroll_view_ptr->arrange({0, 0, 40, 10});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
 
-        std::cerr << "=== Canvas ===" << std::endl;
         for (int row = 0; row < std::min(5, canvas->height()); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
         }
 
         std::string content;
@@ -186,17 +176,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         scrollable_widget.add_child(std::move(panel_ptr));
 
         // Measure and arrange
-        auto size = scrollable_widget.measure(40, 10);
-        std::cerr << "Scrollable measured: " << size.w << "x" << size.h << std::endl;
+        [[maybe_unused]] auto size = scrollable_widget.measure(40, 10);
 
         scrollable_widget.arrange({0, 0, 40, 10});
 
         // Render
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
 
-        std::cerr << "=== Canvas ===" << std::endl;
         for (int row = 0; row < std::min(5, canvas->height()); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
         }
 
         std::string content;
@@ -228,16 +215,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
 
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40, 10);
-        std::cerr << "Direct labels scroll_view measured: " << size.w << "x" << size.h << std::endl;
 
         scroll_view_ptr->arrange({0, 0, 40, 10});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
 
-        std::cerr << "=== Direct labels to scroll_view ===" << std::endl;
         for (int row = 0; row < std::min(5, canvas->height()); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
         }
 
         // Check if all lines are visible
@@ -290,14 +274,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
         CHECK(view.get_line(2) == "Line 3");
 
         // First measure to see what size it reports
-        auto measured_size = view.measure(40, 10);
-        std::cerr << "=== text_view measured: " << measured_size.w << "x" << measured_size.h << std::endl;
+        [[maybe_unused]] auto measured_size = view.measure(40, 10);
 
         // Now let's manually check the hierarchy
         if (!view.children().empty()) {
             auto* scroll_view = view.children()[0].get();
-            auto scroll_measured = scroll_view->measure(40, 10);
-            std::cerr << "=== scroll_view measured: " << scroll_measured.w << "x" << scroll_measured.h << std::endl;
+            [[maybe_unused]] auto scroll_measured = scroll_view->measure(40, 10);
 
             if (!scroll_view->children().empty()) {
                 auto* grid = scroll_view->children()[0].get();
@@ -305,23 +287,19 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
                     auto* scrollable = grid->children()[0].get();
 
                     // Measure scrollable
-                    auto scrollable_measured = scrollable->measure(40, 10);
-                    std::cerr << "=== scrollable measured: " << scrollable_measured.w << "x" << scrollable_measured.h << std::endl;
+                    [[maybe_unused]] auto scrollable_measured = scrollable->measure(40, 10);
 
                     if (!scrollable->children().empty()) {
                         auto* content_panel = scrollable->children()[0].get();
 
                         // Measure content_panel with unconstrained size (like scrollable does)
                         constexpr int UNCONSTRAINED = std::numeric_limits<int>::max() - 1;
-                        auto content_measured = content_panel->measure(UNCONSTRAINED, UNCONSTRAINED);
-                        std::cerr << "=== content_panel measured (unconstrained): " << content_measured.w << "x" << content_measured.h << std::endl;
+                        [[maybe_unused]] auto content_measured = content_panel->measure(UNCONSTRAINED, UNCONSTRAINED);
 
                         // Check each child
-                        std::cerr << "=== content_panel has " << content_panel->children().size() << " children" << std::endl;
                         for (size_t i = 0; i < content_panel->children().size(); ++i) {
                             auto* label = content_panel->children()[i].get();
-                            auto label_measured = label->measure(UNCONSTRAINED, UNCONSTRAINED);
-                            std::cerr << "===   Label[" << i << "] measured: " << label_measured.w << "x" << label_measured.h << std::endl;
+                            [[maybe_unused]] auto label_measured = label->measure(UNCONSTRAINED, UNCONSTRAINED);
                         }
                     }
                 }
@@ -458,61 +436,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo lay
         [[maybe_unused]] auto measured_size = root.measure(40, 10);
         root.arrange({0, 0, 40, 10});
 
-        // Debug: Check bounds of each widget
-        const auto& children = root.children();
-        std::cerr << "=== Widget bounds ===" << std::endl;
-
-        auto print_bounds = [](const char* name, const auto& bounds) {
-            std::cerr << name << ": " << bounds.x << "," << bounds.y
-                     << " " << bounds.w << "x" << bounds.h << std::endl;
-        };
-
-        print_bounds("Menu bar bounds", children[0]->bounds());
-        print_bounds("Title bounds", children[1]->bounds());
-        print_bounds("text_view bounds", children[2]->bounds());
-        print_bounds("Instructions bounds", children[3]->bounds());
-
-        // Get text_view and check its internal structure
-        auto* text_view_ptr = dynamic_cast<text_view<test_canvas_backend>*>(children[2].get());
-        if (text_view_ptr && !text_view_ptr->children().empty()) {
-            auto* scroll_view = text_view_ptr->children()[0].get();
-            print_bounds("  scroll_view bounds", scroll_view->bounds());
-
-            // Try to get the grid inside scroll_view
-            if (!scroll_view->children().empty()) {
-                auto* grid = scroll_view->children()[0].get();
-                print_bounds("    grid bounds", grid->bounds());
-
-                // Get the scrollable (should be first child of grid)
-                if (!grid->children().empty()) {
-                    auto* scrollable = grid->children()[0].get();
-                    print_bounds("      scrollable bounds", scrollable->bounds());
-
-                    // Get the panel inside scrollable
-                    if (!scrollable->children().empty()) {
-                        auto* panel = scrollable->children()[0].get();
-                        print_bounds("        panel bounds", panel->bounds());
-
-                        // Show first few label bounds
-                        for (size_t i = 0; i < std::min(size_t(3), panel->children().size()); i++) {
-                            auto label_bounds = panel->children()[i]->bounds();
-                            std::cerr << "          label " << i << " bounds: "
-                                     << label_bounds.x << "," << label_bounds.y
-                                     << " " << label_bounds.w << "x" << label_bounds.h << std::endl;
-                        }
-                    }
-                }
-            }
-        }
-
         // Render
         auto canvas = render_to_canvas(root, 40, 10);
-
-        // Debug output
-        std::cerr << "=== Demo layout test ===" << std::endl;
-        for (int row = 0; row < canvas->height(); row++) {
-            std::cerr << "Row " << row << ": '" << canvas->get_row(row) << "'" << std::endl;
-        }
 
         // Visual assertions
         std::string first_line = canvas->get_row(0);

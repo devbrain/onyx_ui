@@ -188,20 +188,20 @@ namespace onyxui {
                 if (!mnemonic_info.text.empty()) {
                     // Render styled text with mnemonic (multi-segment)
                     for (const auto& segment : mnemonic_info.text) {
-                        typename Backend::point_type const pos{x, y};
+                        typename Backend::point_type const segment_pos{x, y};
                         // Use segment-specific font, but inherited foreground color
-                        auto text_size = ctx.draw_text(segment.text, pos, segment.font, fg);
+                        auto text_size = ctx.draw_text(segment.text, segment_pos, segment.font, fg);
                         x += size_utils::get_width(text_size);
                     }
                 } else {
                     // Fallback to plain text if parsing failed
-                    typename Backend::point_type const pos{x, y};
-                    ctx.draw_text(m_text, pos, font, fg);
+                    typename Backend::point_type const text_pos{x, y};
+                    ctx.draw_text(m_text, text_pos, font, fg);
                 }
             } else {
                 // Render plain text using pre-resolved style
-                typename Backend::point_type const pos{x, y};
-                ctx.draw_text(m_text, pos, font, fg);
+                typename Backend::point_type const text_pos{x, y};
+                ctx.draw_text(m_text, text_pos, font, fg);
             }
         }
 

@@ -49,12 +49,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu renders with bo
     INFO("Menu rendered at (0, 0) with size ",
          size_utils::get_width(measured_size), "x", size_utils::get_height(measured_size));
 
-    // Print canvas for debugging
-    std::cout << "\n=== Menu Visual Test ===" << std::endl;
-    for (int y = 0; y < 20; ++y) {
-        std::cout << "Row " << y << ": '" << canvas->get_row(y) << "'" << std::endl;
-    }
-
     SUBCASE("First item renders at expected position") {
         // NOTE: test_canvas doesn't render visible borders, only tracks bounds
         // Menu items should start at row 1 (accounting for border offset)
@@ -120,12 +114,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with single ite
 
     INFO("Menu with single item");
 
-    // Print canvas for debugging
-    std::cout << "\n=== Menu Single Item Visual Test ===" << std::endl;
-    for (int y = 0; y < 10; ++y) {
-        std::cout << "Row " << y << ": '" << canvas->get_row(y) << "'" << std::endl;
-    }
-
     // Item should be at row 1 (accounting for border offset)
     std::string row1 = canvas->get_row(1);
     CHECK(row1.find("File") != std::string::npos);
@@ -150,12 +138,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with many items
     auto canvas = render_to_canvas(*test_menu, 30, 20);
 
     INFO("Menu with 5 items");
-
-    // Print canvas for debugging
-    std::cout << "\n=== Menu with 5 Items Visual Test ===" << std::endl;
-    for (int y = 0; y < 20; ++y) {
-        std::cout << "Row " << y << ": '" << canvas->get_row(y) << "'" << std::endl;
-    }
 
     // Check that all items are visible and in order
     bool found_item1 = false, found_item2 = false, found_item3 = false;

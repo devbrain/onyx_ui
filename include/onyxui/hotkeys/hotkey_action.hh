@@ -80,6 +80,14 @@ namespace onyxui {
         // Widget Activation
         activate_focused,   ///< Activate currently focused widget (Enter/Space in most schemes)
 
+        // Scrolling Navigation
+        scroll_up,          ///< Scroll content up one line (Up arrow in scroll contexts)
+        scroll_down,        ///< Scroll content down one line (Down arrow in scroll contexts)
+        scroll_page_up,     ///< Scroll content up one page (Page Up)
+        scroll_page_down,   ///< Scroll content down one page (Page Down)
+        scroll_home,        ///< Scroll to top of content (Home)
+        scroll_end,         ///< Scroll to end of content (End)
+
         // Sentinel value for iteration/validation
         action_count        ///< Total number of actions (not a valid action)
     };
@@ -105,6 +113,12 @@ namespace onyxui {
             case hotkey_action::focus_next: return "focus_next";
             case hotkey_action::focus_previous: return "focus_previous";
             case hotkey_action::activate_focused: return "activate_focused";
+            case hotkey_action::scroll_up: return "scroll_up";
+            case hotkey_action::scroll_down: return "scroll_down";
+            case hotkey_action::scroll_page_up: return "scroll_page_up";
+            case hotkey_action::scroll_page_down: return "scroll_page_down";
+            case hotkey_action::scroll_home: return "scroll_home";
+            case hotkey_action::scroll_end: return "scroll_end";
             case hotkey_action::action_count: return "action_count";
         }
         return "unknown";

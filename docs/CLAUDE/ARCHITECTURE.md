@@ -418,19 +418,126 @@ Layout states: `valid`, `dirty` - prevent redundant invalidation.
 
 ## Event System
 
-Two complementary systems:
+Three complementary systems work together for flexible event handling:
 
-### 1. event_target (Observer pattern)
+### 1. Three-Phase Event Routing (DOM/WPF Model)
+
+OnyxUI implements industry-standard three-phase event routing (capture/target/bubble), enabling composite widgets to intercept events before their children.
+
+#### Event Phases
+
+Events propagate through three distinct phases:
+
+1. **CAPTURE** - Event travels DOWN from root to target (parent sees event BEFORE children)
+2. **TARGET** - Event delivered to target element (the element returned by hit_test())
+3. **BUBBLE** - Event travels UP from target to root (child handles event BEFORE parent)
+
+#### Example Flow
+
+```
+User clicks at (10, 10) on label inside text_view:
+
+Widget Tree:
+  root
+    └─ panel
+         └─ text_view
+              └─ scroll_view
+                   └─ label  ← clicked here
+
+Event Flow:
+  1. root->handle_event(evt, CAPTURE)        ← Capture phase
+  2. panel->handle_event(evt, CAPTURE)
+  3. text_view->handle_event(evt, CAPTURE)   ← Can request focus here!
+  4. scroll_view->handle_event(evt, CAPTURE)
+  5. label->handle_event(evt, TARGET)        ← Target phase
+  6. scroll_view->handle_event(evt, BUBBLE)  ← Bubble phase
+  7. text_view->handle_event(evt, BUBBLE)
+  8. panel->handle_event(evt, BUBBLE)
+  9. root->handle_event(evt, BUBBLE)
+```
+
+Any handler can stop propagation by returning `true`.
+
+#### Handling Events by Phase
 
 ```cpp
-class my_widget : public ui_element<Backend> {
-    void on_mouse_down(const event_type& e) override {
-        // Handle mouse clicks
+class my_composite_widget : public widget<Backend> {
+    bool handle_event(const ui_event& evt, event_phase phase) override {
+        // CAPTURE: Intercept before children
+        if (phase == event_phase::capture) {
+            if (auto* mouse = std::get_if<mouse_event>(&evt)) {
+                if (mouse->act == mouse_event::action::press) {
+                    request_focus();  // Focus composite, not child
+                    return false;     // Let children handle too
+                }
+            }
+        }
+
+        // TARGET: Handle if this widget is the target
+        if (phase == event_phase::target) {
+            // Process event normally
+            return base::handle_event(evt, phase);
+        }
+
+        // BUBBLE: Cleanup or logging after children
+        if (phase == event_phase::bubble) {
+            log_interaction(evt);
+            return false;  // Don't consume
+        }
+
+        return false;
     }
 };
 ```
 
+#### When to Use Each Phase
+
+**CAPTURE Phase:**
+- Composite widgets requesting focus (text_view, custom input controls)
+- Input validation before children process events
+- Event filtering or transformation
+- Preventing child interaction in disabled states
+
+**TARGET Phase:**
+- Most widget interactions (button clicks, text input)
+- Direct event handling
+- Default phase for simple widgets
+
+**BUBBLE Phase:**
+- Event logging and analytics
+- Cleanup after child processing
+- Event delegation patterns
+- Parent notification after child handling
+
+#### Routing API
+
+```cpp
+#include <onyxui/events/event_router.hh>
+#include <onyxui/events/hit_test_path.hh>
+
+// Perform hit test to build path
+hit_test_path<Backend> path;
+auto* target = root->hit_test(x, y, path);
+
+if (target) {
+    // Route event through all three phases
+    bool handled = route_event(ui_evt, path);
+
+    if (handled) {
+        // Event was consumed by a handler
+    }
+}
+```
+
+**See also:**
+- `include/onyxui/events/event_phase.hh` - Phase enum and documentation
+- `include/onyxui/events/hit_test_path.hh` - Path recording during hit testing
+- `include/onyxui/events/event_router.hh` - Three-phase routing implementation
+- `include/onyxui/core/event_target.hh` - Base event handling interface
+
 ### 2. Signal/Slot (Publish-Subscribe)
+
+Complementary to event routing, signals provide decoupled communication between widgets:
 
 ```cpp
 signal<int, std::string> data_changed;
@@ -446,6 +553,11 @@ data_changed.emit(42, "value");
 // Scoped connections (RAII)
 scoped_connection conn(data_changed, my_handler);
 ```
+
+**Common widget signals:**
+- `button::clicked` - Emitted when button is activated
+- `text_input::text_changed` - Emitted when text changes
+- `menu_item::triggered` - Emitted when menu item selected
 
 **See also:** `include/onyxui/core/signal.hh` for the full signal/slot implementation.
 

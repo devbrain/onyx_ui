@@ -97,7 +97,7 @@ TEST_CASE("event_target::handle_event - Keyboard events") {
         kbd.modifiers = key_modifier::none;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.keyboard_count == 1);
@@ -111,7 +111,7 @@ TEST_CASE("event_target::handle_event - Keyboard events") {
         kbd.modifiers = key_modifier::ctrl;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.keyboard_count == 1);
@@ -125,7 +125,7 @@ TEST_CASE("event_target::handle_event - Keyboard events") {
         kbd.modifiers = key_modifier::none;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.keyboard_count == 1);
@@ -138,7 +138,7 @@ TEST_CASE("event_target::handle_event - Keyboard events") {
         kbd.modifiers = key_modifier::none;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.keyboard_count == 1);
@@ -162,7 +162,7 @@ TEST_CASE("event_target::handle_event - Mouse events") {
         mouse.modifiers = {.ctrl = false, .alt = false, .shift = false};
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
@@ -180,7 +180,7 @@ TEST_CASE("event_target::handle_event - Mouse events") {
         mouse.act = mouse_event::action::press;
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
@@ -195,7 +195,7 @@ TEST_CASE("event_target::handle_event - Mouse events") {
         mouse.act = mouse_event::action::move;
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
@@ -210,7 +210,7 @@ TEST_CASE("event_target::handle_event - Mouse events") {
         mouse.act = mouse_event::action::wheel_up;
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
@@ -225,7 +225,7 @@ TEST_CASE("event_target::handle_event - Mouse events") {
         mouse.act = mouse_event::action::wheel_down;
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
@@ -246,7 +246,7 @@ TEST_CASE("event_target::handle_event - Resize events") {
         resize.height = 768;
 
         ui_event evt = resize;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.resize_count == 1);
@@ -260,7 +260,7 @@ TEST_CASE("event_target::handle_event - Resize events") {
         resize.height = 24;
 
         ui_event evt = resize;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.resize_count == 1);
@@ -311,7 +311,7 @@ TEST_CASE("event_target::handle_event - Backward compatibility") {
         kbd.modifiers = key_modifier::ctrl;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.key_down_calls == 1);
@@ -328,7 +328,7 @@ TEST_CASE("event_target::handle_event - Backward compatibility") {
         mouse.act = mouse_event::action::press;
 
         ui_event evt = mouse;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.mouse_down_calls == 1);
@@ -349,7 +349,7 @@ TEST_CASE("event_target::handle_event - Enabled/disabled state") {
         kbd.key = key_code::a;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK_FALSE(handled);
         CHECK(target.keyboard_count == 0);
@@ -363,7 +363,7 @@ TEST_CASE("event_target::handle_event - Enabled/disabled state") {
         kbd.key = key_code::a;
 
         ui_event evt = kbd;
-        bool handled = target.handle_event(evt);
+        bool handled = target.handle_event(evt, event_phase::target);
 
         CHECK(handled);
         CHECK(target.keyboard_count == 1);
@@ -381,7 +381,7 @@ TEST_CASE("event_target::handle_event - Variant dispatch") {
         // Keyboard event
         keyboard_event kbd{};
         kbd.key = key_code::a;
-        target.handle_event(ui_event{kbd});
+        target.handle_event(ui_event{kbd}, event_phase::target);
 
         // Mouse event
         mouse_event mouse{};
@@ -389,13 +389,13 @@ TEST_CASE("event_target::handle_event - Variant dispatch") {
         mouse.y = 20;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
-        target.handle_event(ui_event{mouse});
+        target.handle_event(ui_event{mouse}, event_phase::target);
 
         // Resize event
         resize_event resize{};
         resize.width = 80;
         resize.height = 24;
-        target.handle_event(ui_event{resize});
+        target.handle_event(ui_event{resize}, event_phase::target);
 
         // Verify all handlers were called
         CHECK(target.keyboard_count == 1);

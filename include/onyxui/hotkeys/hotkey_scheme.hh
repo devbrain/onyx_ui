@@ -46,6 +46,7 @@
 #include <string>
 #include <map>
 #include <optional>
+#include <vector>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/hotkeys/key_sequence.hh>
 
@@ -70,10 +71,17 @@ namespace onyxui {
      * - Mouse-only schemes (no keyboard bindings at all)
      * - Progressive enhancement (start minimal, add keys as needed)
      *
-     * ## Key Uniqueness
+     * ## Context-Dependent Multi-Action Support
      *
-     * A key sequence can trigger only ONE action, but an action can have
-     * MULTIPLE keys (not currently supported, but possible future extension).
+     * A key sequence can trigger MULTIPLE actions. For example:
+     * - Up arrow → menu_up (when menu is open) + scroll_up (when scrollable has focus)
+     * - Down arrow → menu_down (when menu is open) + scroll_down (when scrollable has focus)
+     *
+     * All matching handlers are executed. Each handler should be context-aware and
+     * only perform actions when appropriate (e.g., menu_up does nothing if menu is closed).
+     *
+     * This allows the same keys to have different meanings in different contexts without
+     * requiring complex scope management or priority systems.
      *
      * ## Comparison to Themes
      *
@@ -116,19 +124,50 @@ namespace onyxui {
         }
 
         /**
-         * @brief Find action triggered by a key
+         * @brief Find all actions triggered by a key
          * @param seq Key sequence to match
-         * @return Action if found, nullopt otherwise
+         * @return Vector of all actions bound to this key (may be empty)
          *
          * @details
-         * Searches through all bindings to find which action (if any)
-         * is triggered by the given key sequence.
+         * Searches through all bindings to find ALL actions triggered by
+         * the given key sequence. Supports context-dependent multi-action
+         * behavior where the same key can trigger different actions.
          *
          * Used by hotkey_manager to dispatch key events:
          * 1. Convert event to key_sequence
-         * 2. Ask scheme: which action does this key trigger?
-         * 3. Find registered handler for that action
-         * 4. Execute handler
+         * 2. Ask scheme: which actions does this key trigger?
+         * 3. Find registered handlers for those actions
+         * 4. Execute ALL handlers (each should be context-aware)
+         *
+         * @example
+         * @code
+         * auto actions = scheme.find_all_actions_for_key(parse_key_sequence("Up"));
+         * // actions might contain: [menu_up, scroll_up]
+         * for (auto action : actions) {
+         *     std::cout << "Up triggers: " << to_string(action) << "\n";
+         * }
+         * @endcode
+         */
+        [[nodiscard]] std::vector<hotkey_action> find_all_actions_for_key(const key_sequence& seq) const {
+            std::vector<hotkey_action> result;
+            for (const auto& [action, binding] : bindings) {
+                if (binding == seq) {
+                    result.push_back(action);
+                }
+            }
+            return result;
+        }
+
+        /**
+         * @brief Find action triggered by a key (legacy single-action API)
+         * @param seq Key sequence to match
+         * @return First action if found, nullopt otherwise
+         *
+         * @details
+         * Legacy API for backward compatibility. Returns only the FIRST action
+         * bound to the key. Prefer find_all_actions_for_key() for new code.
+         *
+         * @deprecated Use find_all_actions_for_key() for multi-action support
          *
          * @example
          * @code

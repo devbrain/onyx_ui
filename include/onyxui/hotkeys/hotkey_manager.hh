@@ -395,7 +395,7 @@ namespace onyxui {
 
             // PRIORITY 1: Framework semantic actions (from current scheme)
             if (m_scheme_registry) {
-                if (try_semantic_action(*seq)) {
+                if (try_semantic_action(*seq, focused_element)) {
                     return true;
                 }
             }
@@ -469,7 +469,7 @@ namespace onyxui {
 
             // PRIORITY 1: Framework semantic actions (from current scheme)
             if (m_scheme_registry) {
-                if (try_semantic_action(seq)) {
+                if (try_semantic_action(seq, focused_element)) {
                     return true;
                 }
             }
@@ -814,10 +814,30 @@ namespace onyxui {
         }
 
         /**
-         * @brief Try to trigger framework semantic action
-         * @return True if semantic action was found and handler executed
+         * @brief Try to trigger framework semantic action(s)
+         * @param seq The key sequence
+         * @param focused_element Currently focused element (to dispatch actions to)
+         * @return True if any semantic action was handled
+         *
+         * @details
+         * Supports multi-action dispatch with TWO mechanisms:
+         *
+         * **1. Global Handlers** (checked first, highest priority)
+         * - Registered via register_semantic_action() / semantic_action_guard
+         * - Used by menus, layer overlays, and other system-level widgets
+         * - Captures keys regardless of focus state
+         *
+         * **2. Focused Widget Dispatch** (checked second)
+         * - Dispatched via handle_semantic_action() to focused widget
+         * - Used by focusable widgets like text_view, text_edit, etc.
+         * - Only active when widget has focus
+         *
+         * This enables:
+         * - Menus to capture menu_up/down even when other widgets have focus
+         * - text_view to handle scroll_up/down when it has focus
+         * - Same key (Up) to trigger both actions - each handler decides if it acts
          */
-        bool try_semantic_action(const key_sequence& seq) {
+        bool try_semantic_action(const key_sequence& seq, ui_element<Backend>* focused_element = nullptr) {
             if (!m_scheme_registry) {
                 return false;
             }
@@ -828,21 +848,33 @@ namespace onyxui {
                 return false;
             }
 
-            // Find semantic action for this key
-            auto action_opt = scheme->find_action_for_key(seq);
-            if (!action_opt) {
+            // Find ALL semantic actions for this key (supports multi-action)
+            auto actions = scheme->find_all_actions_for_key(seq);
+            if (actions.empty()) {
                 return false;  // Key not bound to any semantic action
             }
 
-            // Check if we have a handler for this action
-            auto handler_it = m_semantic_handlers.find(*action_opt);
-            if (handler_it == m_semantic_handlers.end()) {
-                return false;  // No handler registered (graceful fallback)
+            bool any_handled = false;
+
+            // PRIORITY 1: Check global handlers (menus, layer overlays)
+            for (auto action : actions) {
+                auto handler_it = m_semantic_handlers.find(action);
+                if (handler_it != m_semantic_handlers.end()) {
+                    handler_it->second();  // Execute global handler
+                    any_handled = true;
+                }
             }
 
-            // Execute handler
-            handler_it->second();
-            return true;
+            // PRIORITY 2: Dispatch to focused widget (text_view, text_edit, etc.)
+            if (focused_element) {
+                for (auto action : actions) {
+                    if (focused_element->handle_semantic_action(action)) {
+                        any_handled = true;
+                    }
+                }
+            }
+
+            return any_handled;
         }
 
         /**

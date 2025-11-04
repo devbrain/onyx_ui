@@ -28,22 +28,26 @@ TEST_CASE("Button Style - Serialization") {
             .normal = {
                 .font = {true, false, false},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 170}
+                .background = color{0, 0, 170},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .hover = {
                 .font = {true, false, false},
                 .foreground = color{255, 255, 0},
-                .background = color{0, 170, 170}
+                .background = color{0, 170, 170},
+                .mnemonic_foreground = color{255, 255, 0}
             },
             .pressed = {
                 .font = {false, false, false},
                 .foreground = color{0, 0, 0},
-                .background = color{170, 170, 170}
+                .background = color{170, 170, 170},
+                .mnemonic_foreground = color{0, 0, 0}
             },
             .disabled = {
                 .font = {false, false, false},
                 .foreground = color{128, 128, 128},
-                .background = color{64, 64, 64}
+                .background = color{64, 64, 64},
+                .mnemonic_foreground = color{128, 128, 128}
             },
             .mnemonic_font = {true, true, false},
             .box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true},
@@ -291,22 +295,26 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
             .normal = {
                 .font = {true, false, false},
                 .foreground = color{200, 200, 200},
-                .background = color{50, 50, 50}
+                .background = color{50, 50, 50},
+                .mnemonic_foreground = color{200, 200, 200}
             },
             .hover = {
                 .font = {true, false, false},
                 .foreground = color{255, 255, 255},
-                .background = color{100, 100, 255}
+                .background = color{100, 100, 255},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .pressed = {
                 .font = {false, false, false},
                 .foreground = color{128, 128, 128},
-                .background = color{30, 30, 30}
+                .background = color{30, 30, 30},
+                .mnemonic_foreground = color{128, 128, 128}
             },
             .disabled = {
                 .font = {false, false, false},
                 .foreground = color{100, 100, 100},
-                .background = color{40, 40, 40}
+                .background = color{40, 40, 40},
+                .mnemonic_foreground = color{100, 100, 100}
             },
             .mnemonic_font = {true, true, false},
             .box_style = conio_renderer::box_style{conio_renderer::border_style::rounded, true},
@@ -367,22 +375,26 @@ TEST_CASE("Widget Styles - Text alignment variations") {
             .normal = {
                 .font = {},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .hover = {
                 .font = {},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .pressed = {
                 .font = {},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .disabled = {
                 .font = {},
                 .foreground = color{255, 255, 255},
-                .background = color{0, 0, 0}
+                .background = color{0, 0, 0},
+                .mnemonic_foreground = color{255, 255, 255}
             },
             .text_align = horizontal_alignment::left
         };

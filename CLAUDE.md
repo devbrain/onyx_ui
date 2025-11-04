@@ -203,8 +203,22 @@ See [Theming Guide](docs/CLAUDE/THEMING.md) for details.
 
 ### Event System
 
+OnyxUI provides both three-phase event routing and signal/slot communication:
+
 ```cpp
-// Signal/slot pattern
+// 1. Three-phase event routing (capture/target/bubble)
+class my_widget : public widget<Backend> {
+    bool handle_event(const ui_event& evt, event_phase phase) override {
+        // Handle events in CAPTURE, TARGET, or BUBBLE phase
+        if (phase == event_phase::capture) {
+            request_focus();  // Before children handle
+            return false;     // Continue to children
+        }
+        return base::handle_event(evt, phase);
+    }
+};
+
+// 2. Signal/slot pattern for decoupled communication
 signal<int> value_changed;
 
 // Connect handler
@@ -219,7 +233,9 @@ value_changed.emit(42);
 scoped_connection conn(value_changed, my_handler);
 ```
 
-See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md#event-system) for details.
+**Three-phase routing** enables composite widgets to intercept events before children (e.g., text_view requesting focus on any click). **Signals** provide loose coupling for widget communication.
+
+See [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md#event-system) for comprehensive event documentation.
 
 ### Hotkeys
 

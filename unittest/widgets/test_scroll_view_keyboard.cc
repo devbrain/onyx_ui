@@ -33,11 +33,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Multi-li
     // Render - should show first lines, NOT just the last line
     auto canvas = render_to_canvas(*view, 40, 6);
 
-    MESSAGE("=== Initial View (should show LINE 1-5, NOT just LINE 10) ===");
-    for (int row = 0; row < canvas->height(); ++row) {
-        MESSAGE("Row " << row << ": " << canvas->get_row(row));
-    }
-
     // Verify first lines are visible
     bool found_line1 = false;
     bool found_line10 = false;
@@ -75,11 +70,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Initial 
     // Render initial view
     auto canvas = render_to_canvas(*text_view_widget, 40, 8);
 
-    MESSAGE("=== text_view Initial Render (should show first lines, NOT just LOG 15!) ===");
-    for (int row = 0; row < canvas->height(); ++row) {
-        MESSAGE("Row " << row << ": " << canvas->get_row(row));
-    }
-
     // Check what's visible
     bool found_welcome = false;
     bool found_log1 = false;
@@ -91,10 +81,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Initial 
         if (line.find("[LOG 1]") != std::string::npos) found_log1 = true;
         if (line.find("[LOG 15]") != std::string::npos) found_log15 = true;
     }
-
-    MESSAGE("Found Welcome: " << found_welcome);
-    MESSAGE("Found [LOG 1]: " << found_log1);
-    MESSAGE("Found [LOG 15]: " << found_log15);
 
     // Initial view should show beginning, not end!
     CHECK((found_welcome || found_log1));

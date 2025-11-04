@@ -75,6 +75,7 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/event_target.hh>
+#include <onyxui/events/hit_test_path.hh>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/theming/themeable.hh>
 #include <onyxui/utils/safe_math.hh>
@@ -424,6 +425,48 @@ namespace onyxui {
              * @note Only visible elements are considered for hit testing
              */
             [[nodiscard]] ui_element* hit_test(int x, int y);
+
+            /**
+             * @brief Perform hit testing with path recording for event routing
+             * @param x X coordinate in pixels
+             * @param y Y coordinate in pixels
+             * @param path Path to record elements from root to target
+             * @return Pointer to the deepest visible element at (x,y), or nullptr if none found
+             *
+             * @details
+             * This overload records the complete path from root to target element,
+             * enabling three-phase event routing (capture/target/bubble).
+             *
+             * As hit testing traverses the tree, each element adds itself to the path
+             * before checking children. The resulting path can be used by the event
+             * routing engine to deliver events in the correct order.
+             *
+             * ## Path Recording
+             *
+             * Elements are added to path in traversal order (root → target):
+             * - [0]: Root element (where hit_test was called)
+             * - [1..n-1]: Intermediate ancestors
+             * - [n]: Target element (deepest hit)
+             *
+             * ## Example
+             *
+             * @code
+             * hit_test_path<Backend> path;
+             * auto* target = root->hit_test(10, 10, path);
+             *
+             * // Path now contains: [root, ..., target]
+             * CHECK(path.target() == target);
+             * CHECK(path.root() == root);
+             * @endcode
+             *
+             * @note Exception safety: Strong guarantee (path unchanged if hit test fails)
+             * @note Searches in reverse z-order (highest z-index checked first)
+             * @note Only visible elements are considered for hit testing
+             *
+             * @see hit_test_path For path structure details
+             * @see event_phase For three-phase event routing
+             */
+            [[nodiscard]] ui_element* hit_test(int x, int y, hit_test_path<Backend>& path);
 
             // -----------------------------------------------------------------------
             // Public Setters
@@ -824,7 +867,9 @@ namespace onyxui {
 
     template<UIBackend Backend>
     ui_element <Backend>::ui_element(ui_element* parent)
-        : event_target <Backend>(), m_parent(parent) {
+        : event_target <Backend>()
+        , m_parent(parent)
+    {
     }
 
     template<UIBackend Backend>
@@ -1133,6 +1178,44 @@ namespace onyxui {
             }
         }
 
+        return this;
+    }
+
+    // NOLINTNEXTLINE(misc-no-recursion)
+    // Note: Recursive tree traversal for hit testing with path recording
+    template<UIBackend Backend>
+    ui_element <Backend>* ui_element <Backend>::hit_test(int x, int y, hit_test_path<Backend>& path) {
+        if (!m_visible) {
+            return nullptr;
+        }
+
+        // RELATIVE COORDINATES: Calculate absolute bounds for hit testing
+        rect_type absolute_bounds = m_bounds;
+
+        if (!rect_utils::contains(absolute_bounds, x, y)) {
+            return nullptr;
+        }
+
+        // Record this element in the path
+        path.push(this);
+
+        // For children, convert absolute point to relative coordinates
+        rect_type content_area = get_content_area();
+        int const child_offset_x = rect_utils::get_x(content_area);
+        int const child_offset_y = rect_utils::get_y(content_area);
+
+        // Convert absolute coordinates to relative for children
+        int const child_x = x - child_offset_x;
+        int const child_y = y - child_offset_y;
+
+        // Check children in reverse order (highest z-index first)
+        for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+            if (ui_element* hit = (*it)->hit_test(child_x, child_y, path)) {
+                return hit;
+            }
+        }
+
+        // This element is the target
         return this;
     }
 

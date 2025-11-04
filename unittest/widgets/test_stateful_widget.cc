@@ -912,7 +912,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     press_evt.act = mouse_event::action::press;
 
     ui_event evt = press_evt;  // Wrap in variant
-    widget.handle_event(evt);  // event_target dispatches to handle_mouse()
+    widget.handle_event(evt, event_phase::target);  // event_target dispatches to handle_mouse()
     CHECK(widget.is_in_pressed_state());
 
     // Release via ui_event
@@ -923,7 +923,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     release_evt.act = mouse_event::action::release;
 
     evt = release_evt;
-    widget.handle_event(evt);
+    widget.handle_event(evt, event_phase::target);
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
 }
 

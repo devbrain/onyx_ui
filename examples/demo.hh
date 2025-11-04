@@ -62,6 +62,12 @@ public:
 
         // Apply initial theme: Norton Blue (default conio theme)
         apply_theme_by_name(m_theme_names[m_current_theme_index]);
+
+        // Note: text_view will gain focus when clicked with mouse
+        if (m_text_view) {
+            std::cerr << "[demo] text_view created at: " << m_text_view << "\n";
+            std::cerr << "[demo] Click on the text_view to give it focus for keyboard scrolling\n";
+        }
     }
 
     /**
@@ -178,6 +184,8 @@ private:
         height_constraint.max_size = 8;        // Maximum 8 lines (prevents growing too tall)
         text_view_widget->set_height_constraint(height_constraint);
 
+        // Save pointer before moving
+        m_text_view = text_view_widget.get();
         this->add_child(std::move(text_view_widget));
 
         // Spacer and instructions
@@ -418,6 +426,7 @@ private:
 
     onyxui::label<Backend>* m_theme_label = nullptr;
     onyxui::menu_bar<Backend>* m_menu_bar = nullptr;
+    onyxui::text_view<Backend>* m_text_view = nullptr;  // For giving focus
 
     // Actions - kept alive as shared_ptrs
     std::shared_ptr<onyxui::action<Backend>> m_new_action;

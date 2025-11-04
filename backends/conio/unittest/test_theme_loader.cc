@@ -29,22 +29,26 @@ theme_type create_test_theme() {
     theme.button.normal = {
         .font = {true, false, false},
         .foreground = color{255, 255, 255},
-        .background = color{0, 0, 170}
+        .background = color{0, 0, 170},
+        .mnemonic_foreground = color{255, 255, 255}
     };
     theme.button.hover = {
         .font = {true, false, false},
         .foreground = color{255, 255, 0},
-        .background = color{0, 170, 170}
+        .background = color{0, 170, 170},
+        .mnemonic_foreground = color{255, 255, 0}
     };
     theme.button.pressed = {
         .font = {false, false, false},
         .foreground = color{0, 0, 0},
-        .background = color{170, 170, 170}
+        .background = color{170, 170, 170},
+        .mnemonic_foreground = color{0, 0, 0}
     };
     theme.button.disabled = {
         .font = {false, false, false},
         .foreground = color{128, 128, 128},
-        .background = color{64, 64, 64}
+        .background = color{64, 64, 64},
+        .mnemonic_foreground = color{128, 128, 128}
     };
     theme.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
     theme.button.text_align = horizontal_alignment::center;
@@ -202,22 +206,26 @@ TEST_CASE("Theme Loader - String operations") {
         original.button.normal = {
             .font = {true, false, false},
             .foreground = color{255, 255, 255},
-            .background = color{0, 0, 170}
+            .background = color{0, 0, 170},
+            .mnemonic_foreground = color{255, 255, 255}
         };
         original.button.hover = {
             .font = {true, false, false},
             .foreground = color{255, 255, 0},
-            .background = color{0, 170, 170}
+            .background = color{0, 170, 170},
+            .mnemonic_foreground = color{255, 255, 0}
         };
         original.button.pressed = {
             .font = {false, false, false},
             .foreground = color{0, 0, 0},
-            .background = color{170, 170, 170}
+            .background = color{170, 170, 170},
+            .mnemonic_foreground = color{0, 0, 0}
         };
         original.button.disabled = {
             .font = {false, false, false},
             .foreground = color{128, 128, 128},
-            .background = color{64, 64, 64}
+            .background = color{64, 64, 64},
+            .mnemonic_foreground = color{128, 128, 128}
         };
         original.button.mnemonic_font = {true, true, false};
         original.button.box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
