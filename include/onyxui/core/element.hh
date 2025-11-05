@@ -1029,6 +1029,12 @@ namespace onyxui {
 
         arrange_state = layout_state::dirty;
 
+        // Propagate up to parent so re-arrangement starts from root
+        if (m_parent) {
+            m_parent->invalidate_arrange();
+        }
+
+        // Propagate down to children
         for (auto& child : m_children) {
             child->invalidate_arrange();
         }

@@ -719,7 +719,9 @@ namespace onyxui {
     template<UIBackend Backend>
     bool event_target<Backend>::handle_focus_gained() {
         m_has_focus = true;
-        if (m_on_focus_gained) return m_on_focus_gained();
+        if (m_on_focus_gained) {
+            return m_on_focus_gained();
+        }
         return false;
     }
 
@@ -727,7 +729,9 @@ namespace onyxui {
     bool event_target<Backend>::handle_focus_lost() {
         m_has_focus = false;
         m_is_pressed = false; // Clear pressed state when losing focus
-        if (m_on_focus_lost) return m_on_focus_lost();
+        if (m_on_focus_lost) {
+            return m_on_focus_lost();
+        }
         return false;
     }
 

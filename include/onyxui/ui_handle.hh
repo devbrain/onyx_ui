@@ -404,6 +404,31 @@ namespace onyxui {
                     }
                 }
 
+                // 3.6. Try semantic actions (scrolling, navigation) on focused widget
+                if (focused) {
+                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                        // Check for scroll actions
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_up)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_up);
+                        }
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_down)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_down);
+                        }
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_page_up)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_page_up);
+                        }
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_page_down)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_page_down);
+                        }
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_home)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_home);
+                        }
+                        if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_end)) {
+                            return focused->handle_semantic_action(hotkey_action::scroll_end);
+                        }
+                    }
+                }
+
                 // 4. Forward keyboard event to focused widget
                 // NEW Phase 6: Use handle_event() with TARGET phase
                 if (focused) {

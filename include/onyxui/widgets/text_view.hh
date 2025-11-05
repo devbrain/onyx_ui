@@ -305,6 +305,55 @@ namespace onyxui {
             return base::handle_event(event, phase);
         }
 
+        /**
+         * @brief Handle focus gained - triggers redraw for border color change
+         * @return true if handled
+         */
+        bool handle_focus_gained() override {
+            // Invalidate visual to trigger redraw with new border color
+            this->invalidate_visual();
+            return base::handle_focus_gained();
+        }
+
+        /**
+         * @brief Handle focus lost - triggers redraw for border color change
+         * @return true if handled
+         */
+        bool handle_focus_lost() override {
+            // Invalidate visual to trigger redraw with normal border color
+            this->invalidate_visual();
+            return base::handle_focus_lost();
+        }
+
+        /**
+         * @brief Override style resolution to use yellow border when focused
+         * @param theme Global theme pointer
+         * @param parent_style Parent's resolved style
+         * @return Resolved style with yellow border color if focused
+         *
+         * @details
+         * Norton Utilities 8 style focus indicator - yellow foreground when focused.
+         * We change foreground_color (not just border_color) because draw_rect()
+         * uses foreground_color for the border.
+         */
+        [[nodiscard]] resolved_style<Backend> resolve_style(
+            const ui_theme<Backend>* theme,
+            const resolved_style<Backend>& parent_style
+        ) const override {
+            // Get base resolved style
+            auto style = base::resolve_style(theme, parent_style);
+
+            // FOCUS INDICATOR: Change foreground to yellow when focused (NU8 style)
+            // draw_rect() uses foreground_color for borders, so we change that
+            if (this->has_focus()) {
+                // Norton Utilities 8 yellow: RGB(255, 255, 0)
+                style.foreground_color = typename Backend::color_type{255, 255, 0};
+                style.border_color = typename Backend::color_type{255, 255, 0};
+            }
+
+            return style;
+        }
+
     private:
         /**
          * @brief Create scroll view with content
