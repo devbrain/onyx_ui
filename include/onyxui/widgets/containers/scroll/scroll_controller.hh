@@ -106,6 +106,16 @@ namespace onyxui {
                 }
             );
 
+            // Connect scrollable visibility policy changes → update scrollbar widgets
+            m_connections.emplace_back(
+                m_scrollable->scrollbar_visibility_changed,
+                [this](bool h_visible, bool v_visible) {
+                    (void)h_visible;
+                    (void)v_visible;
+                    update_scrollbar_visibility();
+                }
+            );
+
             // Connect vertical scrollbar → scrollable (thumb drag updates content)
             if (m_vscrollbar) {
                 m_connections.emplace_back(
