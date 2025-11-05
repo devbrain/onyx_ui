@@ -39,6 +39,7 @@
 
 #include <onyxui/widgets/core/widget_container.hh>
 #include <onyxui/widgets/containers/scroll/scroll_view_presets.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar_visibility.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/layout/linear_layout.hh>
@@ -364,6 +365,9 @@ namespace onyxui {
 
             // Create scroll view with always-visible scrollbars
             auto scroll_view_ptr = classic_scroll_view<Backend>();
+
+            // Explicitly ensure scrollbars are always visible
+            scroll_view_ptr->set_scrollbar_policy(scrollbar_visibility::always);
 
             // Create content container
             auto content_container_ptr = std::make_unique<panel<Backend>>();
