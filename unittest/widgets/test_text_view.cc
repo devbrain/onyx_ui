@@ -684,3 +684,90 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Measurem
         CHECK(canvas->height() == 10);
     }
 }
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Border support") {
+    SUBCASE("Border can be enabled") {
+        text_view<test_canvas_backend> view;
+
+        // Border should be disabled by default
+        CHECK(view.has_border() == false);
+
+        // Enable border
+        view.set_has_border(true);
+        CHECK(view.has_border() == true);
+
+        // Disable border
+        view.set_has_border(false);
+        CHECK(view.has_border() == false);
+    }
+
+    SUBCASE("Border affects layout") {
+        text_view<test_canvas_backend> view;
+        view.set_text("Hello, World!");
+
+        // Measure without border
+        auto size_no_border = view.measure(40, 10);
+
+        // Enable border and measure again
+        view.set_has_border(true);
+        auto size_with_border = view.measure(40, 10);
+
+        // With border, the widget should request more space (2px for border)
+        CHECK(size_with_border.w == size_no_border.w + 2);
+        CHECK(size_with_border.h == size_no_border.h + 2);
+    }
+
+    SUBCASE("Border renders correctly") {
+        text_view<test_canvas_backend> view;
+        view.set_text("Line 1\nLine 2\nLine 3");
+        view.set_has_border(true);
+
+        auto canvas = render_to_canvas(view, 40, 10);
+
+        // Check that content is still visible
+        std::string content;
+        for (int row = 0; row < canvas->height(); row++) {
+            content += canvas->get_row(row);
+        }
+
+        // Text should still be visible inside the border
+        CHECK(content.find("Line 1") != std::string::npos);
+        CHECK(view.line_count() == 3);
+    }
+
+    SUBCASE("Border integrity - content stays inside") {
+        text_view<test_canvas_backend> view;
+        view.set_text("Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8");
+        view.set_has_border(true);
+
+        // Render with constrained height
+        auto canvas = render_to_canvas(view, 40, 10);
+
+        INFO("Canvas rendering:\n" << canvas->render_ascii());
+
+        // Get the bounds where the border should be
+        // Widget is 40x10, border is drawn at the edges
+
+        // Check top border is intact (row 0 should have border chars)
+        std::string top_row = canvas->get_row(0);
+        CHECK(canvas->has_border_at(0, 0));           // Top-left corner
+        CHECK(canvas->has_border_at(39, 0));          // Top-right corner
+
+        // Check bottom border is intact (row 9 should have border chars)
+        CHECK(canvas->has_border_at(0, 9));           // Bottom-left corner
+        CHECK(canvas->has_border_at(39, 9));          // Bottom-right corner
+
+        // Check left and right edges have borders
+        CHECK(canvas->has_border_at(0, 5));           // Left edge middle
+        CHECK(canvas->has_border_at(39, 5));          // Right edge middle
+
+        // CRITICAL: Check that bottom border row (row 9) does NOT contain text content
+        // This is the bug - text appears in the border row
+        std::string bottom_row = canvas->get_row(9);
+        CHECK_FALSE(bottom_row.find("Line") != std::string::npos);  // No "Line" text in border row
+        CHECK_FALSE(bottom_row.find("Press") != std::string::npos); // No other content in border row
+
+        // Verify complete border exists
+        CHECK(canvas->has_complete_border(0, 0, 40, 10));
+    }
+}

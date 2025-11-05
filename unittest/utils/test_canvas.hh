@@ -20,6 +20,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdint>
+#include <iostream>
 
 namespace onyxui::testing {
 
@@ -91,6 +92,7 @@ namespace onyxui::testing {
          */
         void put(int x, int y, char ch, uint8_t fg = 7, uint8_t bg = 0, uint8_t attrs = 0) {
             if (x < 0 || x >= m_width || y < 0 || y >= m_height) return;
+
             auto& cell = m_cells[static_cast<size_t>(y) * static_cast<size_t>(m_width) + static_cast<size_t>(x)];
             cell.ch = ch;
             cell.fg_color = fg;

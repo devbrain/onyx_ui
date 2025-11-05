@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include <onyxui/widgets/core/widget.hh>
+#include <onyxui/widgets/core/widget_container.hh>
 #include <onyxui/widgets/containers/scroll/scroll_view_presets.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/label.hh>
@@ -62,10 +62,11 @@ namespace onyxui {
      * @details
      * Provides a read-only text display with automatic scrolling.
      * Uses scroll_view internally for efficient viewport-based rendering.
+     * Supports optional border rendering via set_has_border().
      */
     template<UIBackend Backend>
-    class text_view : public widget<Backend> {
-        using base = widget<Backend>;
+    class text_view : public widget_container<Backend> {
+        using base = widget_container<Backend>;
         using element_type = ui_element<Backend>;
         using size_type = typename Backend::size_type;
         using rect_type = typename Backend::rect_type;
@@ -180,6 +181,31 @@ namespace onyxui {
         }
 
         /**
+         * @brief Set whether to draw a border around the text view
+         * @param has_border True to draw border, false for borderless
+         *
+         * @details
+         * Enables or disables border rendering around the text view.
+         * When enabled, the border takes up 1 character on each side,
+         * reducing the available content area.
+         */
+        void set_has_border(bool has_border) {
+            if (this->m_has_border != has_border) {
+                this->m_has_border = has_border;
+                // Border affects content area, so invalidate layout
+                this->invalidate_measure();
+            }
+        }
+
+        /**
+         * @brief Check if border is enabled
+         * @return True if border is drawn, false otherwise
+         */
+        [[nodiscard]] bool has_border() const noexcept {
+            return this->m_has_border;
+        }
+
+        /**
          * @brief Handle semantic actions for scrolling
          * @param action The semantic action to handle
          * @return true if action was handled
@@ -233,35 +259,6 @@ namespace onyxui {
         using base::handle_event;
 
     protected:
-        /**
-         * @brief Override do_arrange to position scroll_view at relative coordinates
-         * @param final_bounds The final bounds assigned to this widget
-         *
-         * @details
-         * Due to lack of coordinate translation in the rendering pipeline,
-         * we need to arrange the scroll_view at (0,0) relative coordinates
-         * to prevent content from rendering at absolute screen positions.
-         */
-        void do_arrange(const rect_type& final_bounds) override {
-            (void)final_bounds;
-
-            // Call base to update our bounds
-            base::do_arrange(final_bounds);
-
-            // Arrange scroll_view at relative (0,0) position
-            if (!this->children().empty()) {
-                auto* scroll_view = this->children()[0].get();
-                auto content_area = this->get_content_area();
-
-                // Use relative coordinates (0,0) with content area size
-                rect_type relative_bounds{0, 0,
-                                         rect_utils::get_width(content_area),
-                                         rect_utils::get_height(content_area)};
-
-                scroll_view->arrange(relative_bounds);
-            }
-        }
-
         /**
          * @brief Override handle_event to intercept mouse clicks in capture phase
          * @param event The event to handle
@@ -338,21 +335,23 @@ namespace onyxui {
                 content_container_ptr->add_child(std::move(label_widget));
             }
 
-            // Pre-measure and pre-arrange the panel to ensure proper layout
-            if (!m_lines.empty()) {
-                auto panel_size = content_container_ptr->measure_unconstrained();
-                content_container_ptr->arrange({0, 0, panel_size.w, panel_size.h});
-            }
-
-            // Add content to scroll view
+            // Add content to scroll view WITHOUT pre-arrange
+            // The scrollable will arrange children when needed
             scroll_view_ptr->add_child(std::move(content_container_ptr));
 
-            // Set alignment on scroll view
+            // Set alignment and size policy on scroll view
             scroll_view_ptr->set_horizontal_align(horizontal_alignment::stretch);
             scroll_view_ptr->set_vertical_align(vertical_alignment::stretch);
 
-            // Ensure scroll starts at the top
-            scroll_view_ptr->scroll_to(0, 0);
+            // CRITICAL FIX: Use fill_parent policy so scroll_view fills text_view's height
+            // vertical_alignment::stretch doesn't work in vertical layouts!
+            onyxui::size_constraint height_policy;
+            height_policy.policy = onyxui::size_policy::fill_parent;
+            scroll_view_ptr->set_height_constraint(height_policy);
+
+            // NOTE: Don't trigger measurement or scroll_to here
+            // The scrollable will be measured and arranged during the normal layout flow
+            // Scroll position defaults to {0,0} which is correct for showing the top
 
             // Store pointer to scroll_view before moving
             m_scroll_view = scroll_view_ptr.get();

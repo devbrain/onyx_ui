@@ -5,6 +5,8 @@
 #pragma once
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <chrono>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
@@ -84,6 +86,14 @@ public:
         m_should_quit = true;
     }
 
+    /**
+     * @brief Set renderer for screenshot functionality
+     * @param renderer Pointer to the renderer
+     */
+    void set_renderer(typename Backend::renderer_type* renderer) {
+        m_renderer = renderer;
+    }
+
 private:
     void build_ui() {
         // Menu bar (at the top)
@@ -116,8 +126,33 @@ private:
         auto* normal_btn = add_button(*this, "Normal");
         normal_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
-        auto* focused_btn = add_button(*this, "Focused");
-        focused_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
+        auto* screenshot_btn = add_button(*this, "Screenshot");
+        screenshot_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
+        screenshot_btn->clicked.connect([this]() {
+            if (!m_renderer) {
+                std::cerr << "Error: No renderer available!" << std::endl;
+                return;
+            }
+
+            // Generate filename with timestamp
+            auto now = std::chrono::system_clock::now();
+            auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                now.time_since_epoch()
+            ).count();
+            std::string filename = "screenshot_" + std::to_string(timestamp) + ".txt";
+
+            // Take screenshot
+            std::ofstream file(filename);
+            if (!file) {
+                std::cerr << "Error: Could not open file for screenshot: " << filename << std::endl;
+                return;
+            }
+
+            m_renderer->take_screenshot(file);
+            file.close();
+
+            std::cerr << "Screenshot saved to: " << filename << std::endl;
+        });
 
         auto* disabled_btn = add_button(*this, "Disabled");
         disabled_btn->set_enabled(false);
@@ -142,6 +177,7 @@ private:
 
         // Create text view with demo content
         auto text_view_widget = std::make_unique<onyxui::text_view<Backend>>();
+        text_view_widget->set_has_border(true);
 
         // Generate demo text content
         std::string demo_text =
@@ -427,6 +463,7 @@ private:
     onyxui::label<Backend>* m_theme_label = nullptr;
     onyxui::menu_bar<Backend>* m_menu_bar = nullptr;
     onyxui::text_view<Backend>* m_text_view = nullptr;  // For giving focus
+    typename Backend::renderer_type* m_renderer = nullptr;  // For screenshots
 
     // Actions - kept alive as shared_ptrs
     std::shared_ptr<onyxui::action<Backend>> m_new_action;

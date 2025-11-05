@@ -12,6 +12,8 @@
 #include <onyxui/widgets/containers/scroll/scrollbar_visibility.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/raii/scoped_clip.hh>
+#include <onyxui/core/rendering/draw_context.hh>
+#include <onyxui/theming/theme.hh>
 #include <algorithm>
 
 namespace onyxui {
@@ -61,6 +63,8 @@ namespace onyxui {
         using rect_type = typename Backend::rect_type;
         using renderer_type = typename Backend::renderer_type;
         using event_type = typename Backend::event_type;
+        using theme_type = ui_theme<Backend>;
+        using render_context_type = render_context<Backend>;
 
         /**
          * @brief Construct empty scrollable container
@@ -404,8 +408,10 @@ namespace onyxui {
          * @note Overrides do_arrange to position children with negative scroll offset
          */
         void do_arrange(const rect_type& final_bounds) override {
-            // Call base implementation
-            base::do_arrange(final_bounds);
+            // SINGLE-PASS ARRANGEMENT (Solution 1 from SCROLLABLE_ARCHITECTURE_ISSUE.md)
+            // Arrange children ONCE with scroll offset baked in
+            // DON'T call base::do_arrange() - prevents double-arrangement
+            (void)final_bounds;  // Bounds already set by arrange() before calling do_arrange()
 
             // Cache old scrollbar visibility
             bool const old_h_visible = should_show_horizontal_scrollbar();
@@ -430,29 +436,20 @@ namespace onyxui {
                 return;
             }
 
-            // Check if we're at relative coordinates (nested inside another container)
-            // If our bounds start at (0,0) or near it, we're likely nested
-            bool const is_nested = (rect_utils::get_x(this->bounds()) < 2 &&
-                                    rect_utils::get_y(this->bounds()) < 2);
+            // Calculate child position with scroll offset applied
+            // Children are arranged in VIEWPORT space, not virtual space
+            // RELATIVE COORDINATES: Children are positioned relative to content area (0,0)
+            // content_area's x,y offset is already accounted for during rendering
+            int const scroll_x = point_utils::get_x(m_scroll_offset);
+            int const scroll_y = point_utils::get_y(m_scroll_offset);
 
-            int child_x, child_y;
-            if (is_nested) {
-                // We're nested - use relative coordinates
-                int const scroll_x = point_utils::get_x(m_scroll_offset);
-                int const scroll_y = point_utils::get_y(m_scroll_offset);
-                child_x = 0 - scroll_x;
-                child_y = 0 - scroll_y;
-            } else {
-                // We're at top level - use absolute coordinates (framework limitation)
-                int const base_x = rect_utils::get_x(content_area);
-                int const base_y = rect_utils::get_y(content_area);
-                int const scroll_x = point_utils::get_x(m_scroll_offset);
-                int const scroll_y = point_utils::get_y(m_scroll_offset);
-                child_x = base_x - scroll_x;
-                child_y = base_y - scroll_y;
-            }
+            // Child position = content area origin (0,0) - scroll offset
+            // In relative coords, base is always (0,0) - padding is handled elsewhere
+            int const child_x = 0 - scroll_x;
+            int const child_y = 0 - scroll_y;
 
-            // Arrange children at scrolled position
+            // Arrange children ONCE with scroll offset baked in
+            // This is the ONLY arrangement - no double-arrangement
             for (auto& child : this->children()) {
                 int const content_w = size_utils::get_width(m_content_size);
                 int const content_h = size_utils::get_height(m_content_size);
@@ -463,39 +460,14 @@ namespace onyxui {
         }
 
         /**
-         * @brief Render content with viewport clipping
-         * @param ctx Render context with style information
-         *
-         * @details
-         * Clips rendering to the content area (viewport bounds).
-         * Children that are positioned outside the viewport (due to scroll offset)
-         * are automatically clipped by the renderer.
-         *
-         * The clipping ensures that:
-         * - Content outside the viewport is not drawn
-         * - Scrolled content is properly clipped at viewport edges
-         * - Nested scrollables clip correctly (clip regions stack)
-         *
-         * @note Children render at scrolled positions (negative offset)
+         * @brief Render this widget itself (not children)
+         * @details Scrollable has no visual representation (no border/background).
+         *          Clipping is handled by base class via get_content_area().
          */
-        void do_render(render_context<Backend>& ctx) const override {
-            // Only clip during actual rendering (not measurement)
-            if (!ctx.is_rendering()) {
-                base::do_render(ctx);
-                return;
-            }
-
-            // Get viewport bounds (content area excluding padding/borders)
-            auto const viewport_bounds = this->get_content_area();
-
-            // RAII guard for viewport clipping - automatically pops on scope exit
-            scoped_clip clip(ctx, viewport_bounds);
-
-            // Render children with clipping active
-            // Children positioned outside viewport are clipped automatically
-            base::do_render(ctx);
-
-            // Clip automatically popped when 'clip' guard is destroyed
+        void do_render(render_context_type& ctx) const override {
+            // Nothing to render for scrollable itself
+            // Base class will handle clipping via get_content_area()
+            (void)ctx;
         }
 
     private:

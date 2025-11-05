@@ -13,6 +13,8 @@ int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
         auto* widget_ptr = widget.get();
         onyxui::ui_handle<onyxui::conio::conio_backend> ui(std::move(widget));
 
+        // Give widget access to renderer for screenshot functionality
+        widget_ptr->set_renderer(&ui.renderer());
 
         while (!widget_ptr->should_quit()) {
             ui.display();

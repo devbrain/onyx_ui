@@ -356,10 +356,34 @@ namespace onyxui {
                 return;  // No theme available
             }
 
+            // CRITICAL FIX: Don't render if scrollbar is too small to display properly
+            // Minimum size accounts for borders (2px) + minimal content (at least 6px total)
+            // This prevents border/content corruption when grid scales cells too small
+            auto const bounds = this->bounds();
+            int const width = rect_utils::get_width(bounds);
+            int const height = rect_utils::get_height(bounds);
+
+            constexpr int MIN_RENDER_SIZE = 8;  // Minimum pixels: 2px borders + 6px content
+            if (m_orientation == orientation::vertical && height < MIN_RENDER_SIZE) {
+                return;  // Too small to render vertically without corruption
+            }
+            if (m_orientation == orientation::horizontal && width < MIN_RENDER_SIZE) {
+                return;  // Too small to render horizontally without corruption
+            }
+
             scrollbar_style const style = theme->scrollbar.style;
 
-            // Calculate layout based on current style
+            // Calculate layout based on current style (returns RELATIVE coordinates)
             auto const layout = calculate_layout(style);
+
+            // CRITICAL FIX: Convert layout from relative to absolute coordinates
+            // calculate_layout() returns rects relative to this->bounds()
+            // but ctx.draw_rect() expects absolute screen coordinates
+            rect_type abs_track, abs_thumb, abs_arrow_dec, abs_arrow_inc;
+            rect_utils::make_absolute_bounds(abs_track, ctx.position(), layout.track);
+            rect_utils::make_absolute_bounds(abs_thumb, ctx.position(), layout.thumb);
+            rect_utils::make_absolute_bounds(abs_arrow_dec, ctx.position(), layout.arrow_decrement);
+            rect_utils::make_absolute_bounds(abs_arrow_inc, ctx.position(), layout.arrow_increment);
 
             // Determine thumb state based on interaction
             auto const& thumb_style = get_thumb_style(*theme);
@@ -368,41 +392,41 @@ namespace onyxui {
             auto const& arrow_style = get_arrow_style(*theme);
 
             // Render track (background) - always normal state
-            ctx.draw_rect(layout.track, theme->scrollbar.track_normal.box_style);
+            ctx.draw_rect(abs_track, theme->scrollbar.track_normal.box_style);
 
             // Render thumb (only if visible) with state-based styling
-            if (rect_utils::get_width(layout.thumb) > 0 && rect_utils::get_height(layout.thumb) > 0) {
-                ctx.draw_rect(layout.thumb, thumb_style.box_style);
+            if (rect_utils::get_width(abs_thumb) > 0 && rect_utils::get_height(abs_thumb) > 0) {
+                ctx.draw_rect(abs_thumb, thumb_style.box_style);
             }
 
             // Render arrow buttons (if style has them) with state-based styling
             if (layout.has_arrows()) {
                 // Render decrement arrow (up/left) if present
-                if (rect_utils::get_width(layout.arrow_decrement) > 0 &&
-                    rect_utils::get_height(layout.arrow_decrement) > 0) {
-                    ctx.draw_rect(layout.arrow_decrement, arrow_style.box_style);
+                if (rect_utils::get_width(abs_arrow_dec) > 0 &&
+                    rect_utils::get_height(abs_arrow_dec) > 0) {
+                    ctx.draw_rect(abs_arrow_dec, arrow_style.box_style);
 
-                    // Render arrow glyph (centered in button)
+                    // Render arrow glyph (centered in button) - use ABSOLUTE coords
                     auto icon_size = renderer_type::get_icon_size(theme->scrollbar.arrow_decrement_icon);
-                    int const icon_x = rect_utils::get_x(layout.arrow_decrement) +
-                                       (rect_utils::get_width(layout.arrow_decrement) - size_utils::get_width(icon_size)) / 2;
-                    int const icon_y = rect_utils::get_y(layout.arrow_decrement) +
-                                       (rect_utils::get_height(layout.arrow_decrement) - size_utils::get_height(icon_size)) / 2;
+                    int const icon_x = rect_utils::get_x(abs_arrow_dec) +
+                                       (rect_utils::get_width(abs_arrow_dec) - size_utils::get_width(icon_size)) / 2;
+                    int const icon_y = rect_utils::get_y(abs_arrow_dec) +
+                                       (rect_utils::get_height(abs_arrow_dec) - size_utils::get_height(icon_size)) / 2;
                     point_type const icon_pos{icon_x, icon_y};
                     ctx.draw_icon(theme->scrollbar.arrow_decrement_icon, icon_pos);
                 }
 
                 // Render increment arrow (down/right) if present
-                if (rect_utils::get_width(layout.arrow_increment) > 0 &&
-                    rect_utils::get_height(layout.arrow_increment) > 0) {
-                    ctx.draw_rect(layout.arrow_increment, arrow_style.box_style);
+                if (rect_utils::get_width(abs_arrow_inc) > 0 &&
+                    rect_utils::get_height(abs_arrow_inc) > 0) {
+                    ctx.draw_rect(abs_arrow_inc, arrow_style.box_style);
 
-                    // Render arrow glyph (centered in button)
+                    // Render arrow glyph (centered in button) - use ABSOLUTE coords
                     auto icon_size = renderer_type::get_icon_size(theme->scrollbar.arrow_increment_icon);
-                    int const icon_x = rect_utils::get_x(layout.arrow_increment) +
-                                       (rect_utils::get_width(layout.arrow_increment) - size_utils::get_width(icon_size)) / 2;
-                    int const icon_y = rect_utils::get_y(layout.arrow_increment) +
-                                       (rect_utils::get_height(layout.arrow_increment) - size_utils::get_height(icon_size)) / 2;
+                    int const icon_x = rect_utils::get_x(abs_arrow_inc) +
+                                       (rect_utils::get_width(abs_arrow_inc) - size_utils::get_width(icon_size)) / 2;
+                    int const icon_y = rect_utils::get_y(abs_arrow_inc) +
+                                       (rect_utils::get_height(abs_arrow_inc) - size_utils::get_height(icon_size)) / 2;
                     point_type const icon_pos{icon_x, icon_y};
                     ctx.draw_icon(theme->scrollbar.arrow_increment_icon, icon_pos);
                 }

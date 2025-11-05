@@ -336,6 +336,10 @@ namespace onyxui {
             mutable std::vector <int> m_column_widths; ///< Calculated column widths for current layout
             mutable std::vector <int> m_row_heights; ///< Calculated row heights for current layout
 
+            // Original measured sizes (before constrain_to_space scaling)
+            mutable std::vector <int> m_measured_column_widths; ///< Original measured column widths
+            mutable std::vector <int> m_measured_row_heights; ///< Original measured row heights
+
             // Cell mapping (positional data, not config)
             mutable std::unordered_map <elt_t*, grid_cell_info> m_cell_mapping; ///< Child to cell position mapping
 
@@ -387,6 +391,23 @@ namespace onyxui {
                                          int available_width,
                                          int available_height,
                                          int actual_rows) const;
+
+            /**
+             * @brief Constrain column and row sizes to fit within content area
+             *
+             * @param content_area Rectangle defining available space
+             *
+             * @details
+             * If measured column widths exceed available width, scales them
+             * proportionally to fit. Same for row heights. This ensures grid
+             * respects parent constraints during arrangement phase.
+             *
+             * This method modifies m_column_widths and m_row_heights in-place.
+             *
+             * @note Only scales down, never scales up. If measured size is
+             * smaller than available space, no scaling occurs.
+             */
+            void constrain_to_space(const rect_type& content_area) const;
 
             /**
              * @brief Apply fixed or default grid sizes
@@ -542,8 +563,11 @@ namespace onyxui {
     // -------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
     void grid_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
-        (void)content_area;  // Unused in relative coordinate system (grid uses pre-computed dimensions)
         if (parent->children().empty()) return;
+
+        // CRITICAL FIX: Constrain measured sizes to actual available space
+        // This ensures grid respects parent constraints (e.g., border shrinking)
+        constrain_to_space(content_area);
 
         const int actual_rows = static_cast<int>(m_row_heights.size());
 
@@ -752,6 +776,11 @@ namespace onyxui {
 
         // Second pass: Handle spanning cells
         distribute_spanning_sizes(parent);
+
+        // Save measured sizes for later restoration during arrange
+        // (constrain_to_space modifies them, so we need originals)
+        m_measured_column_widths = m_column_widths;
+        m_measured_row_heights = m_row_heights;
     }
 
     // -------------------------------------------------------------------------------------------------------
@@ -769,6 +798,94 @@ namespace onyxui {
             m_row_heights = m_fixed_row_heights;
         } else {
             m_row_heights.resize(static_cast<size_t>(actual_rows), 100); // Default height
+        }
+
+        // Save measured sizes for later restoration during arrange
+        m_measured_column_widths = m_column_widths;
+        m_measured_row_heights = m_row_heights;
+    }
+
+    // -------------------------------------------------------------------------------------------------------
+    template<UIBackend Backend>
+    void grid_layout<Backend>::constrain_to_space(const rect_type& content_area) const {
+        // CRITICAL: Restore original measured sizes before scaling
+        // This prevents exponential growth when arrange() is called multiple times
+        if (!m_measured_column_widths.empty()) {
+            m_column_widths = m_measured_column_widths;
+        }
+        if (!m_measured_row_heights.empty()) {
+            m_row_heights = m_measured_row_heights;
+        }
+
+        int const available_width = rect_utils::get_width(content_area);
+        int const available_height = rect_utils::get_height(content_area);
+
+        // Calculate total measured width (including spacing)
+        int total_measured_width = 0;
+        for (auto w : m_column_widths) {
+            safe_math::accumulate_safe(total_measured_width, w);
+        }
+        int const column_spacing_total = safe_math::multiply_clamped(m_column_spacing,
+                                          std::max(0, static_cast<int>(m_column_widths.size()) - 1));
+        safe_math::accumulate_safe(total_measured_width, column_spacing_total);
+
+        // Calculate total measured height (including spacing)
+        int total_measured_height = 0;
+        for (auto h : m_row_heights) {
+            safe_math::accumulate_safe(total_measured_height, h);
+        }
+        int const row_spacing_total = safe_math::multiply_clamped(m_row_spacing,
+                                       std::max(0, static_cast<int>(m_row_heights.size()) - 1));
+        safe_math::accumulate_safe(total_measured_height, row_spacing_total);
+
+        // Adjust columns to match available width (scale down if too big, expand if too small)
+        if (total_measured_width != available_width && !m_column_widths.empty()) {
+            // Calculate total width without spacing
+            int total_columns_only = 0;
+            for (auto w : m_column_widths) {
+                safe_math::accumulate_safe(total_columns_only, w);
+            }
+
+            // Calculate available width minus spacing
+            int const num_gaps = std::max(0, static_cast<int>(m_column_widths.size()) - 1);
+            int const total_spacing = safe_math::multiply_clamped(num_gaps, m_column_spacing);
+            int const available_for_columns = std::max(0, available_width - total_spacing);
+
+            // Scale each column proportionally
+            if (total_columns_only > 0) {
+                for (auto& width : m_column_widths) {
+                    // Scale: new_width = (width / total_columns_only) * available_for_columns
+                    auto const scaled_64 = (static_cast<int64_t>(width) * available_for_columns) / total_columns_only;
+                    int const scaled = static_cast<int>(std::clamp(scaled_64, int64_t{0}, int64_t{INT_MAX}));
+                    // CRITICAL: Ensure minimum size of 1px (zero-sized cells cause rendering bugs)
+                    width = (width > 0) ? std::max(1, scaled) : 0;
+                }
+            }
+        }
+
+        // Adjust rows to match available height (scale down if too big, expand if too small)
+        if (total_measured_height != available_height && !m_row_heights.empty()) {
+            // Calculate total height without spacing
+            int total_rows_only = 0;
+            for (auto h : m_row_heights) {
+                safe_math::accumulate_safe(total_rows_only, h);
+            }
+
+            // Calculate available height minus spacing
+            int const num_gaps = std::max(0, static_cast<int>(m_row_heights.size()) - 1);
+            int const total_spacing = safe_math::multiply_clamped(num_gaps, m_row_spacing);
+            int const available_for_rows = std::max(0, available_height - total_spacing);
+
+            // Scale each row proportionally
+            if (total_rows_only > 0) {
+                for (auto& height : m_row_heights) {
+                    // Scale: new_height = (height / total_rows_only) * available_for_rows
+                    auto const scaled_64 = (static_cast<int64_t>(height) * available_for_rows) / total_rows_only;
+                    int const scaled = static_cast<int>(std::clamp(scaled_64, int64_t{0}, int64_t{INT_MAX}));
+                    // CRITICAL: Ensure minimum size of 1px (zero-sized cells cause rendering bugs)
+                    height = (height > 0) ? std::max(1, scaled) : 0;
+                }
+            }
         }
     }
 

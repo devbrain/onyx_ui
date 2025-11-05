@@ -88,6 +88,7 @@ add_executable(ui_unittest
         widgets/test_text_view_keyboard.cc
         widgets/test_text_view_focus.cc
         widgets/test_text_view_focus_debug.cc
+        widgets/test_border_corruption.cc
         utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc

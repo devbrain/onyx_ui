@@ -66,9 +66,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Initial 
     }
 
     text_view_widget->set_text(demo_text);
+    text_view_widget->set_has_border(true);  // Enable border
 
-    // Render initial view
-    auto canvas = render_to_canvas(*text_view_widget, 40, 8);
+    // Render initial view (larger size to show more content)
+    auto canvas = render_to_canvas(*text_view_widget, 80, 15);
 
     // Check what's visible
     bool found_welcome = false;

@@ -26,6 +26,7 @@ namespace onyxui {
      * - **Viewport management**: get_viewport (returns drawable area bounds)
      * - **Presentation**: present (display rendered content)
      * - **Resize handling**: on_resize (update buffers on window resize)
+     * - **Screenshot capability**: take_screenshot (save rendered content to stream)
      *
      * ## measure_text() Rationale
      *
@@ -63,6 +64,19 @@ namespace onyxui {
      * - **Sub-region rendering**: Viewport = portion of screen (e.g., HUD area)
      * - **Multi-renderer**: Different viewports for different UI panels
      *
+     * ## take_screenshot() Rationale
+     *
+     * Screenshot capability allows capturing rendered content:
+     * - **Testing**: Automated visual regression testing
+     * - **Documentation**: Generate screenshots for manuals/tutorials
+     * - **Debugging**: Save current UI state for analysis
+     * - **User features**: In-app screenshot saving functionality
+     * - **Recording**: Frame capture for video/GIF generation
+     *
+     * Output format is backend-specific:
+     * - **TUI backends**: Text format (ANSI escape codes, plain text, or HTML)
+     * - **GUI backends**: Image formats (PNG, BMP, etc.)
+     *
      * @example Proper text measurement
      * @code
      * auto size = Renderer::measure_text("Hello", font);  // Static method
@@ -85,6 +99,17 @@ namespace onyxui {
      * root->arrange(viewport);
      * root->render(renderer);
      * @endcode
+     *
+     * @example Screenshot usage
+     * @code
+     * // Render UI
+     * root->render(renderer);
+     * renderer.present();
+     *
+     * // Save screenshot
+     * std::ofstream file("screenshot.txt");
+     * renderer.take_screenshot(file);
+     * @endcode
      */
     template<typename T, typename R>
     concept RenderLike = RectLike<R> && requires(T renderer,
@@ -95,7 +120,8 @@ namespace onyxui {
                                                   const typename T::icon_style& i,
                                                   const typename T::background_style& bg,
                                                   const typename T::color_type& color,
-                                                  const std::vector<R>& regions)
+                                                  const std::vector<R>& regions,
+                                                  std::ostream& stream)
     {
         typename T::box_style;
         typename T::line_style;
@@ -138,6 +164,9 @@ namespace onyxui {
 
         // Resize handling
         { renderer.on_resize() } -> std::same_as<void>;
+
+        // Screenshot capability
+        { renderer.take_screenshot(stream) } -> std::same_as<void>;
 
         // Static measurement methods (no instance needed)
         { T::measure_text(std::string_view{}, f) } -> SizeLike;

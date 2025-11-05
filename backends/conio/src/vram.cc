@@ -343,4 +343,35 @@ namespace onyxui::conio {
             m_pimpl->m_dirty = false;
         }
     }
+
+    void vram::take_screenshot(std::ostream& sink) const {
+        // Output plain text representation of the vram buffer
+        std::size_t idx = 0;
+        for (int y = 0; y < m_pimpl->m_height; ++y) {
+            for (int x = 0; x < m_pimpl->m_width; ++x) {
+                const auto& c = m_pimpl->m_cells[idx++];
+                // Convert Unicode code point to UTF-8
+                if (c.ch < 0x80) {
+                    // ASCII character (1 byte)
+                    sink.put(static_cast<char>(c.ch));
+                } else if (c.ch < 0x800) {
+                    // 2-byte UTF-8
+                    sink.put(static_cast<char>(0xC0 | (c.ch >> 6)));
+                    sink.put(static_cast<char>(0x80 | (c.ch & 0x3F)));
+                } else if (c.ch < 0x10000) {
+                    // 3-byte UTF-8
+                    sink.put(static_cast<char>(0xE0 | (c.ch >> 12)));
+                    sink.put(static_cast<char>(0x80 | ((c.ch >> 6) & 0x3F)));
+                    sink.put(static_cast<char>(0x80 | (c.ch & 0x3F)));
+                } else {
+                    // 4-byte UTF-8
+                    sink.put(static_cast<char>(0xF0 | (c.ch >> 18)));
+                    sink.put(static_cast<char>(0x80 | ((c.ch >> 12) & 0x3F)));
+                    sink.put(static_cast<char>(0x80 | ((c.ch >> 6) & 0x3F)));
+                    sink.put(static_cast<char>(0x80 | (c.ch & 0x3F)));
+                }
+            }
+            sink.put('\n');
+        }
+    }
 }

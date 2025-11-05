@@ -18,6 +18,7 @@
 
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/core/rendering/render_context.hh>
+#include <iostream>
 
 namespace onyxui {
 
@@ -140,7 +141,7 @@ namespace onyxui {
          * @brief Render container border
          *
          * @details
-         * Draws border rectangle if enabled. Context handles measurement vs rendering.
+         * Draws border rectangle if enabled. Context handles measurement/rendering.
          * Derived classes can override to customize appearance.
          */
         void do_render(render_context_type& ctx) const override {
@@ -150,8 +151,24 @@ namespace onyxui {
                 typename Backend::rect_type absolute_bounds;
                 rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
 
+                // Create box_style with border enabled
+                // Extract value from wrapper (make copy), modify, then use
+                typename Backend::renderer_type::box_style border_style = ctx.style().box_style.value;
+
+                // Enable border drawing based on backend type
+                // Test backends use bool draw_border, conio uses border_style enum
+                if constexpr (requires { border_style.draw_border; }) {
+                    border_style.draw_border = true;
+                } else if constexpr (requires { border_style.style; }) {
+                    // conio backend: set border style to single_line if currently none
+                    using border_style_enum = decltype(border_style.style);
+                    if (border_style.style == border_style_enum::none) {
+                        border_style.style = border_style_enum::single_line;
+                    }
+                }
+
                 // Draw border frame - context handles measurement/rendering
-                ctx.draw_rect(absolute_bounds, ctx.style().box_style);
+                ctx.draw_rect(absolute_bounds, border_style);
             }
         }
     };

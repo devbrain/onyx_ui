@@ -7,6 +7,7 @@
 
 #pragma once
 #include <cstdint>
+#include <ostream>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
 #include <utf8.h>  // From utf8cpp
@@ -294,6 +295,18 @@ namespace onyxui {
                             [[maybe_unused]] int offset_x,
                             [[maybe_unused]] int offset_y) {
                 // Stub for testing - no actual shadow drawing
+            }
+
+            /**
+             * @brief Take screenshot - stub for test backend
+             * @param sink Output stream to write screenshot to
+             *
+             * @details
+             * Stub implementation for testing. Real backends would
+             * output actual rendered content.
+             */
+            void take_screenshot(std::ostream& sink) const {
+                sink << "(test backend - no screenshot available)\n";
             }
         };
 

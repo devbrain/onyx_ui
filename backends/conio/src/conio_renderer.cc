@@ -8,6 +8,7 @@
 #include "vram.hh"
 #include <algorithm>
 #include <iostream>
+#include <stack>
 
 namespace onyxui::conio {
     // ======================================================================
@@ -24,6 +25,7 @@ namespace onyxui::conio {
 
     struct conio_renderer::impl {
         vram m_vram;
+        std::stack<rect> m_clip_stack;  // Clip rectangle stack for proper nesting
     };
 
     // ======================================================================
@@ -402,22 +404,47 @@ namespace onyxui::conio {
     // ======================================================================
 
     void conio_renderer::push_clip(const rect& r) {
-        // DEBUG: Detect bad clip rects
-        if (r.y < 0 || r.y > 1000 || r.x < 0 || r.x > 1000) {
-            std::cerr << "PUSH_CLIP: Bad clip rect requested!"
-                      << " {x=" << r.x << ", y=" << r.y
-                      << ", w=" << r.w << ", h=" << r.h << "}" << std::endl;
-            std::cerr.flush();
+        // Get current clip rect (or full screen if stack is empty)
+        rect current;
+        if (m_pimpl->m_clip_stack.empty()) {
+            // No current clip - use full screen
+            current = rect{0, 0, m_pimpl->m_vram.get_width(), m_pimpl->m_vram.get_height()};
+        } else {
+            current = m_pimpl->m_clip_stack.top();
         }
-        m_pimpl->m_vram.set_clip(r);
+
+        // Intersect new clip rect with current clip rect
+        int x1 = std::max(r.x, current.x);
+        int y1 = std::max(r.y, current.y);
+        int x2 = std::min(r.x + r.w, current.x + current.w);
+        int y2 = std::min(r.y + r.h, current.y + current.h);
+
+        rect intersected;
+        intersected.x = x1;
+        intersected.y = y1;
+        intersected.w = std::max(0, x2 - x1);
+        intersected.h = std::max(0, y2 - y1);
+
+        // Push intersected clip rect onto stack
+        m_pimpl->m_clip_stack.push(intersected);
+        m_pimpl->m_vram.set_clip(intersected);
     }
 
     void conio_renderer::pop_clip() {
-        // Reset to full screen clip (origin at 0,0, full vram dimensions)
-        constexpr int SCREEN_ORIGIN_X = 0;
-        constexpr int SCREEN_ORIGIN_Y = 0;
-        const rect full{SCREEN_ORIGIN_X, SCREEN_ORIGIN_Y, m_pimpl->m_vram.get_width(), m_pimpl->m_vram.get_height()};
-        m_pimpl->m_vram.set_clip(full);
+        // Pop current clip rect from stack
+        if (!m_pimpl->m_clip_stack.empty()) {
+            m_pimpl->m_clip_stack.pop();
+        }
+
+        // Restore previous clip rect (or full screen if stack is now empty)
+        if (m_pimpl->m_clip_stack.empty()) {
+            // Reset to full screen
+            const rect full{0, 0, m_pimpl->m_vram.get_width(), m_pimpl->m_vram.get_height()};
+            m_pimpl->m_vram.set_clip(full);
+        } else {
+            // Restore previous clip rect
+            m_pimpl->m_vram.set_clip(m_pimpl->m_clip_stack.top());
+        }
     }
 
     rect conio_renderer::get_clip_rect() const {
@@ -473,5 +500,13 @@ namespace onyxui::conio {
         }
 
         return rect{0, 0, w, h};
+    }
+
+    // ======================================================================
+    // Screenshot
+    // ======================================================================
+
+    void conio_renderer::take_screenshot(std::ostream& sink) const {
+        m_pimpl->m_vram.take_screenshot(sink);
     }
 }

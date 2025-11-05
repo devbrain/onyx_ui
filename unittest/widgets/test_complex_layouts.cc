@@ -96,11 +96,12 @@ TEST_SUITE("Layout - Complex Scenarios") {
         CHECK(vbox_y_rel == 0);
 
         // Visual verification - three levels of nesting
-        auto canvas = render_to_canvas(outer, 35, 12);
+        // Canvas needs: outer border(2) + outer padding(4) + gb border(2) + gb padding(2) + content(3) = 13px
+        auto canvas = render_to_canvas(outer, 35, 13);
         INFO("Three-level nesting:\n", debug_canvas(*canvas));
 
         // Outer panel border
-        assert_border_at_rect(*canvas, 0, 0, 35, 12, "Outer panel border");
+        assert_border_at_rect(*canvas, 0, 0, 35, 13, "Outer panel border");
 
         // Items should be visible at correct positions
         // Panel border(1) + padding(2) + GB border(1) + GB padding(1) = 5

@@ -94,6 +94,11 @@ namespace onyxui {
             auto grid_widget = std::make_unique<grid<Backend>>(2, 2);
             auto* grid_ptr = grid_widget.get();
 
+            // CRITICAL: Set scrollable to stretch to fill its cell
+            // This ensures scrollable expands to use all available space in the grid
+            content->set_horizontal_align(horizontal_alignment::stretch);
+            content->set_vertical_align(vertical_alignment::stretch);
+
             // Add components to grid (grid will auto-assign to 2x2 cells)
             // Auto-assignment goes left-to-right, top-to-bottom
             grid_widget->add_child(std::move(content));      // Cell (0,0)
@@ -111,8 +116,10 @@ namespace onyxui {
 
             // Set layout strategy BEFORE adding children
             // Use vertical linear layout with single child (the grid)
+            // IMPORTANT: Use base::set_layout_strategy to set on scroll_view itself,
+            // NOT this->set_layout_strategy which forwards to scrollable!
             auto layout = std::make_unique<linear_layout<Backend>>(direction::vertical);
-            this->set_layout_strategy(std::move(layout));
+            base::set_layout_strategy(std::move(layout));
 
             // Add grid as our only child (use base class add_child, not our forwarding method)
             base::add_child(std::move(grid_widget));

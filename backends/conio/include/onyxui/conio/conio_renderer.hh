@@ -378,6 +378,32 @@ namespace onyxui::conio {
                 return (style.style == border_style::none) ? 0 : 1;
             }
 
+            // ===================================================================
+            // Screenshot Capability (RenderLike Concept)
+            // ===================================================================
+
+            /**
+             * @brief Take screenshot of current renderer output
+             * @param sink Output stream to write screenshot to
+             *
+             * @details
+             * Saves the current vram buffer content as plain text (UTF-8).
+             * Each line represents one row of the terminal.
+             * Useful for testing, debugging, and documentation.
+             *
+             * @example
+             * @code
+             * // Render UI
+             * root->render(renderer);
+             * renderer.present();
+             *
+             * // Save screenshot
+             * std::ofstream file("screenshot.txt");
+             * renderer.take_screenshot(file);
+             * @endcode
+             */
+            void take_screenshot(std::ostream& sink) const;
+
         private:
             struct impl;
             std::unique_ptr<impl> m_pimpl;

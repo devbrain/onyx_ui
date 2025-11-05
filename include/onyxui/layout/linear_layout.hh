@@ -528,6 +528,10 @@ namespace onyxui {
                 // Calculate percentage of parent height
                 int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
                 child_height = percentage_h;
+            } else if (child->h_constraint().policy == size_policy::content) {
+                // CRITICAL FIX: Constrain content-policy children to available space
+                // Without this, they can overflow (e.g., 116px child in 6px container)
+                child_height = std::min(meas_h, content_h);
             }
 
             // Apply height constraints (already applied for weighted, but needed for others)
@@ -655,6 +659,10 @@ namespace onyxui {
                 // Calculate percentage of parent width
                 int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
                 child_width = percentage_w;
+            } else if (child->w_constraint().policy == size_policy::content) {
+                // CRITICAL FIX: Constrain content-policy children to available space
+                // Without this, they can overflow the container
+                child_width = std::min(meas_w, content_w);
             }
 
             // Apply width constraints (already applied for weighted, but needed for others)

@@ -87,6 +87,7 @@ namespace {
         void present() {}
         void on_resize() {}
         void draw_shadow(const test_backend::rect&, int, int) {}
+        void take_screenshot(std::ostream& sink) const { sink << "(mock renderer)\n"; }
     };
 
     /**

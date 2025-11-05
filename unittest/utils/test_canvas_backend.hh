@@ -188,7 +188,7 @@ namespace onyxui::testing {
             uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
             uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
-            // Draw corners
+            // Draw corners (no clipping - borders are part of the widget itself)
             m_canvas->put(rect.x, rect.y, style.corner, fg_idx, bg_idx);
             m_canvas->put(rect.x + rect.w - 1, rect.y, style.corner, fg_idx, bg_idx);
             m_canvas->put(rect.x, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
@@ -213,16 +213,28 @@ namespace onyxui::testing {
         void draw_text(const canvas_rect& rect, std::string_view text, const font& f, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
 
+            // Get current clip rect for clipping
+            auto clip = get_clip_rect();
+
             // Convert colors to palette indices (simplified)
             uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
             uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
-            // Draw text at rect position
+            // Draw text at rect position, respecting clip rect
             for (size_t i = 0; i < text.length() && rect.x + static_cast<int>(i) < rect.x + rect.w; ++i) {
+                int x = rect.x + static_cast<int>(i);
+                int y = rect.y;
+
+                // Clip check - only draw if within clip rect
+                bool const clipped = (x < clip.x || x >= clip.x + clip.w || y < clip.y || y >= clip.y + clip.h);
+                if (clipped) {
+                    continue;  // Skip this character - it's outside clip rect
+                }
+
                 uint8_t attrs = 0;
                 if (f.bold) attrs |= 0x01;
                 if (f.underline) attrs |= 0x02;
-                m_canvas->put(rect.x + static_cast<int>(i), rect.y, text[i], fg_idx, bg_idx, attrs);
+                m_canvas->put(x, y, text[i], fg_idx, bg_idx, attrs);
             }
         }
 
@@ -344,10 +356,25 @@ namespace onyxui::testing {
         }
 
         /**
-         * @brief Push clip rectangle (track for debugging)
+         * @brief Push clip rectangle (intersect with current clip)
          */
         void push_clip(const canvas_rect& rect) {
-            m_clip_stack.push(rect);
+            // Intersect new clip rect with current clip rect
+            auto current = get_clip_rect();
+
+            // Calculate intersection
+            int x1 = std::max(rect.x, current.x);
+            int y1 = std::max(rect.y, current.y);
+            int x2 = std::min(rect.x + rect.w, current.x + current.w);
+            int y2 = std::min(rect.y + rect.h, current.y + current.h);
+
+            canvas_rect intersected;
+            intersected.x = x1;
+            intersected.y = y1;
+            intersected.w = std::max(0, x2 - x1);
+            intersected.h = std::max(0, y2 - y1);
+
+            m_clip_stack.push(intersected);
         }
 
         /**
@@ -388,6 +415,24 @@ namespace onyxui::testing {
          */
         void on_resize() {
             // No-op for test canvas (size is fixed at construction)
+        }
+
+        /**
+         * @brief Take screenshot - save canvas content to stream
+         * @param sink Output stream to write screenshot to
+         *
+         * @details
+         * Saves the current canvas content as plain text.
+         * Each line represents one row of the canvas.
+         * This is useful for visual regression testing and debugging.
+         */
+        void take_screenshot(std::ostream& sink) const {
+            if (!m_canvas) {
+                sink << "(empty canvas)\n";
+                return;
+            }
+
+            sink << m_canvas->render_ascii();
         }
 
         /**

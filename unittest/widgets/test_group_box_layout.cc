@@ -118,11 +118,12 @@ TEST_SUITE("Group Box - Layout Integration") {
         CHECK(rect_utils::get_y(child_bounds) == 0);
 
         // Visual verification
-        auto canvas = render_to_canvas(gb, 25, 8);
+        // Canvas needs to be tall enough for border(2px) + padding(6px) + content
+        auto canvas = render_to_canvas(gb, 25, 12);
         INFO("Group box with padding:\n", debug_canvas(*canvas));
 
         // Border at edges
-        assert_border_at_rect(*canvas, 0, 0, 25, 8, "Group box border");
+        assert_border_at_rect(*canvas, 0, 0, 25, 12, "Group box border");
 
         // Text at border(1) + padding(3) = 4
         assert_text_at(*canvas, "Test", 4, 4, "Text inside border + padding");

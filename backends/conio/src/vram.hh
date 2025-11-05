@@ -98,6 +98,18 @@ namespace onyxui::conio {
             void resize();
 
             void present();
+
+            /**
+             * @brief Take screenshot of current vram buffer
+             * @param sink Output stream to write screenshot to
+             *
+             * @details
+             * Outputs the current vram buffer content as plain text.
+             * Each line represents one row of the terminal.
+             * Useful for testing, debugging, and documentation.
+             */
+            void take_screenshot(std::ostream& sink) const;
+
         private:
             struct impl;
             std::unique_ptr<impl> m_pimpl;
