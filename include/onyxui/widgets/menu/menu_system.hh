@@ -49,6 +49,7 @@
 #include <onyxui/hotkeys/semantic_action_guard.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/core/raii/scoped_layer.hh>
+#include <onyxui/core/signal.hh>  // For scoped_connection
 #include <vector>
 
 namespace onyxui {
@@ -56,6 +57,7 @@ namespace onyxui {
     // Forward declarations
     template<UIBackend Backend> class menu;
     template<UIBackend Backend> class menu_bar;
+    template<UIBackend Backend> class menu_item;
 
     /**
      * @class menu_system
@@ -138,6 +140,9 @@ namespace onyxui {
             if (m_nav_guards.empty()) {
                 register_navigation_hotkeys();
             }
+
+            // Connect mouse click handlers for submenu items
+            connect_submenu_click_handlers(menu);
         }
 
         /**
@@ -172,6 +177,9 @@ namespace onyxui {
 
             // Store scoped_layer (RAII auto-cleanup on pop)
             m_submenu_layers.push_back(std::move(submenu_layer));
+
+            // Connect mouse click handlers for submenu items
+            connect_submenu_click_handlers(submenu);
 
             // Set focus to submenu and its first item
             if (auto* focus = ui_services<Backend>::input()) {
@@ -228,6 +236,9 @@ namespace onyxui {
         void close_all_menus() {
             m_submenu_layers.clear();  // Phase 5: RAII removes all submenu layers
             m_menu_stack.clear();
+
+            // Clear submenu click connections
+            m_submenu_click_connections.clear();
 
             // Unregister navigation hotkeys when no menu is open
             // This allows ESC and other keys to propagate to application
@@ -415,10 +426,44 @@ namespace onyxui {
             }
         }
 
+        /**
+         * @brief Connect mouse click handlers for submenu items in a menu
+         * @param menu Menu to process
+         *
+         * @details
+         * Iterates through all items in the menu and connects their clicked
+         * signal to open_submenu() if they have a submenu.
+         * This enables mouse-driven submenu navigation.
+         */
+        void connect_submenu_click_handlers(menu_type* menu) {
+            if (!menu) return;
+
+            // Iterate through all children to find menu items
+            for (auto& child : menu->children()) {
+                // Try to cast to menu_item
+                if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
+                    if (item->has_submenu()) {
+                        // Connect clicked signal to open submenu
+                        m_submenu_click_connections.emplace_back(
+                            item->clicked,
+                            [this, item]() {
+                                this->open_submenu(item->submenu());
+                                // Focus first item in opened submenu
+                                if (auto* submenu = item->submenu()) {
+                                    submenu->focus_first();
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+        }
+
         menu_bar_type* m_menu_bar = nullptr;       ///< Non-owning pointer to parent menu bar
         std::vector<menu_type*> m_menu_stack;      ///< Menu hierarchy (back = current)
         std::vector<semantic_action_guard<Backend>> m_nav_guards;  ///< RAII hotkey guards
         std::vector<scoped_layer<Backend>> m_submenu_layers;  ///< Submenu popup layers (Phase 5)
+        std::vector<scoped_connection> m_submenu_click_connections;  ///< Mouse click connections for submenu items
     };
 
 } // namespace onyxui
