@@ -413,9 +413,10 @@ namespace onyxui {
             // DON'T call base::do_arrange() - prevents double-arrangement
             (void)final_bounds;  // Bounds already set by arrange() before calling do_arrange()
 
-            // Cache old scrollbar visibility
+            // Cache old scrollbar visibility AND viewport size
             bool const old_h_visible = should_show_horizontal_scrollbar();
             bool const old_v_visible = should_show_vertical_scrollbar();
+            size_type const old_viewport_size = m_viewport_size;
 
             // Store viewport size from content area
             auto content_area = this->get_content_area();
@@ -428,7 +429,14 @@ namespace onyxui {
             bool const new_h_visible = should_show_horizontal_scrollbar();
             bool const new_v_visible = should_show_vertical_scrollbar();
 
-            if (old_h_visible != new_h_visible || old_v_visible != new_v_visible) {
+            // Check if viewport size changed
+            bool const viewport_changed = (size_utils::get_width(old_viewport_size) != size_utils::get_width(m_viewport_size)) ||
+                                          (size_utils::get_height(old_viewport_size) != size_utils::get_height(m_viewport_size));
+
+            // CRITICAL FIX: Emit signal if visibility OR viewport size changed
+            // This ensures scroll_controller updates scrollbar info when viewport changes,
+            // even if visibility policy is "always" (like in text_view)
+            if (old_h_visible != new_h_visible || old_v_visible != new_v_visible || viewport_changed) {
                 scrollbar_visibility_changed.emit(new_h_visible, new_v_visible);
             }
 

@@ -217,7 +217,15 @@ namespace onyxui {
             // Arrow glyphs (backend-specific icon styles)
             // Note: icon_style_type will be initialized to backend's default (typically icon_style::none)
             // Themes should set these to appropriate arrow icons (arrow_up/down/left/right)
+            icon_style_type arrow_up_icon{};         ///< Icon for up arrow (vertical scrollbar decrement)
+            icon_style_type arrow_down_icon{};       ///< Icon for down arrow (vertical scrollbar increment)
+            icon_style_type arrow_left_icon{};       ///< Icon for left arrow (horizontal scrollbar decrement)
+            icon_style_type arrow_right_icon{};      ///< Icon for right arrow (horizontal scrollbar increment)
+
+            // Deprecated: Use specific direction icons above
+            [[deprecated("Use arrow_up_icon/arrow_down_icon instead")]]
             icon_style_type arrow_decrement_icon{};  ///< Icon for decrement arrow (up for vertical, left for horizontal)
+            [[deprecated("Use arrow_left_icon/arrow_right_icon instead")]]
             icon_style_type arrow_increment_icon{};  ///< Icon for increment arrow (down for vertical, right for horizontal)
 
             // Animation settings (Phase 2 - auto_hide_inactive policy)

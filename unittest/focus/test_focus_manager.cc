@@ -35,15 +35,14 @@ class TestTarget : public event_target <test_backend> {
         bool is_visible() const { return m_visible; }
         void set_visible(bool v) { m_visible = v; }
 
-        // Override virtual handlers to track calls
-        bool handle_focus_gained() override {
-            focus_gain_count++;
-            return event_target <test_backend>::handle_focus_gained();
-        }
-
-        bool handle_focus_lost() override {
-            focus_loss_count++;
-            return event_target <test_backend>::handle_focus_lost();
+        // Override virtual handler to track calls
+        void on_focus_changed(bool gained) override {
+            if (gained) {
+                focus_gain_count++;
+            } else {
+                focus_loss_count++;
+            }
+            event_target<test_backend>::on_focus_changed(gained);
         }
 
         // Test inspection

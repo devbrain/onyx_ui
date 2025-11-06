@@ -272,6 +272,12 @@ namespace onyxui::conio {
             theme.scrollbar.arrow_pressed.background = window_bg;
             theme.scrollbar.arrow_pressed.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
 
+            // Arrow icons (all four directions for vertical and horizontal scrollbars)
+            theme.scrollbar.arrow_up_icon = conio_renderer::icon_style::arrow_up;
+            theme.scrollbar.arrow_down_icon = conio_renderer::icon_style::arrow_down;
+            theme.scrollbar.arrow_left_icon = conio_renderer::icon_style::arrow_left;
+            theme.scrollbar.arrow_right_icon = conio_renderer::icon_style::arrow_right;
+
             // ====================================================================
             // Menu Bar Item Manual Configuration
             // ====================================================================

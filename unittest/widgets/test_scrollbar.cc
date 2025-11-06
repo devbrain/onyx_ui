@@ -9,6 +9,7 @@
 #include <../../include/onyxui/widgets/containers/scroll/scrollbar.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
+#include "../utils/visual_test_helpers.hh"
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -153,6 +154,145 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Thumb is
     // No scroll info = no content = zero thumb
     CHECK(rect_utils::get_width(thumb) == 0);
     CHECK(rect_utils::get_height(thumb) == 0);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Child widgets are created and visible") {
+    scrollbar<test_canvas_backend> sb(orientation::vertical);
+
+    scroll_info<test_canvas_backend> info{
+        {1, 200},   // content (tall)
+        {1, 100},   // viewport
+        {0, 0}      // scroll at top
+    };
+    sb.set_scroll_info(info);
+
+    [[maybe_unused]] auto size = sb.measure(1, 100);
+    sb.arrange({0, 0, 1, 100});
+
+    // Verify thumb bounds are calculated (child widget positioning)
+    auto thumb = sb.get_thumb_bounds();
+    CHECK(rect_utils::get_height(thumb) > 0);  // Thumb should have height
+    CHECK(rect_utils::get_width(thumb) > 0);   // Thumb should have width
+
+    // This test verifies the fix for child widget visibility
+    // Before fix: child widgets were created but invisible, so nothing rendered
+    // After fix: child widgets are explicitly set visible in constructor
+    // The fact that thumb bounds are non-zero confirms children are properly set up
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "scrollbar - Thumb visible immediately after set_scroll_info") {
+    // This test verifies the fix for: "thumb is visible only after i scroll"
+    // Bug: Thumb had zero bounds until next layout cycle after set_scroll_info()
+    // Fix: set_scroll_info() now immediately updates child widget bounds
+
+    scrollbar<test_canvas_backend> sb(orientation::vertical);
+
+    // Initial measure and arrange with default scroll_info (all zeros)
+    [[maybe_unused]] auto size = sb.measure(1, 100);
+    sb.arrange({0, 0, 1, 100});
+
+    // Thumb should be zero-sized initially (no scrolling needed)
+    auto thumb_before = sb.get_thumb_bounds();
+    CHECK(rect_utils::get_height(thumb_before) == 0);
+
+    // Simulate what happens during first frame: scrollable widget measures content
+    // and calls set_scroll_info() with valid values
+    scroll_info<test_canvas_backend> info{
+        {1, 200},   // content is tall (200)
+        {1, 100},   // viewport is smaller (100) - scrolling needed!
+        {0, 0}      // scroll at top
+    };
+    sb.set_scroll_info(info);
+
+    // CRITICAL: Thumb should now have non-zero bounds IMMEDIATELY
+    // Without the fix, thumb would still be zero until next arrange() call
+    auto thumb_after = sb.get_thumb_bounds();
+    CHECK(rect_utils::get_height(thumb_after) > 0);  // Should be ~50 (viewport/content ratio)
+    CHECK(rect_utils::get_width(thumb_after) > 0);   // Should be 1 (scrollbar width)
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "scrollbar - Thumb visible when set_scroll_info called BEFORE arrange") {
+    // This reproduces the ACTUAL demo bug: scroll_view calls set_scroll_info()
+    // during its measure phase, which happens BEFORE scrollbar is arranged.
+    // Bug: Thumb invisible because set_scroll_info happened before arrange
+    // Fix: do_arrange must use current scroll_info, not stale default
+
+    scrollbar<test_canvas_backend> sb(orientation::vertical);
+
+    // CRITICAL: Set scroll_info BEFORE measure/arrange (real demo flow!)
+    scroll_info<test_canvas_backend> info{
+        {1, 200},   // content is tall (200)
+        {1, 100},   // viewport is smaller (100) - scrolling needed!
+        {0, 0}      // scroll at top
+    };
+    sb.set_scroll_info(info);
+
+    // Now measure and arrange (this is when scrollbar gets its bounds)
+    [[maybe_unused]] auto size = sb.measure(1, 100);
+    sb.arrange({0, 0, 1, 100});
+
+    // BUG: Thumb should have non-zero bounds after arrange!
+    // Without fix: thumb is zero-sized because arrange uses stale scroll_info
+    auto thumb_after = sb.get_thumb_bounds();
+    CHECK(rect_utils::get_height(thumb_after) > 0);  // Should be ~50 (viewport/content ratio)
+    CHECK(rect_utils::get_width(thumb_after) > 0);   // Should be 1 (scrollbar width)
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "scrollbar - BUG: Thumb not visible initially") {
+    // This reproduces the demo bug: thumb is not visible until you scroll
+    // Root cause: ???
+
+    scrollbar<test_canvas_backend> sb(orientation::vertical);
+
+    // Set scroll_info BEFORE arrange (real demo flow!)
+    scroll_info<test_canvas_backend> info{
+        {1, 200},   // content is tall (200)
+        {1, 100},   // viewport is smaller (100) - scrolling needed!
+        {0, 0}       // scroll at top
+    };
+    sb.set_scroll_info(info);
+
+    // Measure and arrange with WIDTH=1 (like real scrollbar)
+    [[maybe_unused]] auto size = sb.measure(1, 100);
+    sb.arrange({0, 0, 1, 100});
+
+    // Check thumb bounds - SHOULD BE NON-ZERO
+    auto thumb_bounds = sb.get_thumb_bounds();
+
+    INFO("Scrollbar bounds: " << rect_utils::get_width(sb.bounds()) << "x" << rect_utils::get_height(sb.bounds()));
+    INFO("Content: " << size_utils::get_width(info.content_size) << "x" << size_utils::get_height(info.content_size));
+    INFO("Viewport: " << size_utils::get_width(info.viewport_size) << "x" << size_utils::get_height(info.viewport_size));
+    INFO("Thumb bounds: " << rect_utils::get_width(thumb_bounds) << "x" << rect_utils::get_height(thumb_bounds));
+
+    // With 200 content and 100 viewport, thumb should be ~50 tall
+    CHECK(rect_utils::get_height(thumb_bounds) > 0);
+
+    // Now test RENDERING - does thumb actually draw?
+    visual_test_harness<test_canvas_backend> harness(1, 100);
+    typename test_canvas_backend::renderer_type renderer(harness.canvas());
+    auto const* themes = ui_services<test_canvas_backend>::themes();
+    auto const* theme = themes ? themes->get_current_theme() : nullptr;
+    REQUIRE(theme != nullptr);
+
+    sb.render(renderer, theme);
+
+    // Count non-space characters (thumb should render as '#')
+    int non_space_count = 0;
+    for (int y = 0; y < 100; ++y) {
+        char c = harness.canvas()->get_char(0, y);
+        if (c != ' ') {
+            non_space_count++;
+        }
+    }
+
+    INFO("Canvas dump:\n" << harness.dump_canvas());
+    INFO("Non-space characters: " << non_space_count);
+
+    // We should have SOME rendering (thumb + arrows)
+    CHECK(non_space_count > 0);
 }
 
 // =============================================================================

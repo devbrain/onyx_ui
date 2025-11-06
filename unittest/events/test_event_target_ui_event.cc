@@ -66,17 +66,6 @@ namespace {
             return true;
         }
 
-        // Track old API calls for backward compat testing
-        bool handle_key_down(int, bool, bool, bool) override {
-            key_down_count++;
-            return true;
-        }
-
-        bool handle_mouse_down(int, int, int) override {
-            mouse_down_count++;
-            return true;
-        }
-
         // Required pure virtual methods
         bool is_inside(int, int) const override {
             return true;
@@ -284,18 +273,20 @@ TEST_CASE("event_target::handle_event - Backward compatibility") {
         bool last_shift = false;
         bool last_ctrl = false;
 
-        // Override old API instead of new API
-        bool handle_key_down(int key, bool shift, bool ctrl, bool) override {
+        // Override new API
+        bool handle_keyboard(const keyboard_event& kbd) override {
             key_down_calls++;
-            last_key = key;
-            last_shift = shift;
-            last_ctrl = ctrl;
+            last_key = static_cast<int>(kbd.key);
+            last_shift = (kbd.modifiers & key_modifier::shift) != key_modifier::none;
+            last_ctrl = (kbd.modifiers & key_modifier::ctrl) != key_modifier::none;
             return true;
         }
 
-        bool handle_mouse_down(int, int, int) override {
-            mouse_down_calls++;
-            return true;
+        bool handle_mouse(const mouse_event& mouse) override {
+            if (mouse.act == mouse_event::action::press) {
+                mouse_down_calls++;
+            }
+            return event_target<test_canvas_backend>::handle_mouse(mouse);
         }
 
         bool is_inside(int, int) const override {

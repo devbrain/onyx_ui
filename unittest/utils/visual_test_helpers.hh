@@ -78,14 +78,17 @@ namespace onyxui::testing {
             scoped_ui_context<Backend> ctx;
 
             // Measure and arrange widget to fill canvas
-            widget->measure(m_width, m_height);
+            [[maybe_unused]] auto size = widget->measure(m_width, m_height);
             rect_type bounds{0, 0, m_width, m_height};
             widget->arrange(bounds);
 
-            // Render widget to canvas
+            // Render widget to canvas with theme
             typename Backend::renderer_type renderer(m_canvas);
-            std::vector<rect_type> dirty_regions;  // Empty = render everything
-            widget->render(renderer, dirty_regions);
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            if (theme) {
+                widget->render(renderer, theme);
+            }
         }
 
         /**

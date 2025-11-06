@@ -542,77 +542,59 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse enter event (called by event_target)
+         * @brief Handle mouse events and emit signals
          */
-        bool handle_mouse_enter() override {
-            // Mark dirty for visual state change (hover)
+        bool handle_mouse(const mouse_event& mouse) override {
+            // Track previous states for change detection
+            bool const was_hovered = this->is_hovered();
+            bool const was_pressed = this->is_pressed();
+
+            // Let base class update hover/pressed state and generate click
+            bool handled = base::handle_mouse(mouse);
+
+            // Detect state changes and emit signals
+            bool const now_hovered = this->is_hovered();
+            bool const now_pressed = this->is_pressed();
+
+            if (now_hovered != was_hovered) {
+                this->mark_dirty();  // Visual state changed
+                if (now_hovered) {
+                    mouse_entered.emit();
+                } else {
+                    mouse_exited.emit();
+                }
+            }
+
+            if (now_pressed != was_pressed) {
+                this->mark_dirty();  // Visual state changed
+            }
+
+            // Emit click signal when release happens inside (base class returns true)
+            if (mouse.act == mouse_event::action::release && handled) {
+                clicked.emit();
+            }
+
+            // Emit mouse_moved for move events
+            if (mouse.act == mouse_event::action::move && now_hovered) {
+                mouse_moved.emit(mouse.x, mouse.y);
+            }
+
+            return handled;
+        }
+
+        /**
+         * @brief Handle focus state changes
+         */
+        void on_focus_changed(bool gained) override {
+            // Mark dirty for visual state change
             this->mark_dirty();
-            mouse_entered.emit();
-            return base::handle_mouse_enter();
-        }
 
-        /**
-         * @brief Handle mouse leave event (called by event_target)
-         */
-        bool handle_mouse_leave() override {
-            // Mark dirty for visual state change (no longer hovered)
-            this->mark_dirty();
-            mouse_exited.emit();
-            return base::handle_mouse_leave();
-        }
-
-        /**
-         * @brief Handle mouse down event (called by event_target)
-         */
-        bool handle_mouse_down(int x, int y, int button) override {
-            // Mark dirty for visual state change (pressed)
-            this->mark_dirty();
-            return base::handle_mouse_down(x, y, button);
-        }
-
-        /**
-         * @brief Handle mouse up event (called by event_target)
-         */
-        bool handle_mouse_up(int x, int y, int button) override {
-            // Mark dirty for visual state change (no longer pressed)
-            this->mark_dirty();
-            return base::handle_mouse_up(x, y, button);
-        }
-
-        /**
-         * @brief Handle click event (called by event_target)
-         */
-        bool handle_click([[maybe_unused]] int x, [[maybe_unused]] int y) override {
-            clicked.emit();
-            return true;  // Consumed
-        }
-
-        /**
-         * @brief Handle mouse move event
-         */
-        bool handle_mouse_move(int x, int y) override {
-            mouse_moved.emit(x, y);
-            return base::handle_mouse_move(x, y);
-        }
-
-        /**
-         * @brief Handle focus gained event (called by event_target)
-         */
-        bool handle_focus_gained() override {
-            // Mark dirty for visual state change (focused)
-            this->mark_dirty();
-            focus_gained.emit();
-            return base::handle_focus_gained();
-        }
-
-        /**
-         * @brief Handle focus lost event (called by event_target)
-         */
-        bool handle_focus_lost() override {
-            // Mark dirty for visual state change (no longer focused)
-            this->mark_dirty();
-            focus_lost.emit();
-            return base::handle_focus_lost();
+            // Emit appropriate signal
+            if (gained) {
+                focus_gained.emit();
+            } else {
+                focus_lost.emit();
+            }
         }
     };
 }

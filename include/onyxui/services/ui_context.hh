@@ -645,8 +645,12 @@ namespace onyxui {
                 [this]() {
                     auto* focused = m_input_manager.get_focused();
                     if (focused && focused->accepts_keys_as_click()) {
-                        // Trigger click at (0, 0) - widgets can override handle_click if needed
-                        focused->handle_click(0, 0);
+                        // Trigger click via mouse press+release sequence
+                        mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+                        focused->handle_event(ui_event{press}, event_phase::target);
+
+                        mouse_event release{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::release};
+                        focused->handle_event(ui_event{release}, event_phase::target);
                     }
                 }
             );

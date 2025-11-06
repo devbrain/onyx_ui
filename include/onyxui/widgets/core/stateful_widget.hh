@@ -257,81 +257,46 @@ namespace onyxui {
         // ===================================================================
 
         /**
-         * @brief Handle mouse enter event (tracked by event_target)
-         * @details Automatically sets state to hover if enabled
-         */
-        bool handle_mouse_enter() override {
-            if (this->is_enabled()) {
-                set_interaction_state(interaction_state::hover);
-            }
-            return base::handle_mouse_enter();
-        }
-
-        /**
-         * @brief Handle mouse leave event (tracked by event_target)
-         * @details Returns to normal state ONLY if not currently in pressed state
-         *
-         * If mouse button is still held down when leaving (visual state = pressed),
-         * maintain that state. This prevents visual state desync during drag operations.
-         */
-        bool handle_mouse_leave() override {
-            if (this->is_enabled()) {
-                // Only return to normal if we're not visually pressed
-                // If pressed, we'll transition on mouse_up instead
-                if (m_state != interaction_state::pressed) {
-                    set_interaction_state(interaction_state::normal);
-                }
-            }
-            return base::handle_mouse_leave();
-        }
-
-        /**
-         * @brief Handle mouse down event (OLD API - backward compatibility)
-         * @details Automatically sets state to pressed if enabled
-         */
-        bool handle_mouse_down(int x, int y, int button) override {
-            if (this->is_enabled()) {
-                set_interaction_state(interaction_state::pressed);
-            }
-            return base::handle_mouse_down(x, y, button);
-        }
-
-        /**
-         * @brief Handle mouse up event (OLD API - backward compatibility)
-         * @details Automatically sets state back to hover or normal
-         */
-        bool handle_mouse_up(int x, int y, int button) override {
-            if (this->is_enabled()) {
-                // Return to hover if still hovering, otherwise normal
-                set_interaction_state(base::is_hovered() ? interaction_state::hover : interaction_state::normal);
-            }
-            return base::handle_mouse_up(x, y, button);
-        }
-
-        /**
-         * @brief Handle mouse events (NEW Phase 4 API)
+         * @brief Handle mouse events and manage interaction state
          * @param mouse Mouse event containing action, position, button, and modifiers
          * @return true if event was handled
          *
          * @details
          * Unified mouse event handler that automatically manages interaction state:
+         * - **Hover changes**: Sets hover state when entering, normal when leaving
          * - **Mouse press**: Sets pressed state if enabled
          * - **Mouse release**: Returns to hover (if still hovering) or normal
-         * - **Mouse move**: Handled by base class
-         * - **Mouse wheel**: Handled by base class
+         * - **Pressed drag-out**: Maintains pressed state until release
          *
-         * Note: Mouse enter/leave are tracked separately by event_target's internal
-         * is_inside() checking and call handle_mouse_enter/leave directly.
-         *
-         * This provides a cleaner API than handle_mouse_down/up (which are kept for
-         * backward compatibility with existing code and tests).
+         * The interaction state provides visual feedback for user actions.
          */
         bool handle_mouse(const mouse_event& mouse) override {
             if (!this->is_enabled()) {
                 return base::handle_mouse(mouse);
             }
 
-            // Dispatch based on mouse action
+            // Track hover state changes for enter/leave detection
+            bool const was_hovered = base::is_hovered();
+
+            // Let base class update hover/pressed state
+            bool handled = base::handle_mouse(mouse);
+
+            // Detect hover state changes after base class processing
+            bool const now_hovered = base::is_hovered();
+
+            // Update interaction state based on hover changes
+            if (now_hovered && !was_hovered) {
+                // Mouse entered
+                set_interaction_state(interaction_state::hover);
+            } else if (!now_hovered && was_hovered) {
+                // Mouse left - only return to normal if not currently pressed
+                // If pressed, we'll transition on release instead
+                if (m_state != interaction_state::pressed) {
+                    set_interaction_state(interaction_state::normal);
+                }
+            }
+
+            // Update interaction state based on mouse actions
             switch (mouse.act) {
                 case mouse_event::action::press:
                     // Mouse button pressed - set pressed state
@@ -340,18 +305,17 @@ namespace onyxui {
 
                 case mouse_event::action::release:
                     // Mouse button released - return to hover (if hovering) or normal
-                    set_interaction_state(base::is_hovered() ? interaction_state::hover : interaction_state::normal);
+                    set_interaction_state(now_hovered ? interaction_state::hover : interaction_state::normal);
                     break;
 
                 case mouse_event::action::move:
                 case mouse_event::action::wheel_up:
                 case mouse_event::action::wheel_down:
-                    // Move and wheel events don't affect state - pass to base
+                    // Move and wheel events handled by hover tracking above
                     break;
             }
 
-            // Chain to base class for standard event processing
-            return base::handle_mouse(mouse);
+            return handled;
         }
 
         // ===================================================================

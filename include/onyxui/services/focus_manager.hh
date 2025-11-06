@@ -111,7 +111,7 @@ namespace onyxui {
          * @brief Destructor - clears focus without callbacks
          *
          * @details
-         * Resets the focus pointer without calling handle_focus_lost() on the target.
+         * Resets the focus pointer without calling set_focus(false) on the target.
          * This is necessary because the target may have already been destroyed, and
          * calling methods on a dangling pointer would cause undefined behavior.
          * The target's own destructor is responsible for cleaning up its focus state.
@@ -140,7 +140,7 @@ namespace onyxui {
          *
          * @details
          * Transfers focus from another manager without calling callbacks.
-         * Similar to the destructor, we cannot safely call handle_focus_lost()
+         * Similar to the destructor, we cannot safely call set_focus(false)
          * because we don't know if the current focused target is still alive.
          */
         focus_manager& operator=(focus_manager&& other) noexcept {
@@ -156,9 +156,9 @@ namespace onyxui {
          * @param target The target to focus (or nullptr to clear focus)
          * @return true if focus was changed, false if target is non-focusable, disabled, or already focused
          *
-         * @exception Any exception thrown by target->handle_focus_lost()
-         * @exception Any exception thrown by target->handle_focus_gained()
-         * @note Exception safety: Basic guarantee - if handle_focus_gained() throws, old focus was already lost
+         * @exception Any exception thrown by target->set_focus()
+         * @exception Any exception thrown by target->on_focus_changed()
+         * @note Exception safety: Basic guarantee - if set_focus() throws, old focus was already lost
          * @note Returns false (no exception) for non-focusable or disabled targets
          */
         bool set_focus(target_ptr target) {
@@ -176,14 +176,14 @@ namespace onyxui {
 
             // Notify old focused target of focus loss
             if (m_focused_target) {
-                m_focused_target->handle_focus_lost();
+                m_focused_target->set_focus(false);
             }
 
             m_focused_target = target;
 
             // Notify new focused target of focus gain
             if (m_focused_target) {
-                m_focused_target->handle_focus_gained();
+                m_focused_target->set_focus(true);
             }
 
             return true;

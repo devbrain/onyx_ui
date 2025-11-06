@@ -42,10 +42,14 @@ public:
 
     int click_count = 0;
 
-    // Expose protected methods for testing
-    using event_target<test_backend>::handle_mouse_enter;
-    using event_target<test_backend>::handle_mouse_leave;
-    using event_target<test_backend>::handle_click;
+    // Override handle_mouse to track clicks
+    bool handle_mouse(const mouse_event& mouse) override {
+        if (mouse.act == mouse_event::action::release) {
+            click_count++;
+            return true;
+        }
+        return event_target<test_backend>::handle_mouse(mouse);
+    }
 };
 
 TEST_SUITE("RuleOfFive") {
@@ -293,34 +297,34 @@ TEST_SUITE("RuleOfFive") {
     // event_target Move Operations Tests
     // ========================================================================
 
-    TEST_CASE("event_target - move constructor transfers callbacks") {
+    TEST_CASE("event_target - move constructor transfers state") {
         test_event_target source;
 
-        // Set up callbacks
-        int mouse_enter_count = 0;
-        int mouse_leave_count = 0;
-        int click_count = 0;
+        // Set up state
+        source.set_focusable(true);
+        source.set_enabled(true);
+        source.set_tab_index(5);
 
-        source.set_on_mouse_enter([&]() { mouse_enter_count++; return true; });
-        source.set_on_mouse_leave([&]() { mouse_leave_count++; return true; });
-        source.set_on_click([&](int, int) { click_count++; return true; });
-
-        // Test callbacks work on source
-        source.handle_mouse_enter();
-        CHECK(mouse_enter_count == 1);
+        // Simulate mouse interaction to set pressed state
+        mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+        source.handle_event(ui_event{press}, event_phase::target);
+        CHECK(source.is_pressed());
 
         // Move construct
         test_event_target dest(std::move(source));
 
-        SUBCASE("destination callbacks work") {
-            dest.handle_mouse_enter();
-            CHECK(mouse_enter_count == 2);
+        SUBCASE("destination retains state") {
+            CHECK(dest.is_focusable());
+            CHECK(dest.is_enabled());
+            CHECK(dest.tab_index() == 5);
+            CHECK(dest.is_pressed());  // Pressed state transferred
+        }
 
-            dest.handle_mouse_leave();
-            CHECK(mouse_leave_count == 1);
-
-            dest.handle_click(0, 0);
-            CHECK(click_count == 1);
+        SUBCASE("destination can handle events") {
+            // Complete the click
+            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release};
+            dest.handle_event(ui_event{release}, event_phase::target);
+            CHECK(dest.click_count == 1);
         }
     }
 
@@ -351,9 +355,6 @@ TEST_SUITE("RuleOfFive") {
         source.set_enabled(false);
         source.set_tab_index(99);
 
-        int callback_count = 0;
-        source.set_on_click([&](int, int) { callback_count++; return true; });
-
         // Set up destination with different state
         dest.set_focusable(false);
         dest.set_enabled(true);
@@ -368,9 +369,17 @@ TEST_SUITE("RuleOfFive") {
             CHECK(dest.tab_index() == 99);
         }
 
-        SUBCASE("destination callback works") {
-            dest.handle_click(0, 0);
-            CHECK(callback_count == 1);
+        SUBCASE("destination can handle events") {
+            // Re-enable to allow event handling
+            dest.set_enabled(true);
+
+            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+            dest.handle_event(ui_event{press}, event_phase::target);
+
+            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release};
+            dest.handle_event(ui_event{release}, event_phase::target);
+
+            CHECK(dest.click_count == 1);
         }
     }
 
@@ -452,36 +461,30 @@ TEST_SUITE("RuleOfFive") {
         }
     }
 
-    TEST_CASE("focus_manager - move operations don't call callbacks") {
+    TEST_CASE("focus_manager - move operations transfer focus state") {
         focus_manager<test_backend> source;
         test_event_target target;
 
-        int focus_gained_count = 0;
-        int focus_lost_count = 0;
-
         target.set_focusable(true);
-        target.set_on_focus_gained([&]() { focus_gained_count++; return true; });
-        target.set_on_focus_lost([&]() { focus_lost_count++; return true; });
 
         source.set_focus(&target);
-        CHECK(focus_gained_count == 1);
-        CHECK(focus_lost_count == 0);
+        CHECK(target.has_focus());
 
-        SUBCASE("move constructor doesn't call callbacks") {
+        SUBCASE("move constructor transfers focus") {
             focus_manager<test_backend> const dest(std::move(source));
 
-            // No additional callbacks should be called
-            CHECK(focus_gained_count == 1);
-            CHECK(focus_lost_count == 0);
+            // Focus state transferred
+            CHECK(dest.get_focused() == &target);
+            CHECK(target.has_focus());
         }
 
-        SUBCASE("move assignment doesn't call callbacks") {
+        SUBCASE("move assignment transfers focus") {
             focus_manager<test_backend> dest;
             dest = std::move(source);
 
-            // No additional callbacks should be called
-            CHECK(focus_gained_count == 1);
-            CHECK(focus_lost_count == 0);
+            // Focus state transferred
+            CHECK(dest.get_focused() == &target);
+            CHECK(target.has_focus());
         }
     }
 
@@ -528,11 +531,8 @@ TEST_SUITE("RuleOfFive") {
     // Integration Tests - Move with Active UI
     // ========================================================================
 
-    TEST_CASE("Integration - move ui_element with active event handlers") {
+    TEST_CASE("Integration - move ui_element with children") {
         test_element source(nullptr);
-
-        int click_count = 0;
-        source.set_on_click([&](int, int) { click_count++; return true; });
 
         // Add child
         auto child = std::make_unique<test_element>(nullptr);
@@ -542,12 +542,15 @@ TEST_SUITE("RuleOfFive") {
         // Move
         test_element dest(std::move(source));
 
-        SUBCASE("event handlers still work after move") {
-            // Trigger the click event through the event dispatch mechanism
-            test_backend::event_type const event;
-            // Since test_backend's event is just an int, this will work
-            // The actual event dispatch is tested elsewhere - here we just verify move works
-            CHECK(click_count == 0);  // Callback not yet triggered
+        SUBCASE("moved element retains children and can handle events") {
+            // Verify children moved
+            CHECK(dest.children().size() == 1);
+            CHECK(dest.children()[0].get() == child_ptr);
+
+            // Verify element can handle events
+            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+            dest.handle_event(ui_event{press}, event_phase::target);
+            CHECK(dest.is_pressed());
         }
 
         SUBCASE("child hierarchy still works after move") {

@@ -128,9 +128,11 @@ namespace onyxui::testing {
 
         struct box_style {
             bool draw_border = false;
+            bool is_solid = true;  // Fill interior with background color
             char corner = '+';
             char horizontal = '-';
             char vertical = '|';
+            char fill_char = '#';  // Character to use for solid fill
         };
 
         struct line_style {
@@ -177,33 +179,43 @@ namespace onyxui::testing {
         }
 
         /**
-         * @brief Draw box (border) - required by RenderLike
+         * @brief Draw box (border and/or fill) - required by RenderLike
          */
         void draw_box(const canvas_rect& rect, const box_style& style, const canvas_color& fg, const canvas_color& bg) {
-            if (!style.draw_border || !m_canvas) return;
-
-            if (rect.w < 2 || rect.h < 2) return;  // Too small for border
+            if (!m_canvas) return;
 
             // Convert colors to palette indices (simplified)
             uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
             uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
-            // Draw corners (no clipping - borders are part of the widget itself)
-            m_canvas->put(rect.x, rect.y, style.corner, fg_idx, bg_idx);
-            m_canvas->put(rect.x + rect.w - 1, rect.y, style.corner, fg_idx, bg_idx);
-            m_canvas->put(rect.x, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
-            m_canvas->put(rect.x + rect.w - 1, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
-
-            // Draw horizontal edges
-            for (int x = rect.x + 1; x < rect.x + rect.w - 1; ++x) {
-                m_canvas->put(x, rect.y, style.horizontal, fg_idx, bg_idx);
-                m_canvas->put(x, rect.y + rect.h - 1, style.horizontal, fg_idx, bg_idx);
+            // Fill interior if is_solid=true
+            if (style.is_solid) {
+                for (int y = rect.y; y < rect.y + rect.h; ++y) {
+                    for (int x = rect.x; x < rect.x + rect.w; ++x) {
+                        m_canvas->put(x, y, style.fill_char, fg_idx, bg_idx);
+                    }
+                }
             }
 
-            // Draw vertical edges
-            for (int y = rect.y + 1; y < rect.y + rect.h - 1; ++y) {
-                m_canvas->put(rect.x, y, style.vertical, fg_idx, bg_idx);
-                m_canvas->put(rect.x + rect.w - 1, y, style.vertical, fg_idx, bg_idx);
+            // Draw border if draw_border=true
+            if (style.draw_border && rect.w >= 2 && rect.h >= 2) {
+                // Draw corners (no clipping - borders are part of the widget itself)
+                m_canvas->put(rect.x, rect.y, style.corner, fg_idx, bg_idx);
+                m_canvas->put(rect.x + rect.w - 1, rect.y, style.corner, fg_idx, bg_idx);
+                m_canvas->put(rect.x, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
+                m_canvas->put(rect.x + rect.w - 1, rect.y + rect.h - 1, style.corner, fg_idx, bg_idx);
+
+                // Draw horizontal edges
+                for (int x = rect.x + 1; x < rect.x + rect.w - 1; ++x) {
+                    m_canvas->put(x, rect.y, style.horizontal, fg_idx, bg_idx);
+                    m_canvas->put(x, rect.y + rect.h - 1, style.horizontal, fg_idx, bg_idx);
+                }
+
+                // Draw vertical edges
+                for (int y = rect.y + 1; y < rect.y + rect.h - 1; ++y) {
+                    m_canvas->put(rect.x, y, style.vertical, fg_idx, bg_idx);
+                    m_canvas->put(rect.x + rect.w - 1, y, style.vertical, fg_idx, bg_idx);
+                }
             }
         }
 

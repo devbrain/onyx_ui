@@ -54,17 +54,8 @@ public:
         return TestElement::process_event(event);
     }
 
-    // Override mouse down handler (called by process_event_impl)
-    bool handle_mouse_down(int x, int y, int button) override {
-        (void)x; (void)y; (void)button;
-        process_called = true;
-        last_event_received = true;
-        return event_handled;  // Return configured value
-    }
-
-    // Override mouse click handler
-    bool handle_click(int x, int y) override {
-        (void)x; (void)y;
+    // Override mouse handler
+    bool handle_mouse(const mouse_event& mouse) override {
         process_called = true;
         last_event_received = true;
         return event_handled;  // Return configured value

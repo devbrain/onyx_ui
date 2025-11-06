@@ -1,42 +1,41 @@
 /**
  * @file event_target.hh
- * @brief Base class for objects that can handle events
+ * @brief Base class for three-phase event handling
  * @author igor
  * @date 10/10/2025
  *
- * This file defines event_target, which provides event handling capabilities
- * independent of any UI or layout concerns. It can be tested in isolation
- * and inherited by any class that needs event handling.
- *
- * The design uses the Backend template to work with native backend events directly,
- * avoiding any abstraction layer while maintaining backend flexibility.
+ * This file defines event_target, which provides three-phase event handling
+ * (CAPTURE → TARGET → BUBBLE) independent of any UI or layout concerns.
  *
  * ## Architecture
  *
- * The event_target class uses a two-layer event handling approach:
+ * The event_target class provides clean, single-responsibility event handling:
  *
- * 1. **Event Processing Layer**: The `process_event()` template method accepts any
- *    event type with defined traits. It uses event_traits to extract information
- *    and routes to the appropriate handler.
+ * **Three-Phase Event Routing:**
+ * - CAPTURE: Event travels down from root to target (parent-first)
+ * - TARGET: Event delivered to target element
+ * - BUBBLE: Event travels up from target to root (child-first)
  *
- * 2. **Virtual Handler Layer**: Protected virtual methods (`handle_*`) that derived
- *    classes can override to implement custom behavior. Each method has a sensible
- *    default that calls the corresponding callback if set.
+ * **Virtual Handler Layer:**
+ * - `handle_event()` - Main entry point, dispatches by phase
+ * - `handle_keyboard()` - Override to handle keyboard events
+ * - `handle_mouse()` - Override to handle mouse events
+ * - `handle_resize()` - Override to handle resize events
  *
  * ## Event Flow
  *
- * 1. External event arrives via `process_event(event)`
- * 2. Event traits extract relevant data (coordinates, keys, modifiers)
- * 3. Internal processing updates state (hover, pressed, focus)
- * 4. Virtual handler is called (can be overridden)
- * 5. If not overridden, callback is invoked if set
- * 6. Event consumed flag is returned
+ * 1. Event arrives via `handle_event(ui_event, event_phase)`
+ * 2. Base class checks phase and enabled state
+ * 3. Event dispatched to type-specific handler (keyboard/mouse/resize)
+ * 4. Derived class override handles event
+ * 5. Event consumed flag returned
  *
- * ## State Management
+ * ## Automatic State Tracking
  *
- * The class tracks several states automatically:
- * - **Hover**: Updated based on mouse position and `is_inside()` checks
- * - **Pressed**: Tracked from mouse down to mouse up
+ * The base class tracks states automatically in handle_mouse():
+ * - **Hover**: Updated based on `is_inside()` checks
+ * - **Pressed**: Tracked from press to release
+ * - **Click**: Generated when press and release both inside
  * - **Focus**: Managed by focus_manager (friend class)
  * - **Enabled**: Controls whether events are processed
  */
@@ -60,38 +59,30 @@ namespace onyxui {
 
     /**
      * @class event_target
-     * @brief Base class providing event handling capabilities
+     * @brief Base class providing three-phase event handling capabilities
      *
      * This class is completely independent of ui_element or any layout concerns.
-     * It simply provides a way to handle events and track state.
+     * It provides three-phase event routing (CAPTURE → TARGET → BUBBLE) with
+     * automatic state tracking for hover, pressed, and focus states.
      *
      * @tparam Backend The backend traits type (sdl_backend, glfw_backend, etc.)
      *
-     * @example Testing event_target independently
+     * @example Basic event handling
      * @code
-     * // Test class that just handles events, no UI
-     * class test_target : public event_target<test_backend> {
+     * class my_widget : public event_target<test_backend> {
      * public:
-     *     int click_count = 0;
-     *
-     *     bool handle_click(int x, int y) override {
-     *         click_count++;
-     *         return true;
+     *     bool handle_mouse(const mouse_event& evt) override {
+     *         if (evt.act == mouse_event::action::press) {
+     *             std::cout << "Clicked at " << evt.x << ", " << evt.y << "\n";
+     *             return true;  // Consumed
+     *         }
+     *         return false;
      *     }
      *
      *     bool is_inside(int x, int y) const override {
-     *         // Simple test bounds
      *         return x >= 0 && x < 100 && y >= 0 && y < 50;
      *     }
      * };
-     *
-     * // Test it
-     * test_target target;
-     * test_backend::test_mouse_event evt;
-     * evt.x = 50; evt.y = 25; evt.pressed = true;
-     * target.process_event_impl(evt);  // Use template method directly
-     * // Or: target.process_event(evt) if evt matches event_type
-     * assert(target.click_count == 1);
      * @endcode
      */
     template<UIBackend Backend>
@@ -129,39 +120,22 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             /**
-             * @brief Virtual method for polymorphic event dispatch
+             * @brief Process backend event (transitional stub for compatibility)
+             * @param event Backend-specific event
+             * @return true if handled
              *
-             * This virtual method enables layer managers and other systems to route events
-             * through base pointers. It accepts the backend's concrete event type and
-             * forwards it to the template process_event method.
+             * @details
+             * Transitional method for backward compatibility with code that hasn't
+             * migrated to ui_event yet. Always returns false - backends should use
+             * the new handle_event(ui_event, event_phase) API instead.
              *
-             * @param event The backend-specific event to process
-             * @return true if the event was handled
-             *
-             * @note This method exists to solve the polymorphic dispatch problem where
-             *       layer_manager needs to call process_event through a base pointer.
-             * @note Default implementation forwards to the template method.
+             * @deprecated Use handle_event(ui_event, event_phase) instead
              */
-            virtual bool process_event(const event_type& event) {
-                // Default: forward to template method
-                return process_event_impl(event);
+            virtual bool process_event([[maybe_unused]] const event_type& event) {
+                // Stub: old API no longer supported
+                // Layer manager and ui_handle should convert to ui_event first
+                return false;
             }
-
-            /**
-             * @brief Process any event type that has traits defined
-             *
-             * This template function accepts any event type that has event_traits
-             * specialized for it. It extracts the necessary data using traits and
-             * calls the appropriate virtual handler.
-             *
-             * @exception Any exception thrown by virtual handlers (handle_mouse_move, handle_key_down, etc.)
-             * @exception Any exception thrown by registered callbacks
-             * @note Exception safety: Basic guarantee - internal state (hover, pressed) may be modified before exception
-             * @note Returns false (no exception) if target is disabled
-             * @note Renamed from process_event to process_event_impl to avoid confusion with virtual method
-             */
-            template<typename E>
-            bool process_event_impl(const E& event);
 
             /**
              * @brief Handle event with phase information (capture/target/bubble)
@@ -209,101 +183,6 @@ namespace onyxui {
              * @see handle_resize For resize event handling
              */
             virtual bool handle_event(const ui_event& evt, event_phase phase);
-
-            // -----------------------------------------------------------------------
-            // Callback Setters
-            // -----------------------------------------------------------------------
-
-            using mouse_callback = std::function <bool(int x, int y)>;
-            using button_callback = std::function <bool(int x, int y, int button)>;
-            using wheel_callback = std::function <bool(float dx, float dy)>;
-            using key_callback = std::function <bool(int key, bool shift, bool ctrl, bool alt)>;
-            using text_callback = std::function <bool(std::string_view text)>;
-            using simple_callback = std::function <bool()>;
-
-            /**
-             * @brief Set callback for mouse enter event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_mouse_enter(simple_callback cb) { m_on_mouse_enter = std::move(cb); }
-
-            /**
-             * @brief Set callback for mouse leave event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_mouse_leave(simple_callback cb) { m_on_mouse_leave = std::move(cb); }
-
-            /**
-             * @brief Set callback for mouse move event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_mouse_move(mouse_callback cb) { m_on_mouse_move = std::move(cb); }
-
-            /**
-             * @brief Set callback for mouse button down event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_mouse_down(button_callback cb) { m_on_mouse_down = std::move(cb); }
-
-            /**
-             * @brief Set callback for mouse button up event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_mouse_up(button_callback cb) { m_on_mouse_up = std::move(cb); }
-
-            /**
-             * @brief Set callback for click event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_click(mouse_callback cb) { m_on_click = std::move(cb); }
-
-            /**
-             * @brief Set callback for mouse wheel event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_wheel(wheel_callback cb) { m_on_wheel = std::move(cb); }
-
-            /**
-             * @brief Set callback for key down event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_key_down(key_callback cb) { m_on_key_down = std::move(cb); }
-
-            /**
-             * @brief Set callback for key up event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_key_up(key_callback cb) { m_on_key_up = std::move(cb); }
-
-            /**
-             * @brief Set callback for text input event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_text_input(text_callback cb) { m_on_text_input = std::move(cb); }
-
-            /**
-             * @brief Set callback for focus gained event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_focus_gained(simple_callback cb) { m_on_focus_gained = std::move(cb); }
-
-            /**
-             * @brief Set callback for focus lost event
-             * @exception std::bad_alloc If callback allocation fails
-             * @note Exception safety: Strong guarantee - old callback retained if exception thrown
-             */
-            void set_on_focus_lost(simple_callback cb) { m_on_focus_lost = std::move(cb); }
 
             // -----------------------------------------------------------------------
             // State Queries
@@ -407,50 +286,46 @@ namespace onyxui {
             virtual bool handle_semantic_action(hotkey_action action);
 
             // -----------------------------------------------------------------------
-            // Virtual Handlers - Override these in derived classes
+            // Virtual Event Handlers - Override these in derived classes
             // -----------------------------------------------------------------------
         protected:
             event_target() = default;
 
             /**
-             * @brief Handle keyboard event (Phase 3 API)
+             * @brief Handle keyboard event
              * @param kbd Framework-level keyboard event
              * @return true if event was consumed
              *
              * @details
              * Override this method to handle keyboard events in derived classes.
-             * Default implementation forwards to old handle_key_down/up methods
-             * for backward compatibility.
+             * Default implementation handles Enter/Space as click if m_accept_keys_as_click is true.
              *
              * @example
              * @code
              * bool handle_keyboard(const keyboard_event& kbd) override {
-             *     if (kbd.type == keyboard_event::key_type::character) {
-             *         if (kbd.character == '\n' && !kbd.modifiers.ctrl) {
-             *             activate();
-             *             return true;
-             *         }
+             *     if (kbd.key == key::escape) {
+             *         close();
+             *         return true;
              *     }
-             *     return false;
+             *     return base::handle_keyboard(kbd);
              * }
              * @endcode
              */
             virtual bool handle_keyboard(const keyboard_event& kbd);
 
             /**
-             * @brief Handle mouse event (Phase 3 API)
+             * @brief Handle mouse event
              * @param mouse Framework-level mouse event
              * @return true if event was consumed
              *
              * @details
              * Override this method to handle mouse events in derived classes.
-             * Default implementation forwards to old handle_mouse_* methods
-             * for backward compatibility.
+             * Default implementation tracks hover/pressed state and generates click events.
              */
             virtual bool handle_mouse(const mouse_event& mouse);
 
             /**
-             * @brief Handle resize event (Phase 3 API)
+             * @brief Handle resize event
              * @param resize Framework-level resize event
              * @return true if event was consumed
              *
@@ -461,64 +336,18 @@ namespace onyxui {
             virtual bool handle_resize(const resize_event& resize);
 
             /**
-             * @brief Handle mouse enter event
+             * @brief Called when focus state changes
+             * @param gained True if focus gained, false if lost
+             *
+             * @details
+             * Override this method to respond to focus changes (e.g., emit signals, mark dirty).
+             * Default implementation does nothing.
+             *
+             * @note This is NOT an event - it's a state change notification from focus_manager.
              */
-            virtual bool handle_mouse_enter();
-
-            /**
-             * @brief Handle mouse leave event
-             */
-            virtual bool handle_mouse_leave();
-
-            /**
-             * @brief Handle mouse move event
-             */
-            virtual bool handle_mouse_move(int x, int y);
-
-            /**
-             * @brief Handle mouse button down event
-             */
-            virtual bool handle_mouse_down(int x, int y, int button);
-
-            /**
-             * @brief Handle mouse button up event
-             */
-            virtual bool handle_mouse_up(int x, int y, int button);
-
-            /**
-             * @brief Handle click event (generated from down+up)
-             */
-            virtual bool handle_click(int x, int y);
-
-            /**
-             * @brief Handle mouse wheel event
-             */
-            virtual bool handle_wheel(float delta_x, float delta_y);
-
-            /**
-             * @brief Handle key down event
-             */
-            virtual bool handle_key_down(int key, bool shift, bool ctrl, bool alt);
-
-            /**
-             * @brief Handle key up event
-             */
-            virtual bool handle_key_up(int key, bool shift, bool ctrl, bool alt);
-
-            /**
-             * @brief Handle text input event
-             */
-            virtual bool handle_text_input(std::string_view text);
-
-            /**
-             * @brief Handle focus gained event
-             */
-            virtual bool handle_focus_gained();
-
-            /**
-             * @brief Handle focus lost event
-             */
-            virtual bool handle_focus_lost();
+            virtual void on_focus_changed(bool gained) {
+                (void)gained;  // Base implementation does nothing
+            }
 
             // -----------------------------------------------------------------------
             // Hit Testing - Must be implemented by derived class
@@ -540,56 +369,13 @@ namespace onyxui {
                 m_accept_keys_as_click = accept;
             }
 
-            // -----------------------------------------------------------------------
-            // Internal Processing (State Management) - Protected for testing
-            // -----------------------------------------------------------------------
-
-            /**
-             * @brief Process mouse movement and track hover state
-             * @note Protected to allow test fixtures to simulate real event sequences
-             */
-            bool process_mouse_move(int x, int y);
-
-            /**
-             * @brief Process mouse button and track pressed state
-             * @note Protected to allow test fixtures to simulate real event sequences
-             */
-            bool process_mouse_button(int x, int y, int button, bool pressed);
-
         private:
             /**
              * @brief Manually set focus state
              *
              * This should typically be called by a focus manager, not directly.
              */
-            void set_focus(bool focus) {
-                if (focus && !m_has_focus) {
-                    handle_focus_gained();
-                } else if (!focus && m_has_focus) {
-                    handle_focus_lost();
-                }
-            }
-
-            /**
-             * @brief Process keyboard input
-             */
-            template<typename E>
-            requires KeyboardEvent<E>
-            bool process_key(const E& event);
-
-            // Event callbacks
-            simple_callback m_on_mouse_enter;
-            simple_callback m_on_mouse_leave;
-            mouse_callback m_on_mouse_move;
-            button_callback m_on_mouse_down;
-            button_callback m_on_mouse_up;
-            mouse_callback m_on_click;
-            wheel_callback m_on_wheel;
-            key_callback m_on_key_down;
-            key_callback m_on_key_up;
-            text_callback m_on_text_input;
-            simple_callback m_on_focus_gained;
-            simple_callback m_on_focus_lost;
+            void set_focus(bool focus);
 
             // State tracking
             bool m_is_hovered = false;
@@ -607,132 +393,15 @@ namespace onyxui {
     // ========================================================================================
 
     template<UIBackend Backend>
-    template<typename E>
-    bool event_target<Backend>::process_event_impl(const E& event) {
-        if (!m_enabled) {
-            return false;
+    void event_target<Backend>::set_focus(bool focus) {
+        if (focus && !m_has_focus) {
+            m_has_focus = true;
+            on_focus_changed(true);  // Notify derived class
+        } else if (!focus && m_has_focus) {
+            m_has_focus = false;
+            m_is_pressed = false;  // Clear pressed state when losing focus
+            on_focus_changed(false);  // Notify derived class
         }
-
-        // Handle mouse button events FIRST (more specific than position events)
-        // Note: Remove 'else' to allow fall-through for events that satisfy both concepts
-        if constexpr (MouseButtonEvent<E>) {
-            int const button = event_traits<E>::mouse_button(event);
-            bool const is_press = event_traits<E>::is_button_press(event);
-
-            // Runtime check: only treat as button event if button != 0 or it's a press
-            // This handles backends where the same type is used for button and move events
-            if (button != 0 || is_press) {
-                int const x = event_traits<E>::mouse_x(event);
-                int const y = event_traits<E>::mouse_y(event);
-                return process_mouse_button(x, y, button, is_press);
-            }
-            // Fall through to position event handling if not a real button event
-        }
-        // Handle mouse position events (motion)
-        if constexpr (MousePositionEvent <E>) {
-            int const x = event_traits <E>::mouse_x(event);
-            int const y = event_traits <E>::mouse_y(event);
-            return process_mouse_move(x, y);
-        }
-        // Handle mouse wheel events
-        else if constexpr (MouseWheelEvent <E>) {
-            float dx = event_traits <E>::wheel_delta_x(event);
-            float dy = event_traits <E>::wheel_delta_y(event);
-            return handle_wheel(dx, dy);
-        }
-        // Handle keyboard events
-        else if constexpr (KeyboardEvent <E>) {
-            return process_key(event);
-        }
-        // Handle text input events
-        else if constexpr (TextInputEvent <E>) {
-            auto text = event_traits <E>::text(event);
-            return handle_text_input(text);
-        }
-
-        return false;
-    }
-
-    // -------------------------------------------------------------------------------
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_mouse_enter() {
-        m_is_hovered = true;  // Sync hover state when input_manager notifies enter
-        if (m_on_mouse_enter) return m_on_mouse_enter();
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_mouse_leave() {
-        m_is_hovered = false;  // Sync hover state when input_manager notifies leave
-        if (m_on_mouse_leave) return m_on_mouse_leave();
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_mouse_move(int x, int y) {
-        if (m_on_mouse_move) return m_on_mouse_move(x, y);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_mouse_down(int x, int y, int button) {
-        if (m_on_mouse_down) return m_on_mouse_down(x, y, button);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_mouse_up(int x, int y, int button) {
-        if (m_on_mouse_up) return m_on_mouse_up(x, y, button);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_click(int x, int y) {
-        if (m_on_click) return m_on_click(x, y);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_wheel(float delta_x, float delta_y) {
-        if (m_on_wheel) return m_on_wheel(delta_x, delta_y);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_key_down(int key, bool shift, bool ctrl, bool alt) {
-        if (m_on_key_down) return m_on_key_down(key, shift, ctrl, alt);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_key_up(int key, bool shift, bool ctrl, bool alt) {
-        if (m_on_key_up) return m_on_key_up(key, shift, ctrl, alt);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_text_input(std::string_view text) {
-        if (m_on_text_input) return m_on_text_input(text);
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_focus_gained() {
-        m_has_focus = true;
-        if (m_on_focus_gained) {
-            return m_on_focus_gained();
-        }
-        return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::handle_focus_lost() {
-        m_has_focus = false;
-        m_is_pressed = false; // Clear pressed state when losing focus
-        if (m_on_focus_lost) {
-            return m_on_focus_lost();
-        }
-        return false;
     }
 
     template<UIBackend Backend>
@@ -740,94 +409,6 @@ namespace onyxui {
         // Base implementation does nothing
         // Derived classes override to handle actions they understand
         return false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::process_mouse_move(int x, int y) {
-        bool const in_bounds = is_inside(x, y);
-        bool const was_hovered = m_is_hovered;
-        m_is_hovered = in_bounds;
-
-        // Generate enter/leave events
-        if (m_is_hovered && !was_hovered) {
-            return handle_mouse_enter();
-        } else if (!m_is_hovered && was_hovered) {
-            return handle_mouse_leave();
-        }
-
-        return in_bounds ? handle_mouse_move(x, y) : false;
-    }
-
-    template<UIBackend Backend>
-    bool event_target<Backend>::process_mouse_button(int x, int y, int button, bool pressed) {
-        if (pressed) {
-            if (is_inside(x, y)) {
-                m_is_pressed = true;
-                m_press_started_inside = true;
-                return handle_mouse_down(x, y, button);
-            }
-            m_press_started_inside = false;
-        } else {
-            bool const was_pressed = m_is_pressed;
-            m_is_pressed = false;
-
-            bool const in_bounds = is_inside(x, y);
-            bool handled = false;
-
-            // Call mouse up if we're inside or were pressed
-            if (in_bounds || was_pressed) {
-                handled = handle_mouse_up(x, y, button);
-            }
-
-            // Generate click if pressed and released inside
-            if (was_pressed && m_press_started_inside && in_bounds) {
-                handled |= handle_click(x, y);
-            }
-
-            m_press_started_inside = false;
-            return handled;
-        }
-
-        return false;
-    }
-
-    template<UIBackend Backend>
-    template<typename E>
-    requires KeyboardEvent<E>
-    bool event_target<Backend>::process_key(const E& event) {
-        if (!m_has_focus) {
-            return false;
-        }
-
-        // Extract basic key information
-        int key = event_traits<E>::key_code(event);
-        bool pressed = event_traits<E>::is_key_press(event);
-        bool repeat = event_traits<E>::is_repeat(event);
-
-        // Extract modifiers if available
-        bool shift = false;
-        bool ctrl = false;
-        bool alt = false;
-        if constexpr (ModifierState<E>) {
-            shift = event_traits<E>::shift_pressed(event);
-            ctrl = event_traits<E>::ctrl_pressed(event);
-            alt = event_traits<E>::alt_pressed(event);
-        }
-
-        if (pressed) {
-            // Handle Enter/Space as click for focused elements
-            if (m_accept_keys_as_click && !repeat) {
-                // Use event traits to identify keys instead of hardcoded values
-                if (event_traits<E>::is_enter_key(event) ||
-                    event_traits<E>::is_space_key(event)) {
-                    // Generate a click at the center (derived class can override)
-                    return handle_click(0, 0);
-                }
-            }
-            return handle_key_down(key, shift, ctrl, alt);
-        } else {
-            return handle_key_up(key, shift, ctrl, alt);
-        }
     }
 
     // ===============================================================================
@@ -862,92 +443,60 @@ namespace onyxui {
 
     template<UIBackend Backend>
     bool event_target<Backend>::handle_keyboard(const keyboard_event& kbd) {
-        // For backward compatibility, forward to old handle_key_down/up API
-        // Derived classes can override this method for cleaner code
-
-        // Extract modifier flags for old API
-        bool const shift = (kbd.modifiers & key_modifier::shift) != key_modifier::none;
-        bool const ctrl = (kbd.modifiers & key_modifier::ctrl) != key_modifier::none;
-        bool const alt = (kbd.modifiers & key_modifier::alt) != key_modifier::none;
-
-        // Dispatch based on key type
-        if (is_function_key(kbd.key)) {
-            // F-keys: Convert to number for old API
-            int f_num = function_key_to_number(kbd.key);
-            return handle_key_down(f_num, shift, ctrl, alt);
-        } else if (is_arrow_key(kbd.key) || is_navigation_key(kbd.key)) {
-            // Special keys (arrows, navigation): Use int cast for old API
-            return handle_key_down(static_cast<int>(kbd.key), shift, ctrl, alt);
-        } else if (is_ascii(kbd.key)) {
-            // ASCII character (includes Enter, Tab, Escape)
-            char ch = static_cast<char>(kbd.key);
-            return handle_key_down(ch, shift, ctrl, alt);
+        if (!m_has_focus) {
+            return false;
         }
 
-        return false;
+        // Handle Enter/Space as click for focused elements (e.g., buttons)
+        if (m_accept_keys_as_click) {
+            if (kbd.key == key_code::enter || kbd.key == key_code::space) {
+                // Trigger pressed state for visual feedback
+                m_is_pressed = true;
+                // Note: Derived classes should override to handle the actual click
+                // Base class just returns false to allow override
+            }
+        }
+
+        return false;  // Base class doesn't handle any keys
     }
 
     template<UIBackend Backend>
     bool event_target<Backend>::handle_mouse(const mouse_event& mouse) {
-        // For backward compatibility, forward to old handle_mouse_* API
-        // IMPORTANT: Also includes click generation logic from process_event_impl
-
         int const x = mouse.x;
         int const y = mouse.y;
         bool const in_bounds = is_inside(x, y);
 
+        // Track hover state for visual feedback
+        m_is_hovered = in_bounds;
+
         // Dispatch based on action type
         switch (mouse.act) {
-            case mouse_event::action::press: {
-                // Map button enum to int for old API
-                int button_code = 0;
-                if (mouse.btn == mouse_event::button::left) button_code = 1;
-                else if (mouse.btn == mouse_event::button::right) button_code = 2;
-                else if (mouse.btn == mouse_event::button::middle) button_code = 3;
-
+            case mouse_event::action::press:
                 // Track press state for click generation
-                m_is_pressed = true;
+                m_is_pressed = in_bounds;
                 m_press_started_inside = in_bounds;
-
-                if (in_bounds) {
-                    return handle_mouse_down(x, y, button_code);
-                }
-                return false;
-            }
+                return in_bounds;  // Consume if inside
 
             case mouse_event::action::release: {
-                int button_code = 0;
-                if (mouse.btn == mouse_event::button::left) button_code = 1;
-                else if (mouse.btn == mouse_event::button::right) button_code = 2;
-                else if (mouse.btn == mouse_event::button::middle) button_code = 3;
-
                 bool const was_pressed = m_is_pressed;
                 m_is_pressed = false;
 
-                bool handled = false;
-
-                // Call mouse up if we're inside or were pressed
-                if (in_bounds || was_pressed) {
-                    handled = handle_mouse_up(x, y, button_code);
-                }
-
-                // Generate click if pressed and released inside (CRITICAL FOR BUTTONS!)
-                if (was_pressed && m_press_started_inside && in_bounds) {
-                    handled |= handle_click(x, y);
-                }
+                // Generate click if pressed and released inside (CRITICAL!)
+                // Derived classes should override to handle the actual click
+                bool handled = (was_pressed && m_press_started_inside && in_bounds);
 
                 m_press_started_inside = false;
                 return handled;
             }
 
             case mouse_event::action::move:
-                return handle_mouse_move(x, y);
+                // Generate enter/leave events through hover state changes
+                // Derived classes can override to handle enter/leave/move
+                return false;  // Base class doesn't consume move events
 
             case mouse_event::action::wheel_up:
-                return handle_wheel(0.0f, 1.0f);  // Positive = up
-
             case mouse_event::action::wheel_down:
-                return handle_wheel(0.0f, -1.0f);  // Negative = down
+                return false;  // Base class doesn't handle wheel
         }
 
         return false;
