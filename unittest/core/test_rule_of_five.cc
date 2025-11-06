@@ -306,7 +306,7 @@ TEST_SUITE("RuleOfFive") {
         source.set_tab_index(5);
 
         // Simulate mouse interaction to set pressed state
-        mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+        mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
         source.handle_event(ui_event{press}, event_phase::target);
         CHECK(source.is_pressed());
 
@@ -322,7 +322,7 @@ TEST_SUITE("RuleOfFive") {
 
         SUBCASE("destination can handle events") {
             // Complete the click
-            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release};
+            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             dest.handle_event(ui_event{release}, event_phase::target);
             CHECK(dest.click_count == 1);
         }
@@ -373,10 +373,10 @@ TEST_SUITE("RuleOfFive") {
             // Re-enable to allow event handling
             dest.set_enabled(true);
 
-            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
 
-            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release};
+            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             dest.handle_event(ui_event{release}, event_phase::target);
 
             CHECK(dest.click_count == 1);
@@ -548,7 +548,9 @@ TEST_SUITE("RuleOfFive") {
             CHECK(dest.children()[0].get() == child_ptr);
 
             // Verify element can handle events
-            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press};
+            // Need to set bounds first for hit testing with unified event API
+            dest.arrange({0, 0, 100, 100});
+            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
             CHECK(dest.is_pressed());
         }

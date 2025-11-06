@@ -55,7 +55,7 @@ public:
     }
 
     // Override mouse handler
-    bool handle_mouse(const mouse_event& mouse) override {
+    bool handle_mouse(const mouse_event& /*mouse*/) override {
         process_called = true;
         last_event_received = true;
         return event_handled;  // Return configured value

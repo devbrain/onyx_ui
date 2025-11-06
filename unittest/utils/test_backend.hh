@@ -367,9 +367,16 @@ namespace onyxui {
          * Used for testing event routing through the unified event system.
          */
         [[nodiscard]] static std::optional<onyxui::ui_event> create_event([[maybe_unused]] const test_event& native) noexcept {
-            // Test backend events are minimal - just return empty keyboard event for testing
-            // Real tests will construct ui_events directly instead of using test_event
-            return std::nullopt;  // Test backend doesn't convert from test_event
+            // Test backend events are minimal - for testing, convert to a simple mouse event
+            // This allows layer_manager tests to work with the unified event API
+            mouse_event evt{
+                .x = 10,
+                .y = 10,
+                .btn = mouse_event::button::left,
+                .act = mouse_event::action::press,
+                .modifiers = {}
+            };
+            return ui_event{evt};
         }
     };
 

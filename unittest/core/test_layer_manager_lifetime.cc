@@ -45,7 +45,7 @@ public:
 
     void set_layer_id(layer_id id) { m_layer_id = id; }
 
-    bool process_event(const TestEvent& /*event*/) override {
+    bool handle_mouse(const mouse_event& /*mouse*/) override {
         // Remove self during event processing
         if (m_manager && m_layer_id.is_valid()) {
             m_manager->remove_layer(m_layer_id);
@@ -69,7 +69,7 @@ public:
         arrange(TestRect{0, 0, 100, 50});
     }
 
-    bool process_event(const TestEvent& /*event*/) override {
+    bool handle_mouse(const mouse_event& /*mouse*/) override {
         ++event_count;
         return false;  // Don't handle, let it propagate
     }

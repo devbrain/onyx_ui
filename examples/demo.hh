@@ -47,7 +47,7 @@ public:
         // Find Norton Blue theme index (default theme, registered first by conio_backend)
         auto norton_it = std::find(m_theme_names.begin(), m_theme_names.end(), "NU8");
         if (norton_it != m_theme_names.end()) {
-            m_current_theme_index = std::distance(m_theme_names.begin(), norton_it);
+            m_current_theme_index = static_cast<std::size_t>(std::distance(m_theme_names.begin(), norton_it));
         } else {
             m_current_theme_index = 0;  // Fallback to first theme if Norton Blue not found
         }

@@ -72,6 +72,10 @@
 #include <algorithm>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
+#include <onyxui/events/ui_event.hh>      // For ui_event, mouse_event, keyboard_event
+#include <onyxui/events/event_phase.hh>   // For event_phase
+#include <onyxui/events/hit_test_path.hh> // For hit_test_path
+#include <onyxui/events/event_router.hh>  // For route_event()
 #include <onyxui/theming/theme.hh>
 
 namespace onyxui {
@@ -505,6 +509,12 @@ namespace onyxui {
             // Phase 1.2: Clean up expired layers first
             cleanup_expired_layers();
 
+            // Convert native event to ui_event using unified event API
+            std::optional<ui_event> ui_evt = Backend::create_event(event);
+            if (!ui_evt) {
+                return false;  // Unknown/unsupported event type
+            }
+
             // Check if modal is active
             std::optional<int> modal_z_index;
             for (const auto& layer : m_layers) {
@@ -563,27 +573,30 @@ namespace onyxui {
                     continue;
                 }
 
-                // Route event to layer - Phase 1.2: Use safe access
+                // Route event to layer using unified event API
                 bool handled = false;
                 it->with_root([&](element_type* root_ptr) {
-                    // For mouse events, use hit-testing to find target child
-                    if constexpr (requires { event_traits<event_type>::mouse_x(event); }) {
-                        int const x = event_traits<event_type>::mouse_x(event);
-                        int const y = event_traits<event_type>::mouse_y(event);
+                    // For mouse events, use hit-testing with three-phase routing
+                    if (auto* mouse = std::get_if<mouse_event>(&ui_evt.value())) {
+                        int const x = mouse->x;
+                        int const y = mouse->y;
 
-                        // Find the deepest child element at this position
-                        element_type* target = root_ptr->hit_test(x, y);
+                        // Build hit test path from root to target
+                        hit_test_path<Backend> path;
+                        element_type* target = root_ptr->hit_test(x, y, path);
 
                         if (target) {
-                            // Route event to the target element directly
-                            handled = target->process_event(event);
-                        } else {
-                            // No target - try root directly as fallback
-                            handled = root_ptr->process_event(event);
+                            if (!path.empty()) {
+                                // Route event through three phases (capture/target/bubble)
+                                handled = ::onyxui::route_event(ui_evt.value(), path);
+                            } else {
+                                // Path empty (simple widget tree) - deliver directly to target
+                                handled = target->handle_event(ui_evt.value(), event_phase::target);
+                            }
                         }
                     } else {
-                        // Non-mouse events (keyboard, etc) - use process_event on root
-                        handled = root_ptr->process_event(event);
+                        // Non-mouse events (keyboard, resize) - deliver to root directly
+                        handled = root_ptr->handle_event(ui_evt.value(), event_phase::target);
                     }
                 });
 

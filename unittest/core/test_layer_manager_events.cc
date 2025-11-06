@@ -39,7 +39,7 @@ public:
         arrange(TestRect{0, 0, 100, 50});
     }
 
-    bool process_event(const TestEvent& /*event*/) override {
+    bool handle_mouse(const mouse_event& /*mouse*/) override {
         ++events_received;
         last_event_handled = should_handle;
         return should_handle;
