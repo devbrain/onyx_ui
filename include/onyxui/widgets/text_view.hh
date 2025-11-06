@@ -355,6 +355,46 @@ namespace onyxui {
             return style;
         }
 
+    protected:
+        /**
+         * @brief Override measure to ensure minimum size for always-visible scrollbars
+         *
+         * @details
+         * text_view uses classic_scroll_view with always-visible scrollbars.
+         * When has_border() is true, we need: border (2px) + scroll_view min (8px) = 10px minimum.
+         * This override ensures text_view requests adequate space even when constrained.
+         */
+        size_type do_measure(int available_width, int available_height) override {
+            // Let base class measure (handles border + child)
+            auto measured = base::do_measure(available_width, available_height);
+
+            // CRITICAL FIX: Enforce minimum size for always-visible scrollbars
+            // Get scrollbar dimensions from theme
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            int const min_scrollbar_length = theme ? theme->scrollbar.min_render_size : ui_constants::DEFAULT_SCROLLBAR_MIN_RENDER_SIZE;
+            int const scrollbar_thickness = theme ? theme->scrollbar.width : ui_constants::DEFAULT_SCROLLBAR_THICKNESS;
+
+            const int border_size = this->has_border() ? 2 : 0;
+
+            // Minimum height: border + minimum scrollbar length (horizontal scrollbar height)
+            const int min_height = border_size + min_scrollbar_length;
+
+            // Minimum width: border + some content + vertical scrollbar width
+            // Need at least min_scrollbar_length for content + scrollbar_thickness for vertical scrollbar
+            const int min_width = border_size + min_scrollbar_length + scrollbar_thickness;
+
+            if (measured.h < min_height) {
+                measured.h = min_height;
+            }
+
+            if (measured.w < min_width) {
+                measured.w = min_width;
+            }
+
+            return measured;
+        }
+
     private:
         /**
          * @brief Create scroll view with content

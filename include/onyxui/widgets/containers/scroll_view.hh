@@ -85,6 +85,9 @@ namespace onyxui {
             m_vscrollbar_ptr = vscrollbar.get();
             m_hscrollbar_ptr = hscrollbar.get();
 
+            // Scrollbars handle their own minimum sizing via theme->scrollbar.min_render_size
+            // in their do_measure() implementation - no need for external constraints
+
             // Set default vertical layout for scrollable content
             // This ensures children are arranged vertically by default
             m_content_ptr->set_layout_strategy(std::make_unique<linear_layout<Backend>>(direction::vertical));
@@ -295,14 +298,44 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Override measure to properly size based on grid child
+         * @brief Override measure to ensure minimum size for always-visible scrollbars
+         *
+         * @details
+         * When scrollbar_visibility is "always", scrollbars need minimum 8 pixels to render
+         * without corruption. This method ensures scroll_view requests adequate space.
          */
         size_type do_measure(int available_width, int available_height) override {
             // Measure the grid (our only child)
+            size_type measured_size;
             if (m_grid_ptr) {
-                return m_grid_ptr->measure(available_width, available_height);
+                measured_size = m_grid_ptr->measure(available_width, available_height);
+            } else {
+                measured_size = base::do_measure(available_width, available_height);
             }
-            return base::do_measure(available_width, available_height);
+
+            // CRITICAL FIX: Enforce minimum size for always-visible scrollbars
+            // Get minimum size from theme to prevent rendering corruption
+            auto policy = m_content_ptr->get_scrollbar_visibility_policy();
+
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            int const min_size = theme ? theme->scrollbar.min_render_size : ui_constants::DEFAULT_SCROLLBAR_MIN_RENDER_SIZE;
+
+            // Add minimum height for horizontal scrollbar if always visible
+            if (policy.horizontal == scrollbar_visibility::always) {
+                if (measured_size.h < min_size) {
+                    measured_size.h = min_size;
+                }
+            }
+
+            // Add minimum width for vertical scrollbar if always visible
+            if (policy.vertical == scrollbar_visibility::always) {
+                if (measured_size.w < min_size) {
+                    measured_size.w = min_size;
+                }
+            }
+
+            return measured_size;
         }
 
         /**

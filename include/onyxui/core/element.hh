@@ -484,6 +484,10 @@ namespace onyxui {
                     }
 
                     m_visible = visible;
+
+                    // CRITICAL FIX: Invalidate both measure AND arrange
+                    // Visibility change affects measured size (hidden widgets should measure to 0)
+                    invalidate_measure();  // Triggers full layout recalculation
                     invalidate_arrange();
 
                     // Mark dirty after becoming visible

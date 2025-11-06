@@ -51,6 +51,9 @@ struct ui_context_fixture {
 
         theme.scrollbar.width = 16;              // Default scrollbar width
         theme.scrollbar.min_thumb_size = 20;     // Minimum thumb size
+        theme.scrollbar.arrow_size = 1;          // Arrow button size (1px for text UI)
+        theme.scrollbar.min_render_size = 8;     // Minimum size to prevent corruption
+        theme.scrollbar.line_increment = 20;     // Scroll amount per arrow click
         theme.scrollbar.track_normal.box_style = scrollbar_box;
         theme.scrollbar.thumb_normal.box_style = scrollbar_box;
         theme.scrollbar.thumb_hover.box_style = scrollbar_box;

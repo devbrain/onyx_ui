@@ -219,6 +219,60 @@ namespace onyxui::conio {
             theme.menu_item.submenu_icon = conio_renderer::icon_style::folder;
 
             // ====================================================================
+            // Scrollbar Configuration (Text UI defaults)
+            // ====================================================================
+            // Configure scrollbar for character-based text UI (not pixel-based GUI)
+            theme.scrollbar.width = 1;              // 1 character width for text UI
+            theme.scrollbar.min_thumb_size = 1;     // 1 character minimum thumb
+            theme.scrollbar.arrow_size = 1;         // 1 character arrow buttons
+            theme.scrollbar.min_render_size = 8;    // Minimum 8 chars to render with borders
+            theme.scrollbar.line_increment = 1;     // Scroll 1 line at a time
+
+            // CRITICAL: Configure scrollbar visual style for 1-character wide display
+            // A 1-char wide scrollbar cannot show borders (needs 3 chars: left|content|right)
+            // Use solid fill with contrasting colors to make scrollbar visible
+
+            // Define scrollbar colors (will be overridden by individual themes)
+            color dark_gray{85, 85, 85};
+            color light_gray{170, 170, 170};
+            color window_bg{0, 0, 0};
+
+            // Track (background bar) - dark gray on window background
+            theme.scrollbar.track_normal.foreground = dark_gray;
+            theme.scrollbar.track_normal.background = window_bg;
+            theme.scrollbar.track_normal.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            // Thumb (draggable indicator) - light gray, changes on interaction
+            theme.scrollbar.thumb_normal.foreground = light_gray;
+            theme.scrollbar.thumb_normal.background = window_bg;
+            theme.scrollbar.thumb_normal.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            theme.scrollbar.thumb_hover.foreground = color{255, 255, 255};  // White when hovering
+            theme.scrollbar.thumb_hover.background = window_bg;
+            theme.scrollbar.thumb_hover.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            theme.scrollbar.thumb_pressed.foreground = color{255, 255, 255};  // White when pressed
+            theme.scrollbar.thumb_pressed.background = window_bg;
+            theme.scrollbar.thumb_pressed.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            theme.scrollbar.thumb_disabled.foreground = dark_gray;
+            theme.scrollbar.thumb_disabled.background = window_bg;
+            theme.scrollbar.thumb_disabled.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            // Arrow buttons - light gray, change on interaction
+            theme.scrollbar.arrow_normal.foreground = light_gray;
+            theme.scrollbar.arrow_normal.background = window_bg;
+            theme.scrollbar.arrow_normal.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            theme.scrollbar.arrow_hover.foreground = color{255, 255, 255};  // White when hovering
+            theme.scrollbar.arrow_hover.background = window_bg;
+            theme.scrollbar.arrow_hover.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            theme.scrollbar.arrow_pressed.foreground = color{255, 255, 255};  // White when pressed
+            theme.scrollbar.arrow_pressed.background = window_bg;
+            theme.scrollbar.arrow_pressed.box_style = conio_renderer::box_style{conio_renderer::border_style::none, true};
+
+            // ====================================================================
             // Menu Bar Item Manual Configuration
             // ====================================================================
             // Menu bar items don't have a builder API yet, configure manually

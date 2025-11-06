@@ -49,14 +49,17 @@ namespace onyxui::ui_constants {
     // Scrollbar Defaults
     // =========================================================================
 
-    /// Default scrollbar width/height in pixels
-    inline constexpr int DEFAULT_SCROLLBAR_THICKNESS = 16;
+    /// Default scrollbar width/height in characters/pixels
+    inline constexpr int DEFAULT_SCROLLBAR_THICKNESS = 1;
 
-    /// Default size of scrollbar arrow buttons
-    inline constexpr int DEFAULT_SCROLLBAR_ARROW_SIZE = 16;
+    /// Default size of scrollbar arrow buttons (1 character for text UI)
+    inline constexpr int DEFAULT_SCROLLBAR_ARROW_SIZE = 1;
 
     /// Minimum thumb size to ensure usability
-    inline constexpr int DEFAULT_SCROLLBAR_MIN_THUMB_SIZE = 20;
+    inline constexpr int DEFAULT_SCROLLBAR_MIN_THUMB_SIZE = 3;
+
+    /// Minimum size to render scrollbar without corruption
+    inline constexpr int DEFAULT_SCROLLBAR_MIN_RENDER_SIZE = 8;
 
     // =========================================================================
     // Layout Spacing Defaults

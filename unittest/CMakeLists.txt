@@ -78,6 +78,7 @@ add_executable(ui_unittest
         widgets/test_scrollbar_styles.cc
         widgets/test_scrollbar_arrows.cc
         widgets/test_scrollbar_theming.cc
+        widgets/test_scrollbar_visibility.cc
         widgets/test_scroll_controller.cc
         widgets/test_scroll_view.cc
         widgets/test_scroll_view_presets.cc

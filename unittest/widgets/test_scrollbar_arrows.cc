@@ -54,8 +54,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
     });
 
     // Click at top (decrement arrow position)
-    // For classic style: arrow is at top (y=0 to y=16)
-    bool handled = sb.handle_click(8, 8);
+    // For classic style with arrow_size=1: arrow is at top (y=0 to y=1)
+    bool handled = sb.handle_click(8, 0);
 
     SUBCASE("Signal was emitted") {
         CHECK(signal_emitted);
@@ -94,8 +94,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: I
     });
 
     // Click at bottom (increment arrow position)
-    // For classic style: arrow is at bottom (y=184 to y=200)
-    bool handled = sb.handle_click(8, 192);
+    // For 1px arrow: arrow is at bottom (y=199 for 200px scrollbar)
+    bool handled = sb.handle_click(8, 199);
 
     SUBCASE("Signal was emitted") {
         CHECK(signal_emitted);
@@ -171,8 +171,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
     });
 
     // Click at left (decrement arrow position)
-    // For classic style: arrow is at left (x=0 to x=16)
-    bool handled = sb.handle_click(8, 8);
+    // For 1px arrow: arrow is at left (x=0)
+    bool handled = sb.handle_click(0, 8);
 
     CHECK(signal_emitted);
     CHECK(emitted_value < 0);  // Negative = scroll left
@@ -203,8 +203,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
     });
 
     // Click at right (increment arrow position)
-    // For classic style: arrow is at right (x=184 to x=200)
-    bool handled = sb.handle_click(192, 8);
+    // For 1px arrow: arrow is at right (x=199 for 200px scrollbar)
+    bool handled = sb.handle_click(199, 8);
 
     CHECK(signal_emitted);
     CHECK(emitted_value > 0);  // Positive = scroll right
@@ -265,9 +265,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: M
     });
 
     // Click decrement arrow multiple times
-    sb.handle_click(8, 8);
-    sb.handle_click(8, 8);
-    sb.handle_click(8, 8);
+    sb.handle_click(8, 0);
+    sb.handle_click(8, 0);
+    sb.handle_click(8, 0);
 
     CHECK(emit_count == 3);
 }
@@ -294,11 +294,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
     });
 
     // Click decrement arrow
-    sb.handle_click(8, 8);
+    sb.handle_click(8, 0);
     int decrement_value = last_emitted;
 
     // Click increment arrow
-    sb.handle_click(8, 192);
+    sb.handle_click(8, 199);
     int increment_value = last_emitted;
 
     // Values should have opposite signs

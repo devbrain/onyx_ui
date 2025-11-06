@@ -306,7 +306,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
             }
         }
 
-        auto canvas = render_to_canvas(view, 40, 10);
+        // Use larger canvas to accommodate always-visible scrollbars (16px each)
+        // plus content (3 lines) plus borders
+        auto canvas = render_to_canvas(view, 60, 30);
 
         // Visual assertions: all lines visible
         // Build full canvas content
@@ -314,6 +316,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
         for (int row = 0; row < canvas->height(); row++) {
             content += canvas->get_row(row);
         }
+
         CHECK(content.find("Line 1") != std::string::npos);
         CHECK(content.find("Line 2") != std::string::npos);
         CHECK(content.find("Line 3") != std::string::npos);
@@ -604,13 +607,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Log-like
         view.append_line("[WARN] Cache miss for key 'user_123'");
         view.append_line("[ERROR] Failed to connect to database");
 
-        auto canvas = render_to_canvas(view, 60, 10);
+        // Use larger canvas to accommodate always-visible scrollbars (16px each)
+        // plus content (5 log lines) plus borders
+        auto canvas = render_to_canvas(view, 80, 30);
 
         // Visual assertion: log entries should be visible
         std::string content;
         for (int row = 0; row < canvas->height(); row++) {
             content += canvas->get_row(row);
         }
+
         CHECK(content.find("[INFO]") != std::string::npos);
         CHECK(content.find("[ERROR]") != std::string::npos);
 

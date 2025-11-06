@@ -136,6 +136,35 @@ namespace onyxui {
          */
         signal<int> scroll_requested;
 
+        /**
+         * @brief Override style resolution to use scrollbar theme colors
+         * @param theme Global theme pointer
+         * @param parent_style Parent's resolved style
+         * @return Resolved style with scrollbar colors from theme
+         *
+         * @details
+         * Scrollbars use colors from theme->scrollbar.track_normal instead of
+         * inheriting CSS colors from parent. This allows the scrollbar visual
+         * appearance to be controlled by the theme's scrollbar configuration.
+         */
+        [[nodiscard]] resolved_style<Backend> resolve_style(
+            const ui_theme<Backend>* theme,
+            const resolved_style<Backend>& parent_style
+        ) const override {
+            // Get base resolved style from parent
+            auto style = base::resolve_style(theme, parent_style);
+
+            // Override with scrollbar-specific colors from theme
+            if (theme) {
+                // Use thumb colors so the draggable thumb is visible
+                // Track will be darker (drawn explicitly), thumb will be lighter (uses widget style)
+                style.foreground_color = theme->scrollbar.thumb_normal.foreground;  // Light gray
+                style.background_color = theme->scrollbar.thumb_normal.background;  // Window bg
+            }
+
+            return style;
+        }
+
     protected:
         /**
          * @brief Measure scrollbar (fixed width/height based on orientation)
@@ -144,25 +173,34 @@ namespace onyxui {
          * @return Desired size
          */
         size_type do_measure(int available_width, int available_height) override {
-            (void)available_width;
-            (void)available_height;
+            // CRITICAL FIX: If not visible, return zero size so grid collapses our row/column
+            if (!this->is_visible()) {
+                return size_type{0, 0};
+            }
 
             // Scrollbar has fixed thickness from theme
             // Length is content-based (parent determines)
 
-            // Get theme to determine scrollbar width
+            // Get theme to determine scrollbar dimensions
             auto const* themes = ui_services<Backend>::themes();
-            int const thickness = (themes && themes->get_current_theme())
-                ? themes->get_current_theme()->scrollbar.width
-                : ui_constants::DEFAULT_SCROLLBAR_THICKNESS;
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
 
+            int thickness = theme ? theme->scrollbar.width : ui_constants::DEFAULT_SCROLLBAR_THICKNESS;
+            int min_size = theme ? theme->scrollbar.min_render_size : ui_constants::DEFAULT_SCROLLBAR_MIN_RENDER_SIZE;
+
+            // IMPORTANT: min_render_size is the minimum LENGTH (height for vertical, width for horizontal)
+            // NOT the minimum thickness! Do NOT override thickness with min_size.
+
+            size_type result;
             if (m_orientation == orientation::horizontal) {
-                // Horizontal: flexible width, fixed height
-                return size_type{100, thickness};  // Width is placeholder
+                // Horizontal: request full width (at least min_render_size), fixed thickness
+                result = size_type{std::max(available_width, min_size), thickness};
             } else {
-                // Vertical: fixed width, flexible height
-                return size_type{thickness, 100};  // Height is placeholder
+                // Vertical: fixed thickness, request full height (at least min_render_size)
+                result = size_type{thickness, std::max(available_height, min_size)};
             }
+
+            return result;
         }
 
         /**
@@ -363,11 +401,13 @@ namespace onyxui {
             int const width = rect_utils::get_width(bounds);
             int const height = rect_utils::get_height(bounds);
 
-            constexpr int MIN_RENDER_SIZE = 8;  // Minimum pixels: 2px borders + 6px content
-            if (m_orientation == orientation::vertical && height < MIN_RENDER_SIZE) {
+            // Get minimum render size from theme to prevent visual corruption
+            int const min_size = theme->scrollbar.min_render_size;
+
+            if (m_orientation == orientation::vertical && height < min_size) {
                 return;  // Too small to render vertically without corruption
             }
-            if (m_orientation == orientation::horizontal && width < MIN_RENDER_SIZE) {
+            if (m_orientation == orientation::horizontal && width < min_size) {
                 return;  // Too small to render horizontally without corruption
             }
 
@@ -377,13 +417,36 @@ namespace onyxui {
             auto const layout = calculate_layout(style);
 
             // CRITICAL FIX: Convert layout from relative to absolute coordinates
-            // calculate_layout() returns rects relative to this->bounds()
-            // but ctx.draw_rect() expects absolute screen coordinates
+            // calculate_layout() returns rects with (x,y) offsets relative to scrollbar origin
+            // We need to ADD these offsets to ctx.position() to get absolute screen coordinates
             rect_type abs_track, abs_thumb, abs_arrow_dec, abs_arrow_inc;
-            rect_utils::make_absolute_bounds(abs_track, ctx.position(), layout.track);
-            rect_utils::make_absolute_bounds(abs_thumb, ctx.position(), layout.thumb);
-            rect_utils::make_absolute_bounds(abs_arrow_dec, ctx.position(), layout.arrow_decrement);
-            rect_utils::make_absolute_bounds(abs_arrow_inc, ctx.position(), layout.arrow_increment);
+
+            int const base_x = point_utils::get_x(ctx.position());
+            int const base_y = point_utils::get_y(ctx.position());
+
+            rect_utils::set_bounds(abs_track,
+                base_x + rect_utils::get_x(layout.track),
+                base_y + rect_utils::get_y(layout.track),
+                rect_utils::get_width(layout.track),
+                rect_utils::get_height(layout.track));
+
+            rect_utils::set_bounds(abs_thumb,
+                base_x + rect_utils::get_x(layout.thumb),
+                base_y + rect_utils::get_y(layout.thumb),
+                rect_utils::get_width(layout.thumb),
+                rect_utils::get_height(layout.thumb));
+
+            rect_utils::set_bounds(abs_arrow_dec,
+                base_x + rect_utils::get_x(layout.arrow_decrement),
+                base_y + rect_utils::get_y(layout.arrow_decrement),
+                rect_utils::get_width(layout.arrow_decrement),
+                rect_utils::get_height(layout.arrow_decrement));
+
+            rect_utils::set_bounds(abs_arrow_inc,
+                base_x + rect_utils::get_x(layout.arrow_increment),
+                base_y + rect_utils::get_y(layout.arrow_increment),
+                rect_utils::get_width(layout.arrow_increment),
+                rect_utils::get_height(layout.arrow_increment));
 
             // Determine thumb state based on interaction
             auto const& thumb_style = get_thumb_style(*theme);
@@ -528,8 +591,11 @@ namespace onyxui {
             scrollbar_layout layout;
 
             auto const bounds = this->bounds();
-            int const x = rect_utils::get_x(bounds);
-            int const y = rect_utils::get_y(bounds);
+            // CRITICAL FIX: Use (0,0) origin for layout - coordinates should be relative
+            // to the scrollbar widget itself, NOT relative to parent grid!
+            // do_render() will add ctx.position() to convert to absolute screen coords
+            int const x = 0;
+            int const y = 0;
             int const w = rect_utils::get_width(bounds);
             int const h = rect_utils::get_height(bounds);
 
@@ -540,28 +606,30 @@ namespace onyxui {
             int const scroll_x = point_utils::get_x(m_scroll_info.scroll_offset);
             int const scroll_y = point_utils::get_y(m_scroll_info.scroll_offset);
 
-            // Get min thumb size from theme
+            // Get dimensions from theme
             auto const* themes = ui_services<Backend>::themes();
-            int const min_thumb_size = (themes && themes->get_current_theme())
-                ? themes->get_current_theme()->scrollbar.min_thumb_size
-                : ui_constants::DEFAULT_SCROLLBAR_MIN_THUMB_SIZE;
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+
+            int const min_thumb_size = theme ? theme->scrollbar.min_thumb_size : ui_constants::DEFAULT_SCROLLBAR_MIN_THUMB_SIZE;
+            int const arrow_size = theme ? theme->scrollbar.arrow_size : ui_constants::DEFAULT_SCROLLBAR_ARROW_SIZE;
 
             if (m_orientation == orientation::horizontal) {
                 // Horizontal scrollbar layout
-                int const thickness = h;  // Arrow button size = scrollbar thickness
 
                 if (style == scrollbar_style::minimal) {
                     // No arrows - track fills entire bounds
                     rect_utils::set_bounds(layout.track, x, y, w, h);
                 } else if (style == scrollbar_style::compact) {
                     // Arrows at right end only
-                    rect_utils::set_bounds(layout.arrow_decrement, x + w - thickness, y, thickness, h);
-                    rect_utils::set_bounds(layout.track, x, y, w - thickness, h);
+                    int const track_width = std::max(0, w - arrow_size);
+                    rect_utils::set_bounds(layout.arrow_decrement, x + w - arrow_size, y, arrow_size, h);
+                    rect_utils::set_bounds(layout.track, x, y, track_width, h);
                 } else { // classic
                     // Arrows at both ends
-                    rect_utils::set_bounds(layout.arrow_decrement, x, y, thickness, h);
-                    rect_utils::set_bounds(layout.arrow_increment, x + w - thickness, y, thickness, h);
-                    rect_utils::set_bounds(layout.track, x + thickness, y, w - 2 * thickness, h);
+                    int const track_width = std::max(0, w - 2 * arrow_size);
+                    rect_utils::set_bounds(layout.arrow_decrement, x, y, arrow_size, h);
+                    rect_utils::set_bounds(layout.arrow_increment, x + w - arrow_size, y, arrow_size, h);
+                    rect_utils::set_bounds(layout.track, x + arrow_size, y, track_width, h);
                 }
 
                 // Calculate thumb within track
@@ -592,20 +660,22 @@ namespace onyxui {
                 }
             } else {
                 // Vertical scrollbar layout
-                int const thickness = w;  // Arrow button size = scrollbar thickness
+                // arrow_size already obtained from theme above
 
                 if (style == scrollbar_style::minimal) {
                     // No arrows - track fills entire bounds
                     rect_utils::set_bounds(layout.track, x, y, w, h);
                 } else if (style == scrollbar_style::compact) {
                     // Arrows at bottom end only
-                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - thickness, w, thickness);
-                    rect_utils::set_bounds(layout.track, x, y, w, h - thickness);
+                    int const track_height = std::max(0, h - arrow_size);
+                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - arrow_size, w, arrow_size);
+                    rect_utils::set_bounds(layout.track, x, y, w, track_height);
                 } else { // classic
                     // Arrows at both ends
-                    rect_utils::set_bounds(layout.arrow_decrement, x, y, w, thickness);
-                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - thickness, w, thickness);
-                    rect_utils::set_bounds(layout.track, x, y + thickness, w, h - 2 * thickness);
+                    int const track_height = std::max(0, h - 2 * arrow_size);
+                    rect_utils::set_bounds(layout.arrow_decrement, x, y, w, arrow_size);
+                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - arrow_size, w, arrow_size);
+                    rect_utils::set_bounds(layout.track, x, y + arrow_size, w, track_height);
                 }
 
                 // Calculate thumb within track
