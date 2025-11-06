@@ -446,7 +446,18 @@ namespace onyxui {
                         // Connect clicked signal to open submenu
                         m_submenu_click_connections.emplace_back(
                             item->clicked,
-                            [this, item]() {
+                            [this, item, menu]() {
+                                // Close any existing submenu before opening new one
+                                // This prevents multiple items from staying highlighted
+                                // when switching between submenu items in the same menu
+                                while (current_menu() != menu) {
+                                    // Keep closing submenus until we're back at the menu
+                                    // that contains the item we just clicked
+                                    if (!close_current_submenu()) {
+                                        break;  // Safety: reached top level
+                                    }
+                                }
+
                                 this->open_submenu(item->submenu());
                                 // Focus first item in opened submenu
                                 if (auto* submenu = item->submenu()) {
