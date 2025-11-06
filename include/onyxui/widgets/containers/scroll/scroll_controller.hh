@@ -112,6 +112,10 @@ namespace onyxui {
                 [this](bool h_visible, bool v_visible) {
                     (void)h_visible;
                     (void)v_visible;
+                    // CRITICAL FIX: Also update scroll info because viewport size has changed!
+                    // When scrollable::do_arrange() sets m_viewport_size, it emits this signal.
+                    // We need to update scrollbars with the new viewport size.
+                    update_scrollbar_info();
                     update_scrollbar_visibility();
                 }
             );
@@ -193,6 +197,11 @@ namespace onyxui {
             m_scrollable->scroll_to(x, new_y_offset);
 
             m_updating_from_scrollbar = false;
+
+            // CRITICAL FIX: Update scrollbar info after scrolling!
+            // The guard prevents on_scrollable_scrolled from updating,
+            // so we must update manually after resetting the guard.
+            update_scrollbar_info();
         }
 
         /**
@@ -210,6 +219,11 @@ namespace onyxui {
             m_scrollable->scroll_to(new_x_offset, y);
 
             m_updating_from_scrollbar = false;
+
+            // CRITICAL FIX: Update scrollbar info after scrolling!
+            // The guard prevents on_scrollable_scrolled from updating,
+            // so we must update manually after resetting the guard.
+            update_scrollbar_info();
         }
 
         /**

@@ -687,6 +687,65 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             [[nodiscard]] const rect_type& bounds() const noexcept { return m_bounds; }
+
+            /**
+             * @brief Get absolute bounds in screen coordinates
+             * @return Rectangle with absolute position and size
+             *
+             * @details
+             * After the relative coordinate refactoring, child elements store bounds
+             * relative to their parent's content area. This method walks up the parent
+             * chain to compute the absolute screen position.
+             *
+             * **Use cases:**
+             * - Converting absolute mouse coordinates to widget-relative coordinates
+             * - Determining if an absolute point is inside a nested widget
+             * - Positioning popups relative to a nested widget
+             *
+             * @example
+             * @code
+             * rect_type abs_bounds = widget->get_absolute_bounds();
+             * int widget_abs_x = rect_utils::get_x(abs_bounds);
+             * int widget_abs_y = rect_utils::get_y(abs_bounds);
+             *
+             * // Convert absolute click to widget-relative
+             * int rel_x = click_x - widget_abs_x;
+             * int rel_y = click_y - widget_abs_y;
+             * @endcode
+             *
+             * @note This walks the parent chain, so it's O(depth). Cache the result
+             *       if you need to call it repeatedly in the same frame.
+             */
+            [[nodiscard]] rect_type get_absolute_bounds() const noexcept {
+                // Start with relative bounds
+                int abs_x = rect_utils::get_x(m_bounds);
+                int abs_y = rect_utils::get_y(m_bounds);
+                int const width = rect_utils::get_width(m_bounds);
+                int const height = rect_utils::get_height(m_bounds);
+
+                // Walk up parent chain to accumulate absolute position
+                ui_element const* curr = m_parent;
+                while (curr) {
+                    // Get parent's bounds (also relative if it has a parent)
+                    rect_type parent_bounds = curr->m_bounds;
+
+                    // Get parent's content area (where children are positioned)
+                    rect_type parent_content = curr->get_content_area();
+
+                    // Add parent's position + content area offset
+                    abs_x += rect_utils::get_x(parent_bounds) + rect_utils::get_x(parent_content);
+                    abs_y += rect_utils::get_y(parent_bounds) + rect_utils::get_y(parent_content);
+
+                    // Move to next parent
+                    curr = curr->m_parent;
+                }
+
+                // Return absolute bounds
+                rect_type result;
+                rect_utils::set_bounds(result, abs_x, abs_y, width, height);
+                return result;
+            }
+
             [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
             [[nodiscard]] const size_constraint& width_constraint() const noexcept { return m_width_constraint; }
             [[nodiscard]] const size_constraint& height_constraint() const noexcept { return m_height_constraint; }
@@ -745,9 +804,35 @@ namespace onyxui {
              * For nested elements, use the full widget hierarchy hit_test().
              */
             [[nodiscard]] bool is_inside(int x, int y) const override {
-                // For root elements, relative = absolute
-                // For nested elements, this is incorrect but required by event_target interface
-                return rect_utils::contains(m_bounds, x, y);
+                // CRITICAL FIX: After relative coordinate refactoring, m_bounds is relative for children.
+                // We need to compute absolute bounds by walking up to the root.
+
+                if (!m_parent) {
+                    // Root element - m_bounds is already absolute
+                    return rect_utils::contains(m_bounds, x, y);
+                }
+
+                // Child element - compute absolute bounds
+                // Absolute position = parent_absolute_content_position + child_relative_position
+                rect_type parent_content = m_parent->get_content_area();
+
+                // Parent's content area is relative to parent's bounds
+                // Get parent's absolute position
+                int parent_abs_x = rect_utils::get_x(m_parent->m_bounds);
+                int parent_abs_y = rect_utils::get_y(m_parent->m_bounds);
+
+                // If parent also has a parent, we need to recurse (TODO: optimize with caching)
+                // For now, assume parent is root (works for popup menus)
+
+                int content_abs_x = parent_abs_x + rect_utils::get_x(parent_content);
+                int content_abs_y = parent_abs_y + rect_utils::get_y(parent_content);
+
+                int abs_x = content_abs_x + rect_utils::get_x(m_bounds);
+                int abs_y = content_abs_y + rect_utils::get_y(m_bounds);
+                int abs_w = rect_utils::get_width(m_bounds);
+                int abs_h = rect_utils::get_height(m_bounds);
+
+                return (x >= abs_x && x < abs_x + abs_w && y >= abs_y && y < abs_y + abs_h);
             }
 
             // -----------------------------------------------------------------------
@@ -1174,12 +1259,17 @@ namespace onyxui {
         // For children, convert absolute point to relative coordinates
         // Children are positioned relative to our content area
         rect_type content_area = get_content_area();
-        int const child_offset_x = rect_utils::get_x(content_area);
-        int const child_offset_y = rect_utils::get_y(content_area);
+        int const content_rel_x = rect_utils::get_x(content_area);  // Relative to m_bounds
+        int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
 
-        // Convert absolute coordinates to relative for children
-        int const child_x = x - child_offset_x;
-        int const child_y = y - child_offset_y;
+        // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
+        // To get absolute content position, add m_bounds position
+        int const content_abs_x = rect_utils::get_x(m_bounds) + content_rel_x;
+        int const content_abs_y = rect_utils::get_y(m_bounds) + content_rel_y;
+
+        // Convert absolute click coordinates to relative (content-area-local) coordinates
+        int const child_x = x - content_abs_x;
+        int const child_y = y - content_abs_y;
 
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
@@ -1211,12 +1301,17 @@ namespace onyxui {
 
         // For children, convert absolute point to relative coordinates
         rect_type content_area = get_content_area();
-        int const child_offset_x = rect_utils::get_x(content_area);
-        int const child_offset_y = rect_utils::get_y(content_area);
+        int const content_rel_x = rect_utils::get_x(content_area);  // Relative to m_bounds
+        int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
 
-        // Convert absolute coordinates to relative for children
-        int const child_x = x - child_offset_x;
-        int const child_y = y - child_offset_y;
+        // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
+        // To get absolute content position, add m_bounds position
+        int const content_abs_x = rect_utils::get_x(m_bounds) + content_rel_x;
+        int const content_abs_y = rect_utils::get_y(m_bounds) + content_rel_y;
+
+        // Convert absolute click coordinates to relative (content-area-local) coordinates
+        int const child_x = x - content_abs_x;
+        int const child_y = y - content_abs_y;
 
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {

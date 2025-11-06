@@ -149,8 +149,12 @@ namespace onyxui {
             menu_item<Backend>* ptr = item.get();
 
             // Connect item activation to menu close
-            item->clicked.connect([this]() {
-                this->on_item_activated();
+            // IMPORTANT: Only close menu if item doesn't have a submenu
+            // Submenu items should keep the menu open for navigation
+            item->clicked.connect([this, ptr]() {
+                if (!ptr->has_submenu()) {
+                    this->on_item_activated();
+                }
             });
 
             this->add_child(std::move(item));
@@ -357,30 +361,6 @@ namespace onyxui {
         signal<> closing;
 
     protected:
-        /**
-         * @brief Override click to forward to children
-         */
-        bool handle_click(int x, int y) override {
-            // Forward click to children
-            for (auto& child : this->children()) {
-                if (!child || !child->is_visible()) continue;
-
-                // Check if click is inside child bounds
-                auto child_bounds = child->bounds();
-                if (rect_utils::contains(child_bounds, x, y)) {
-                    // Trigger the child's click handler directly
-                    if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
-                        // Emit the clicked signal which will trigger the action
-                        item->clicked.emit();
-                        return true;
-                    }
-                }
-            }
-
-            // Don't call base implementation - we don't want the menu itself to handle clicks
-            return false;
-        }
-
         /**
          * @brief Menu does NOT inherit colors from parent
          * @return false - menu has its own distinct background and border colors

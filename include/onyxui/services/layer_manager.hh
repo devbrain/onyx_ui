@@ -554,7 +554,9 @@ namespace onyxui {
 
             // Route to layers (highest z first)
             for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-                if (!it->visible || !it->is_valid()) continue;
+                if (!it->visible || !it->is_valid()) {
+                    continue;
+                }
 
                 // If modal active, skip layers below it
                 if (modal_z_index.has_value() && it->z_index < *modal_z_index) {
@@ -564,8 +566,24 @@ namespace onyxui {
                 // Route event to layer - Phase 1.2: Use safe access
                 bool handled = false;
                 it->with_root([&](element_type* root_ptr) {
-                    if (root_ptr->process_event(event)) {
-                        handled = true;
+                    // For mouse events, use hit-testing to find target child
+                    if constexpr (requires { event_traits<event_type>::mouse_x(event); }) {
+                        int const x = event_traits<event_type>::mouse_x(event);
+                        int const y = event_traits<event_type>::mouse_y(event);
+
+                        // Find the deepest child element at this position
+                        element_type* target = root_ptr->hit_test(x, y);
+
+                        if (target) {
+                            // Route event to the target element directly
+                            handled = target->process_event(event);
+                        } else {
+                            // No target - try root directly as fallback
+                            handled = root_ptr->process_event(event);
+                        }
+                    } else {
+                        // Non-mouse events (keyboard, etc) - use process_event on root
+                        handled = root_ptr->process_event(event);
                     }
                 });
 

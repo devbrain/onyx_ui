@@ -223,9 +223,9 @@ TEST_CASE("hit_test() - Path recording with nested hierarchy") {
         REQUIRE(result2 != nullptr);
         CHECK(path.size() > first_size);  // Path accumulated
 
-        // Third hit test with clearing
+        // Third hit test with clearing - use same coordinate as first test
         path.clear();
-        auto* result3 = root->hit_test(30, 30, path);
+        auto* result3 = root->hit_test(10, 10, path);
         REQUIRE(result3 != nullptr);
         CHECK(path.size() == first_size);  // Back to original size
     }
