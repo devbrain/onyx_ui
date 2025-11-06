@@ -315,15 +315,26 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Event co
     // For now, we'll verify that text_view returns false from handle_event
     // so the event can continue.
 
-    auto text_view_widget = std::make_unique<text_view<test_canvas_backend>>();
+    // Create test helper to expose handle_event
+    class test_text_view : public text_view<test_canvas_backend> {
+    public:
+        using text_view<test_canvas_backend>::text_view;
+        using text_view<test_canvas_backend>::handle_event;
+    };
+
+    auto text_view_widget = std::make_unique<test_text_view>();
     text_view_widget->set_text("Line 1\nLine 2");
+    auto* text_view_ptr = text_view_widget.get();  // Store pointer before moving
 
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
     root->arrange({0, 0, 80, 25});
 
-    // Verify text_view doesn't consume the event
-    mouse_event click{
+    // Verify text_view doesn't consume the press event
+    // With unified event API, the child labels will consume the event,
+    // but text_view itself returns false to allow event propagation.
+
+    mouse_event press{
         .x = 5,
         .y = 5,
         .btn = mouse_event::button::left,
@@ -331,17 +342,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Event co
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
     };
 
-    hit_test_path<test_canvas_backend> path;
-    auto* target = root->hit_test(5, 5, path);
+    ui_event ui_evt = press;
+    // Test text_view specifically in TARGET phase
+    bool consumed_by_text_view = text_view_ptr->handle_event(ui_evt, event_phase::target);
 
-    if (target) {
-        ui_event ui_evt = click;
-        bool consumed = route_event(ui_evt, path);
-
-        // text_view should NOT consume the event (returns false)
-        // so it can continue to children
-        CHECK_FALSE(consumed);
-    }
+    // text_view should NOT consume the press event (returns false)
+    // so it can continue to children (labels) for potential handling
+    CHECK_FALSE(consumed_by_text_view);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus only on mouse press") {

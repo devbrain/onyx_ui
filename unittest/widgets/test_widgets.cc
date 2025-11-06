@@ -56,16 +56,23 @@ TEST_CASE("Widget - Base widget functionality") {
 
     SUBCASE("Mouse enter/exit signals") {
         test_widget<test_backend> w;
+        // Set bounds for hit testing
+        w.arrange({0, 0, 100, 50});
+
         int enter_count = 0;
         int exit_count = 0;
 
         w.mouse_entered.connect([&]() { enter_count++; });
         w.mouse_exited.connect([&]() { exit_count++; });
 
-        w.handle_mouse_enter();
+        // Trigger mouse enter by moving inside bounds
+        mouse_event enter{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        w.handle_event(ui_event{enter}, event_phase::target);
         CHECK(enter_count == 1);
 
-        w.handle_mouse_leave();
+        // Trigger mouse exit by moving outside bounds
+        mouse_event exit{.x = 200, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        w.handle_event(ui_event{exit}, event_phase::target);
         CHECK(exit_count == 1);
     }
 
@@ -79,10 +86,12 @@ TEST_CASE("Widget - Base widget functionality") {
         w.focus_gained.connect([&]() { gained_count++; });
         w.focus_lost.connect([&]() { lost_count++; });
 
-        w.handle_focus_gained();
+        // Set focus triggers focus_gained signal via on_focus_changed(true)
+        w.test_set_focus(true);
         CHECK(gained_count == 1);
 
-        w.handle_focus_lost();
+        // Remove focus triggers focus_lost signal via on_focus_changed(false)
+        w.test_set_focus(false);
         CHECK(lost_count == 1);
     }
 
@@ -94,13 +103,12 @@ TEST_CASE("Widget - Base widget functionality") {
 
         w.set_enabled(false);
 
-        // Widget is disabled, but handle_click can still be called directly
-        // In real usage, event_target would prevent events from reaching here
+        // Simulate click on disabled widget
         w.simulate_click();
 
-        // Click still happens since we're calling the handler directly
-        // In real code, process_event() checks is_enabled() first
-        CHECK(click_count == 1);
+        // With unified event API, handle_mouse() checks is_enabled() internally
+        // so disabled widgets properly don't emit clicks even when handlers are called directly
+        CHECK(click_count == 0);
     }
 }
 

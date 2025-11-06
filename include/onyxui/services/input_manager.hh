@@ -152,7 +152,7 @@ namespace onyxui {
 
             // Notify old focused widget
             if (m_focused) {
-                m_focused->handle_focus_lost();
+                m_focused->set_focus(false);
             }
 
             // Update focus
@@ -160,7 +160,7 @@ namespace onyxui {
 
             // Notify new focused widget
             if (m_focused) {
-                m_focused->handle_focus_gained();
+                m_focused->set_focus(true);
             }
 
             return true;
@@ -270,18 +270,13 @@ namespace onyxui {
                 return false;  // Already hovered
             }
 
-            // Notify old hovered widget
-            if (m_hovered) {
-                m_hovered->handle_mouse_leave();
-            }
+            // With unified event API, hover state is managed by handle_mouse()
+            // We don't need to explicitly call mouse enter/leave handlers.
+            // The handle_mouse() method detects hover state changes internally
+            // and emits mouse_entered/mouse_exited signals as needed.
 
             // Update hover
             m_hovered = target;
-
-            // Notify new hovered widget
-            if (m_hovered) {
-                m_hovered->handle_mouse_enter();
-            }
 
             return true;
         }

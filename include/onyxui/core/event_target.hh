@@ -369,13 +369,15 @@ namespace onyxui {
                 m_accept_keys_as_click = accept;
             }
 
-        private:
             /**
              * @brief Manually set focus state
              *
              * This should typically be called by a focus manager, not directly.
+             * Made protected to allow derived test classes to set focus for testing.
              */
             void set_focus(bool focus);
+
+        private:
 
             // State tracking
             bool m_is_hovered = false;
@@ -448,16 +450,23 @@ namespace onyxui {
         }
 
         // Handle Enter/Space as click for focused elements (e.g., buttons)
+        // Note: Derived classes (widget) override this to emit the clicked signal
         if (m_accept_keys_as_click) {
             if (kbd.key == key_code::enter || kbd.key == key_code::space) {
-                // Trigger pressed state for visual feedback
-                m_is_pressed = true;
-                // Note: Derived classes should override to handle the actual click
-                // Base class just returns false to allow override
+                if (kbd.pressed) {
+                    // Key down: Set pressed state for visual feedback
+                    m_is_pressed = true;
+                    return true;  // Handled
+                } else {
+                    // Key up: Clear pressed state
+                    // Derived classes should override to emit clicked signal here
+                    m_is_pressed = false;
+                    return true;  // Handled
+                }
             }
         }
 
-        return false;  // Base class doesn't handle any keys
+        return false;  // Base class doesn't handle any other keys
     }
 
     template<UIBackend Backend>

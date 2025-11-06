@@ -13,16 +13,22 @@
 using namespace onyxui;
 using namespace onyxui::testing;
 
-// Test wrapper to expose protected handle_click for testing
+// Test wrapper to simulate mouse events for testing
 template<UIBackend Backend>
 class test_scrollbar : public scrollbar<Backend> {
 public:
     using scrollbar<Backend>::scrollbar;
-    using scrollbar<Backend>::handle_click;  // Expose for testing
 
     // Helper for simulating clicks at specific positions
-    void simulate_click_at(int x, int y) {
-        this->handle_click(x, y);
+    // Returns true if click was handled
+    bool simulate_click_at(int x, int y) {
+        // Simulate press
+        mouse_event press{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        this->handle_mouse(press);
+
+        // Simulate release (generates click)
+        mouse_event release{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+        return this->handle_mouse(release);
     }
 };
 
@@ -55,7 +61,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
 
     // Click at top (decrement arrow position)
     // For classic style with arrow_size=1: arrow is at top (y=0 to y=1)
-    bool handled = sb.handle_click(8, 0);
+    bool handled = sb.simulate_click_at(8, 0);
 
     SUBCASE("Signal was emitted") {
         CHECK(signal_emitted);
@@ -95,7 +101,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: I
 
     // Click at bottom (increment arrow position)
     // For 1px arrow: arrow is at bottom (y=199 for 200px scrollbar)
-    bool handled = sb.handle_click(8, 199);
+    bool handled = sb.simulate_click_at(8, 199);
 
     SUBCASE("Signal was emitted") {
         CHECK(signal_emitted);
@@ -132,14 +138,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
     });
 
     // Click in middle of track (not on arrows or thumb)
-    bool handled = sb.handle_click(8, 100);
+    bool handled = sb.simulate_click_at(8, 100);
 
     SUBCASE("Signal was not emitted") {
         CHECK_FALSE(signal_emitted);
     }
 
-    SUBCASE("Click was not handled") {
-        CHECK_FALSE(handled);
+    SUBCASE("Click was handled (inside bounds) but no action taken") {
+        // With unified event API: click inside bounds returns true (handled)
+        // even if no specific action (like arrow scroll) was triggered
+        CHECK(handled);
     }
 }
 
@@ -172,7 +180,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
 
     // Click at left (decrement arrow position)
     // For 1px arrow: arrow is at left (x=0)
-    bool handled = sb.handle_click(0, 8);
+    bool handled = sb.simulate_click_at(0, 8);
 
     CHECK(signal_emitted);
     CHECK(emitted_value < 0);  // Negative = scroll left
@@ -204,7 +212,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
 
     // Click at right (increment arrow position)
     // For 1px arrow: arrow is at right (x=199 for 200px scrollbar)
-    bool handled = sb.handle_click(199, 8);
+    bool handled = sb.simulate_click_at(199, 8);
 
     CHECK(signal_emitted);
     CHECK(emitted_value > 0);  // Positive = scroll right
@@ -237,7 +245,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
     });
 
     // Click outside scrollbar bounds
-    bool handled = sb.handle_click(-10, 100);
+    bool handled = sb.simulate_click_at(-10, 100);
 
     CHECK_FALSE(signal_emitted);
     CHECK_FALSE(handled);
@@ -265,9 +273,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: M
     });
 
     // Click decrement arrow multiple times
-    sb.handle_click(8, 0);
-    sb.handle_click(8, 0);
-    sb.handle_click(8, 0);
+    sb.simulate_click_at(8, 0);
+    sb.simulate_click_at(8, 0);
+    sb.simulate_click_at(8, 0);
 
     CHECK(emit_count == 3);
 }
@@ -294,11 +302,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
     });
 
     // Click decrement arrow
-    sb.handle_click(8, 0);
+    sb.simulate_click_at(8, 0);
     int decrement_value = last_emitted;
 
     // Click increment arrow
-    sb.handle_click(8, 199);
+    sb.simulate_click_at(8, 199);
     int increment_value = last_emitted;
 
     // Values should have opposite signs

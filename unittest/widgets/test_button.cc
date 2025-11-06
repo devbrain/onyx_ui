@@ -52,13 +52,31 @@ TEST_CASE("Button - Clickable widget") {
 TEST_CASE("Button - Keyboard activation") {
     using traits = event_traits<test_backend::test_keyboard_event>;
 
+    // Helper to simulate keyboard event (key down + key up)
+    auto simulate_key = [](auto& widget, key_code key) -> bool {
+        // Send key down
+        keyboard_event down{};
+        down.key = key;
+        down.modifiers = key_modifier::none;
+        down.pressed = true;
+        widget.handle_event(ui_event{down}, event_phase::target);
+
+        // Send key up (this triggers the click)
+        keyboard_event up{};
+        up.key = key;
+        up.modifiers = key_modifier::none;
+        up.pressed = false;
+        return widget.handle_event(ui_event{up}, event_phase::target);
+    };
+
     // Helper class to access protected focus methods
     class test_button_with_focus : public button<test_backend> {
     public:
         using button<test_backend>::button;
 
+        // Public wrapper to expose protected set_focus for testing
         void give_focus() {
-            this->handle_focus_gained();  // Call protected method
+            this->set_focus(true);
         }
     };
 
@@ -72,13 +90,8 @@ TEST_CASE("Button - Keyboard activation") {
         btn.give_focus();
         CHECK(btn.has_focus());
 
-        // Create Enter key press event
-        test_backend::test_keyboard_event key_event;
-        key_event.pressed = true;
-        key_event.key_code = traits::KEY_ENTER;
-
-        // Process the keyboard event
-        bool handled = btn.process_event_impl(key_event);
+        // Simulate Enter key press
+        bool handled = simulate_key(btn, key_code::enter);
 
         // Verify the click was triggered
         CHECK(handled);
@@ -95,13 +108,8 @@ TEST_CASE("Button - Keyboard activation") {
         btn.give_focus();
         CHECK(btn.has_focus());
 
-        // Create Space key press event
-        test_backend::test_keyboard_event key_event;
-        key_event.pressed = true;
-        key_event.key_code = traits::KEY_SPACE;
-
-        // Process the keyboard event
-        bool handled = btn.process_event_impl(key_event);
+        // Simulate Space key press
+        bool handled = simulate_key(btn, key_code::space);
 
         // Verify the click was triggered
         CHECK(handled);
@@ -117,13 +125,8 @@ TEST_CASE("Button - Keyboard activation") {
         // Button is NOT focused
         CHECK_FALSE(btn.has_focus());
 
-        // Create Enter key press event
-        test_backend::test_keyboard_event key_event;
-        key_event.pressed = true;
-        key_event.key_code = traits::KEY_ENTER;
-
-        // Process the keyboard event
-        bool handled = btn.process_event_impl(key_event);
+        // Simulate Enter key press
+        bool handled = simulate_key(btn, key_code::enter);
 
         // Should NOT trigger click (not handled when unfocused)
         CHECK_FALSE(handled);
@@ -177,11 +180,7 @@ TEST_CASE("Button - Keyboard activation") {
         CHECK(btn2->has_focus());  // Second button should be focused
 
         // Simulate Enter key to activate second button
-        test_backend::test_keyboard_event enter_event;
-        enter_event.pressed = true;
-        enter_event.key_code = traits::KEY_ENTER;
-
-        bool enter_handled = btn2->process_event_impl(enter_event);
+        bool enter_handled = simulate_key(*btn2, key_code::enter);
         CHECK(enter_handled);
 
         // Verify ONLY the second button was clicked
@@ -189,11 +188,7 @@ TEST_CASE("Button - Keyboard activation") {
         CHECK(btn2_clicks == 1);
 
         // Simulate Space key to activate second button again
-        test_backend::test_keyboard_event space_event;
-        space_event.pressed = true;
-        space_event.key_code = traits::KEY_SPACE;
-
-        bool space_handled = btn2->process_event_impl(space_event);
+        bool space_handled = simulate_key(*btn2, key_code::space);
         CHECK(space_handled);
 
         // Verify second button was clicked again

@@ -20,10 +20,23 @@ class test_scrollbar : public scrollbar<Backend> {
 public:
     using scrollbar<Backend>::scrollbar;
     using scrollbar<Backend>::calculate_layout;      // Expose for testing
-    using scrollbar<Backend>::handle_mouse_move;     // Expose for testing
-    using scrollbar<Backend>::handle_mouse_down;     // Expose for testing
-    using scrollbar<Backend>::handle_mouse_up;       // Expose for testing
-    using scrollbar<Backend>::handle_mouse_leave;    // Expose for testing
+
+    // Simulation helpers for new mouse event API
+    void simulate_mouse_move(int x, int y) {
+        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        this->handle_mouse(evt);
+    }
+
+    void simulate_mouse_down(int x, int y) {
+        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        this->handle_mouse(evt);
+    }
+
+    void simulate_mouse_leave() {
+        // Simulate move to position outside bounds
+        mouse_event evt{.x = -1000, .y = -1000, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        this->handle_mouse(evt);
+    }
 };
 
 // =============================================================================
@@ -132,7 +145,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: H
     int thumb_y = rect_utils::get_y(thumb) + rect_utils::get_height(thumb) / 2;
 
     // Move mouse over thumb
-    sb.handle_mouse_move(thumb_x, thumb_y);
+    sb.simulate_mouse_move(thumb_x, thumb_y);
 
     // Render - should use hover colors
     auto canvas = render_to_canvas(sb, 80, 200);
@@ -168,7 +181,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: P
     int thumb_x = rect_utils::get_x(thumb) + rect_utils::get_width(thumb) / 2;
     int thumb_y = rect_utils::get_y(thumb) + rect_utils::get_height(thumb) / 2;
 
-    sb.handle_mouse_down(thumb_x, thumb_y, 0);
+    sb.simulate_mouse_down(thumb_x, thumb_y);
 
     // Render - should use pressed colors
     auto canvas = render_to_canvas(sb, 80, 200);
@@ -203,14 +216,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: M
     auto thumb = sb.get_thumb_bounds();
     int thumb_x = rect_utils::get_x(thumb) + rect_utils::get_width(thumb) / 2;
     int thumb_y = rect_utils::get_y(thumb) + rect_utils::get_height(thumb) / 2;
-    sb.handle_mouse_move(thumb_x, thumb_y);
+    sb.simulate_mouse_move(thumb_x, thumb_y);
 
     // Render in hover state
     auto canvas_hover = render_to_canvas(sb, 16, 200);
     CHECK(canvas_hover != nullptr);
 
     // Simulate mouse leave
-    sb.handle_mouse_leave();
+    sb.simulate_mouse_leave();
 
     // Render after leave - verifies theme applies correctly in non-hover state
     auto canvas_normal = render_to_canvas(sb, 16, 200);
@@ -345,7 +358,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
         // Hover over arrow
         int arrow_x = rect_utils::get_x(layout.arrow_decrement) + 1;
         int arrow_y = rect_utils::get_y(layout.arrow_decrement) + 1;
-        sb.handle_mouse_move(arrow_x, arrow_y);
+        sb.simulate_mouse_move(arrow_x, arrow_y);
 
         // Render - should use arrow_hover colors
         auto canvas = render_to_canvas(sb, 80, 200);
@@ -386,7 +399,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
         // Press arrow
         int arrow_x = rect_utils::get_x(layout.arrow_increment) + 1;
         int arrow_y = rect_utils::get_y(layout.arrow_increment) + 1;
-        sb.handle_mouse_down(arrow_x, arrow_y, 0);
+        sb.simulate_mouse_down(arrow_x, arrow_y);
 
         // Render - should use arrow_pressed colors
         auto canvas = render_to_canvas(sb, 80, 200);
@@ -435,7 +448,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: C
     // Hover and render
     int thumb_x = rect_utils::get_x(thumb) + rect_utils::get_width(thumb) / 2;
     int thumb_y = rect_utils::get_y(thumb) + rect_utils::get_height(thumb) / 2;
-    sb.handle_mouse_move(thumb_x, thumb_y);
+    sb.simulate_mouse_move(thumb_x, thumb_y);
 
     // Render with all theme properties
     auto canvas = render_to_canvas(sb, 80, 300);

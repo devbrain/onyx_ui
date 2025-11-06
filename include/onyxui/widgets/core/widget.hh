@@ -583,6 +583,32 @@ namespace onyxui {
         }
 
         /**
+         * @brief Handle keyboard events and emit clicked signal for Enter/Space
+         */
+        bool handle_keyboard(const keyboard_event& kbd) override {
+            // Track previous pressed state
+            bool const was_pressed = this->is_pressed();
+
+            // Let base class handle the keyboard event (Enter/Space set/clear pressed state)
+            bool handled = base::handle_keyboard(kbd);
+
+            // Detect pressed state change
+            bool const now_pressed = this->is_pressed();
+            if (now_pressed != was_pressed) {
+                this->mark_dirty();  // Visual state changed
+            }
+
+            // Emit click signal when Enter/Space is released
+            if (handled && !kbd.pressed && this->accepts_keys_as_click()) {
+                if (kbd.key == key_code::enter || kbd.key == key_code::space) {
+                    clicked.emit();
+                }
+            }
+
+            return handled;
+        }
+
+        /**
          * @brief Handle focus state changes
          */
         void on_focus_changed(bool gained) override {

@@ -285,45 +285,38 @@ namespace onyxui {
          * This is why we need three-phase routing!
          */
         bool handle_event(const ui_event& event, event_phase phase) override {
-            // Only intercept in CAPTURE phase (before children)
-            if (phase == event_phase::capture) {
-                // Check if this is a mouse button press
-                if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
-                    if (mouse_evt->act == mouse_event::action::press) {
-                        // Request focus for text_view when any mouse button is pressed inside it
+            // Check if this is a mouse button press
+            if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
+                if (mouse_evt->act == mouse_event::action::press) {
+                    // In CAPTURE phase, request focus before children handle the event
+                    if (phase == event_phase::capture) {
                         auto* input = ui_services<Backend>::input();
                         if (input && base::is_focusable()) {
                             input->set_focus(this);
                         }
-                        // Return false to allow event to continue to children
-                        // (label might want to handle clicks for selection, etc.)
-                        return false;
                     }
+                    // Return false in ALL phases to allow event to continue to children
+                    // (label might want to handle clicks for selection, etc.)
+                    return false;
                 }
             }
 
-            // Pass all other phases to base class
+            // Pass all other events to base class
             return base::handle_event(event, phase);
         }
 
         /**
-         * @brief Handle focus gained - triggers redraw for border color change
-         * @return true if handled
+         * @brief Handle focus state change - triggers redraw for border color change
+         * @param gained True if focus gained, false if lost
+         *
+         * @details
+         * Invalidates visual to trigger redraw with focused/unfocused border color.
          */
-        bool handle_focus_gained() override {
+        void on_focus_changed(bool gained) override {
+            (void)gained;  // Parameter not used, just need to redraw
             // Invalidate visual to trigger redraw with new border color
             this->invalidate_visual();
-            return base::handle_focus_gained();
-        }
-
-        /**
-         * @brief Handle focus lost - triggers redraw for border color change
-         * @return true if handled
-         */
-        bool handle_focus_lost() override {
-            // Invalidate visual to trigger redraw with normal border color
-            this->invalidate_visual();
-            return base::handle_focus_lost();
+            base::on_focus_changed(gained);
         }
 
         /**

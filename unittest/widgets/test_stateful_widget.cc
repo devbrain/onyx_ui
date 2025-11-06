@@ -86,21 +86,31 @@ namespace {
             return this->get_state_foreground(theme);
         }
 
-        // Expose protected event handlers for testing
-        bool handle_mouse_enter() {
-            return base::handle_mouse_enter();
+        // Helper methods to simulate mouse events using new API
+        void simulate_mouse_enter() {
+            // First set bounds so is_inside works
+            this->arrange({0, 0, 100, 50});
+            // First send mouse move outside to ensure we're not already inside
+            mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(outside);
+            // Now send mouse move inside to trigger enter
+            mouse_event evt{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_leave() {
-            return base::handle_mouse_leave();
+        void simulate_mouse_leave() {
+            mouse_event evt{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_down(int x, int y, int mouse_button) {
-            return base::handle_mouse_down(x, y, mouse_button);
+        void simulate_mouse_down(int x, int y) {
+            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_up(int x, int y, int mouse_button) {
-            return base::handle_mouse_up(x, y, mouse_button);
+        void simulate_mouse_up(int x, int y) {
+            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
         // Expose NEW Phase 4 API for testing
@@ -122,21 +132,31 @@ namespace {
 
         explicit test_button(const std::string& text) : base(text) {}
 
-        // Expose protected event handlers for testing
-        bool handle_mouse_enter() {
-            return base::handle_mouse_enter();
+        // Helper methods to simulate mouse events using new API
+        void simulate_mouse_enter() {
+            // First set bounds so is_inside works
+            this->arrange({0, 0, 100, 50});
+            // First send mouse move outside to ensure we're not already inside
+            mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(outside);
+            // Now send mouse move inside to trigger enter
+            mouse_event evt{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_leave() {
-            return base::handle_mouse_leave();
+        void simulate_mouse_leave() {
+            mouse_event evt{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_down(int x, int y, int mouse_button) {
-            return base::handle_mouse_down(x, y, mouse_button);
+        void simulate_mouse_down(int x, int y) {
+            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            base::handle_mouse(evt);
         }
 
-        bool handle_mouse_up(int x, int y, int mouse_button) {
-            return base::handle_mouse_up(x, y, mouse_button);
+        void simulate_mouse_up(int x, int y) {
+            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            base::handle_mouse(evt);
         }
     };
 
@@ -650,7 +670,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mo
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
 
     // Simulate mouse enter event
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
 
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
     CHECK(widget.is_in_hover_state() == true);
@@ -660,11 +680,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mo
     test_stateful_widget<Backend> widget;
 
     // First enter hover state
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.is_in_hover_state() == true);
 
     // Leave should return to normal
-    widget.handle_mouse_leave();
+    widget.simulate_mouse_leave();
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
     CHECK(widget.check_is_normal() == true);
 }
@@ -673,11 +693,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mo
     test_stateful_widget<Backend> widget;
 
     // Enter hover state
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.is_in_hover_state() == true);
 
     // Mouse down should change to pressed
-    widget.handle_mouse_down(0, 0, 0);
+    widget.simulate_mouse_down(0, 0);
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::pressed);
     CHECK(widget.is_in_pressed_state() == true);
 }
@@ -686,12 +706,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Mo
     test_stateful_widget<Backend> widget;
 
     // Simulate hover → press sequence
-    widget.handle_mouse_enter();
-    widget.handle_mouse_down(0, 0, 0);
+    widget.simulate_mouse_enter();
+    widget.simulate_mouse_down(0, 0);
     CHECK(widget.is_in_pressed_state() == true);
 
     // Mouse up should return to hover (widget still under mouse)
-    widget.handle_mouse_up(0, 0, 0);
+    widget.simulate_mouse_up(0, 0);
 
     // This depends on whether the test widget properly tracks hover state
     // For now, just check it's not pressed
@@ -705,19 +725,19 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Co
     CHECK(widget.check_is_normal() == true);
 
     // 2. Mouse enters: should be hover
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.is_in_hover_state() == true);
 
     // 3. Mouse down: should be pressed
-    widget.handle_mouse_down(0, 0, 0);
+    widget.simulate_mouse_down(0, 0);
     CHECK(widget.is_in_pressed_state() == true);
 
     // 4. Mouse up: should return to some state (hover or normal)
-    widget.handle_mouse_up(0, 0, 0);
+    widget.simulate_mouse_up(0, 0);
     CHECK(widget.is_in_pressed_state() == false);
 
     // 5. Mouse leaves: should return to normal
-    widget.handle_mouse_leave();
+    widget.simulate_mouse_leave();
     CHECK(widget.check_is_normal() == true);
 }
 
@@ -729,16 +749,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Di
     CHECK(widget.check_is_disabled() == true);
 
     // Try to trigger state changes (should be ignored)
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.check_is_disabled() == true);  // Still disabled
 
-    widget.handle_mouse_down(0, 0, 0);
+    widget.simulate_mouse_down(0, 0);
     CHECK(widget.check_is_disabled() == true);  // Still disabled
 
-    widget.handle_mouse_up(0, 0, 0);
+    widget.simulate_mouse_up(0, 0);
     CHECK(widget.check_is_disabled() == true);  // Still disabled
 
-    widget.handle_mouse_leave();
+    widget.simulate_mouse_leave();
     CHECK(widget.check_is_disabled() == true);  // Still disabled
 }
 
@@ -750,7 +770,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Re
     CHECK(widget.check_is_disabled() == true);
 
     // Try to set hover state (should fail)
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.check_is_disabled() == true);
 
     // Re-enable widget
@@ -758,7 +778,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Re
     CHECK(widget.check_is_normal() == true);
 
     // Now mouse events should work
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.is_in_hover_state() == true);
 }
 
@@ -773,14 +793,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
     CHECK(normal_fg.r == 255);  // White foreground
 
     // Hover state (triggered by event)
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     auto hover_bg = widget.test_get_state_background(theme.button);
     auto hover_fg = widget.test_get_state_foreground(theme.button);
     CHECK(hover_bg.g == 170);   // Cyan background
     CHECK(hover_fg.g == 255);   // Yellow foreground
 
     // Pressed state (triggered by event)
-    widget.handle_mouse_down(0, 0, 0);
+    widget.simulate_mouse_down(0, 0);
     auto pressed_bg = widget.test_get_state_background(theme.button);
     auto pressed_fg = widget.test_get_state_foreground(theme.button);
     CHECK(pressed_bg.r == 170); // Gray background
@@ -812,17 +832,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Bu
     CHECK(normal_fg.r == 255);  // White (normal state)
 
     // Trigger hover via event
-    btn.handle_mouse_enter();
+    btn.simulate_mouse_enter();
     // Note: Color resolution needs resolve_style() to be called
     // This test verifies the state changes, color resolution tested separately
 
     // Trigger pressed via event
-    btn.handle_mouse_down(0, 0, 0);
+    btn.simulate_mouse_down(0, 0);
     // State should now be pressed
 
     // Return to normal
-    btn.handle_mouse_up(0, 0, 0);
-    btn.handle_mouse_leave();
+    btn.simulate_mouse_up(0, 0);
+    btn.simulate_mouse_leave();
     // State should now be normal again
 }
 
@@ -837,7 +857,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
 
     // Enter widget (tracked by event_target)
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
 
     // Press using NEW API
@@ -864,7 +884,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);  // Returns to hover
 
     // Leave
-    widget.handle_mouse_leave();
+    widget.simulate_mouse_leave();
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::normal);
 }
 
@@ -872,7 +892,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     test_stateful_widget<Backend> widget;
 
     // Enter widget
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
     CHECK(widget.get_state() == test_stateful_widget<Backend>::state_type::hover);
 
     // Move event doesn't change state
@@ -902,7 +922,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
     test_stateful_widget<Backend> widget;
 
     // Enter
-    widget.handle_mouse_enter();
+    widget.simulate_mouse_enter();
 
     // Press via ui_event (the complete unified event system)
     mouse_event press_evt;

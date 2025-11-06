@@ -397,9 +397,11 @@ namespace onyxui {
                 if (focused && focused->accepts_keys_as_click()) {
                     if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
                         if (hotkeys->matches_action(*kbd_evt, hotkey_action::activate_focused)) {
-                            // Trigger click on the focused widget (usually button, checkbox, etc.)
-                            focused->handle_click(0, 0);
-                            return true;  // Activation handled
+                            // With unified event API, widgets that accept keys as clicks
+                            // handle Enter/Space through handle_keyboard() which emits clicked signal.
+                            // The keyboard event has already been routed to the focused widget above,
+                            // so no additional action needed here.
+                            return true;  // Activation handled by widget's keyboard handler
                         }
                     }
                 }
@@ -480,11 +482,21 @@ namespace onyxui {
                     if (is_press) {
                         // WORKAROUND: Some backends (like termbox2) don't send mouse release events.
                         // If we're pressing on a different widget than what's captured,
-                        // implicitly release the old capture first by sending it a mouse up event.
+                        // implicitly release the old capture first by sending it a mouse release event.
                         auto* currently_captured = input->get_captured();
                         if (currently_captured && currently_captured != target_widget) {
-                            // Send mouse up to previously captured widget to clean up its state
-                            static_cast<widget_type*>(currently_captured)->handle_mouse_up(mouse_x, mouse_y, 1);
+                            // Send mouse release to previously captured widget to clean up its state
+                            // With unified event API, construct proper mouse_event with action::release
+                            mouse_event release{
+                                .x = mouse_x,
+                                .y = mouse_y,
+                                .btn = mouse_event::button::left,
+                                .act = mouse_event::action::release,
+                                .modifiers = {}
+                            };
+                            static_cast<widget_type*>(currently_captured)->handle_event(
+                                ui_event{release}, event_phase::target
+                            );
                             input->release_capture();
                         }
 
@@ -498,7 +510,7 @@ namespace onyxui {
                         input->release_capture();
 
                         // After releasing capture, update hover state based on current mouse position
-                        // This ensures is_hovered() is correct when handle_mouse_up() is called
+                        // This ensures is_hovered() is correct when handle_mouse() is called
                         hit_test_path<Backend> hover_path;  // Temporary path for hover update
                         widget_type* hover_target = m_root->hit_test(mouse_x, mouse_y, hover_path);
                         input->set_hover(hover_target);

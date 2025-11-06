@@ -313,16 +313,6 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse click for arrow button interaction
-         * @param x Mouse x coordinate (absolute)
-         * @param y Mouse y coordinate (absolute)
-         * @return true if click was on an arrow and handled
-         */
-        bool handle_click(int x, int y) override {
-            return handle_arrow_click(x, y);
-        }
-
-        /**
          * @brief Internal helper to check and handle arrow clicks
          * @param x Mouse x coordinate (absolute)
          * @param y Mouse y coordinate (absolute)
@@ -390,20 +380,34 @@ namespace onyxui {
         }
 
         /**
-         * @brief Handle mouse movement for hover states
-         * @param x Mouse x coordinate
-         * @param y Mouse y coordinate
+         * @brief Handle mouse events (unified handler)
+         * @param mouse Mouse event containing position, button, and action
          * @return true if handled
+         *
+         * @details
+         * Handles mouse interactions with scrollbar components:
+         * - Move: Updates hover states for thumb and arrows
+         * - Press: Sets pressed states
+         * - Release: Clears pressed states
          */
-        bool handle_mouse_move(int x, int y) override {
+        bool handle_mouse(const mouse_event& mouse) override {
+            // Track hover state before base class updates it
+            bool const was_hovered = this->is_hovered();
+
+            // Let base class handle the event first
+            bool handled = base::handle_mouse(mouse);
+
+            // Detect hover state changes
+            bool const now_hovered = this->is_hovered();
+
             auto const* themes = ui_services<Backend>::themes();
             if (!themes) {
-                return false;
+                return handled;
             }
 
             auto const* theme = themes->get_current_theme();
             if (!theme) {
-                return false;
+                return handled;
             }
 
             scrollbar_style const style = theme->scrollbar.style;
@@ -411,123 +415,97 @@ namespace onyxui {
 
             // Convert to relative coordinates
             auto const bounds = this->bounds();
-            int const rel_x = x - rect_utils::get_x(bounds);
-            int const rel_y = y - rect_utils::get_y(bounds);
+            int const rel_x = mouse.x - rect_utils::get_x(bounds);
+            int const rel_y = mouse.y - rect_utils::get_y(bounds);
             point_type const rel_point{rel_x, rel_y};
 
-            // Update thumb hover state
-            if (point_in_rect(rel_point, layout.thumb)) {
-                if (m_thumb->get_state() != thumb_state::pressed) {
-                    m_thumb->set_state(thumb_state::hover);
+            // Dispatch based on action type
+            switch (mouse.act) {
+                case mouse_event::action::move:
+                    if (now_hovered) {
+                        // Update thumb hover state
+                        if (point_in_rect(rel_point, layout.thumb)) {
+                            if (m_thumb->get_state() != thumb_state::pressed) {
+                                m_thumb->set_state(thumb_state::hover);
+                            }
+                        } else if (m_thumb->get_state() == thumb_state::hover) {
+                            m_thumb->set_state(thumb_state::normal);
+                        }
+
+                        // Update arrow hover states
+                        if (layout.has_arrows()) {
+                            bool const dec_hover = point_in_rect(rel_point, layout.arrow_decrement);
+                            bool const inc_hover = point_in_rect(rel_point, layout.arrow_increment);
+
+                            if (m_arrow_dec->get_state() != arrow_state::pressed) {
+                                m_arrow_dec->set_state(dec_hover ? arrow_state::hover : arrow_state::normal);
+                            }
+                            if (m_arrow_inc->get_state() != arrow_state::pressed) {
+                                m_arrow_inc->set_state(inc_hover ? arrow_state::hover : arrow_state::normal);
+                            }
+                        }
+                    }
+                    break;
+
+                case mouse_event::action::press:
+                    // Update thumb pressed state
+                    if (point_in_rect(rel_point, layout.thumb)) {
+                        m_thumb->set_state(thumb_state::pressed);
+                    }
+
+                    // Update arrow pressed states
+                    if (layout.has_arrows()) {
+                        if (point_in_rect(rel_point, layout.arrow_decrement)) {
+                            m_arrow_dec->set_state(arrow_state::pressed);
+                        }
+                        if (point_in_rect(rel_point, layout.arrow_increment)) {
+                            m_arrow_inc->set_state(arrow_state::pressed);
+                        }
+                    }
+                    break;
+
+                case mouse_event::action::release:
+                    // Clear pressed states on all children
+                    if (m_thumb->get_state() == thumb_state::pressed) {
+                        m_thumb->set_state(thumb_state::normal);
+                    }
+
+                    if (m_arrow_dec->get_state() == arrow_state::pressed) {
+                        m_arrow_dec->set_state(arrow_state::normal);
+                    }
+
+                    if (m_arrow_inc->get_state() == arrow_state::pressed) {
+                        m_arrow_inc->set_state(arrow_state::normal);
+                    }
+
+                    // Handle arrow clicks (release inside generates click)
+                    if (handled) {  // Click was generated by base class
+                        handle_arrow_click(mouse.x, mouse.y);
+                    }
+                    break;
+
+                case mouse_event::action::wheel_up:
+                case mouse_event::action::wheel_down:
+                    break;
+            }
+
+            // Handle mouse leave (hover state changed from true to false)
+            if (was_hovered && !now_hovered) {
+                // Clear hover states on all children
+                if (m_thumb->get_state() == thumb_state::hover) {
+                    m_thumb->set_state(thumb_state::normal);
                 }
-            } else if (m_thumb->get_state() == thumb_state::hover) {
-                m_thumb->set_state(thumb_state::normal);
-            }
 
-            // Update arrow hover states
-            if (layout.has_arrows()) {
-                bool const dec_hover = point_in_rect(rel_point, layout.arrow_decrement);
-                bool const inc_hover = point_in_rect(rel_point, layout.arrow_increment);
-
-                if (m_arrow_dec->get_state() != arrow_state::pressed) {
-                    m_arrow_dec->set_state(dec_hover ? arrow_state::hover : arrow_state::normal);
+                if (m_arrow_dec->get_state() == arrow_state::hover) {
+                    m_arrow_dec->set_state(arrow_state::normal);
                 }
-                if (m_arrow_inc->get_state() != arrow_state::pressed) {
-                    m_arrow_inc->set_state(inc_hover ? arrow_state::hover : arrow_state::normal);
+
+                if (m_arrow_inc->get_state() == arrow_state::hover) {
+                    m_arrow_inc->set_state(arrow_state::normal);
                 }
             }
 
-            return base::handle_mouse_move(x, y);
-        }
-
-        /**
-         * @brief Handle mouse button press
-         * @param x Mouse x coordinate
-         * @param y Mouse y coordinate
-         * @param button Mouse button number
-         * @return true if handled
-         */
-        bool handle_mouse_down(int x, int y, int button) override {
-            auto const* themes = ui_services<Backend>::themes();
-            if (!themes) {
-                return false;
-            }
-
-            auto const* theme = themes->get_current_theme();
-            if (!theme) {
-                return false;
-            }
-
-            scrollbar_style const style = theme->scrollbar.style;
-            auto const layout = calculate_layout(style);
-
-            // Convert to relative coordinates
-            auto const bounds = this->bounds();
-            int const rel_x = x - rect_utils::get_x(bounds);
-            int const rel_y = y - rect_utils::get_y(bounds);
-            point_type const rel_point{rel_x, rel_y};
-
-            // Update thumb pressed state
-            if (point_in_rect(rel_point, layout.thumb)) {
-                m_thumb->set_state(thumb_state::pressed);
-            }
-
-            // Update arrow pressed states
-            if (layout.has_arrows()) {
-                if (point_in_rect(rel_point, layout.arrow_decrement)) {
-                    m_arrow_dec->set_state(arrow_state::pressed);
-                }
-                if (point_in_rect(rel_point, layout.arrow_increment)) {
-                    m_arrow_inc->set_state(arrow_state::pressed);
-                }
-            }
-
-            return base::handle_mouse_down(x, y, button);
-        }
-
-        /**
-         * @brief Handle mouse button release
-         * @param x Mouse x coordinate
-         * @param y Mouse y coordinate
-         * @param button Mouse button number
-         * @return true if handled
-         */
-        bool handle_mouse_up(int x, int y, int button) override {
-            // Clear pressed states on all children
-            if (m_thumb->get_state() == thumb_state::pressed) {
-                m_thumb->set_state(thumb_state::normal);
-            }
-
-            if (m_arrow_dec->get_state() == arrow_state::pressed) {
-                m_arrow_dec->set_state(arrow_state::normal);
-            }
-
-            if (m_arrow_inc->get_state() == arrow_state::pressed) {
-                m_arrow_inc->set_state(arrow_state::normal);
-            }
-
-            return base::handle_mouse_up(x, y, button);
-        }
-
-        /**
-         * @brief Handle mouse leaving widget
-         * @return true if handled
-         */
-        bool handle_mouse_leave() override {
-            // Clear hover states on all children
-            if (m_thumb->get_state() == thumb_state::hover) {
-                m_thumb->set_state(thumb_state::normal);
-            }
-
-            if (m_arrow_dec->get_state() == arrow_state::hover) {
-                m_arrow_dec->set_state(arrow_state::normal);
-            }
-
-            if (m_arrow_inc->get_state() == arrow_state::hover) {
-                m_arrow_inc->set_state(arrow_state::normal);
-            }
-
-            return base::handle_mouse_leave();
+            return handled;
         }
 
         /**

@@ -6,6 +6,7 @@
 
 #include <../../include/onyxui/widgets/core/widget.hh>
 #include <onyxui/widgets/button.hh>
+#include <onyxui/events/ui_event.hh>
 
 namespace onyxui {
     // Test fixture to expose protected methods and simulate events
@@ -13,15 +14,29 @@ namespace onyxui {
     class test_widget : public widget <Backend> {
         public:
             using widget <Backend>::widget;
-            using widget <Backend>::handle_mouse_enter;
-            using widget <Backend>::handle_mouse_leave;
-            using widget <Backend>::handle_click;
-            using widget <Backend>::handle_focus_gained;
-            using widget <Backend>::handle_focus_lost;
+            // New API - expose handle_mouse/keyboard/resize for testing
+            using widget <Backend>::handle_mouse;
+            using widget <Backend>::handle_keyboard;
+            using widget <Backend>::handle_resize;
+
+            // Public wrapper to expose protected set_focus for testing
+            void test_set_focus(bool focused) {
+                this->set_focus(focused);
+            }
 
             // Simulate a complete click (press + release)
             void simulate_click() {
-                this->handle_click(0, 0);
+                // Ensure widget has valid bounds for hit testing
+                auto current_bounds = this->bounds();
+                if (rect_utils::get_width(current_bounds) == 0 || rect_utils::get_height(current_bounds) == 0) {
+                    this->arrange({0, 0, 100, 50});
+                }
+
+                mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+                this->handle_event(ui_event{press}, event_phase::target);
+
+                mouse_event release{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+                this->handle_event(ui_event{release}, event_phase::target);
             }
     };
 
@@ -29,16 +44,21 @@ namespace onyxui {
     class test_button : public button <Backend> {
         public:
             using button <Backend>::button;
-            using button <Backend>::handle_click;
-            using button <Backend>::handle_mouse_down;
-            using button <Backend>::handle_mouse_up;
-            using button <Backend>::handle_mouse_leave;
-            using button <Backend>::handle_mouse_enter;
-            using button <Backend>::process_mouse_move;
-            using button <Backend>::process_mouse_button;
+            // New API - expose handle_mouse for testing
+            using button <Backend>::handle_mouse;
 
             void simulate_click() {
-                this->handle_click(0, 0);
+                // Ensure widget has valid bounds for hit testing
+                auto current_bounds = this->bounds();
+                if (rect_utils::get_width(current_bounds) == 0 || rect_utils::get_height(current_bounds) == 0) {
+                    this->arrange({0, 0, 100, 50});
+                }
+
+                mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+                this->handle_event(ui_event{press}, event_phase::target);
+
+                mouse_event release{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+                this->handle_event(ui_event{release}, event_phase::target);
             }
 
             // Expose state query for testing (visual interaction_state)

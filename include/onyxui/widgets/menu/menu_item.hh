@@ -485,23 +485,6 @@ namespace onyxui {
 
 
         /**
-         * @brief Handle mouse enter (hover)
-         *
-         * @details
-         * Mouse hover sets focus (DOS-style menu behavior).
-         * This ensures keyboard navigation works from the hovered position.
-         */
-        bool handle_mouse_enter() override {
-            // Mouse hover also sets focus (DOS menu behavior)
-            auto* input = ui_services<Backend>::input();
-            if (input && this->is_focusable() && this->is_enabled()) {
-                input->set_focus(this);
-            }
-
-            return base::handle_mouse_enter();  // Sets hover state
-        }
-
-        /**
          * @brief Handle mouse events (NEW Phase 4 API)
          * @param mouse Mouse event containing action, position, button, and modifiers
          * @return true if event was handled
@@ -512,12 +495,29 @@ namespace onyxui {
          * - Press: Sets pressed state
          * - Release: Returns to hover or normal
          *
+         * Additionally, mouse hover sets focus (DOS-style menu behavior).
+         * This ensures keyboard navigation works from the hovered position.
+         *
          * Menu item actions are triggered via the base widget's clicked signal,
          * which is emitted automatically on press+release.
          */
         bool handle_mouse(const mouse_event& mouse) override {
+            // Track hover state changes
+            bool const was_hovered = this->is_hovered();
+
             // Use base implementation (stateful_widget handles state management)
-            return base::handle_mouse(mouse);
+            bool handled = base::handle_mouse(mouse);
+
+            // Detect hover enter and set focus (DOS menu behavior)
+            bool const now_hovered = this->is_hovered();
+            if (now_hovered && !was_hovered) {
+                auto* input = ui_services<Backend>::input();
+                if (input && this->is_focusable() && this->is_enabled()) {
+                    input->set_focus(this);
+                }
+            }
+
+            return handled;
         }
 
         /**
