@@ -16,6 +16,7 @@
 #include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/ui_constants.hh>  // For default padding values
+#include <onyxui/services/ui_services.hh>  // For focus management
 #include "onyxui/core/rendering/render_context.hh"
 
 namespace onyxui {
@@ -143,6 +144,35 @@ namespace onyxui {
          */
         [[nodiscard]] bool has_mnemonic() const noexcept {
             return get_mnemonic_char() != '\0';
+        }
+
+        /**
+         * @brief Override handle_event to request focus on mouse click
+         * @param event The event to handle
+         * @param phase The event routing phase
+         * @return false (let base class handle the event)
+         *
+         * @details
+         * Buttons need to request focus when clicked so that Enter key works.
+         * Uses capture phase to request focus before event reaches target phase.
+         */
+        bool handle_event(const ui_event& event, event_phase phase) override {
+            // Request focus on mouse press (capture phase, before target)
+            if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
+                if (mouse_evt->act == mouse_event::action::press) {
+                    if (phase == event_phase::capture) {
+                        auto* input = ui_services<Backend>::input();
+                        if (input && this->is_focusable()) {
+                            input->set_focus(this);
+                        }
+                        // Don't consume - let event continue to target phase for click handling
+                        return false;
+                    }
+                }
+            }
+
+            // Let base class handle all other events
+            return base::handle_event(event, phase);
         }
 
     private:
