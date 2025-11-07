@@ -708,6 +708,11 @@ namespace onyxui::conio {
             theme.button.disabled.foreground = dark_gray;
             theme.button.disabled.mnemonic_foreground = dark_gray;  // Dimmed when disabled
 
+            // Enable button shadows for depth effect (classic DOS look)
+            theme.button.shadow.enabled = true;
+            theme.button.shadow.offset_x = 1;
+            theme.button.shadow.offset_y = 1;
+
             theme.label.text = theme.text_fg;
             theme.label.background = theme.window_bg;
 

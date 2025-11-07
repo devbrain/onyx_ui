@@ -78,6 +78,19 @@ namespace onyxui {
         };
 
         /**
+         * @brief Shadow configuration for popup elements and buttons
+         * @details
+         * Defines whether shadows are enabled and their offset.
+         * Backend determines rendering method (e.g., darkening, shading characters).
+         * Used by menus, dialogs, tooltips, and buttons.
+         */
+        struct shadow_config {
+            bool enabled = false;      ///< Enable/disable shadow rendering
+            int offset_x = 1;          ///< Horizontal shadow offset (pixels/cells to the right)
+            int offset_y = 1;          ///< Vertical shadow offset (pixels/cells down)
+        };
+
+        /**
          * @brief Button styling - REFACTORED to use visual_state (BREAKING CHANGE)
          * @details Old: fg_normal/bg_normal pattern → New: state bundles
          */
@@ -91,6 +104,7 @@ namespace onyxui {
             // Button-specific styling
             font_type mnemonic_font{};        ///< Font for mnemonic character (typically underlined)
             box_style_type box_style{};       ///< Box drawing style
+            shadow_config shadow;             ///< Shadow configuration for button depth effect
 
             // Layout preferences
             int padding_horizontal = 4;       ///< Horizontal padding (left/right) in renderer units
@@ -111,18 +125,6 @@ namespace onyxui {
             color_type background;
             font_type font{};              // Font for normal text - Use {} to trigger default member initializers
             font_type mnemonic_font{};     // Font for mnemonic character (typically underlined)
-        };
-
-        /**
-         * @brief Shadow configuration for popup elements (menus, dialogs, tooltips)
-         * @details
-         * Defines whether shadows are enabled and their offset.
-         * Backend determines rendering method (e.g., darkening, shading characters).
-         */
-        struct shadow_config {
-            bool enabled = false;      ///< Enable/disable shadow rendering
-            int offset_x = 1;          ///< Horizontal shadow offset (pixels/cells to the right)
-            int offset_y = 1;          ///< Vertical shadow offset (pixels/cells down)
         };
 
         struct menu_style {
