@@ -85,6 +85,19 @@ namespace onyxui::conio {
              */
             void darken_region(const rect& shadow_rect, float factor);
 
+            /**
+             * @brief Lighten a rectangular region for highlight effect
+             *
+             * @param highlight_rect Rectangle to lighten
+             * @param factor Lightening factor (1.0 = unchanged, 2.0 = twice as bright, clamped to white)
+             *
+             * @details
+             * Multiplies the background color of each cell in the region by the factor.
+             * Used for rendering 3D button highlights (top and left edges).
+             * Respects clipping boundaries.
+             */
+            void lighten_region(const rect& highlight_rect, float factor);
+
             [[nodiscard]] int get_width() const;
             [[nodiscard]] int get_height() const;
 

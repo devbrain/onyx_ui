@@ -238,6 +238,24 @@ namespace onyxui::conio {
             void draw_shadow(const rect& widget_bounds, int offset_x, int offset_y);
 
             /**
+             * @brief Draw 3D highlight for raised buttons
+             * @param widget_bounds Bounds of the widget to highlight
+             * @param offset_x Width of left highlight edge (cells)
+             * @param offset_y Height of top highlight edge (cells)
+             *
+             * @details
+             * Draws a 3D raised effect by lightening the left and top edges.
+             * Combined with draw_shadow (right/bottom), creates classic DOS/Windows 3.1
+             * button appearance.
+             *
+             * Backend-specific rendering:
+             * - Uses 150% brightening factor
+             * - Respects clipping boundaries
+             * - Works in all color modes (truecolor, 256-color, ANSI)
+             */
+            void draw_highlight(const rect& widget_bounds, int offset_x, int offset_y);
+
+            /**
              * @brief Draw a horizontal line
              * @param r Rectangle defining the line bounds (y and height define line position, x and w define extent)
              * @param style Line drawing style

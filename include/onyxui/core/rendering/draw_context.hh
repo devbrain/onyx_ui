@@ -375,6 +375,24 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw 3D highlight for raised buttons
+         * @param widget_bounds Bounds of widget to highlight
+         * @param offset_x Width of left highlight edge
+         * @param offset_y Height of top highlight edge
+         *
+         * @details
+         * Delegates to renderer for backend-specific highlight rendering.
+         * Backend determines brightening factor, highlight pattern, etc.
+         */
+        void draw_highlight(
+            const rect_type& widget_bounds,
+            int offset_x,
+            int offset_y
+        ) override {
+            m_renderer->draw_highlight(widget_bounds, offset_x, offset_y);
+        }
+
+        /**
          * @brief Check if context is rendering
          * @return true (draw_context is always rendering)
          */

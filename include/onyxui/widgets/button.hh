@@ -224,12 +224,20 @@ namespace onyxui {
             auto fg = ctx.style().foreground_color;
             auto mnemonic_fg = ctx.style().mnemonic_foreground;
 
-            // Draw shadow BEFORE button (so it appears behind) if enabled in theme
-            // Only draw shadow when button is NOT pressed (creates depth effect)
+            // Draw 3D effects BEFORE button (so they appear behind) if enabled in theme
+            // Only draw 3D effects when button is NOT pressed (creates raised depth effect)
             if (theme && theme->button.shadow.enabled) {
                 auto current_state = this->get_effective_state();
                 if (current_state != base::interaction_state::pressed) {
+                    // Draw shadow on right and bottom edges (dark)
                     ctx.draw_shadow(
+                        button_rect,
+                        theme->button.shadow.offset_x,
+                        theme->button.shadow.offset_y
+                    );
+
+                    // Draw highlight on left and top edges (bright)
+                    ctx.draw_highlight(
                         button_rect,
                         theme->button.shadow.offset_x,
                         theme->button.shadow.offset_y

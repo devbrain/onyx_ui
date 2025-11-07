@@ -317,6 +317,47 @@ namespace onyxui::conio {
         m_pimpl->m_dirty = true;
     }
 
+    void vram::lighten_region(const rect& highlight_rect, float factor) {
+        // Helper to extract RGB from mapped color (works for all color modes)
+        auto extract_rgb = [](uint32_t mapped) -> color {
+            // For truecolor mode: rgb24(r,g,b) = (r<<16)|(g<<8)|b
+            // For 256/ANSI modes: approximate back to RGB (lossy but good enough)
+            uint8_t r = static_cast<uint8_t>((mapped >> 16) & 0xFF);
+            uint8_t g = static_cast<uint8_t>((mapped >> 8) & 0xFF);
+            uint8_t b = static_cast<uint8_t>(mapped & 0xFF);
+            return color{r, g, b};
+        };
+
+        // Lighten each cell in the highlight region
+        for (int y = highlight_rect.y; y < highlight_rect.y + highlight_rect.h; ++y) {
+            for (int x = highlight_rect.x; x < highlight_rect.x + highlight_rect.w; ++x) {
+                if (!m_pimpl->clip(x, y)) {
+                    continue;  // Respect clipping
+                }
+
+                auto& c = m_pimpl->get_cell(x, y);
+
+                // Extract current background RGB
+                color bg = extract_rgb(c.bg);
+
+                // Lighten by multiplying each component (clamp to 255)
+                auto lighten_component = [factor](uint8_t component) -> uint8_t {
+                    float lightened = static_cast<float>(component) * factor;
+                    return static_cast<uint8_t>(std::min(255.0f, lightened));
+                };
+
+                uint8_t lightened_r = lighten_component(bg.r);
+                uint8_t lightened_g = lighten_component(bg.g);
+                uint8_t lightened_b = lighten_component(bg.b);
+
+                // Re-map to current color mode
+                c.bg = m_pimpl->m_mapper_fn(lightened_r, lightened_g, lightened_b);
+            }
+        }
+
+        m_pimpl->m_dirty = true;
+    }
+
     int vram::get_width() const {
         // Return our internal width, not tb_width()
         // tb_width() returns the CURRENT terminal size which may have changed
