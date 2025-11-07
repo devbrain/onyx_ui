@@ -262,24 +262,6 @@ namespace onyxui {
         ) = 0;
 
         /**
-         * @brief Draw 3D highlight effect for raised buttons
-         * @param widget_bounds Widget rectangle to highlight
-         * @param offset_x Width of left highlight edge
-         * @param offset_y Height of top highlight edge
-         *
-         * @details
-         * Creates classic DOS/Windows 3.1 raised button effect by brightening
-         * left and top edges. Combined with draw_shadow, creates complete 3D effect.
-         *
-         * Only called during rendering pass - measure_context can no-op this.
-         */
-        virtual void draw_highlight(
-            const rect_type& widget_bounds,
-            int offset_x,
-            int offset_y
-        ) = 0;
-
-        /**
          * @brief Check if context is in rendering mode
          * @return true for draw_context, false for measure_context
          *

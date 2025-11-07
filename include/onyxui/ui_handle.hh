@@ -378,19 +378,20 @@ namespace onyxui {
                     }
                 }
 
-                // 2. Try global hotkeys from service locator
-                // NEW Phase 6: Use ui_event API for hotkeys
-                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
-                    if (hotkeys->handle_ui_event(ui_evt, nullptr)) {
-                        return true;  // Global hotkey handled
-                    }
-                }
-
-                // 3. Get focused widget for forwarding
+                // 2. Get focused widget for hotkey dispatch
                 widget_type* focused = nullptr;
                 if (auto* input = ui_services<Backend>::input()) {
                     auto* focused_target = input->get_focused();
                     focused = static_cast<widget_type*>(focused_target);
+                }
+
+                // 3. Try global hotkeys from service locator
+                // NEW Phase 6: Use ui_event API for hotkeys
+                // IMPORTANT: Pass focused element so semantic actions can be dispatched to it
+                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                    if (hotkeys->handle_ui_event(ui_evt, focused)) {
+                        return true;  // Global hotkey handled
+                    }
                 }
 
                 // 3.5. Handle activate_focused semantic action for widgets that accept keys as clicks

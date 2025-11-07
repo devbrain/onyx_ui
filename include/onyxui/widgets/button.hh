@@ -162,8 +162,13 @@ namespace onyxui {
                 if (mouse_evt->act == mouse_event::action::press) {
                     if (phase == event_phase::capture) {
                         auto* input = ui_services<Backend>::input();
+                        std::cerr << "[button] Mouse press on button '" << m_text << "'" << std::endl;
+                        std::cerr << "[button] is_focusable=" << this->is_focusable()
+                                  << " input=" << (input ? "yes" : "null") << std::endl;
                         if (input && this->is_focusable()) {
                             input->set_focus(this);
+                            std::cerr << "[button] Requested focus for button '" << m_text << "'" << std::endl;
+                            std::cerr << "[button] Current focused widget: " << input->get_focused() << std::endl;
                         }
                         // Don't consume - let event continue to target phase for click handling
                         return false;
@@ -314,20 +319,13 @@ namespace onyxui {
                 ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
             }
 
-            // Draw 3D effects AFTER button content (like menu shadows)
+            // Draw shadow AFTER button content (like menu shadows)
             // Only draw when button is NOT pressed (creates raised depth effect)
             if (theme->button.shadow.enabled) {
                 auto current_state = this->get_effective_state();
                 if (current_state != base::interaction_state::pressed) {
                     // Draw shadow on right and bottom edges (darkens background OUTSIDE button)
                     ctx.draw_shadow(
-                        button_rect,
-                        theme->button.shadow.offset_x,
-                        theme->button.shadow.offset_y
-                    );
-
-                    // Draw highlight on left and top edges (brightens button border area)
-                    ctx.draw_highlight(
                         button_rect,
                         theme->button.shadow.offset_x,
                         theme->button.shadow.offset_y

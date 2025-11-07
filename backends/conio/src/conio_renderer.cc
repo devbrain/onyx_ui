@@ -293,30 +293,6 @@ namespace onyxui::conio {
         m_pimpl->m_vram.darken_region(shadow_bottom, SHADOW_DARKEN_FACTOR);
     }
 
-    void conio_renderer::draw_highlight(const rect& widget_bounds, int offset_x, int offset_y) {
-        constexpr float HIGHLIGHT_BRIGHTEN_FACTOR = 1.5f;  // Backend-specific constant
-
-        // Highlight on the left (vertical strip) - stops before corner to avoid double-brightening
-        rect highlight_left{
-            widget_bounds.x,
-            widget_bounds.y,
-            offset_x,
-            widget_bounds.h - offset_y  // Don't extend into corner
-        };
-
-        // Highlight at the top (horizontal strip) - includes corner area
-        rect highlight_top{
-            widget_bounds.x,
-            widget_bounds.y,
-            widget_bounds.w,
-            offset_y
-        };
-
-        // Brighten both highlight regions (they don't overlap now)
-        m_pimpl->m_vram.lighten_region(highlight_left, HIGHLIGHT_BRIGHTEN_FACTOR);
-        m_pimpl->m_vram.lighten_region(highlight_top, HIGHLIGHT_BRIGHTEN_FACTOR);
-    }
-
     // ======================================================================
     // Line Drawing
     // ======================================================================

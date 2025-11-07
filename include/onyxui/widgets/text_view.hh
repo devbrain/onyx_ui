@@ -285,8 +285,9 @@ namespace onyxui {
          * This is why we need three-phase routing!
          */
         bool handle_event(const ui_event& event, event_phase phase) override {
-            // Check if this is a mouse button press
+            // Check if this is a mouse event
             if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
+                // Handle mouse button press (for focus)
                 if (mouse_evt->act == mouse_event::action::press) {
                     // In CAPTURE phase, request focus before children handle the event
                     if (phase == event_phase::capture) {
@@ -298,6 +299,16 @@ namespace onyxui {
                     // Return false in ALL phases to allow event to continue to children
                     // (label might want to handle clicks for selection, etc.)
                     return false;
+                }
+
+                // Handle mouse wheel (for scrolling)
+                if (mouse_evt->act == mouse_event::action::wheel_up) {
+                    // Trigger scroll_up semantic action (scroll up 3 lines)
+                    return this->handle_semantic_action(hotkey_action::scroll_up);
+                }
+                if (mouse_evt->act == mouse_event::action::wheel_down) {
+                    // Trigger scroll_down semantic action (scroll down 3 lines)
+                    return this->handle_semantic_action(hotkey_action::scroll_down);
                 }
             }
 
@@ -399,8 +410,11 @@ namespace onyxui {
             // Create scroll view with always-visible scrollbars
             auto scroll_view_ptr = classic_scroll_view<Backend>();
 
-            // Explicitly ensure scrollbars are always visible
-            scroll_view_ptr->set_scrollbar_policy(scrollbar_visibility::always);
+            // Only show vertical scrollbar (horizontal is hidden since text wraps)
+            scroll_view_ptr->set_scrollbar_policy(
+                scrollbar_visibility::hidden,  // Horizontal: hidden
+                scrollbar_visibility::always   // Vertical: always visible
+            );
 
             // Create content container
             auto content_container_ptr = std::make_unique<panel<Backend>>();

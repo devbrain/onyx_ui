@@ -36,17 +36,8 @@ int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
                 continue;
             }
 
-            // Debug keyboard events
-            if (ev.type == TB_EVENT_KEY) {
-                std::cerr << "[demo] Keyboard event: key=" << ev.key << " ch=" << (char)ev.ch << " mod=" << ev.mod << "\n";
-            }
-            if (ev.type == TB_EVENT_MOUSE) {
-                std::cerr << "[demo] Mouse event: x=" << ev.x << " y=" << ev.y << " button=" << ev.key << "\n";
-            }
-
             // Route all events through ui_handle's event system
             bool handled = ui.handle_event(ev);
-            std::cerr << "[demo] Event handled: " << handled << "\n";
 
             // If ESC wasn't handled by UI (no menu open), quit
             if (ev.type == TB_EVENT_KEY && ev.key == TB_KEY_ESC && !handled) {

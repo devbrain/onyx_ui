@@ -571,7 +571,10 @@ namespace onyxui {
 
             // Emit click signal when release happens inside (base class returns true)
             if (mouse.act == mouse_event::action::release && handled) {
+                std::cerr << "[widget] Emitting clicked signal" << std::endl;
                 clicked.emit();
+            } else if (mouse.act == mouse_event::action::release && !handled) {
+                std::cerr << "[widget] Mouse release NOT inside - clicked NOT emitted (handled=" << handled << ")" << std::endl;
             }
 
             // Emit mouse_moved for move events
@@ -606,6 +609,27 @@ namespace onyxui {
             }
 
             return handled;
+        }
+
+        /**
+         * @brief Handle semantic actions
+         * @param action The semantic action to handle
+         * @return true if handled, false otherwise
+         *
+         * @details
+         * Widgets handle activate_focused by emitting clicked signal.
+         * This is the proper way to trigger widget activation via keyboard.
+         */
+        bool handle_semantic_action(hotkey_action action) override {
+            if (action == hotkey_action::activate_focused) {
+                if (this->accepts_keys_as_click()) {
+                    clicked.emit();
+                    return true;  // Handled
+                }
+            }
+
+            // Not handled - let base class try
+            return base::handle_semantic_action(action);
         }
 
         /**

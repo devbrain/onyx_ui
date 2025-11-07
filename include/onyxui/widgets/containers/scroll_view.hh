@@ -85,8 +85,9 @@ namespace onyxui {
             m_vscrollbar_ptr = vscrollbar.get();
             m_hscrollbar_ptr = hscrollbar.get();
 
-            // Scrollbars handle their own minimum sizing via theme->scrollbar.min_render_size
-            // in their do_measure() implementation - no need for external constraints
+            // Set alignment to position scrollbars at widget edges
+            vscrollbar->set_horizontal_align(horizontal_alignment::right);  // Vertical scrollbar at right edge
+            hscrollbar->set_vertical_align(vertical_alignment::bottom);      // Horizontal scrollbar at bottom edge
 
             // Set default vertical layout for scrollable content
             // This ensures children are arranged vertically by default
