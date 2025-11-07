@@ -52,6 +52,7 @@
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/actions/action.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
 
@@ -190,12 +191,24 @@ namespace onyxui {
          * @brief Reset interaction state to normal
          *
          * @details
-         * Clears hover/pressed state. Used when menu is opened
+         * Clears hover/pressed state AND focus. Used when menu is opened
          * to prevent stale highlighting from previous sessions.
          */
         void reset_state() {
             if (this->is_enabled()) {
+                // Clear hover and pressed state (event_target flags)
+                this->reset_hover_and_press_state();
+
+                // Reset interaction state to normal (stateful_widget state)
                 this->set_interaction_state(base::interaction_state::normal);
+
+                // Also clear focus - highlighting depends on both interaction_state AND focus
+                // menu_item.hh line 458: if (this->is_hovered() || this->has_focus())
+                if (this->has_focus()) {
+                    if (auto* input = ui_services<Backend>::input()) {
+                        input->clear_focus();
+                    }
+                }
             }
         }
 

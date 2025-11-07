@@ -377,6 +377,22 @@ namespace onyxui {
              */
             void set_focus(bool focus);
 
+            /**
+             * @brief Reset hover and pressed state
+             *
+             * @details
+             * Clears the internal hover and pressed state flags. Used when widgets
+             * need to reset their mouse interaction state without simulating mouse events
+             * (e.g., when a popup menu closes and items need to clear stale hover state).
+             *
+             * This is a clean alternative to sending synthetic mouse events.
+             */
+            void reset_hover_and_press_state() noexcept {
+                m_is_hovered = false;
+                m_is_pressed = false;
+                m_press_started_inside = false;
+            }
+
         private:
 
             // State tracking
