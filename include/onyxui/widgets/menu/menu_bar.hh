@@ -558,10 +558,8 @@ namespace onyxui {
         // RAII cleanup - scoped_layer automatically removes layer
         m_current_menu.reset();
 
-        // Clear focus
-        if (auto* focus = ui_services<Backend>::input()) {
-            focus->clear_focus();
-        }
+        // Don't clear focus - let it naturally return to previously focused widget
+        // Clearing focus breaks Enter key on buttons after menu closes
 
         m_open_menu_index = std::nullopt;
     }
