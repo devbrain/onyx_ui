@@ -215,15 +215,15 @@ private:
         // Constrain height to prevent overlap with menu and other elements
         // NOTE: text_view uses always-visible scrollbars with "classic" style (arrow buttons).
         //   For 80-line terminal with text_view starting around line 20-21:
-        //   - Available space: ~26-28 lines for text_view
+        //   - Available space: ~24-26 lines for text_view (reduced due to 1px spacing between widgets)
         //   - Border: 2px (top + bottom)
         //   - Grid needs: content area + 2 scrollbar rows
         //   - Min size for scrollbars: 8px each (to avoid corruption)
         onyxui::size_constraint height_constraint;
         height_constraint.policy = onyxui::size_policy::content;  // Size based on content
-        height_constraint.preferred_size = 20;  // Preferred height
+        height_constraint.preferred_size = 18;  // Preferred height (reduced from 20)
         height_constraint.min_size = 10;        // Minimum: border (2) + scrollbar min_render_size (8)
-        height_constraint.max_size = 28;        // Maximum: reasonable size for 55-line terminal
+        height_constraint.max_size = 24;        // Maximum: adjusted for 1px widget spacing overhead
         text_view_widget->set_height_constraint(height_constraint);
 
         // Save pointer before moving
