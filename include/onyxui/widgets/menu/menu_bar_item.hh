@@ -140,6 +140,22 @@ namespace onyxui {
             return m_is_menu_open;
         }
 
+        /**
+         * @brief Reset hover and pressed state
+         *
+         * @details
+         * Clears the hover and pressed state flags without simulating mouse events.
+         * Used by menu_bar when switching between menu items to prevent stale highlighting.
+         * Similar to menu_item::reset_state() but simpler (no focus clearing needed).
+         */
+        void reset_state() {
+            // Clear hover and pressed state (event_target flags)
+            this->reset_hover_and_press_state();
+
+            // Reset interaction state to normal (stateful_widget state)
+            this->set_interaction_state(base::interaction_state::normal);
+        }
+
     protected:
         /**
          * @brief Render the menu bar item

@@ -508,11 +508,12 @@ namespace onyxui {
 
         m_open_menu_index = index;
 
-        // Clear menu_open state on ALL items, then set only the current one
-        // This prevents stale highlighting on other menu items
+        // Reset ALL menu bar items to clear hover/pressed/menu_open state
+        // This prevents stale highlighting from previous interactions
         for (std::size_t i = 0; i < m_menus.size(); ++i) {
             if (m_menus[i].title_item) {
-                m_menus[i].title_item->set_menu_open(i == index);
+                m_menus[i].title_item->reset_state();  // Clear hover and interaction state
+                m_menus[i].title_item->set_menu_open(i == index);  // Then set menu_open for current
             }
         }
 
@@ -542,10 +543,12 @@ namespace onyxui {
             return;
         }
 
-        // Clear menu_open state on ALL items (defensive - ensures no stale highlighting)
+        // Reset ALL menu bar items to clear hover/pressed/menu_open state
+        // This ensures no stale highlighting after menu closes
         for (auto& entry : m_menus) {
             if (entry.title_item) {
-                entry.title_item->set_menu_open(false);
+                entry.title_item->reset_state();      // Clear hover and interaction state
+                entry.title_item->set_menu_open(false);  // Clear menu_open flag
             }
         }
 
