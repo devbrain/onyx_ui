@@ -141,6 +141,11 @@ namespace onyxui {
                 register_navigation_hotkeys();
             }
 
+            // Reset all menu item states to prevent stale highlighting from previous sessions
+            if (menu) {
+                menu->reset_item_states();
+            }
+
             // Connect mouse click handlers for submenu items
             connect_submenu_click_handlers(menu);
         }

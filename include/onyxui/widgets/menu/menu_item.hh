@@ -187,6 +187,19 @@ namespace onyxui {
         }
 
         /**
+         * @brief Reset interaction state to normal
+         *
+         * @details
+         * Clears hover/pressed state. Used when menu is opened
+         * to prevent stale highlighting from previous sessions.
+         */
+        void reset_state() {
+            if (this->is_enabled()) {
+                this->set_interaction_state(base::interaction_state::normal);
+            }
+        }
+
+        /**
          * @brief Get the item type
          */
         [[nodiscard]] menu_item_type type() const noexcept {

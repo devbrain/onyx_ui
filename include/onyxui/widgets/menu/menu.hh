@@ -260,6 +260,22 @@ namespace onyxui {
         }
 
         /**
+         * @brief Reset all menu item interaction states to normal
+         *
+         * @details
+         * Resets all menu items to normal state (clears hover/pressed).
+         * Called when menu is opened to prevent stale highlighting
+         * from previous open/close cycles.
+         */
+        void reset_item_states() {
+            for (auto& child : this->children()) {
+                if (auto* item = dynamic_cast<menu_item<Backend>*>(child.get())) {
+                    item->reset_state();
+                }
+            }
+        }
+
+        /**
          * @brief Focus next item in menu
          *
          * @details
