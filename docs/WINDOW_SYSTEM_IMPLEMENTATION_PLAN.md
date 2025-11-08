@@ -1413,16 +1413,40 @@ mgr->clear_minimize_handler();
 
 ## Future Enhancements (Out of Scope)
 
-1. **Animations** (fade in/out, slide, etc.)
-2. **Window snapping** (to screen edges, other windows)
-3. **Taskbar** integration (minimized windows list)
-4. **MDI** (Multiple Document Interface) support
-5. **Tabbed windows** (browser-style tabs)
-6. **Window transparency** (alpha channel support)
-7. **Window shapes** (non-rectangular windows)
-8. **Aspect ratio** locking during resize
-9. **Custom title bar** content (beyond standard buttons)
-10. **Window grouping** (application windows together)
+### v2.0 Features
+
+1. **Wizard Dialog** (Multi-page dialogs with Back/Next/Finish navigation)
+   - `wizard<Backend>` subclass of `dialog<Backend>`
+   - `wizard_page<Backend>` base class for individual pages
+   - Per-page validation hooks
+   - Automatic button management (Back/Next/Finish/Cancel)
+   - Page lifecycle hooks (on_show, on_hide, on_finish)
+   - Estimated effort: 1-2 days
+   - Architecture already supports it (dialog subclass pattern)
+
+2. **Animations** (fade in/out, slide, etc.)
+
+3. **Window snapping** (to screen edges, other windows)
+
+4. **Taskbar** integration (minimized windows list - alternative to window list dialog)
+
+5. **MDI** (Multiple Document Interface) support
+
+6. **Tabbed windows** (browser-style tabs)
+
+7. **Window transparency** (alpha channel support)
+
+8. **Window shapes** (non-rectangular windows)
+
+9. **Aspect ratio** locking during resize
+
+10. **Custom title bar** content (beyond standard buttons)
+
+11. **Window grouping** (application windows together)
+
+12. **Drag-and-drop** between windows
+
+13. **Window screenshots** (capture window content to image)
 
 ---
 
