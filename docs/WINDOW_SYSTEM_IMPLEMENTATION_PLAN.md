@@ -71,6 +71,16 @@ window_list_dialog<Backend> (Turbo Vision style)
 ├── Keyboard navigation (arrows, Enter)
 ├── Filters (show all / only visible / only minimized)
 └── Restore/activate on selection
+
+dialog<Backend> (window subclass)
+├── Inherits all window functionality
+├── Defaults: modal=true, resizable=false, no min/max buttons
+├── Result management (dialog_result enum)
+├── Three result patterns:
+│   ├── Signal-based (result_ready signal)
+│   ├── Callback-based (show_modal with callback)
+│   └── Helper functions (show_info, show_confirm, show_message_box)
+└── Auto-wired button sets (OK, OK/Cancel, Yes/No, etc.)
 ```
 
 ### Class Structure
@@ -371,6 +381,106 @@ private:
 };
 ```
 
+#### 7. **`dialog<Backend>`** - Dialog Widget with Result Patterns
+
+```cpp
+/**
+ * @brief Dialog widget - window subclass with result management
+ *
+ * @details
+ * Provides convenient API for common dialog patterns (message boxes, confirmations).
+ * Supports three result patterns:
+ * 1. Signal-based (async, event-driven)
+ * 2. Callback-based (convenience wrapper)
+ * 3. Helper functions (maximum convenience)
+ *
+ * Dialogs are typically modal and non-resizable by default.
+ */
+template<UIBackend Backend>
+class dialog : public window<Backend> {
+public:
+    enum class dialog_result : uint8_t {
+        none,      // Still open or closed without result
+        ok,
+        cancel,
+        yes,
+        no,
+        abort,
+        retry,
+        ignore
+    };
+
+    explicit dialog(std::string title);
+
+    // Result management
+    void set_result(dialog_result result);      // Called by button handlers
+    dialog_result get_result() const;
+
+    // Show modal (both variants)
+    void show_modal();                                              // Signal-based
+    void show_modal(std::function<void(dialog_result)> on_result); // Callback-based
+
+    // Signal emitted when dialog closes
+    signal<dialog_result> result_ready;
+
+    // Convenience button sets (auto-wire to set_result and close)
+    void add_ok_button();
+    void add_ok_cancel_buttons();
+    void add_yes_no_buttons();
+    void add_yes_no_cancel_buttons();
+    void add_abort_retry_ignore_buttons();
+
+    // Custom button with result
+    button<Backend>* add_button(std::string text, dialog_result result);
+
+    // Dialog layout helpers
+    void set_message(const std::string& message);  // Main message area
+    void set_button_area(std::unique_ptr<ui_element<Backend>> buttons);
+
+private:
+    dialog_result m_result = dialog_result::none;
+    std::function<void(dialog_result)> m_callback;
+
+    void on_close() override;  // Emits result_ready signal
+};
+
+// Helper functions in window_presets.hh
+enum class message_box_buttons {
+    ok,
+    ok_cancel,
+    yes_no,
+    yes_no_cancel,
+    abort_retry_ignore
+};
+
+/**
+ * @brief Show a message box dialog
+ */
+template<UIBackend Backend>
+void show_message_box(
+    std::string title,
+    std::string message,
+    message_box_buttons buttons,
+    std::function<void(dialog<Backend>::dialog_result)> callback
+);
+
+/**
+ * @brief Show info message (OK button only, no callback)
+ */
+template<UIBackend Backend>
+void show_info(std::string message);
+
+/**
+ * @brief Show confirmation dialog (yes/no)
+ */
+template<UIBackend Backend>
+void show_confirm(
+    std::string title,
+    std::string message,
+    std::function<void(bool confirmed)> callback  // Simplified: true=yes, false=no
+);
+```
+
 ---
 
 ## Theme Integration
@@ -583,25 +693,97 @@ bool window<Backend>::handle_event(const ui_event& event, event_phase phase) {
 }
 ```
 
-### 5. Keyboard Shortcuts
+### 5. Keyboard Shortcuts - Semantic Actions
+
+Window commands use semantic actions for scheme-based customization:
 
 ```cpp
-void register_window_hotkeys() {
+// Add to include/onyxui/hotkeys/hotkey_manager.hh
+enum class hotkey_action : uint8_t {
+    // ... existing actions ...
+
+    // Window management (NEW)
+    close_window,           // Close focused window
+    show_window_list,       // Show Turbo Vision window list dialog
+    show_window_menu,       // Show system menu (Restore, Move, Size, etc.)
+    minimize_window,        // Minimize focused window
+    maximize_window,        // Maximize focused window
+    restore_window,         // Restore from minimized/maximized
+    next_window,            // Cycle to next window
+    prev_window,            // Cycle to previous window
+    move_window,            // Keyboard move mode
+    resize_window,          // Keyboard resize mode
+};
+
+// Scheme-specific bindings (in hotkey_schemes.cc)
+
+// Windows scheme:
+schemes["Windows"]->set_binding(hotkey_action::close_window, "Alt+F4");
+schemes["Windows"]->set_binding(hotkey_action::show_window_list, "Ctrl+W");
+schemes["Windows"]->set_binding(hotkey_action::show_window_menu, "Alt+Space");
+schemes["Windows"]->set_binding(hotkey_action::minimize_window, "Alt+F9");
+schemes["Windows"]->set_binding(hotkey_action::maximize_window, "Alt+F10");
+schemes["Windows"]->set_binding(hotkey_action::restore_window, "Alt+F5");
+schemes["Windows"]->set_binding(hotkey_action::next_window, "Ctrl+F6");
+schemes["Windows"]->set_binding(hotkey_action::prev_window, "Ctrl+Shift+F6");
+schemes["Windows"]->set_binding(hotkey_action::move_window, "Ctrl+F7");
+schemes["Windows"]->set_binding(hotkey_action::resize_window, "Ctrl+F8");
+
+// Norton Commander scheme:
+schemes["Norton Commander"]->set_binding(hotkey_action::close_window, "Ctrl+F4");
+schemes["Norton Commander"]->set_binding(hotkey_action::show_window_list, "Ctrl+W");
+schemes["Norton Commander"]->set_binding(hotkey_action::show_window_menu, "Alt+-");
+schemes["Norton Commander"]->set_binding(hotkey_action::minimize_window, "Alt+F9");
+schemes["Norton Commander"]->set_binding(hotkey_action::maximize_window, "Alt+F10");
+// ... etc.
+
+// Window registration with hotkey manager
+void window<Backend>::register_hotkeys() {
     auto* hotkeys = ui_services<Backend>::hotkeys();
 
-    // Alt+F4 - Close focused window
-    auto close_action = std::make_shared<action<Backend>>();
-    close_action->set_shortcut(key_code::f4, key_modifier::alt);
-    close_action->triggered.connect([this]() {
-        this->close();
-    });
+    // Register semantic action handlers
+    hotkeys->register_semantic_action(
+        hotkey_action::close_window,
+        [this]() { this->close(); }
+    );
 
-    // Alt+Space - Show window menu
-    auto menu_action = std::make_shared<action<Backend>>();
-    menu_action->set_shortcut(key_code::space, key_modifier::alt);
-    menu_action->triggered.connect([this]() {
-        show_system_menu();
-    });
+    hotkeys->register_semantic_action(
+        hotkey_action::minimize_window,
+        [this]() { this->minimize(); }
+    );
+
+    hotkeys->register_semantic_action(
+        hotkey_action::maximize_window,
+        [this]() {
+            if (get_state() == window_state::maximized) {
+                this->restore();
+            } else {
+                this->maximize();
+            }
+        }
+    );
+
+    hotkeys->register_semantic_action(
+        hotkey_action::show_window_menu,
+        [this]() { show_system_menu(); }
+    );
+}
+
+// Window manager also registers global hotkeys
+void window_manager<Backend>::register_hotkeys() {
+    auto* hotkeys = ui_services<Backend>::hotkeys();
+
+    // Ctrl+W - Show window list (global)
+    hotkeys->register_semantic_action(
+        hotkey_action::show_window_list,
+        [this]() { this->show_window_list(); }
+    );
+
+    // Ctrl+F6 - Cycle windows (global)
+    hotkeys->register_semantic_action(
+        hotkey_action::next_window,
+        [this]() { cycle_to_next_window(); }
+    );
 }
 ```
 
@@ -713,24 +895,36 @@ void register_window_hotkeys() {
 
 ---
 
-### Phase 5: Modal Support (Week 3)
-**Goal:** Modal and non-modal window support
+### Phase 5: Modal Support and Dialog Class (Week 3)
+**Goal:** Modal and non-modal window support + dialog subclass with result patterns
+
+**Files to Create:**
+- `include/onyxui/widgets/window/dialog.hh`
 
 **Tasks:**
 1. Add `is_modal` flag to window
 2. Integrate with `layer_manager::layer_type::modal`
 3. Block events to windows below modal
-4. Dim background behind modal (optional)
+4. Optional `dim_background` flag (defaults to false)
 5. Enforce single modal at a time
 6. Auto-focus modal window
+7. Create `dialog<Backend>` subclass
+8. Implement dialog result enum and signals
+9. Add convenience button methods (OK, OK/Cancel, Yes/No, etc.)
+10. Implement all three result patterns (signal, callback, helpers)
+11. Add `show_message_box`, `show_info`, `show_confirm` helpers
 
 **Tests:**
 - Show modal window
 - Events blocked to background
 - Close modal restores focus
 - Multiple non-modal windows work
+- Dialog result signal emission
+- Dialog callback invocation
+- Message box helpers
+- Button auto-wiring to results
 
-**Estimated Effort:** 1-2 days
+**Estimated Effort:** 2-3 days
 
 ---
 
@@ -818,21 +1012,29 @@ void register_window_hotkeys() {
 ---
 
 ### Phase 10: Keyboard Navigation (Week 4-5)
-**Goal:** Full keyboard support for windows
+**Goal:** Full keyboard support for windows via semantic actions
 
 **Tasks:**
-1. Alt+F4 closes focused window
-2. Alt+Space shows system menu
-3. Alt+F9 minimizes
-4. Alt+F10 maximizes
-5. Ctrl+F6 cycles windows
-6. Escape closes modal window
+1. Add 10 new semantic actions to `hotkey_action` enum
+2. Register scheme bindings for Windows and Norton Commander
+3. Implement semantic action handlers in window class
+4. Window cycling (Ctrl+F6 / Ctrl+Shift+F6)
+5. Escape closes modal window/dialog
+6. Keyboard move mode (Ctrl+F7) - optional
+7. Keyboard resize mode (Ctrl+F8) - optional
+
+**Semantic Actions Added:**
+- `close_window`, `show_window_list`, `show_window_menu`
+- `minimize_window`, `maximize_window`, `restore_window`
+- `next_window`, `prev_window`, `move_window`, `resize_window`
 
 **Tests:**
-- All hotkeys work
+- All semantic actions work in both schemes
+- Scheme switching updates hotkeys correctly
 - Modal closes on Escape
-- Window cycling
-- Menu navigation
+- Window cycling (forward and backward)
+- Menu navigation works
+- Custom scheme bindings respected
 
 **Estimated Effort:** 1-2 days
 
@@ -899,8 +1101,9 @@ include/onyxui/widgets/window/
 ├── window_content_area.hh         # Content container
 ├── window_resize_handle.hh        # Resize hit areas
 ├── window_system_menu.hh          # System menu popup
+├── dialog.hh                      # Dialog subclass with result patterns
 ├── window_list_dialog.hh          # Turbo Vision window list
-└── window_presets.hh              # Convenience functions
+└── window_presets.hh              # Convenience functions (includes message box helpers)
 
 include/onyxui/services/
 └── window_manager.hh              # Window tracking service
@@ -919,6 +1122,7 @@ unittest/widgets/
 ├── test_window_title_bar.cc       # Title bar tests
 ├── test_window_resize.cc          # Resize tests
 ├── test_window_modal.cc           # Modal behavior tests
+├── test_dialog.cc                 # Dialog result patterns tests
 └── test_window_list_dialog.cc     # Window list tests
 
 unittest/services/
@@ -944,6 +1148,10 @@ unittest/services/
 - **Window list dialog** rendering and navigation
 - **Window list dialog** filtering modes
 - **Ctrl+W hotkey** shows window list
+- **Dialog result patterns** (signal-based, callback-based, helpers)
+- **Dialog button auto-wiring** (OK, Cancel, Yes/No, etc.)
+- **Message box helpers** (show_info, show_confirm, show_message_box)
+- **Semantic actions** for all window commands
 
 ### Integration Tests
 - **Multiple windows** interaction
@@ -982,31 +1190,77 @@ window->set_content(std::move(content));
 window->show();
 ```
 
-### Modal Dialog
+### Modal Dialog - Pattern 1: Signal-Based (Event-Driven)
 ```cpp
-// Create modal window
-window::window_flags flags;
-flags.is_modal = true;
-flags.has_minimize_button = false;
-flags.has_maximize_button = false;
+// Create dialog with result management
+auto dlg = std::make_unique<dialog<Backend>>("Save Changes?");
+dlg->set_message("Do you want to save your changes before closing?");
+dlg->add_yes_no_cancel_buttons();  // Auto-wires buttons to results
 
-auto dialog = std::make_unique<window<Backend>>("Save Changes?", flags);
+// Connect to result signal (async)
+dlg->result_ready.connect([](dialog<Backend>::dialog_result result) {
+    switch (result) {
+        case dialog<Backend>::dialog_result::yes:
+            save_file();
+            break;
+        case dialog<Backend>::dialog_result::no:
+            discard_changes();
+            break;
+        case dialog<Backend>::dialog_result::cancel:
+            // Do nothing
+            break;
+        default:
+            break;
+    }
+});
 
-// Add content
-auto content = std::make_unique<vbox<Backend>>();
-content->emplace_child<label>("Do you want to save your changes?");
+dlg->show_modal();  // Non-blocking, returns immediately
+```
 
-auto buttons = content->emplace_child<hbox<Backend>>();
-auto* yes_btn = buttons->emplace_child<button>("Yes");
-auto* no_btn = buttons->emplace_child<button>("No");
-auto* cancel_btn = buttons->emplace_child<button>("Cancel");
+### Modal Dialog - Pattern 2: Callback-Based (Convenience)
+```cpp
+auto dlg = std::make_unique<dialog<Backend>>("Save Changes?");
+dlg->set_message("Do you want to save your changes before closing?");
+dlg->add_yes_no_cancel_buttons();
 
-yes_btn->clicked.connect([&]() { dialog->close(); save(); });
-no_btn->clicked.connect([&]() { dialog->close(); discard(); });
-cancel_btn->clicked.connect([&]() { dialog->close(); });
+// Callback passed directly to show_modal
+dlg->show_modal([](dialog<Backend>::dialog_result result) {
+    if (result == dialog<Backend>::dialog_result::yes) {
+        save_file();
+    } else if (result == dialog<Backend>::dialog_result::no) {
+        discard_changes();
+    }
+    // Cancel: do nothing
+});
+```
 
-dialog->set_content(std::move(content));
-dialog->show_modal();
+### Modal Dialog - Pattern 3: Helper Functions (Maximum Convenience)
+```cpp
+// Simple info message (OK button, no callback needed)
+show_info<Backend>("File saved successfully!");
+
+// Confirmation dialog (yes/no)
+show_confirm<Backend>(
+    "Delete File?",
+    "This action cannot be undone.",
+    [](bool confirmed) {
+        if (confirmed) delete_file();
+    }
+);
+
+// Full message box (custom buttons and title)
+show_message_box<Backend>(
+    "Save Changes?",
+    "Do you want to save your changes before closing?",
+    message_box_buttons::yes_no_cancel,
+    [](dialog<Backend>::dialog_result result) {
+        switch (result) {
+            case dialog<Backend>::dialog_result::yes: save_file(); break;
+            case dialog<Backend>::dialog_result::no: discard_changes(); break;
+            default: break;
+        }
+    }
+);
 ```
 
 ### Scrollable Window
@@ -1130,9 +1384,11 @@ mgr->clear_minimize_handler();
 - ⏳ window_content_area widget
 - ⏳ window_resize_handle widget
 - ⏳ window_system_menu widget
+- ⏳ dialog widget (window subclass with result patterns)
 - ⏳ window_list_dialog widget
 - ⏳ window_manager service
 - ⏳ window theme styles
+- ⏳ semantic actions for window commands (10 new hotkey_action values)
 
 ---
 
@@ -1175,30 +1431,50 @@ mgr->clear_minimize_handler();
 1. ✅ **Architecture:** Component hierarchy with composite title bar + content area + resize handles
 2. ✅ **API:** Intuitive creation with `window<Backend>("Title", flags)` pattern
 3. ✅ **Theme Integration:** Comprehensive `window_style` in theme with focused/unfocused states
-4. ⏳ **Modal Behavior:** Should modal windows dim the background? (Optional feature)
+4. ✅ **Modal Behavior:** Optional `dim_background` flag, defaults to false for terminal UIs
 5. ✅ **Scrolling:** Window property (`is_scrollable` flag) that wraps content in scroll_view
 6. ✅ **Minimize:** **Turbo Vision approach** - Window list dialog (Ctrl+W) + override support ⭐
-7. ⏳ **Maximize:** Fill entire screen or parent container? (TBD)
-8. ⏳ **System Menu:** Standard items or customizable? (TBD)
-9. ✅ **Hotkeys:** Ctrl+W (window list), Alt+F4 (close), Alt+Space (menu)
+7. ✅ **Maximize:** Fill parent container only (respects hierarchy)
+8. ✅ **System Menu:** Standard items + customizable (Turbo Vision approach)
+9. ✅ **Hotkeys:** Semantic actions for all window commands (scheme-customizable)
 10. ✅ **Z-Order:** Automatic on click (bring to front)
+11. ✅ **Dialog Pattern:** Subclass of window with result codes and signal/callback patterns
 
 ---
 
 ## Conclusion
 
-This implementation plan provides a comprehensive, phased approach to implementing a full-featured windowing system for OnyxUI. The design leverages existing framework capabilities (layer management, theming, events) while adding specialized window-specific functionality.
+This implementation plan provides a comprehensive, phased approach to implementing a full-featured windowing system for OnyxUI. The design leverages existing framework capabilities (layer management, theming, events, hotkeys) while adding specialized window-specific functionality.
+
+**All Design Decisions Finalized:**
+- ✅ Window architecture (composite pattern)
+- ✅ Dialog pattern (window subclass with 3 result patterns)
+- ✅ Minimize behavior (Turbo Vision window list + override)
+- ✅ Modal behavior (optional dimming, defaults to false)
+- ✅ Maximize behavior (fill parent container)
+- ✅ System menu (standard + customizable)
+- ✅ Keyboard shortcuts (semantic actions, scheme-based)
+
+**Key Features:**
+- **Draggable, resizable windows** with optional title bars
+- **Modal and non-modal** support with optional background dimming
+- **Minimize/maximize/restore** via Turbo Vision window list (Ctrl+W)
+- **Dialog subclass** with signal/callback/helper result patterns
+- **Scrollable content** support (optional flag)
+- **Full theme integration** (focused/unfocused states)
+- **Semantic actions** for all window commands (scheme-customizable)
+- **Window manager service** for tracking and enumeration
 
 **Recommended Starting Point:** Phase 1 (Core Window Widget)
 
 **Next Steps:**
-1. Review this plan with stakeholders
-2. Get approval on architecture and API
-3. Begin Phase 1 implementation
-4. Iterate based on feedback
+1. ✅ All design decisions approved
+2. ✅ Architecture finalized
+3. ⏳ Begin Phase 1 implementation
+4. ⏳ Iterate and refine during development
 
 ---
 
-**Status:** AWAITING REVIEW AND APPROVAL
+**Status:** READY FOR IMPLEMENTATION
 
 **Last Updated:** 2025-11-08
