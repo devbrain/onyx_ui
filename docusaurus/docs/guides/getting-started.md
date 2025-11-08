@@ -59,7 +59,7 @@ Now that you have your environment set up, let's create a simple "Hello World" a
     Create a new file named `main.cc` and add the following code:
 
     ```cpp
-    #include <onyxui/conio/conio_backend.hh>
+    #include <backends/conio/include/onyxui/conio/conio_backend.hh>
     #include <onyxui/ui_handle.hh>
     #include <onyxui/ui_context.hh>
     #include <onyxui/widgets/vbox.hh>
@@ -73,21 +73,20 @@ Now that you have your environment set up, let's create a simple "Hello World" a
         // 1. Create UI context (provides services: layers, focus, themes, background)
         onyxui::scoped_ui_context<Backend> ctx;
 
-        // 2. Configure background (optional - defaults to black solid)
+        // 2. Configure background (optional - defaults to solid black)
         auto* bg = onyxui::ui_services<Backend>::background();
         if (bg) {
-            bg->set_mode(onyxui::background_mode::solid);
-            bg->set_color({0, 0, 170});  // Blue background
+            bg->set_color({0, 0, 170});  // Blue background (mode is automatically solid)
         }
 
         // 3. Build UI widget tree
-        auto root = onyxui::create_vbox<Backend>();
+        auto root = std::make_unique<onyxui::vbox<Backend>>();
 
-        auto title = onyxui::create_label<Backend>("Welcome to OnyxUI!");
+        auto title = std::make_unique<onyxui::label<Backend>>("Welcome to OnyxUI!");
         root->add_child(std::move(title));
 
-        auto button = onyxui::create_button<Backend>("Click Me");
-        button->clicked().connect([]() {
+        auto button = std::make_unique<onyxui::button<Backend>>("Click Me");
+        button->clicked.connect([]() {
             std::cout << "Button clicked!" << std::endl;
         });
         root->add_child(std::move(button));

@@ -64,11 +64,16 @@ scheme->set_binding(hotkey_action::activate_focused,
 
 -   `Backend`: The backend traits class.
 
+### Public Members
+
+-   **`signal<> clicked`:** Signal emitted when the button is clicked. Connect handlers using `button->clicked.connect(handler)`.
+
 ### Public Methods
 
--   **`signal<>& clicked()`:** Returns a reference to the signal that is emitted when the button is clicked.
--   **`void set_text(std::string text)`:** Sets the text label of the button.
+-   **`void set_text(const std::string& text)`:** Sets the text label of the button.
 -   **`const std::string& text() const`:** Returns the text label of the button.
+-   **`void set_mnemonic_text(std::string_view mnemonic_text)`:** Sets text with keyboard mnemonic (e.g., "&Save").
+-   **`char get_mnemonic_char() const`:** Returns the mnemonic character (lowercase) or '\0' if none.
 
 ### Theming
 
