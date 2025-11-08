@@ -509,6 +509,8 @@ namespace onyxui {
          * **Override if needed:**
          * Widgets can still override this if they need special measurement logic
          * that differs from rendering (rare).
+         *
+         * @throws std::runtime_error if theme is not initialized or no theme is set
          */
         [[nodiscard]] typename base::size_type get_content_size() const override {
             // Get current theme from ui_services (same as rendering does)

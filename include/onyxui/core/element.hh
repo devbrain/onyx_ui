@@ -639,7 +639,6 @@ namespace onyxui {
                 draw_context<Backend> ctx(renderer, style, absolute_pos, size, dirty_regions, theme);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
-                // TODO: Need to check absolute bounds, not relative
                 rect_type absolute_bounds;
                 rect_utils::make_absolute_bounds(absolute_bounds, absolute_pos, m_bounds);
 
@@ -800,8 +799,9 @@ namespace onyxui {
              * @brief Check if a point is inside this element
              * Implementation for event_target's pure virtual method
              *
-             * NOTE: This is only correct for root elements at (0,0).
-             * For nested elements, use the full widget hierarchy hit_test().
+             * @note Currently supports up to one level of nesting (child of root).
+             * For deeply nested widgets, use hit_test() which traverses the full hierarchy.
+             * @warning Does not recursively compute absolute bounds for deeply nested elements.
              */
             [[nodiscard]] bool is_inside(int x, int y) const override {
                 // CRITICAL FIX: After relative coordinate refactoring, m_bounds is relative for children.
@@ -889,8 +889,8 @@ namespace onyxui {
              * @note virtual - subclasses can override to account for borders
              */
             virtual rect_type get_content_area() const noexcept {
-                // RELATIVE COORDINATES: Position is relative to widget's own bounds origin (0, 0)
-                // NOT relative to parent - that's handled during rendering via offset accumulation
+                // Content area position is relative to this widget's bounds origin (0,0).
+                // Absolute positioning is computed during rendering by accumulating parent offsets.
                 const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
                 const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
 

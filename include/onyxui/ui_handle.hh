@@ -244,7 +244,7 @@ namespace onyxui {
             if (!m_root) return false;
 
             // ============================================================
-            // Event Conversion (NEW Phase 6)
+            // Event Conversion
             // ============================================================
             // Convert backend-specific event to unified ui_event
             auto ui_evt_opt = Backend::create_event(native_event);
@@ -258,7 +258,7 @@ namespace onyxui {
             // Layer Event Routing - FIRST PRIORITY!
             // ============================================================
             // Route event through layers first (top to bottom).
-            // If a layer handles the event or a modal blocks it, don't route to base UI.
+            // If a layer handles the event or a modal blocks it, don't route to root widget.
             if (auto* layers = ui_services<Backend>::layers()) {
                 if (layers->route_event(native_event)) {
                     return true;  // Layer handled the event
@@ -268,7 +268,7 @@ namespace onyxui {
             // ============================================================
             // Window Event Handling (Resize) - CHECK FIRST!
             // ============================================================
-            // NEW Phase 6: Use variant dispatch instead of event_traits
+            // Use variant dispatch to handle resize events
             if (auto* resize_evt = std::get_if<resize_event>(&ui_evt)) {
                 // Notify renderer to resize its buffers
                 m_renderer.on_resize();
@@ -290,7 +290,7 @@ namespace onyxui {
             // ============================================================
             // Keyboard Event Handling
             // ============================================================
-            // NEW Phase 6: Use variant dispatch and direct ui_event routing
+            // Use variant dispatch to handle keyboard events
             if (auto* kbd_evt = std::get_if<keyboard_event>(&ui_evt)) {
                 // 1. Handle Tab navigation (input_manager traverses tree automatically)
                 // NOTE: Still uses native_event for backward compatibility with input_manager
@@ -308,7 +308,7 @@ namespace onyxui {
                 }
 
                 // 3. Try global hotkeys from service locator
-                // NEW Phase 6: Use ui_event API for hotkeys
+                // Use ui_event API for hotkey matching
                 // IMPORTANT: Pass focused element so semantic actions can be dispatched to it
                 if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
                     if (hotkeys->handle_ui_event(ui_evt, focused)) {
@@ -355,7 +355,7 @@ namespace onyxui {
                 }
 
                 // 4. Forward keyboard event to focused widget
-                // NEW Phase 6: Use handle_event() with TARGET phase
+                // Route event to target phase for focused widget handling
                 if (focused) {
                     return focused->handle_event(ui_evt, event_phase::target);
                 }
@@ -364,7 +364,7 @@ namespace onyxui {
             // ============================================================
             // Mouse Event Handling (Unified with Input Manager)
             // ============================================================
-            // NEW Phase 6: Use variant dispatch and direct mouse_event access
+            // Use variant dispatch to handle mouse events
             if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
                 auto* input = ui_services<Backend>::input();
                 if (!input) return false;  // No input manager available
@@ -403,9 +403,11 @@ namespace onyxui {
                 // Handle mouse capture
                 if (is_button_event) {
                     if (is_press) {
-                        // WORKAROUND: Some backends (like termbox2) don't send mouse release events.
+                        // WORKAROUND (PERMANENT): Some backends (like termbox2) don't send mouse release events
+                        // due to terminal limitations. This is expected behavior, not a bug.
                         // If we're pressing on a different widget than what's captured,
-                        // implicitly release the old capture first by sending it a mouse release event.
+                        // implicitly release the old capture first by sending it a synthetic mouse release event.
+                        // This ensures widgets can clean up their pressed state properly.
                         auto* currently_captured = input->get_captured();
                         if (currently_captured && currently_captured != target_widget) {
                             // Send mouse release to previously captured widget to clean up its state
@@ -561,7 +563,7 @@ namespace onyxui {
                 bg->render(m_renderer, bounds, dirty_regions);
             }
 
-            // Two-pass layout for base UI
+            // Two-pass layout for root widget
             [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
                           rect_utils::get_height(bounds));
             m_root->arrange(bounds);
@@ -576,7 +578,7 @@ namespace onyxui {
                 throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
             }
 
-            // Render base UI to back buffer with dirty rectangle optimization
+            // Render root widget to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
             // Theme is passed down through the widget tree by pointer
             m_root->render(m_renderer, theme_ptr);

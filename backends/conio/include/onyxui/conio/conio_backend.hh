@@ -1,6 +1,13 @@
-//
-// Created by igor on 16/10/2025.
-//
+/**
+ * @file conio_backend.hh
+ * @brief Console I/O backend implementation using termbox2
+ * @author igor
+ * @date 16/10/2025
+ *
+ * @details
+ * Provides a text-based UI backend for terminal applications.
+ * Uses termbox2 library for cross-platform console rendering.
+ */
 
 #pragma once
 

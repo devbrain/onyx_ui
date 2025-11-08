@@ -1,6 +1,13 @@
-//
-// Created by igor on 14/10/2025.
-//
+/**
+ * @file themeable.hh
+ * @brief CSS-style property inheritance system for visual styling
+ * @author igor
+ * @date 14/10/2025
+ *
+ * @details
+ * Provides a mixin class that enables widgets to inherit visual properties
+ * from their parent container using CSS-style cascading rules.
+ */
 
 #pragma once
 
@@ -352,7 +359,7 @@ namespace onyxui {
                 // Note: We don't check for "default" because backend types are opaque and may not have operator==
                 // The root element gets theme values, so this always works correctly.
 
-                // BUG FIX: Stateful widgets (menu_item, menu_bar_item, button) manage their own
+                // IMPORTANT: Stateful widgets (menu_item, menu_bar_item, button) manage their own
                 // state-based colors and should NOT inherit from parents. Check if widget wants inheritance.
                 if (should_inherit_colors()) {
                     style.background_color = parent_style.background_color.value;

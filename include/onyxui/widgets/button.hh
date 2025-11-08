@@ -457,7 +457,6 @@ namespace onyxui {
      */
     template<typename Parent, typename... Args>
     auto* add_button(Parent& parent, Args&&... args) {
-       // using Backend = typename Parent::backend_type;
         return parent.template emplace_child<button>(std::forward<Args>(args)...);
     }
 }
