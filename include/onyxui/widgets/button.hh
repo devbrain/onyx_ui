@@ -162,13 +162,8 @@ namespace onyxui {
                 if (mouse_evt->act == mouse_event::action::press) {
                     if (phase == event_phase::capture) {
                         auto* input = ui_services<Backend>::input();
-                        std::cerr << "[button] Mouse press on button '" << m_text << "'" << std::endl;
-                        std::cerr << "[button] is_focusable=" << this->is_focusable()
-                                  << " input=" << (input ? "yes" : "null") << std::endl;
                         if (input && this->is_focusable()) {
                             input->set_focus(this);
-                            std::cerr << "[button] Requested focus for button '" << m_text << "'" << std::endl;
-                            std::cerr << "[button] Current focused widget: " << input->get_focused() << std::endl;
                         }
                         // Don't consume - let event continue to target phase for click handling
                         return false;

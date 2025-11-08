@@ -164,46 +164,7 @@ namespace onyxui {
 
             // Get viewport from renderer (renderer knows its size)
             auto bounds = m_renderer.get_viewport();
-
-            // Get dirty regions from previous frame
-            auto dirty_regions = m_root->get_and_clear_dirty_regions();
-
-            // Add dirty regions from removed layers (fixes menu switching artifacts)
-            if (auto* layers = ui_services<Backend>::layers()) {
-                const auto& removed_regions = layers->get_removed_layer_dirty_regions();
-                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
-                layers->clear_removed_layer_dirty_regions();
-            }
-
-            // Render background BEFORE widgets (from ui_services)
-            if (auto* bg = ui_services<Backend>::background()) {
-                bg->render(m_renderer, bounds, dirty_regions);
-            }
-
-            // Two-pass layout for base UI
-            [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
-                          rect_utils::get_height(bounds));
-            m_root->arrange(bounds);
-
-            // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
-            auto* themes = ui_services<Backend>::themes();
-            if (!themes) {
-                throw std::runtime_error("Theme service not initialized! Ensure ui_context is created before rendering.");
-            }
-            auto* theme_ptr = themes->get_current_theme();
-            if (!theme_ptr) {
-                throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
-            }
-
-            // Render base UI to back buffer with dirty rectangle optimization
-            // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree by pointer
-            m_root->render(m_renderer, theme_ptr);
-
-            // Render all overlay layers from current context (pass theme for popup menus, dialogs)
-            if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds, theme_ptr);
-            }
+            display_impl(bounds);
         }
 
         /**
@@ -217,46 +178,7 @@ namespace onyxui {
          */
         void display(const rect_type& bounds) {
             if (!m_root) return;
-
-            // Get dirty regions from previous frame
-            auto dirty_regions = m_root->get_and_clear_dirty_regions();
-
-            // Add dirty regions from removed layers (fixes menu switching artifacts)
-            if (auto* layers = ui_services<Backend>::layers()) {
-                const auto& removed_regions = layers->get_removed_layer_dirty_regions();
-                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
-                layers->clear_removed_layer_dirty_regions();
-            }
-
-            // Render background BEFORE widgets (from ui_services)
-            if (auto* bg = ui_services<Backend>::background()) {
-                bg->render(m_renderer, bounds, dirty_regions);
-            }
-
-            // Two-pass layout for base UI
-            [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
-                          rect_utils::get_height(bounds));
-            m_root->arrange(bounds);
-
-            // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
-            auto* themes = ui_services<Backend>::themes();
-            if (!themes) {
-                throw std::runtime_error("Theme service not initialized! Ensure ui_context is created before rendering.");
-            }
-            auto* theme_ptr = themes->get_current_theme();
-            if (!theme_ptr) {
-                throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
-            }
-
-            // Render base UI to back buffer with dirty rectangle optimization
-            // Only renders widgets that intersect with dirty regions
-            // Theme is passed down through the widget tree by pointer
-            m_root->render(m_renderer, theme_ptr);
-
-            // Render all overlay layers from current context (pass theme for popup menus, dialogs)
-            if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds, theme_ptr);
-            }
+            display_impl(bounds);
         }
 
         /**
@@ -611,6 +533,57 @@ namespace onyxui {
             auto viewport = m_renderer.get_viewport();
             if (m_root) {
                 m_root->mark_dirty_region(viewport);
+            }
+        }
+
+    private:
+        /**
+         * @brief Internal implementation for display methods
+         * @param bounds The bounds to render within
+         *
+         * @details
+         * Common implementation shared by both display() and display(bounds).
+         * Performs the complete layout and rendering pipeline.
+         */
+        void display_impl(const rect_type& bounds) {
+            // Get dirty regions from previous frame
+            auto dirty_regions = m_root->get_and_clear_dirty_regions();
+
+            // Add dirty regions from removed layers (fixes menu switching artifacts)
+            if (auto* layers = ui_services<Backend>::layers()) {
+                const auto& removed_regions = layers->get_removed_layer_dirty_regions();
+                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
+                layers->clear_removed_layer_dirty_regions();
+            }
+
+            // Render background BEFORE widgets (from ui_services)
+            if (auto* bg = ui_services<Backend>::background()) {
+                bg->render(m_renderer, bounds, dirty_regions);
+            }
+
+            // Two-pass layout for base UI
+            [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
+                          rect_utils::get_height(bounds));
+            m_root->arrange(bounds);
+
+            // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                throw std::runtime_error("Theme service not initialized! Ensure ui_context is created before rendering.");
+            }
+            auto* theme_ptr = themes->get_current_theme();
+            if (!theme_ptr) {
+                throw std::runtime_error("No current theme set! Ensure themes are registered before rendering.");
+            }
+
+            // Render base UI to back buffer with dirty rectangle optimization
+            // Only renders widgets that intersect with dirty regions
+            // Theme is passed down through the widget tree by pointer
+            m_root->render(m_renderer, theme_ptr);
+
+            // Render all overlay layers from current context (pass theme for popup menus, dialogs)
+            if (auto* layers = ui_services<Backend>::layers()) {
+                layers->render_all_layers(m_renderer, bounds, theme_ptr);
             }
         }
     };

@@ -571,10 +571,7 @@ namespace onyxui {
 
             // Emit click signal when release happens inside (base class returns true)
             if (mouse.act == mouse_event::action::release && handled) {
-                std::cerr << "[widget] Emitting clicked signal" << std::endl;
                 clicked.emit();
-            } else if (mouse.act == mouse_event::action::release && !handled) {
-                std::cerr << "[widget] Mouse release NOT inside - clicked NOT emitted (handled=" << handled << ")" << std::endl;
             }
 
             // Emit mouse_moved for move events

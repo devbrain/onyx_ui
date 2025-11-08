@@ -51,6 +51,7 @@
 #include <sstream>
 #include <exception>
 #include <iostream>
+#include <limits>
 
 namespace onyxui {
 
@@ -248,7 +249,7 @@ namespace onyxui {
                     return true;
 
                 case hotkey_action::scroll_end:
-                    m_scroll_view->scroll_to(0, 999999);
+                    m_scroll_view->scroll_to(0, std::numeric_limits<int>::max());
                     return true;
 
                 default:

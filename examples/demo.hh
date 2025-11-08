@@ -126,7 +126,6 @@ private:
         screenshot_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
         screenshot_btn->clicked.connect([this]() {
             if (!m_renderer) {
-                std::cerr << "Error: No renderer available!" << std::endl;
                 return;
             }
 
@@ -140,14 +139,11 @@ private:
             // Take screenshot
             std::ofstream file(filename);
             if (!file) {
-                std::cerr << "Error: Could not open file for screenshot: " << filename << std::endl;
                 return;
             }
 
             m_renderer->take_screenshot(file);
             file.close();
-
-            std::cerr << "Screenshot saved to: " << filename << std::endl;
         });
 
         auto* disabled_btn = add_button(*this, "Disabled");
@@ -236,7 +232,6 @@ private:
         // Get global hotkey manager from service locator
         auto* hotkeys = onyxui::ui_services<Backend>::hotkeys();
         if (!hotkeys) {
-            std::cerr << "Error: No hotkey manager available!" << std::endl;
             return;
         }
 
@@ -258,7 +253,7 @@ private:
         new_action->set_text("New");
         new_action->set_shortcut('n', onyxui::key_modifier::ctrl);  // Ctrl+N
         new_action->triggered.connect([]() {
-            std::cerr << "New action triggered via menu/hotkey!" << std::endl;
+            // New action triggered
         });
         m_new_action = new_action;
         hotkeys->register_action(new_action);
@@ -267,7 +262,7 @@ private:
         open_action->set_text("Open");
         open_action->set_shortcut('o', onyxui::key_modifier::ctrl);  // Ctrl+O
         open_action->triggered.connect([]() {
-            std::cerr << "Open action triggered!" << std::endl;
+            // Open action triggered
         });
         m_open_action = open_action;
         hotkeys->register_action(open_action);
@@ -277,7 +272,6 @@ private:
         quit_action->set_text("Quit");
         quit_action->set_shortcut_f(4, onyxui::key_modifier::alt);  // Alt+F4
         quit_action->triggered.connect([this]() {
-            std::cerr << "Quit action triggered - exiting application!" << std::endl;
             quit();
         });
         m_quit_action = quit_action;
@@ -287,7 +281,7 @@ private:
         auto about_action = std::make_shared<onyxui::action<Backend>>();
         about_action->set_text("About");
         about_action->triggered.connect([]() {
-            std::cerr << "About: DOS Theme Showcase v2.0 - Theme System Edition" << std::endl;
+            // About: DOS Theme Showcase v2.0 - Theme System Edition
         });
         m_about_action = about_action;
     }
@@ -319,7 +313,7 @@ private:
         auto open_folder_item = std::make_unique<onyxui::menu_item<Backend>>("");
         open_folder_item->set_mnemonic_text("Open F&older...");
         open_folder_item->clicked.connect([]() {
-            std::cerr << "Open Folder clicked!" << std::endl;
+            // Open Folder clicked
         });
         open_submenu->add_item(std::move(open_folder_item));
 
@@ -332,19 +326,19 @@ private:
         auto recent_submenu = std::make_unique<onyxui::menu<Backend>>();
         auto recent1 = std::make_unique<onyxui::menu_item<Backend>>("demo.cc");
         recent1->clicked.connect([]() {
-            std::cerr << "Opening recent file: demo.cc" << std::endl;
+            // Opening recent file: demo.cc
         });
         recent_submenu->add_item(std::move(recent1));
 
         auto recent2 = std::make_unique<onyxui::menu_item<Backend>>("main.cc");
         recent2->clicked.connect([]() {
-            std::cerr << "Opening recent file: main.cc" << std::endl;
+            // Opening recent file: main.cc
         });
         recent_submenu->add_item(std::move(recent2));
 
         auto recent3 = std::make_unique<onyxui::menu_item<Backend>>("test.cc");
         recent3->clicked.connect([]() {
-            std::cerr << "Opening recent file: test.cc" << std::endl;
+            // Opening recent file: test.cc
         });
         recent_submenu->add_item(std::move(recent3));
 
@@ -414,23 +408,12 @@ private:
     void apply_theme_by_name(const std::string& theme_name) {
         auto* themes = onyxui::ui_services<Backend>::themes();
         if (!themes) {
-            std::cerr << "Error: Theme registry not available!" << std::endl;
             return;
         }
 
         // Use the global theming API (sets theme for entire application)
         if (!themes->set_current_theme(theme_name)) {
-            std::cerr << "Error: Theme '" << theme_name << "' not found!" << std::endl;
             return;
-        }
-
-        // Log theme switch with description
-        if (auto* theme = themes->get_theme(theme_name)) {
-            std::cerr << "Switched to: " << theme->name;
-            if (!theme->description.empty()) {
-                std::cerr << " - " << theme->description;
-            }
-            std::cerr << std::endl;
         }
     }
 

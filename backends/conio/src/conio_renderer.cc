@@ -492,13 +492,6 @@ namespace onyxui::conio {
         int w = m_pimpl->m_vram.get_width();
         int h = m_pimpl->m_vram.get_height();
 
-        // DEBUG: Check vram dimensions
-        if (w < 0 || w > 1000 || h < 0 || h > 1000) {
-            std::cerr << "CONIO_RENDERER::get_viewport(): Bad vram dimensions!"
-                      << " width=" << w << " height=" << h << std::endl;
-            std::cerr.flush();
-        }
-
         return rect{0, 0, w, h};
     }
 
