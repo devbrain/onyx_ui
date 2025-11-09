@@ -249,7 +249,7 @@ namespace onyxui {
             flags.has_maximize_button = false;
             flags.is_resizable = false;
             flags.is_movable = true;
-            // TODO Phase 5: flags.is_modal = true;
+            flags.is_modal = true;  // Phase 5: Window list is modal
             return flags;
         }
 
@@ -322,10 +322,10 @@ namespace onyxui {
                 label += " (maximized)";
             }
 
-            // TODO Phase 5: Add modal indicator
-            // if (win->is_modal()) {
-            //     label += " (modal)";
-            // }
+            // Phase 5: Add modal indicator
+            if (win->is_modal()) {
+                label += " (modal)";
+            }
 
             return label;
         }

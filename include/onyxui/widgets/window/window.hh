@@ -248,6 +248,22 @@ namespace onyxui {
             return m_title;
         }
 
+        /**
+         * @brief Check if window is modal
+         * @return true if window is modal (blocks other windows)
+         */
+        [[nodiscard]] bool is_modal() const noexcept {
+            return m_flags.is_modal;
+        }
+
+        /**
+         * @brief Get window flags
+         * @return Window configuration flags
+         */
+        [[nodiscard]] const window_flags& get_flags() const noexcept {
+            return m_flags;
+        }
+
         // ====================================================================
         // Focus Management (Phase 8)
         // ====================================================================
