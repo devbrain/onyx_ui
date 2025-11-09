@@ -358,6 +358,33 @@ namespace onyxui {
         }
 
         /**
+         * @brief Bring layer to front (highest z-order within its type)
+         *
+         * @param id Layer to bring to front
+         *
+         * @details
+         * Moves the specified layer to render last among layers of the same type,
+         * making it appear on top. The z-index remains unchanged, only the render
+         * order within the same z-index is adjusted.
+         *
+         * Does nothing if layer ID is invalid or layer not found.
+         */
+        void bring_to_front(layer_id id) {
+            auto it = find_layer(id);
+            if (it == m_layers.end()) return;  // Layer not found
+
+            // Already at end (front)?
+            if (it == m_layers.end() - 1) return;
+
+            // Move to end (renders last = on top)
+            layer_data layer = std::move(*it);
+            m_layers.erase(it);
+            m_layers.push_back(std::move(layer));
+
+            m_layers_changed = true;  // Signal that layers were modified
+        }
+
+        /**
          * @brief Remove all layers except base UI
          */
         void clear_all_layers() {

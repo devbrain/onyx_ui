@@ -51,6 +51,7 @@ TEST_CASE("Button Style - Serialization") {
             },
             .mnemonic_font = {true, true, false},
             .box_style = conio_renderer::box_style{conio_renderer::border_style::double_line, true},
+            .shadow = {false, 1, 1},
             .padding_horizontal = 4,
             .padding_vertical = 2,
             .text_align = horizontal_alignment::center,
@@ -318,9 +319,11 @@ TEST_CASE("Widget Styles - Round-trip preservation") {
             },
             .mnemonic_font = {true, true, false},
             .box_style = conio_renderer::box_style{conio_renderer::border_style::rounded, true},
+            .shadow = {false, 1, 1},
             .padding_horizontal = 6,
             .padding_vertical = 3,
-            .text_align = horizontal_alignment::left
+            .text_align = horizontal_alignment::left,
+            .corner_radius = 0
         };
 
         auto yaml = to_yaml(original);
@@ -396,7 +399,13 @@ TEST_CASE("Widget Styles - Text alignment variations") {
                 .background = color{0, 0, 0},
                 .mnemonic_foreground = color{255, 255, 255}
             },
-            .text_align = horizontal_alignment::left
+            .mnemonic_font = {},
+            .box_style = {},
+            .shadow = {false, 1, 1},
+            .padding_horizontal = 4,
+            .padding_vertical = 4,
+            .text_align = horizontal_alignment::left,
+            .corner_radius = 0
         };
 
         auto yaml = to_yaml(style);

@@ -18,7 +18,6 @@
 #include <onyxui/widgets/core/widget_container.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/rendering/render_context.hh>
-#include <onyxui/services/ui_services.hh>
 #include <onyxui/services/layer_manager.hh>  // For layer_id and layer_type
 #include <memory>
 #include <string>
@@ -81,7 +80,7 @@ namespace onyxui {
      * @endcode
      */
     template<UIBackend Backend>
-    class window : public widget_container<Backend> {
+    class window : public widget_container<Backend> {  // NOLINT(cppcoreguidelines-virtual-class-destructor) - destructor is correctly virtual via override
     public:
         using base = widget_container<Backend>;
         using size_type = typename Backend::size_type;
@@ -268,17 +267,33 @@ namespace onyxui {
         // Focus Management (Phase 8)
         // ====================================================================
 
-        /**
-         * @brief Set window focus state
-         * @param has_focus Whether window has focus
-         */
-        void set_focus(bool has_focus);
+        // Bring base class keyboard focus methods into scope (prevents name hiding)
+        using event_target<Backend>::has_focus;      // Keyboard focus from focus_manager
+        using event_target<Backend>::is_focusable;
+        using event_target<Backend>::set_focusable;
 
         /**
-         * @brief Get window focus state
-         * @return True if window has focus
+         * @brief Set window-level focus state (active/foreground window)
+         * @param focused Whether window is the active/foreground window
+         *
+         * @details
+         * This controls window-level focus (which window is active), which is
+         * distinct from keyboard focus (which element receives keyboard input).
+         * - Window focus: Managed by window_manager (active window)
+         * - Keyboard focus: Managed by focus_manager (focused element)
          */
-        [[nodiscard]] bool has_focus() const noexcept {
+        void set_window_focus(bool focused);
+
+        /**
+         * @brief Check if this is the active/foreground window
+         * @return True if window is active/foreground
+         *
+         * @details
+         * This checks window-level focus, NOT keyboard focus.
+         * - has_window_focus() → Is this the active window?
+         * - has_focus() → Does this element have keyboard focus? (from event_target)
+         */
+        [[nodiscard]] bool has_window_focus() const noexcept {
             return m_has_focus;
         }
 
@@ -312,6 +327,16 @@ namespace onyxui {
          * @brief Hide window (removes from layer_manager)
          */
         void hide();
+
+        /**
+         * @brief Bring window to front and request focus
+         *
+         * @details
+         * Moves window to highest z-order in layer_manager and
+         * requests keyboard focus from focus_manager. Also sets
+         * this window as active in window_manager.
+         */
+        void bring_to_front();
 
         // ====================================================================
         // Signals
@@ -385,6 +410,7 @@ namespace onyxui {
 
         // Phase 5: Layer manager integration
         layer_id m_layer_id{};              // Layer ID when shown in layer_manager
+        window<Backend>* m_previous_active_window = nullptr;  // For restoring focus after modal closes
 
         // Child widgets (Phase 1: created but drag/resize not implemented yet)
         // Note: Raw pointers - ownership transferred to base class children list
@@ -402,4 +428,4 @@ namespace onyxui {
 } // namespace onyxui
 
 // Implementation
-#include "window.inl"
+#include <onyxui/widgets/window/window.inl>

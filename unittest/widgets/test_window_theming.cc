@@ -18,17 +18,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     SUBCASE("Default focus state is false") {
         window<test_canvas_backend> win("Test Window");
-        CHECK_FALSE(win.has_focus());
+        CHECK_FALSE(win.has_window_focus());
     }
 
-    SUBCASE("set_focus() changes focus state") {
+    SUBCASE("set_window_focus() changes focus state") {
         window<test_canvas_backend> win("Test Window");
 
-        win.set_focus(true);
-        CHECK(win.has_focus());
+        win.set_window_focus(true);
+        CHECK(win.has_window_focus());
 
-        win.set_focus(false);
-        CHECK_FALSE(win.has_focus());
+        win.set_window_focus(false);
+        CHECK_FALSE(win.has_window_focus());
     }
 
     SUBCASE("Focus signals emitted correctly") {
@@ -41,7 +41,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         win.focus_lost.connect([&]() { focus_lost_fired = true; });
 
         // Gain focus
-        win.set_focus(true);
+        win.set_window_focus(true);
         CHECK(focus_gained_fired);
         CHECK_FALSE(focus_lost_fired);
 
@@ -50,20 +50,20 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         focus_lost_fired = false;
 
         // Lose focus
-        win.set_focus(false);
+        win.set_window_focus(false);
         CHECK_FALSE(focus_gained_fired);
         CHECK(focus_lost_fired);
     }
 
     SUBCASE("Setting same focus state twice doesn't trigger signals") {
         window<test_canvas_backend> win("Test Window");
-        win.set_focus(true);
+        win.set_window_focus(true);
 
         int signal_count = 0;
         win.focus_gained.connect([&]() { signal_count++; });
 
         // Set to same state
-        win.set_focus(true);
+        win.set_window_focus(true);
 
         // Signal should not fire
         CHECK(signal_count == 0);
@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         CHECK(size1.h > 0);
 
         // Change focus - should invalidate and allow re-measure
-        win.set_focus(true);
+        win.set_window_focus(true);
 
         // Can measure again (proves invalidation worked)
         auto size2 = win.measure(100, 100);
@@ -96,15 +96,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     window<test_canvas_backend> win("Test Window", flags);
 
     SUBCASE("Default focus state is false") {
-        CHECK_FALSE(win.has_focus());
+        CHECK_FALSE(win.has_window_focus());
     }
 
     SUBCASE("Can set focus even without title bar") {
-        win.set_focus(true);
-        CHECK(win.has_focus());
+        win.set_window_focus(true);
+        CHECK(win.has_window_focus());
 
-        win.set_focus(false);
-        CHECK_FALSE(win.has_focus());
+        win.set_window_focus(false);
+        CHECK_FALSE(win.has_window_focus());
     }
 
     SUBCASE("Focus signals work without title bar") {
@@ -114,11 +114,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         win.focus_gained.connect([&]() { gained = true; });
         win.focus_lost.connect([&]() { lost = true; });
 
-        win.set_focus(true);
+        win.set_window_focus(true);
         CHECK(gained);
 
         gained = false;
-        win.set_focus(false);
+        win.set_window_focus(false);
         CHECK(lost);
     }
 }
@@ -132,8 +132,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     window<test_canvas_backend> win("Test Window", flags);
 
     SUBCASE("Window renders successfully when focused") {
-        win.set_focus(true);
-        win.measure(80, 25);
+        win.set_window_focus(true);
+        [[maybe_unused]] auto size = win.measure(80, 25);
         win.arrange({0, 0, 80, 25});
 
         auto canvas = render_to_canvas(win, 80, 25);
@@ -148,8 +148,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     }
 
     SUBCASE("Window renders successfully when unfocused") {
-        win.set_focus(false);
-        win.measure(80, 25);
+        win.set_window_focus(false);
+        [[maybe_unused]] auto size = win.measure(80, 25);
         win.arrange({0, 0, 80, 25});
 
         auto canvas = render_to_canvas(win, 80, 25);
@@ -191,8 +191,8 @@ TEST_CASE("window - Theme integration - Phase 8 implementation complete") {
     //    - window_content_area::get_theme_style() - returns content background
     //
     // ✅ 3. Add focus/unfocus color changes to window
-    //    - set_focus(bool) method
-    //    - has_focus() accessor
+    //    - set_window_focus(bool) method
+    //    - has_window_focus() accessor
     //    - focus_gained / focus_lost signals
     //    - Focus state tracked in m_has_focus
     //

@@ -115,7 +115,8 @@ namespace onyxui {
      * @relates key_modifier
      */
     constexpr key_modifier operator|(key_modifier lhs, key_modifier rhs) noexcept {
-        return static_cast<key_modifier>(
+        // NOLINT: Intentional bitmask enum - combined values (3,5,6,7) are valid
+        return static_cast<key_modifier>(  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
             static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)
         );
     }
@@ -125,7 +126,8 @@ namespace onyxui {
      * @relates key_modifier
      */
     constexpr key_modifier operator&(key_modifier lhs, key_modifier rhs) noexcept {
-        return static_cast<key_modifier>(
+        // NOLINT: Intentional bitmask enum - combined values are valid
+        return static_cast<key_modifier>(  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
             static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs)
         );
     }
@@ -135,7 +137,8 @@ namespace onyxui {
      * @relates key_modifier
      */
     constexpr key_modifier operator^(key_modifier lhs, key_modifier rhs) noexcept {
-        return static_cast<key_modifier>(
+        // NOLINT: Intentional bitmask enum - combined values are valid
+        return static_cast<key_modifier>(  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
             static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs)
         );
     }
@@ -145,7 +148,8 @@ namespace onyxui {
      * @relates key_modifier
      */
     constexpr key_modifier operator~(key_modifier mod) noexcept {
-        return static_cast<key_modifier>(~static_cast<uint8_t>(mod));
+        // NOLINT: Intentional bitmask enum - combined values are valid
+        return static_cast<key_modifier>(~static_cast<uint8_t>(mod));  // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
     }
 
     /**
@@ -498,11 +502,11 @@ namespace onyxui {
         // F-keys: "F1" through "F12"
         if (remaining[0] == 'F' && remaining.length() >= 2) {
             try {
-                int f_num = std::stoi(remaining.substr(1));
+                const int f_num = std::stoi(remaining.substr(1));
                 if (f_num < 1 || f_num > 12) {
                     throw std::runtime_error("F-key out of range (1-12): " + remaining);
                 }
-                key_code code = function_key_from_number(f_num);
+                const key_code code = function_key_from_number(f_num);
                 return key_sequence{code, mods};
             } catch (const std::exception&) {
                 throw std::runtime_error("Invalid F-key format: " + remaining);
@@ -517,7 +521,7 @@ namespace onyxui {
 
         // Single character
         if (remaining.length() == 1) {
-            char ch = static_cast<char>(std::tolower(static_cast<unsigned char>(remaining[0])));
+            const char ch = static_cast<char>(std::tolower(static_cast<unsigned char>(remaining[0])));
             return key_sequence{ch, mods};
         }
 
@@ -552,7 +556,7 @@ namespace onyxui {
         // Add key
         if (is_function_key(seq.key)) {
             // F-keys (F1-F12)
-            int f_num = function_key_to_number(seq.key);
+            const int f_num = function_key_to_number(seq.key);
             result += "F" + std::to_string(f_num);
         } else {
             // Check if named special key
@@ -564,7 +568,7 @@ namespace onyxui {
             }
             // Regular ASCII character
             if (is_ascii(seq.key)) {
-                char ch = static_cast<char>(seq.key);
+                const char ch = static_cast<char>(seq.key);
                 result += static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
             } else {
                 // Unknown key code

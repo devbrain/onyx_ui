@@ -143,8 +143,22 @@ namespace onyxui {
 
                 bool operator==(const line_style&) const = default;
             };
-            struct icon_style {
-                bool operator==(const icon_style&) const = default;
+            enum class icon_style : std::uint8_t {
+                none,           // No icon
+                check,          // Checkmark (✓)
+                cross,          // Cross/X mark (✗)
+                bullet,         // Bullet point (•)
+                folder,         // Folder icon
+                file,           // File icon
+                arrow_up,       // Up arrow (↑)
+                arrow_down,     // Down arrow (↓)
+                arrow_left,     // Left arrow (←)
+                arrow_right,    // Right arrow (→)
+                menu,           // Menu/hamburger icon (≡)
+                minimize,       // Minimize icon (▁)
+                maximize,       // Maximize icon (□)
+                restore,        // Restore icon (▢)
+                close_x         // Close icon (×)
             };
             struct font {
                 bool operator==(const font&) const = default;

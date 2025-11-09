@@ -153,12 +153,13 @@ namespace onyxui {
                 LOG_DEBUG("Registered theme: ", name);
             }
 
-            m_themes[std::move(name)] = std::move(theme);
+            // Insert into map and get iterator to access key after move
+            auto [iter, inserted] = m_themes.insert_or_assign(std::move(name), std::move(theme));
 
             // Auto-activate first registered theme if no current theme is set
             if (!m_current_theme) {
-                m_current_theme = std::make_shared<const theme_type>(m_themes[name]);
-                LOG_DEBUG("Auto-activated first theme: ", name);
+                m_current_theme = std::make_shared<const theme_type>(iter->second);
+                LOG_DEBUG("Auto-activated first theme: ", iter->first);
             }
         }
 

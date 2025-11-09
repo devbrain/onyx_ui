@@ -45,7 +45,6 @@
 #include <onyxui/widgets/menu/menu.hh>
 #include <onyxui/widgets/menu/menu_item.hh>
 #include <onyxui/actions/action.hh>
-#include <onyxui/hotkeys/key_sequence.hh>
 
 namespace onyxui {
 
@@ -160,4 +159,4 @@ namespace onyxui {
 } // namespace onyxui
 
 // Implementation
-#include "window_system_menu.inl"
+#include <onyxui/widgets/window/window_system_menu.inl>

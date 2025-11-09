@@ -5,9 +5,10 @@
 
 #pragma once
 
-#include "window_title_bar.hh"
-#include "window_content_area.hh"
-#include "window_system_menu.hh"
+#include "onyxui/hotkeys/hotkey_action.hh"
+#include <onyxui/widgets/window/window_title_bar.hh>
+#include <onyxui/widgets/window/window_content_area.hh>
+#include <onyxui/widgets/window/window_system_menu.hh>
 #include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
@@ -70,8 +71,39 @@ namespace onyxui {
                     // Update menu states before showing
                     m_system_menu->update_menu_states();
 
-                    // TODO Phase 7: Position menu at button location
-                    // For now, just update states (menu positioning requires layer_manager integration)
+                    // Phase 7: Position menu at icon location
+                    auto* menu_icon = m_title_bar->get_menu_icon();
+                    auto* menu = m_system_menu->get_menu();
+
+                    if (menu_icon && menu) {
+                        // Get icon's absolute bounds
+                        auto icon_bounds = menu_icon->bounds();
+
+                        // Position menu below icon (at icon's bottom-left corner)
+                        // Note: Using relative coordinates - menu will be positioned relative to window
+                        int menu_x = rect_utils::get_x(icon_bounds);
+                        int menu_y = rect_utils::get_y(icon_bounds) + rect_utils::get_height(icon_bounds);
+
+                        // Measure menu to get its size
+                        auto menu_size = menu->measure(200, 300);  // Reasonable max size for menu
+
+                        // Set menu bounds
+                        typename Backend::rect_type menu_bounds;
+                        rect_utils::set_bounds(
+                            menu_bounds,
+                            menu_x,
+                            menu_y,
+                            size_utils::get_width(menu_size),
+                            size_utils::get_height(menu_size)
+                        );
+
+                        menu->arrange(menu_bounds);
+                        menu->set_visible(true);
+
+                        // Activate menu: reset states and focus first item
+                        menu->reset_item_states();
+                        menu->focus_first();
+                    }
                 }
             });
         }
@@ -158,7 +190,7 @@ namespace onyxui {
             int const height = rect_utils::get_height(maximized_bounds);
 
             if (!this->children().empty() && ui_services<Backend>::themes()) {
-                this->measure(width, height);
+                [[maybe_unused]] auto measured_size = this->measure(width, height);
             }
             this->arrange(maximized_bounds);
         }
@@ -209,6 +241,21 @@ namespace onyxui {
         // Phase 5: Call hook for subclasses (e.g., dialog result handling)
         on_close();
 
+        // Phase 5: Restore focus if this was a modal window
+        if (m_flags.is_modal && m_previous_active_window) {
+            auto* win_mgr = ui_services<Backend>::windows();
+            if (win_mgr) {
+                win_mgr->set_active_window(m_previous_active_window);
+            }
+
+            auto* focus_mgr = ui_services<Backend>::input();
+            if (focus_mgr) {
+                focus_mgr->set_focus(m_previous_active_window);
+            }
+
+            m_previous_active_window = nullptr;
+        }
+
         // Hide window
         hide();
 
@@ -234,7 +281,7 @@ namespace onyxui {
 
         // Only measure if needed (widget has children and theme is available)
         if (!this->children().empty() && ui_services<Backend>::themes()) {
-            this->measure(width, height);
+            [[maybe_unused]] auto measured_size = this->measure(width, height);
         }
 
         this->arrange(current_bounds);
@@ -304,6 +351,20 @@ namespace onyxui {
         }
 
         this->set_visible(true);
+
+        // Phase 5: Auto-focus modal window
+        // Save previous active window for restoration when modal closes
+        auto* win_mgr = ui_services<Backend>::windows();
+        if (win_mgr) {
+            m_previous_active_window = win_mgr->get_active_window();
+            win_mgr->set_active_window(this);
+        }
+
+        // Request focus for modal
+        auto* focus_mgr = ui_services<Backend>::input();
+        if (focus_mgr) {
+            focus_mgr->set_focus(this);
+        }
     }
 
     template<UIBackend Backend>
@@ -316,6 +377,30 @@ namespace onyxui {
         }
 
         this->set_visible(false);
+    }
+
+    template<UIBackend Backend>
+    void window<Backend>::bring_to_front() {
+        // Bring layer to front in layer_manager
+        auto* layers = ui_services<Backend>::layers();
+        if (layers && m_layer_id.is_valid()) {
+            layers->bring_to_front(m_layer_id);
+        }
+
+        // Request keyboard focus from input_manager
+        auto* input = ui_services<Backend>::input();
+        if (input) {
+            input->set_focus(this);
+        }
+
+        // Set as active window in window_manager
+        auto* wm = ui_services<Backend>::windows();
+        if (wm) {
+            wm->set_active_window(this);
+        }
+
+        // Update window focus state and emit signal
+        set_window_focus(true);
     }
 
     template<UIBackend Backend>
@@ -444,8 +529,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::unregister_from_window_manager() {
-        auto* mgr = ui_services<Backend>::windows();
-        if (mgr) {
+        if (auto* mgr = ui_services<Backend>::windows()) {
             mgr->unregister_window(this);
         }
     }
@@ -499,9 +583,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_focus(bool has_focus) {
-        if (m_has_focus != has_focus) {
-            m_has_focus = has_focus;
+    void window<Backend>::set_window_focus(bool focused) {
+        if (m_has_focus != focused) {
+            m_has_focus = focused;
 
             // Invalidate measure/layout when focus changes (forces re-render)
             this->invalidate_measure();
@@ -572,11 +656,10 @@ namespace onyxui {
         modal.reserve(m_windows.size());
 
         for (auto* win : m_windows) {
-            // TODO Phase 5: Check if window is modal
-            // For now, return empty (modal support comes in Phase 5)
-            // if (win && win->is_modal()) {
-            //     modal.push_back(win);
-            // }
+            // Phase 5: Check if window is modal
+            if (win && win->is_modal()) {
+                modal.push_back(win);
+            }
         }
 
         return modal;
@@ -624,7 +707,10 @@ namespace onyxui {
             }
         }
 
-        // TODO: Bring window to front / request focus
+        // Bring window to front and focus
+        if (m_active_window) {
+            m_active_window->bring_to_front();
+        }
     }
 
     template<UIBackend Backend>
@@ -647,7 +733,10 @@ namespace onyxui {
             m_active_window = *it;
         }
 
-        // TODO: Bring window to front / request focus
+        // Bring window to front and focus
+        if (m_active_window) {
+            m_active_window->bring_to_front();
+        }
     }
 
     template<UIBackend Backend>

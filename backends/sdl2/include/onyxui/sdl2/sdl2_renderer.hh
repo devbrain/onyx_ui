@@ -62,18 +62,26 @@ namespace onyxui::sdl2 {
              */
             enum class icon_style : uint8_t {
                 none,
-                check,          // ✓ checkmark
-                cross,          // ✗ cross
-                arrow_up,       // ↑
-                arrow_down,     // ↓
-                arrow_left,     // ←
-                arrow_right,    // →
-                bullet,         // •
-                folder,         // folder icon
-                file,           // file icon
-                minimize,       // _ minimize button
-                maximize,       // □ maximize button
-                close           // × close button
+
+                // General purpose icons
+                check,         // ✓ checkmark
+                cross,         // ✗ cross
+                bullet,        // •
+                folder,        // folder icon
+                file,          // file icon
+
+                // Navigation arrows
+                arrow_up,      // ↑
+                arrow_down,    // ↓
+                arrow_left,    // ←
+                arrow_right,   // →
+
+                // Window management icons
+                menu,          // ≡ (hamburger menu)
+                minimize,      // ▁ (minimize to taskbar)
+                maximize,      // □ (maximize window)
+                restore,       // ▢ (restore from maximized)
+                close_x        // × (close window - renamed from 'close' for consistency)
             };
 
             using size_type = size; // Required by RenderLike concept

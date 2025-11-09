@@ -13,8 +13,11 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <cstring>
+#include <memory>      // for std::make_unique
+#include <ostream>     // for std::ostream
 
 #include "vram.hh"
+#include "onyxui/conio/colors.hh"  // for color
 
 #define TB_IMPL
 #define TB_OPT_ATTR_W 32
@@ -206,7 +209,7 @@ namespace onyxui::conio {
         if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
             throw std::runtime_error("VRAM coords are out of range");
         }
-        std::size_t idx = static_cast<std::size_t>(x) + static_cast<std::size_t>(y * m_width);
+        const std::size_t idx = static_cast<std::size_t>(x) + static_cast<std::size_t>(y * m_width);
         return m_cells[idx];
     }
 
@@ -286,9 +289,9 @@ namespace onyxui::conio {
         auto extract_rgb = [](uint32_t mapped) -> color {
             // For truecolor mode: rgb24(r,g,b) = (r<<16)|(g<<8)|b
             // For 256/ANSI modes: approximate back to RGB (lossy but good enough)
-            uint8_t r = static_cast<uint8_t>((mapped >> 16) & 0xFF);
-            uint8_t g = static_cast<uint8_t>((mapped >> 8) & 0xFF);
-            uint8_t b = static_cast<uint8_t>(mapped & 0xFF);
+            const auto r = static_cast<uint8_t>((mapped >> 16) & 0xFF);
+            const auto g = static_cast<uint8_t>((mapped >> 8) & 0xFF);
+            const auto b = static_cast<uint8_t>(mapped & 0xFF);
             return color{r, g, b};
         };
 
@@ -302,12 +305,12 @@ namespace onyxui::conio {
                 auto& c = m_pimpl->get_cell(x, y);
 
                 // Extract current background RGB
-                color bg = extract_rgb(c.bg);
+                const color bg = extract_rgb(c.bg);
 
                 // Darken by multiplying each component
-                uint8_t darkened_r = static_cast<uint8_t>(static_cast<float>(bg.r) * factor);
-                uint8_t darkened_g = static_cast<uint8_t>(static_cast<float>(bg.g) * factor);
-                uint8_t darkened_b = static_cast<uint8_t>(static_cast<float>(bg.b) * factor);
+                const auto darkened_r = static_cast<uint8_t>(static_cast<float>(bg.r) * factor);
+                const auto darkened_g = static_cast<uint8_t>(static_cast<float>(bg.g) * factor);
+                const auto darkened_b = static_cast<uint8_t>(static_cast<float>(bg.b) * factor);
 
                 // Re-map to current color mode
                 c.bg = m_pimpl->m_mapper_fn(darkened_r, darkened_g, darkened_b);

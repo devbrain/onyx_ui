@@ -350,9 +350,12 @@ namespace onyxui {
 
             // Submenu indicator width (backend-specific icon from theme)
             int submenu_indicator_width = 0;
-            if (has_submenu() && ctx.theme() && ctx.style().submenu_icon.value.has_value()) {
-                auto indicator_size = renderer_type::get_icon_size(ctx.style().submenu_icon.value.value());
-                submenu_indicator_width = size_utils::get_width(indicator_size) + 1;  // +1 for spacing
+            if (has_submenu() && ctx.theme()) {
+                const auto& submenu_icon_opt = ctx.style().submenu_icon.value;
+                if (submenu_icon_opt.has_value()) {
+                    auto indicator_size = renderer_type::get_icon_size(*submenu_icon_opt);
+                    submenu_indicator_width = size_utils::get_width(indicator_size) + 1;  // +1 for spacing
+                }
             }
 
             // Define padding constants
@@ -420,19 +423,22 @@ namespace onyxui {
             }
 
             // Draw submenu indicator if item has submenu (backend-specific icon from theme)
-            if (has_submenu() && ctx.theme() && ctx.style().submenu_icon.value.has_value()) {
-                // Position indicator to the right of shortcut (or text if no shortcut)
-                int indicator_x;
-                if (!shortcut.empty()) {
-                    // After shortcut
-                    indicator_x = base_x + effective_width - shortcut_width - RIGHT_PADDING - 2;
-                } else {
-                    // After text
-                    indicator_x = base_x + effective_width - RIGHT_PADDING - 1;
+            if (has_submenu() && ctx.theme()) {
+                const auto& submenu_icon_opt = ctx.style().submenu_icon.value;
+                if (submenu_icon_opt.has_value()) {
+                    // Position indicator to the right of shortcut (or text if no shortcut)
+                    int indicator_x;
+                    if (!shortcut.empty()) {
+                        // After shortcut
+                        indicator_x = base_x + effective_width - shortcut_width - RIGHT_PADDING - 2;
+                    } else {
+                        // After text
+                        indicator_x = base_x + effective_width - RIGHT_PADDING - 1;
+                    }
+                    // Draw icon at calculated position
+                    typename Backend::point_type const icon_pos{indicator_x, base_y};
+                    ctx.draw_icon(*submenu_icon_opt, icon_pos);
                 }
-                // Draw icon at calculated position
-                typename Backend::point_type const icon_pos{indicator_x, base_y};
-                ctx.draw_icon(ctx.style().submenu_icon.value.value(), icon_pos);
             }
 
             // Draw shortcut if present (right-aligned within effective width)

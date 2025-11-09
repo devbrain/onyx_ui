@@ -83,7 +83,7 @@ template<UIBackend Backend>
     using color_type = typename Backend::color_type;
 
     // Default-constructed instances for comparison
-    color_type default_color{};
+    const color_type default_color{};
 
     // Global colors - check if different from default
     result.has_window_bg = (theme.window_bg != default_color);
@@ -169,7 +169,7 @@ template<UIBackend Backend>
     hover.foreground = accent_color;
 
     // Lighten background by 20%
-    rgb_components bg{normal.background.r, normal.background.g, normal.background.b, 255};
+    const rgb_components bg{normal.background.r, normal.background.g, normal.background.b, 255};
     auto lightened = color_utils::lighten(bg, 0.2f);
     hover.background = typename Backend::color_type{lightened.r, lightened.g, lightened.b};
 
@@ -198,12 +198,12 @@ template<UIBackend Backend>
     visual_state pressed = normal;
 
     // Invert foreground
-    rgb_components fg{normal.foreground.r, normal.foreground.g, normal.foreground.b, 255};
+    const rgb_components fg{normal.foreground.r, normal.foreground.g, normal.foreground.b, 255};
     auto inverted_fg = color_utils::invert(fg);
     pressed.foreground = typename Backend::color_type{inverted_fg.r, inverted_fg.g, inverted_fg.b};
 
     // Invert background
-    rgb_components bg{normal.background.r, normal.background.g, normal.background.b, 255};
+    const rgb_components bg{normal.background.r, normal.background.g, normal.background.b, 255};
     auto inverted_bg = color_utils::invert(bg);
     pressed.background = typename Backend::color_type{inverted_bg.r, inverted_bg.g, inverted_bg.b};
 
@@ -232,7 +232,7 @@ template<UIBackend Backend>
     visual_state disabled = normal;
 
     // Darken foreground by 60% (RGB-only approach)
-    rgb_components fg{normal.foreground.r, normal.foreground.g, normal.foreground.b, 255};
+    const rgb_components fg{normal.foreground.r, normal.foreground.g, normal.foreground.b, 255};
     auto darkened = color_utils::darken(fg, 0.6f);
     disabled.foreground = typename Backend::color_type{darkened.r, darkened.g, darkened.b};
 
@@ -258,12 +258,12 @@ void apply_defaults(ui_theme<Backend>& theme) {
     using color_type = typename Backend::color_type;
 
     // Use global colors from theme as base
-    color_type primary = theme.window_bg;
-    color_type foreground = theme.text_fg;
-    color_type accent = theme.border_color;
+    const color_type primary = theme.window_bg;
+    const color_type foreground = theme.text_fg;
+    const color_type accent = theme.border_color;
 
     // === Button defaults ===
-    color_type default_color{};
+    const color_type default_color{};
 
     if (!completeness.has_button_normal && completeness.has_window_bg && completeness.has_text_fg) {
         theme.button.normal.background = primary;
@@ -357,7 +357,7 @@ void apply_defaults(ui_theme<Backend>& theme) {
     // Track = dimmed background
     if (!completeness.has_scrollbar_track && completeness.has_window_bg) {
         using rgb_components = color_utils::rgb_components;
-        rgb_components bg{theme.window_bg.r, theme.window_bg.g, theme.window_bg.b, 255};
+        const rgb_components bg{theme.window_bg.r, theme.window_bg.g, theme.window_bg.b, 255};
         auto dimmed = color_utils::darken(bg, 0.1f);  // Slightly darker
         theme.scrollbar.track_normal.background = color_type{dimmed.r, dimmed.g, dimmed.b};
         theme.scrollbar.track_normal.foreground = theme.border_color;
@@ -375,7 +375,7 @@ void apply_defaults(ui_theme<Backend>& theme) {
     // Thumb hover = lightened thumb
     if (!completeness.has_scrollbar_thumb_hover && has_scrollbar_thumb_normal) {
         using rgb_components = color_utils::rgb_components;
-        rgb_components bg{theme.scrollbar.thumb_normal.background.r,
+        const rgb_components bg{theme.scrollbar.thumb_normal.background.r,
                          theme.scrollbar.thumb_normal.background.g,
                          theme.scrollbar.thumb_normal.background.b,
                          255};

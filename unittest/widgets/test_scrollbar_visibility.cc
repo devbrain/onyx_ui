@@ -12,7 +12,7 @@
 #include <doctest/doctest.h>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
-#include "../../examples/demo.hh"  // Use exact demo code!
+#include "test_scrollbar_visibility_ui.hh"  // Use exact demo code!
 
 using namespace onyxui;
 using namespace onyxui::testing;

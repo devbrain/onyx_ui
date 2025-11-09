@@ -17,11 +17,9 @@
 
 #include <onyxui/widgets/core/widget_container.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/icon.hh>
 #include <onyxui/core/signal.hh>
-#include <onyxui/layout/linear_layout.hh>
 #include <string>
-#include <memory>
 
 namespace onyxui {
 
@@ -123,32 +121,46 @@ namespace onyxui {
         // ====================================================================
 
         /**
-         * @brief Get menu button (nullptr if not enabled)
+         * @brief Get menu icon (nullptr if not enabled)
          */
-        [[nodiscard]] button<Backend>* get_menu_button() noexcept {
-            return m_menu_button;
+        [[nodiscard]] icon<Backend>* get_menu_icon() noexcept {
+            return m_menu_icon;
         }
 
         /**
-         * @brief Get minimize button (nullptr if not enabled)
+         * @brief Get minimize icon (nullptr if not enabled)
          */
-        [[nodiscard]] button<Backend>* get_minimize_button() noexcept {
-            return m_minimize_button;
+        [[nodiscard]] icon<Backend>* get_minimize_icon() noexcept {
+            return m_minimize_icon;
         }
 
         /**
-         * @brief Get maximize button (nullptr if not enabled)
+         * @brief Get maximize icon (nullptr if not enabled)
          */
-        [[nodiscard]] button<Backend>* get_maximize_button() noexcept {
-            return m_maximize_button;
+        [[nodiscard]] icon<Backend>* get_maximize_icon() noexcept {
+            return m_maximize_icon;
         }
 
         /**
-         * @brief Get close button (nullptr if not enabled)
+         * @brief Get close icon (nullptr if not enabled)
          */
-        [[nodiscard]] button<Backend>* get_close_button() noexcept {
-            return m_close_button;
+        [[nodiscard]] icon<Backend>* get_close_icon() noexcept {
+            return m_close_icon;
         }
+
+        // ====================================================================
+        // Icon Management
+        // ====================================================================
+
+        /**
+         * @brief Set maximize icon to show maximize state (window not maximized)
+         */
+        void show_maximize_icon();
+
+        /**
+         * @brief Set maximize icon to show restore state (window is maximized)
+         */
+        void show_restore_icon();
 
         // ====================================================================
         // Signals
@@ -190,21 +202,21 @@ namespace onyxui {
 
         // Child widgets (pointers owned by base class children list)
         label<Backend>* m_title_label = nullptr;
-        button<Backend>* m_menu_button = nullptr;
-        button<Backend>* m_minimize_button = nullptr;
-        button<Backend>* m_maximize_button = nullptr;
-        button<Backend>* m_close_button = nullptr;
+        icon<Backend>* m_menu_icon = nullptr;
+        icon<Backend>* m_minimize_icon = nullptr;
+        icon<Backend>* m_maximize_icon = nullptr;
+        icon<Backend>* m_close_icon = nullptr;
 
         // Phase 2: Drag state tracking
         bool m_is_dragging = false;
         int m_drag_start_x = 0;
         int m_drag_start_y = 0;
 
-        // Helper: Create and wire up buttons
-        void create_buttons(const window_flags& flags);
+        // Helper: Create and wire up icon widgets
+        void create_icons(const window_flags& flags);
     };
 
 } // namespace onyxui
 
 // Implementation
-#include "window_title_bar.inl"
+#include <onyxui/widgets/window/window_title_bar.inl>

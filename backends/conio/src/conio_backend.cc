@@ -3,6 +3,7 @@
 //
 #include <onyxui/conio/conio_backend.hh>
 #include "conio_themes.hh"
+#include <onyxui/theming/theme_registry.hh>  // for theme_registry
 #include <termbox2.h>
 
 namespace onyxui::conio {

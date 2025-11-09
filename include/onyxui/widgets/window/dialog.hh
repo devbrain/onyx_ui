@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "onyxui/concepts/backend.hh"
 #include <onyxui/widgets/window/window.hh>
 #include <onyxui/widgets/containers/vbox.hh>
 #include <onyxui/widgets/containers/hbox.hh>
@@ -156,16 +157,18 @@ namespace onyxui {
         // Display Methods
         // ====================================================================
 
-        /**
-         * @brief Show modal dialog (signal-based pattern)
-         */
-        void show_modal() {
-            base::show_modal();
-        }
+        // Bring base class show_modal() into scope (prevents name hiding)
+        using base::show_modal;
 
         /**
          * @brief Show modal dialog with callback (callback-based pattern)
          * @param on_result Callback invoked when dialog closes with result
+         *
+         * @details
+         * This overload does NOT hide window::show_modal() thanks to the
+         * using declaration above. Both versions are available:
+         * - dialog.show_modal()          -> calls window::show_modal()
+         * - dialog.show_modal(callback)  -> calls this overload
          */
         void show_modal(std::function<void(dialog_result)> on_result) {
             m_callback = std::move(on_result);

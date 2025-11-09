@@ -161,4 +161,4 @@ namespace onyxui {
 } // namespace onyxui
 
 // Implementation
-#include "window_content_area.inl"
+#include <onyxui/widgets/window/window_content_area.inl>

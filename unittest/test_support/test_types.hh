@@ -76,15 +76,26 @@ enum class test_alignment : uint8_t {
  */
 enum class test_icon_style : uint8_t {
     none,
+
+    // General purpose icons
     check,
     cross,
+    bullet,
+    folder,
+    file,
+
+    // Navigation arrows
     arrow_up,
     arrow_down,
     arrow_left,
     arrow_right,
-    bullet,
-    folder,
-    file
+
+    // Window management icons
+    menu,
+    minimize,
+    maximize,
+    restore,
+    close_x
 };
 
 // ============================================================================
@@ -229,15 +240,26 @@ inline test_alignment alignment_from_string(std::string_view str) {
 inline const char* to_string(test_icon_style style) {
     switch(style) {
         case test_icon_style::none: return "none";
+
+        // General purpose icons
         case test_icon_style::check: return "check";
         case test_icon_style::cross: return "cross";
+        case test_icon_style::bullet: return "bullet";
+        case test_icon_style::folder: return "folder";
+        case test_icon_style::file: return "file";
+
+        // Navigation arrows
         case test_icon_style::arrow_up: return "arrow_up";
         case test_icon_style::arrow_down: return "arrow_down";
         case test_icon_style::arrow_left: return "arrow_left";
         case test_icon_style::arrow_right: return "arrow_right";
-        case test_icon_style::bullet: return "bullet";
-        case test_icon_style::folder: return "folder";
-        case test_icon_style::file: return "file";
+
+        // Window management icons
+        case test_icon_style::menu: return "menu";
+        case test_icon_style::minimize: return "minimize";
+        case test_icon_style::maximize: return "maximize";
+        case test_icon_style::restore: return "restore";
+        case test_icon_style::close_x: return "close_x";
     }
     throw std::runtime_error("Invalid test_icon_style");
 }
@@ -247,15 +269,27 @@ inline const char* to_string(test_icon_style style) {
  */
 inline test_icon_style icon_style_from_string(std::string_view str) {
     if (str == "none") return test_icon_style::none;
+
+    // General purpose icons
     if (str == "check") return test_icon_style::check;
     if (str == "cross") return test_icon_style::cross;
+    if (str == "bullet") return test_icon_style::bullet;
+    if (str == "folder") return test_icon_style::folder;
+    if (str == "file") return test_icon_style::file;
+
+    // Navigation arrows
     if (str == "arrow_up") return test_icon_style::arrow_up;
     if (str == "arrow_down") return test_icon_style::arrow_down;
     if (str == "arrow_left") return test_icon_style::arrow_left;
     if (str == "arrow_right") return test_icon_style::arrow_right;
-    if (str == "bullet") return test_icon_style::bullet;
-    if (str == "folder") return test_icon_style::folder;
-    if (str == "file") return test_icon_style::file;
+
+    // Window management icons
+    if (str == "menu") return test_icon_style::menu;
+    if (str == "minimize") return test_icon_style::minimize;
+    if (str == "maximize") return test_icon_style::maximize;
+    if (str == "restore") return test_icon_style::restore;
+    if (str == "close_x") return test_icon_style::close_x;
+
     throw std::runtime_error("Invalid icon_style string: " + std::string(str));
 }
 

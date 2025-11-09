@@ -145,8 +145,22 @@ namespace onyxui::testing {
             bool underline = false;
         };
 
-        struct icon_style {
-            char icon = '*';
+        enum class icon_style : std::uint8_t {
+            none,           // No icon
+            check,          // Checkmark (✓)
+            cross,          // Cross/X mark (✗)
+            bullet,         // Bullet point (•)
+            folder,         // Folder icon
+            file,           // File icon
+            arrow_up,       // Up arrow (↑)
+            arrow_down,     // Down arrow (↓)
+            arrow_left,     // Left arrow (←)
+            arrow_right,    // Right arrow (→)
+            menu,           // Menu/hamburger icon (≡)
+            minimize,       // Minimize icon (▁)
+            maximize,       // Maximize icon (□)
+            restore,        // Restore icon (▢)
+            close_x         // Close icon (×)
         };
 
         struct background_style {
@@ -256,11 +270,31 @@ namespace onyxui::testing {
         void draw_icon(const canvas_rect& rect, const icon_style& style, const canvas_color& fg, const canvas_color& bg) {
             if (!m_canvas) return;
 
+            // Convert icon_style enum to character
+            char icon_char = '*';  // Default fallback
+            switch (style) {
+                case icon_style::none:        icon_char = ' '; break;
+                case icon_style::check:       icon_char = 'v'; break;  // ✓
+                case icon_style::cross:       icon_char = 'x'; break;  // ✗
+                case icon_style::bullet:      icon_char = '*'; break;  // •
+                case icon_style::folder:      icon_char = 'F'; break;
+                case icon_style::file:        icon_char = 'f'; break;
+                case icon_style::arrow_up:    icon_char = '^'; break;  // ↑
+                case icon_style::arrow_down:  icon_char = 'v'; break;  // ↓
+                case icon_style::arrow_left:  icon_char = '<'; break;  // ←
+                case icon_style::arrow_right: icon_char = '>'; break;  // →
+                case icon_style::menu:        icon_char = '='; break;  // ≡
+                case icon_style::minimize:    icon_char = '_'; break;  // ▁
+                case icon_style::maximize:    icon_char = 'O'; break;  // □
+                case icon_style::restore:     icon_char = 'o'; break;  // ▢
+                case icon_style::close_x:     icon_char = 'X'; break;  // ×
+            }
+
             // Convert colors to palette indices (simplified)
             uint8_t fg_idx = (fg.r + fg.g + fg.b) > 128*3 ? 7 : 0;
             uint8_t bg_idx = (bg.r + bg.g + bg.b) > 128*3 ? 7 : 0;
 
-            m_canvas->put(rect.x, rect.y, style.icon, fg_idx, bg_idx);
+            m_canvas->put(rect.x, rect.y, icon_char, fg_idx, bg_idx);
         }
 
         /**

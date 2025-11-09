@@ -385,8 +385,16 @@ namespace onyxui {
             auto it = std::find(focusable.begin(), focusable.end(), current);
 
             // Move to next (wrap around if at end)
-            if (it == focusable.end() || ++it == focusable.end()) {
+            if (it == focusable.end()) {
+                // Not found, start from beginning
                 it = focusable.begin();
+            } else {
+                // Move to next
+                ++it;
+                // Wrap around if at end
+                if (it == focusable.end()) {
+                    it = focusable.begin();
+                }
             }
 
             this->set_focus(*it);

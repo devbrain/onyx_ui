@@ -116,12 +116,14 @@ namespace onyxui {
          */
         widget_container() = delete;
 
+    public:
         /**
-         * @brief Destructor
+         * @brief Destructor (public and virtual for proper polymorphic deletion)
          */
         ~widget_container() override = default;
 
-        // Rule of Five
+        // Rule of Five (deleted constructors remain protected to prevent direct instantiation)
+    protected:
         widget_container(const widget_container&) = delete;
         widget_container& operator=(const widget_container&) = delete;
         widget_container(widget_container&&) noexcept = default;

@@ -99,15 +99,26 @@ namespace onyxui::conio {
              */
             enum class icon_style : uint8_t {
                 none,
-                check, // ✓
-                cross, // ✗
-                arrow_up, // ↑
-                arrow_down, // ↓
-                arrow_left, // ←
-                arrow_right, // →
-                bullet, // •
-                folder, // ▶
-                file // ■
+
+                // General purpose icons
+                check,         // ✓
+                cross,         // ✗
+                bullet,        // •
+                folder,        // ▶
+                file,          // ■
+
+                // Navigation arrows
+                arrow_up,      // ↑
+                arrow_down,    // ↓
+                arrow_left,    // ←
+                arrow_right,   // →
+
+                // Window management icons
+                menu,          // ≡ (hamburger menu)
+                minimize,      // ▁ (minimize to taskbar)
+                maximize,      // □ (maximize window)
+                restore,       // ▢ (restore from maximized)
+                close_x        // × (close window)
             };
 
             /**

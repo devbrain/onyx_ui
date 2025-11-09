@@ -9,6 +9,13 @@
 #include <algorithm>
 #include <iostream>
 #include <stack>
+#include <memory>       // for std::make_unique
+#include <vector>       // for std::vector
+#include <string_view>  // for std::string_view
+#include <cstdint>      // for uint32_t
+#include "onyxui/conio/colors.hh"       // for color
+#include "onyxui/conio/geometry.hh"     // for rect
+#include "onyxui/conio/conio_renderer.hh"  // for conio_renderer
 
 namespace onyxui::conio {
     // ======================================================================
@@ -165,7 +172,7 @@ namespace onyxui::conio {
         }
 
         int x = r.x;
-        int y = r.y;
+        const int y = r.y;
 
         // Iterate through UTF-8 string
         const auto *it = text.begin();
@@ -273,7 +280,7 @@ namespace onyxui::conio {
         constexpr float SHADOW_DARKEN_FACTOR = 0.5f;  // Backend-specific constant
 
         // Shadow to the right (vertical strip) - stops before corner to avoid double-darkening
-        rect shadow_right{
+        const rect shadow_right{
             widget_bounds.x + widget_bounds.w,
             widget_bounds.y + offset_y,
             offset_x,
@@ -281,7 +288,7 @@ namespace onyxui::conio {
         };
 
         // Shadow at the bottom (horizontal strip) - includes corner area
-        rect shadow_bottom{
+        const rect shadow_bottom{
             widget_bounds.x + offset_x,
             widget_bounds.y + widget_bounds.h,
             widget_bounds.w,
@@ -384,15 +391,26 @@ namespace onyxui::conio {
         // Map icon style to character
         int ch;
         switch (style) {
+            // General purpose icons
             case icon_style::check:       ch = DOS_CHECK; break;
             case icon_style::cross:       ch = DOS_CROSS; break;
+            case icon_style::bullet:      ch = DOS_BULLET; break;
+            case icon_style::folder:      ch = DOS_TRIANGLE_RIGHT; break;
+            case icon_style::file:        ch = DOS_SQUARE_FILLED; break;
+
+            // Navigation arrows
             case icon_style::arrow_up:    ch = DOS_ARROW_UP; break;
             case icon_style::arrow_down:  ch = DOS_ARROW_DOWN; break;
             case icon_style::arrow_left:  ch = DOS_ARROW_LEFT; break;
             case icon_style::arrow_right: ch = DOS_ARROW_RIGHT; break;
-            case icon_style::bullet:      ch = DOS_BULLET; break;
-            case icon_style::folder:      ch = DOS_TRIANGLE_RIGHT; break;
-            case icon_style::file:        ch = DOS_SQUARE_FILLED; break;
+
+            // Window management icons
+            case icon_style::menu:        ch = DOS_MENU; break;
+            case icon_style::minimize:    ch = DOS_MINIMIZE; break;
+            case icon_style::maximize:    ch = DOS_MAXIMIZE; break;
+            case icon_style::restore:     ch = DOS_RESTORE; break;
+            case icon_style::close_x:     ch = DOS_CLOSE_X; break;
+
             default:                      return;
         }
 
@@ -414,10 +432,10 @@ namespace onyxui::conio {
         }
 
         // Intersect new clip rect with current clip rect
-        int x1 = std::max(r.x, current.x);
-        int y1 = std::max(r.y, current.y);
-        int x2 = std::min(r.x + r.w, current.x + current.w);
-        int y2 = std::min(r.y + r.h, current.y + current.h);
+        const int x1 = std::max(r.x, current.x);
+        const int y1 = std::max(r.y, current.y);
+        const int x2 = std::min(r.x + r.w, current.x + current.w);
+        const int y2 = std::min(r.y + r.h, current.y + current.h);
 
         rect intersected;
         intersected.x = x1;

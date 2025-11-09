@@ -73,30 +73,53 @@ namespace onyxui::conio {
     inline std::string_view icon_style_to_string(conio_renderer::icon_style style) {
         switch (style) {
             case conio_renderer::icon_style::none:        return "none";
+
+            // General purpose icons
             case conio_renderer::icon_style::check:       return "check";
             case conio_renderer::icon_style::cross:       return "cross";
+            case conio_renderer::icon_style::bullet:      return "bullet";
+            case conio_renderer::icon_style::folder:      return "folder";
+            case conio_renderer::icon_style::file:        return "file";
+
+            // Navigation arrows
             case conio_renderer::icon_style::arrow_up:    return "arrow_up";
             case conio_renderer::icon_style::arrow_down:  return "arrow_down";
             case conio_renderer::icon_style::arrow_left:  return "arrow_left";
             case conio_renderer::icon_style::arrow_right: return "arrow_right";
-            case conio_renderer::icon_style::bullet:      return "bullet";
-            case conio_renderer::icon_style::folder:      return "folder";
-            case conio_renderer::icon_style::file:        return "file";
+
+            // Window management icons
+            case conio_renderer::icon_style::menu:        return "menu";
+            case conio_renderer::icon_style::minimize:    return "minimize";
+            case conio_renderer::icon_style::maximize:    return "maximize";
+            case conio_renderer::icon_style::restore:     return "restore";
+            case conio_renderer::icon_style::close_x:     return "close_x";
         }
         throw std::runtime_error("Unknown icon_style value");
     }
 
     inline conio_renderer::icon_style icon_style_from_string(std::string_view str) {
         if (str == "none")        return conio_renderer::icon_style::none;
+
+        // General purpose icons
         if (str == "check")       return conio_renderer::icon_style::check;
         if (str == "cross")       return conio_renderer::icon_style::cross;
+        if (str == "bullet")      return conio_renderer::icon_style::bullet;
+        if (str == "folder")      return conio_renderer::icon_style::folder;
+        if (str == "file")        return conio_renderer::icon_style::file;
+
+        // Navigation arrows
         if (str == "arrow_up")    return conio_renderer::icon_style::arrow_up;
         if (str == "arrow_down")  return conio_renderer::icon_style::arrow_down;
         if (str == "arrow_left")  return conio_renderer::icon_style::arrow_left;
         if (str == "arrow_right") return conio_renderer::icon_style::arrow_right;
-        if (str == "bullet")      return conio_renderer::icon_style::bullet;
-        if (str == "folder")      return conio_renderer::icon_style::folder;
-        if (str == "file")        return conio_renderer::icon_style::file;
+
+        // Window management icons
+        if (str == "menu")        return conio_renderer::icon_style::menu;
+        if (str == "minimize")    return conio_renderer::icon_style::minimize;
+        if (str == "maximize")    return conio_renderer::icon_style::maximize;
+        if (str == "restore")     return conio_renderer::icon_style::restore;
+        if (str == "close_x")     return conio_renderer::icon_style::close_x;
+
         throw std::runtime_error("Invalid icon_style string: " + std::string(str));
     }
 

@@ -105,7 +105,7 @@ namespace onyxui::conio {
                 // Map termbox keys directly to key_code
                 if (native.key >= TB_KEY_F12 && native.key <= TB_KEY_F1) {
                     // Function keys: F1-F12
-                    int f_num = (TB_KEY_F1 - native.key) + 1;
+                    const int f_num = (TB_KEY_F1 - native.key) + 1;
                     kbd.key = function_key_from_number(f_num);
                 } else if (native.key == TB_KEY_ARROW_UP) {
                     kbd.key = key_code::arrow_up;
@@ -154,16 +154,16 @@ namespace onyxui::conio {
                 }
 
                 // Build modifiers (terminal reality: Enter=Ctrl+M, Tab=Ctrl+I)
-                bool is_enter_or_tab = (native.key == TB_KEY_ENTER || native.key == TB_KEY_TAB);
+                const bool is_enter_or_tab = (native.key == TB_KEY_ENTER || native.key == TB_KEY_TAB);
 
                 key_modifier mods = key_modifier::none;
-                if (!is_enter_or_tab && (native.mod & TB_MOD_CTRL)) mods |= key_modifier::ctrl;
-                if (native.mod & TB_MOD_ALT) mods |= key_modifier::alt;
+                if (!is_enter_or_tab && (native.mod & TB_MOD_CTRL) != 0) mods |= key_modifier::ctrl;
+                if ((native.mod & TB_MOD_ALT) != 0) mods |= key_modifier::alt;
 
                 // For uppercase letters, shift=true (already normalized to lowercase)
                 if (native.ch >= 'A' && native.ch <= 'Z') {
                     mods |= key_modifier::shift;
-                } else if (!is_enter_or_tab && (native.mod & TB_MOD_SHIFT)) {
+                } else if (!is_enter_or_tab && (native.mod & TB_MOD_SHIFT) != 0) {
                     mods |= key_modifier::shift;
                 }
 

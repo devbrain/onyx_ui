@@ -44,11 +44,9 @@ namespace onyxui {
         modal.reserve(m_windows.size());
 
         for (auto* win : m_windows) {
-            // TODO Phase 5: Check if window is modal
-            // For now, return empty (modal support comes in Phase 5)
-            // if (win && win->is_modal()) {
-            //     modal.push_back(win);
-            // }
+            if (win && win->is_modal()) {
+                modal.push_back(win);
+            }
         }
 
         return modal;
@@ -73,32 +71,7 @@ namespace onyxui {
         // dialog->show_modal();
     }
 
-    template<UIBackend Backend>
-    void window_manager<Backend>::register_hotkeys() {
-        // TODO Phase 4: Register semantic actions for window management
-        // Requires hotkey_manager integration
-
-        // Future implementation:
-        // auto* hotkeys = ui_services<Backend>::hotkeys();
-        // if (!hotkeys) return;
-        //
-        // // Ctrl+W - Show window list
-        // hotkeys->register_semantic_action(
-        //     hotkey_action::show_window_list,
-        //     [this]() { this->show_window_list(); }
-        // );
-        //
-        // // Ctrl+F6 - Cycle to next window
-        // hotkeys->register_semantic_action(
-        //     hotkey_action::next_window,
-        //     [this]() { /* cycle to next window */ }
-        // );
-        //
-        // // Ctrl+Shift+F6 - Cycle to previous window
-        // hotkeys->register_semantic_action(
-        //     hotkey_action::prev_window,
-        //     [this]() { /* cycle to previous window */ }
-        // );
-    }
+    // Note: register_hotkeys() implementation is in window.inl (window_manager section)
+    // This is intentional to keep window management logic together with window class
 
 } // namespace onyxui

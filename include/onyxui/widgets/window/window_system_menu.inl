@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <onyxui/widgets/window/window.hh>
+#include "onyxui/concepts/backend.hh"
 #include <onyxui/widgets/menu/separator.hh>
 
 namespace onyxui {

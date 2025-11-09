@@ -8,12 +8,6 @@
 #include <onyxui/conio/termbox2_wrappers.hh>
 #include <onyxui/concepts/event_like.hh>
 
-// Forward declarations for termbox2 wrapper functions
-namespace onyxui::conio {
-    int conio_get_width();
-    int conio_get_height();
-}
-
 // ======================================================================
 // Event Traits Specializations (must be in onyxui namespace)
 // ======================================================================
@@ -148,7 +142,7 @@ namespace onyxui {
 
             // For character input
             if (e.ch != 0) {
-                uint32_t ch = e.ch;
+                const uint32_t ch = e.ch;
 
                 // Lowercase letters
                 if (ch >= 'a' && ch <= 'z') return static_cast<char>(ch);

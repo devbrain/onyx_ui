@@ -260,6 +260,15 @@ namespace onyxui {
             // Layout
             int title_bar_height = 1;        ///< Height of title bar (renderer units)
             int border_width = 1;            ///< Width of window border
+
+            // Title bar button icons (backend-specific)
+            // Note: icon_style_type will be initialized to backend's default
+            // Themes should set these to appropriate window management icons
+            icon_style_type menu_icon{};     ///< Icon for menu/system menu button (≡)
+            icon_style_type minimize_icon{}; ///< Icon for minimize button (▁)
+            icon_style_type maximize_icon{}; ///< Icon for maximize button (□)
+            icon_style_type restore_icon{};  ///< Icon for restore button (▢)
+            icon_style_type close_icon{};    ///< Icon for close button (×)
         };
 
         // Widget-specific styles

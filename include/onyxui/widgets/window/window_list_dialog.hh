@@ -239,6 +239,7 @@ namespace onyxui {
         int m_selected_index;
         std::vector<window_ptr> m_windows;  // Non-owning pointers
         vbox<Backend>* m_content_vbox;      // Non-owning pointer to content
+        std::vector<label<Backend>*> m_labels;  // Non-owning pointers to labels
 
         /**
          * @brief Get window flags for dialog
@@ -291,17 +292,28 @@ namespace onyxui {
         void refresh_list() {
             if (!m_content_vbox) return;
 
-            // Clear existing labels
+            // Clear existing label references
             // Note: This is a simplified implementation
-            // A production version would properly manage child widgets
+            // A production version would properly remove child widgets
+            m_labels.clear();
 
             // Get filtered windows
             auto filtered = get_filtered_windows();
 
-            // TODO: Add labels for each window
-            // For now, this is a placeholder
-            // Full implementation would create/update label widgets
-            // showing: "[N] Title (state)"
+            // Create label for each window
+            int display_index = 1;  // 1-based display numbering
+            for (auto* win : filtered) {
+                std::string label_text = get_window_label(win, display_index);
+
+                // Create label widget and add to vbox
+                auto* label_widget = m_content_vbox->template emplace_child<label>(label_text);
+                m_labels.push_back(label_widget);
+
+                display_index++;
+            }
+
+            // Request layout update
+            this->invalidate_measure();
         }
 
         /**

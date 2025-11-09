@@ -6,7 +6,7 @@
 #pragma once
 
 #include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/icon.hh>
 #include <onyxui/layout/linear_layout.hh>
 
 namespace onyxui {
@@ -33,8 +33,8 @@ namespace onyxui {
         // Title label should expand
         // TODO: Add flex/stretch property when available in layout system
 
-        // Create buttons based on flags
-        create_buttons(flags);
+        // Create icon widgets based on flags
+        create_icons(flags);
     }
 
     template<UIBackend Backend>
@@ -67,39 +67,32 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_title_bar<Backend>::create_buttons(const window_flags& flags) {
-        // Menu button (left side, optional)
+    void window_title_bar<Backend>::create_icons(const window_flags& flags) {
+        using icon_style = typename Backend::renderer_type::icon_style;
+
+        // Create icon widgets (icons are NOT clickable by themselves)
+        // Click handling is done in handle_event() by checking bounds
+
+        // Menu icon (left side, optional)
         if (flags.has_menu_button) {
-            m_menu_button = this->template emplace_child<button>("[≡]");
-            m_menu_button->clicked.connect([this]() {
-                menu_clicked.emit();
-            });
+            m_menu_icon = this->template emplace_child<icon>(icon_style::menu);
         }
 
-        // Control buttons (right side)
+        // Control icons (right side)
 
-        // Minimize button
+        // Minimize icon
         if (flags.has_minimize_button) {
-            m_minimize_button = this->template emplace_child<button>("[_]");
-            m_minimize_button->clicked.connect([this]() {
-                minimize_clicked.emit();
-            });
+            m_minimize_icon = this->template emplace_child<icon>(icon_style::minimize);
         }
 
-        // Maximize button
+        // Maximize icon (starts with maximize, can toggle to restore)
         if (flags.has_maximize_button) {
-            m_maximize_button = this->template emplace_child<button>("[□]");
-            m_maximize_button->clicked.connect([this]() {
-                maximize_clicked.emit();
-            });
+            m_maximize_icon = this->template emplace_child<icon>(icon_style::maximize);
         }
 
-        // Close button
+        // Close icon
         if (flags.has_close_button) {
-            m_close_button = this->template emplace_child<button>("[X]");
-            m_close_button->clicked.connect([this]() {
-                close_clicked.emit();
-            });
+            m_close_icon = this->template emplace_child<icon>(icon_style::close_x);
         }
     }
 
@@ -116,14 +109,42 @@ namespace onyxui {
             return base::handle_event(event, phase);
         }
 
-        // Phase 2: Handle mouse dragging
+        // Handle icon clicks (use hit_test to find which icon was clicked)
+        if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::release) {
+            // Check each icon widget using hit_test
+            if (m_menu_icon && m_menu_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_menu_icon) {
+                menu_clicked.emit();
+                return true;
+            }
+            if (m_minimize_icon && m_minimize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_minimize_icon) {
+                minimize_clicked.emit();
+                return true;
+            }
+            if (m_maximize_icon && m_maximize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_maximize_icon) {
+                maximize_clicked.emit();
+                return true;
+            }
+            if (m_close_icon && m_close_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_close_icon) {
+                close_clicked.emit();
+                return true;
+            }
+        }
+
+        // Phase 2: Handle mouse dragging (only if not clicking an icon)
         if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::press) {
-            // Start dragging
-            m_is_dragging = true;
-            m_drag_start_x = mouse_evt->x;
-            m_drag_start_y = mouse_evt->y;
-            drag_started.emit();
-            return true;  // Event handled
+            // Start dragging (unless clicking on an icon)
+            bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_menu_icon) ||
+                                 (m_minimize_icon && m_minimize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_minimize_icon) ||
+                                 (m_maximize_icon && m_maximize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_maximize_icon) ||
+                                 (m_close_icon && m_close_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_close_icon);
+
+            if (!clicking_icon) {
+                m_is_dragging = true;
+                m_drag_start_x = mouse_evt->x;
+                m_drag_start_y = mouse_evt->y;
+                drag_started.emit();
+                return true;  // Event handled
+            }
         }
 
         if (m_is_dragging && mouse_evt->act == mouse_event::action::move) {
@@ -150,7 +171,7 @@ namespace onyxui {
         // Check if parent is a window to determine focus state
         bool parent_has_focus = false;
         if (auto* parent_window = dynamic_cast<const window<Backend>*>(this->parent())) {
-            parent_has_focus = parent_window->has_focus();
+            parent_has_focus = parent_window->has_window_focus();
         }
 
         // Use focused or unfocused title bar style based on parent window focus
@@ -170,6 +191,22 @@ namespace onyxui {
             .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
             .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
         };
+    }
+
+    template<UIBackend Backend>
+    void window_title_bar<Backend>::show_maximize_icon() {
+        if (m_maximize_icon) {
+            using icon_style = typename Backend::renderer_type::icon_style;
+            m_maximize_icon->set_icon(icon_style::maximize);
+        }
+    }
+
+    template<UIBackend Backend>
+    void window_title_bar<Backend>::show_restore_icon() {
+        if (m_maximize_icon) {
+            using icon_style = typename Backend::renderer_type::icon_style;
+            m_maximize_icon->set_icon(icon_style::restore);
+        }
     }
 
 } // namespace onyxui

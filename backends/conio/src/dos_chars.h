@@ -133,4 +133,12 @@ enum dos_char {
     DOS_CROSS = 0x2717, // ✗ (ballot X)
     DOS_TRIANGLE_RIGHT = 0x25B6, // ▶ (black right-pointing triangle)
     DOS_SQUARE_FILLED = 0x25A0, // ■ (black square)
+
+    // ──────────────────────────────────────
+    // Window management icons
+    DOS_MENU = 0x2261, // ≡ (hamburger menu / identical to)
+    DOS_MINIMIZE = 0x2581, // ▁ (lower one eighth block)
+    DOS_MAXIMIZE = 0x25A1, // □ (white square)
+    DOS_RESTORE = 0x25A2, // ▢ (white square with rounded corners)
+    DOS_CLOSE_X = 0x00D7, // × (multiplication sign)
 };

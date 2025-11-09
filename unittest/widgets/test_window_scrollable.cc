@@ -93,7 +93,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
 
         // Window should measure and arrange correctly (content will be clipped)
         win.set_size(40, 20);
-        auto size = win.measure(40, 20);
+        [[maybe_unused]] auto size = win.measure(40, 20);
         // CHECK(size.w <= 40);
         // CHECK(size.h <= 20);
     }
@@ -109,7 +109,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
 
         // Window should still measure correctly
         win.set_size(40, 20);
-        auto size = win.measure(40, 20);
+        [[maybe_unused]] auto size = win.measure(40, 20);
         // CHECK(size.w <= 40);
         // CHECK(size.h <= 20);
     }
@@ -200,11 +200,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Resize with
 
         // Small window - content doesn't fit
         win.set_size(40, 10);
-        auto size1 = win.measure(40, 10);
+        [[maybe_unused]] auto size1 = win.measure(40, 10);
 
         // Large window - content fits
         win.set_size(80, 60);
-        auto size2 = win.measure(80, 60);
+        [[maybe_unused]] auto size2 = win.measure(80, 60);
 
         // Both should succeed
         // Size assertions removed
@@ -231,7 +231,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Resize with
 
         // Resize window
         win.set_size(50, 25);
-        auto size = win.measure(50, 25);
+        [[maybe_unused]] auto size = win.measure(50, 25);
 
         // Size assertions removed - measure() may return 0 for complex layouts
     }
@@ -252,7 +252,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Resize with
         // Multiple resize cycles
         for (int i = 0; i < 5; ++i) {
             win.set_size(40 + i * 10, 20 + i * 5);
-            auto size = win.measure(40 + i * 10, 20 + i * 5);
+            [[maybe_unused]] auto size = win.measure(40 + i * 10, 20 + i * 5);
             // Size assertions removed - measure() may return 0 for complex layouts
         }
     }
@@ -365,7 +365,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
         win.set_size(40, 20);
 
         // Should handle very large content
-        auto size = win.measure(40, 20);
+        [[maybe_unused]] auto size = win.measure(40, 20);
         // Size assertions removed - measure() may return 0 for complex layouts
     }
 
@@ -382,7 +382,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
         win.set_size(10, 5);  // Very small
 
         // Should handle small window
-        auto size = win.measure(10, 5);
+        [[maybe_unused]] auto size = win.measure(10, 5);
         // Size assertions removed - measure() may return 0 for complex layouts
     }
 
@@ -397,7 +397,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
 
         // Should still work
         win.set_size(40, 20);
-        auto size = win.measure(40, 20);
+        [[maybe_unused]] auto size = win.measure(40, 20);
         // Size assertions removed - measure() may return 0 for complex layouts
     }
 
@@ -416,7 +416,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
             }
             win.set_content(std::move(content));
 
-            auto size = win.measure(40, 20);
+            [[maybe_unused]] auto size = win.measure(40, 20);
             // Size assertions removed - measure() may return 0 for complex layouts
         }
     }
