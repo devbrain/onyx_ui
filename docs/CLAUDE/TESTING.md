@@ -17,10 +17,11 @@ This document describes the testing strategy and best practices for the OnyxUI f
 
 The project uses **doctest** (fetched via CMake FetchContent) for unit testing.
 
-**Current Coverage:**
-- **996 test cases** across 34 test files
-- **5533 assertions** total
+**Current Coverage (as of 2025-11-09):**
+- **1291 test cases** across 61 test files
+- **7747 assertions** total
 - **All tests must pass with zero warnings**
+- **Visual rendering coverage:** 69% of containers (target: 100%)
 
 ---
 
@@ -245,6 +246,151 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "button - Comprehensi
 
 ---
 
+## Visual Rendering Tests (MANDATORY for Containers)
+
+**All container widgets MUST have at least one visual rendering test using `render_to_canvas()`.**
+
+### Why This Is Critical
+
+Unit tests can verify individual features work correctly (state management, signals, properties) while the complete rendering pipeline is completely broken.
+
+**Real-world example:** The window widget had all unit tests passing (state transitions, signal emission, property management) but windows measured to {0,0} and rendered absolutely nothing. The bug wasn't discovered until visual rendering tests were added.
+
+**Root cause:** Window didn't set a `layout_strategy` to arrange its children. Without it:
+- `do_measure()` returned {0, 0}
+- Windows didn't render at all
+- All non-visual tests still passed ✅
+- Visual rendering was completely broken ❌
+
+### Requirements for Container Widgets
+
+Every container widget (any widget that has `add_child()` or manages child elements) MUST include at least one test that:
+
+1. Uses `ui_context_fixture<test_canvas_backend>`
+2. Calls `measure()` with available space
+3. Calls `arrange()` with final bounds
+4. Calls `render_to_canvas()` to produce visual output
+5. Verifies the output is non-empty
+6. **Bonus:** Verifies expected content appears in output
+
+### Example: Visual Rendering Test
+
+```cpp
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "my_container - Visual rendering verification") {
+
+    SUBCASE("Container renders children correctly") {
+        my_container<test_canvas_backend> container;
+
+        // Add content
+        container.emplace_child<label>("Test Content");
+
+        // Measure and arrange
+        auto size = container.measure(80, 25);
+        CHECK(size.w > 0);  // Must measure to non-zero size
+        CHECK(size.h > 0);
+
+        container.arrange({0, 0, 80, 25});
+
+        // Render to canvas
+        auto canvas = render_to_canvas(container, 80, 25);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify rendering produced output
+        int non_whitespace = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') non_whitespace++;
+        }
+        CHECK(non_whitespace > 0);  // MUST have visual content
+
+        // Bonus: Verify expected content
+        CHECK(rendered.find("Test Content") != std::string::npos);
+    }
+}
+```
+
+### Current Visual Test Coverage
+
+**Status as of 2025-11-09:**
+
+| Coverage | Count | Percentage |
+|----------|-------|------------|
+| Total containers | 13 | 100% |
+| With visual tests | 9 | 69% |
+| **Missing visual tests** | **4** | **31%** |
+
+**Containers WITH visual tests (9):**
+- group_box ✅
+- hbox ✅
+- menu ✅
+- menu_bar ✅
+- panel ✅
+- scroll_view ✅
+- vbox ✅
+- window ✅ (fixed in Phase 8)
+- separator ✅
+
+**Containers MISSING visual tests (4) - NEEDS ATTENTION:**
+- ❌ `absolute_panel` - test_absolute_panel.cc
+- ❌ `anchor_panel` - test_anchor_panel.cc
+- ❌ `dialog` - test_dialog.cc
+- ❌ `grid` - test_grid.cc
+
+### Adding Visual Tests to Existing Containers
+
+For containers without visual tests, add a test case following this pattern:
+
+```cpp
+SUBCASE("Visual rendering - layout strategy verification") {
+    container_type<test_canvas_backend> container;
+
+    // Add representative content
+    container.emplace_child<label>("Child 1");
+    container.emplace_child<button>("Child 2");
+
+    // Measure
+    auto size = container.measure(100, 50);
+    INFO("Measured size: " << size.w << " x " << size.h);
+    CHECK(size.w > 0);  // CRITICAL: Must not measure to zero
+    CHECK(size.h > 0);
+
+    // Arrange
+    container.arrange({0, 0, size.w, size.h});
+
+    // Render
+    auto canvas = render_to_canvas(container, size.w, size.h);
+    std::string rendered = canvas->render_ascii();
+
+    // Verify non-empty output
+    int content_chars = 0;
+    for (char c : rendered) {
+        if (c != ' ' && c != '\n') content_chars++;
+    }
+    INFO("Rendered " << content_chars << " non-whitespace characters");
+    CHECK(content_chars > 0);  // Must render something
+}
+```
+
+### What Visual Tests Catch
+
+Visual rendering tests verify the complete pipeline:
+- ✅ Layout strategy is set correctly
+- ✅ Children are measured
+- ✅ Children are positioned correctly
+- ✅ Rendering produces visual output
+- ✅ No measurement bugs (0x0 sizes)
+- ✅ No positioning bugs (overlapping, wrong locations)
+- ✅ No visibility bugs (invisible content)
+
+Without visual tests, you only verify:
+- ❌ State management works
+- ❌ Signals fire correctly
+- ❌ Properties are set/get correctly
+
+But the widget could still be **completely invisible to users**.
+
+---
+
 ## Running Tests
 
 ### All Tests
@@ -317,6 +463,7 @@ cmake --build build -j8
 - **Branch coverage**: >85%
 - **Widget coverage**: 100% (all widgets must have tests)
 - **Layout coverage**: 100% (all layout strategies must have tests)
+- **Visual rendering coverage**: 100% (all containers must have render_to_canvas tests)
 - **Edge case coverage**: All edge cases documented in code must have tests
 
 ---
