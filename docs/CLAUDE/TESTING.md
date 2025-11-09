@@ -18,10 +18,10 @@ This document describes the testing strategy and best practices for the OnyxUI f
 The project uses **doctest** (fetched via CMake FetchContent) for unit testing.
 
 **Current Coverage (as of 2025-11-09):**
-- **1291 test cases** across 61 test files
-- **7747 assertions** total
+- **1292 test cases** across 61 test files
+- **7782 assertions** total
 - **All tests must pass with zero warnings**
-- **Visual rendering coverage:** 69% of containers (target: 100%)
+- **Visual rendering coverage:** 100% of containers ✅
 
 ---
 
@@ -316,25 +316,31 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 | Coverage | Count | Percentage |
 |----------|-------|------------|
 | Total containers | 13 | 100% |
-| With visual tests | 9 | 69% |
-| **Missing visual tests** | **4** | **31%** |
+| With visual tests | 13 | **100%** ✅ |
+| Missing visual tests | 0 | 0% |
 
-**Containers WITH visual tests (9):**
+**All Containers WITH visual tests (13/13):**
+- absolute_panel ✅
+- anchor_panel ✅
+- dialog ✅
+- grid ✅
 - group_box ✅
 - hbox ✅
 - menu ✅
 - menu_bar ✅
 - panel ✅
 - scroll_view ✅
-- vbox ✅
-- window ✅ (fixed in Phase 8)
 - separator ✅
+- vbox ✅
+- window ✅
 
-**Containers MISSING visual tests (4) - NEEDS ATTENTION:**
-- ❌ `absolute_panel` - test_absolute_panel.cc
-- ❌ `anchor_panel` - test_anchor_panel.cc
-- ❌ `dialog` - test_dialog.cc
-- ❌ `grid` - test_grid.cc
+**🎉 100% visual test coverage achieved!**
+
+All container widgets now have comprehensive visual rendering tests that verify:
+- Non-zero measurement (catches missing layout_strategy)
+- Successful arrangement
+- Visible rendering output
+- Expected child content in output
 
 ### Adding Visual Tests to Existing Containers
 
