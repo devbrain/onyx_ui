@@ -87,8 +87,10 @@ public:
     class menu_builder;
     class menu_item_builder;
     class menu_bar_builder;
+    class menu_bar_item_builder;
     class separator_builder;
     class scrollbar_builder;
+    class window_builder;
     class state_builder;
 
     // ===================================================================
@@ -317,6 +319,12 @@ public:
     menu_bar_builder with_menu_bar();
 
     /**
+     * @brief Configure menu bar item widget
+     * @return menu_bar_item_builder (implicit conversion back to theme_builder)
+     */
+    menu_bar_item_builder with_menu_bar_item();
+
+    /**
      * @brief Configure separator widget
      * @return separator_builder (implicit conversion back to theme_builder)
      */
@@ -327,6 +335,12 @@ public:
      * @return scrollbar_builder (implicit conversion back to theme_builder)
      */
     scrollbar_builder with_scrollbar();
+
+    /**
+     * @brief Configure window widget
+     * @return window_builder (implicit conversion back to theme_builder)
+     */
+    window_builder with_window();
 
     // ===================================================================
     // Build
@@ -384,8 +398,10 @@ private:
     friend class menu_builder;
     friend class menu_item_builder;
     friend class menu_bar_builder;
+    friend class menu_bar_item_builder;
     friend class separator_builder;
     friend class scrollbar_builder;
+    friend class window_builder;
     friend class state_builder;
 };
 
@@ -940,6 +956,73 @@ public:
 };
 
 // ===========================================================================
+// Menu Bar Item Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::menu_bar_item_builder {
+public:
+    theme_builder& m_parent;  // Public for state_builder access
+
+    explicit menu_bar_item_builder(theme_builder& parent) : m_parent(parent) {}
+
+    /**
+     * @brief Set menu bar item padding
+     * @param horizontal Horizontal padding
+     * @param vertical Vertical padding
+     * @return *this (for chaining)
+     */
+    menu_bar_item_builder& padding(int horizontal, int vertical) {
+        m_parent.m_theme.menu_bar_item.padding_horizontal = horizontal;
+        m_parent.m_theme.menu_bar_item.padding_vertical = vertical;
+        return *this;
+    }
+
+    /**
+     * @brief Set mnemonic font (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::font
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    menu_bar_item_builder& mnemonic_font(Args&&... args) {
+        m_parent.m_theme.menu_bar_item.mnemonic_font =
+            typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Configure normal state (closed, not hovered)
+     * @return state_builder (explicit .end() required)
+     */
+    state_builder normal() {
+        return state_builder{*this, m_parent.m_theme.menu_bar_item.normal};
+    }
+
+    /**
+     * @brief Configure hover state (mouse hover, closed)
+     * @return state_builder (explicit .end() required)
+     */
+    state_builder hover() {
+        return state_builder{*this, m_parent.m_theme.menu_bar_item.hover};
+    }
+
+    /**
+     * @brief Configure open state (menu is expanded)
+     * @return state_builder (explicit .end() required)
+     */
+    state_builder open() {
+        return state_builder{*this, m_parent.m_theme.menu_bar_item.open};
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
 // Separator Builder
 // ===========================================================================
 
@@ -1018,6 +1101,139 @@ public:
 };
 
 // ===========================================================================
+// Window Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::window_builder {
+public:
+    theme_builder& m_parent;  // Public for state_builder access
+
+    explicit window_builder(theme_builder& parent) : m_parent(parent) {}
+
+    /**
+     * @brief Set title bar height
+     * @param height Title bar height in renderer units
+     * @return *this (for chaining)
+     */
+    window_builder& title_bar_height(int height) {
+        m_parent.m_theme.window.title_bar_height = height;
+        return *this;
+    }
+
+    /**
+     * @brief Set border width
+     * @param width Border width in renderer units
+     * @return *this (for chaining)
+     */
+    window_builder& border_width(int width) {
+        m_parent.m_theme.window.border_width = width;
+        return *this;
+    }
+
+    /**
+     * @brief Set content area background color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    window_builder& content_background(std::string_view color_name) {
+        m_parent.m_theme.window.content_background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set content area background color by hex
+     * @param hex Hex color value
+     * @return *this (for chaining)
+     */
+    window_builder& content_background(std::uint32_t hex) {
+        m_parent.m_theme.window.content_background = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set focused border color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    window_builder& border_color_focused(std::string_view color_name) {
+        m_parent.m_theme.window.border_color_focused = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set unfocused border color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    window_builder& border_color_unfocused(std::string_view color_name) {
+        m_parent.m_theme.window.border_color_unfocused = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set focused border box style (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::box_style
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    window_builder& border_focused(Args&&... args) {
+        m_parent.m_theme.window.border_focused =
+            typename Backend::renderer_type::box_style{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Set unfocused border box style (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::box_style
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    window_builder& border_unfocused(Args&&... args) {
+        m_parent.m_theme.window.border_unfocused =
+            typename Backend::renderer_type::box_style{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Enable/disable shadow with offsets
+     * @param enabled Enable shadow rendering
+     * @param offset_x Horizontal shadow offset
+     * @param offset_y Vertical shadow offset
+     * @return *this (for chaining)
+     */
+    window_builder& shadow(bool enabled, int offset_x = 1, int offset_y = 1) {
+        m_parent.m_theme.window.shadow.enabled = enabled;
+        m_parent.m_theme.window.shadow.offset_x = offset_x;
+        m_parent.m_theme.window.shadow.offset_y = offset_y;
+        return *this;
+    }
+
+    /**
+     * @brief Configure focused title bar state
+     * @return state_builder (explicit .end() required)
+     */
+    state_builder title_focused() {
+        return state_builder{*this, m_parent.m_theme.window.title_focused};
+    }
+
+    /**
+     * @brief Configure unfocused title bar state
+     * @return state_builder (explicit .end() required)
+     */
+    state_builder title_unfocused() {
+        return state_builder{*this, m_parent.m_theme.window.title_unfocused};
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
 // Widget Builder Factory Methods (inline implementations)
 // ===========================================================================
 
@@ -1052,6 +1268,11 @@ typename theme_builder<Backend>::menu_bar_builder theme_builder<Backend>::with_m
 }
 
 template<UIBackend Backend>
+typename theme_builder<Backend>::menu_bar_item_builder theme_builder<Backend>::with_menu_bar_item() {
+    return menu_bar_item_builder{*this};
+}
+
+template<UIBackend Backend>
 typename theme_builder<Backend>::separator_builder theme_builder<Backend>::with_separator() {
     return separator_builder{*this};
 }
@@ -1059,6 +1280,11 @@ typename theme_builder<Backend>::separator_builder theme_builder<Backend>::with_
 template<UIBackend Backend>
 typename theme_builder<Backend>::scrollbar_builder theme_builder<Backend>::with_scrollbar() {
     return scrollbar_builder{*this};
+}
+
+template<UIBackend Backend>
+typename theme_builder<Backend>::window_builder theme_builder<Backend>::with_window() {
+    return window_builder{*this};
 }
 
 // ===========================================================================
