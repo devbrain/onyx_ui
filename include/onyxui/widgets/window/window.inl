@@ -206,6 +206,12 @@ namespace onyxui {
         auto current_bounds = this->bounds();
         current_bounds.w = width;
         current_bounds.h = height;
+
+        // Only measure if needed (widget has children and theme is available)
+        if (!this->children().empty() && ui_services<Backend>::themes()) {
+            this->measure(width, height);
+        }
+
         this->arrange(current_bounds);
         this->invalidate_measure();
 
