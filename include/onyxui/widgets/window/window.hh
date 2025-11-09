@@ -19,6 +19,7 @@
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/services/layer_manager.hh>  // For layer_id and layer_type
 #include <memory>
 #include <string>
 
@@ -27,6 +28,7 @@ namespace onyxui {
     // Forward declarations
     template<UIBackend Backend> class window_title_bar;
     template<UIBackend Backend> class window_content_area;
+    template<UIBackend Backend> class window_system_menu;
 
     /**
      * @class window
@@ -86,6 +88,7 @@ namespace onyxui {
         using rect_type = typename Backend::rect_type;
         using point_type = typename Backend::point_type;
         using render_context_type = render_context<Backend>;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Window state enumeration
@@ -94,6 +97,21 @@ namespace onyxui {
             normal,      ///< Standard window state
             minimized,   ///< Hidden from view
             maximized    ///< Fills parent container
+        };
+
+        /**
+         * @brief Resize handle zones (Phase 3)
+         */
+        enum class resize_handle : uint8_t {
+            none,        ///< Not on a resize handle
+            north,       ///< Top edge
+            south,       ///< Bottom edge
+            east,        ///< Right edge
+            west,        ///< Left edge
+            north_east,  ///< Top-right corner
+            north_west,  ///< Top-left corner
+            south_east,  ///< Bottom-right corner
+            south_west   ///< Bottom-left corner
         };
 
         /**
@@ -110,6 +128,13 @@ namespace onyxui {
             bool is_scrollable = false;         ///< Wrap content in scroll_view
             bool is_modal = false;              ///< Show as modal (blocks other windows)
             bool dim_background = false;        ///< Dim background when modal (optional)
+
+            // Phase 3: Size constraints
+            int min_width = 100;                ///< Minimum window width
+            int min_height = 50;                ///< Minimum window height
+            int max_width = 0;                  ///< Maximum window width (0 = no limit)
+            int max_height = 0;                 ///< Maximum window height (0 = no limit)
+            int resize_border_width = 4;        ///< Width of resize border zone
         };
 
         /**
@@ -224,6 +249,36 @@ namespace onyxui {
         }
 
         // ====================================================================
+        // Focus Management (Phase 8)
+        // ====================================================================
+
+        /**
+         * @brief Set window focus state
+         * @param has_focus Whether window has focus
+         */
+        void set_focus(bool has_focus);
+
+        /**
+         * @brief Get window focus state
+         * @return True if window has focus
+         */
+        [[nodiscard]] bool has_focus() const noexcept {
+            return m_has_focus;
+        }
+
+        // ====================================================================
+        // Testing Accessors (Phase 7)
+        // ====================================================================
+
+        /**
+         * @brief Get system menu (for testing)
+         * @return Pointer to system menu, or nullptr if not enabled
+         */
+        [[nodiscard]] window_system_menu<Backend>* get_system_menu() noexcept {
+            return m_system_menu.get();
+        }
+
+        // ====================================================================
         // Display
         // ====================================================================
 
@@ -270,6 +325,27 @@ namespace onyxui {
          */
         bool handle_event(const ui_event& event, event_phase phase) override;
 
+        // Phase 3: Resize helpers (protected for testing)
+        resize_handle get_resize_handle_at(int x, int y) const;
+        void apply_size_constraints(rect_type& bounds) const;
+
+        /**
+         * @brief Hook called when window is closing (Phase 5)
+         * @details
+         * Override this in subclasses to add custom close behavior.
+         * Called after closing signal but before hide() and closed signal.
+         */
+        virtual void on_close() {
+            // Default: no-op
+        }
+
+        /**
+         * @brief Get theme-specific style for window (Phase 8)
+         * @param theme Theme to extract properties from
+         * @return Resolved style with window border colors based on focus state
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override;
+
     private:
         // Window properties
         std::string m_title;
@@ -278,9 +354,29 @@ namespace onyxui {
         rect_type m_normal_bounds{};      // For restore from maximized
         rect_type m_before_minimize{};    // For restore from minimized
 
+        // Phase 8: Focus state
+        bool m_has_focus = false;
+
+        // Phase 2: Drag state
+        rect_type m_drag_initial_bounds{};  // Window bounds when drag started
+
+        // Phase 3: Resize state
+        bool m_is_resizing = false;         // Currently resizing
+        resize_handle m_resize_handle = resize_handle::none;  // Which handle is being dragged
+        rect_type m_resize_initial_bounds{};  // Window bounds when resize started
+        int m_resize_start_x = 0;           // Mouse X when resize started
+        int m_resize_start_y = 0;           // Mouse Y when resize started
+
+        // Phase 5: Layer manager integration
+        layer_id m_layer_id{};              // Layer ID when shown in layer_manager
+
         // Child widgets (Phase 1: created but drag/resize not implemented yet)
-        std::unique_ptr<window_title_bar<Backend>> m_title_bar;
-        std::unique_ptr<window_content_area<Backend>> m_content_area;
+        // Note: Raw pointers - ownership transferred to base class children list
+        window_title_bar<Backend>* m_title_bar = nullptr;
+        window_content_area<Backend>* m_content_area = nullptr;
+
+        // Phase 7: System menu (owned by window, not a child widget)
+        std::unique_ptr<window_system_menu<Backend>> m_system_menu;
 
         // Helper methods
         void register_with_window_manager();

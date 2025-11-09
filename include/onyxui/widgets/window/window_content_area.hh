@@ -65,6 +65,7 @@ namespace onyxui {
         using size_type = typename Backend::size_type;
         using rect_type = typename Backend::rect_type;
         using render_context_type = render_context<Backend>;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Construct a content area
@@ -143,6 +144,13 @@ namespace onyxui {
          * @param ctx Render context
          */
         void do_render(render_context_type& ctx) const override;
+
+        /**
+         * @brief Get theme-specific style for content area (Phase 8)
+         * @param theme Theme to extract properties from
+         * @return Resolved style with content area background color
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override;
 
     private:
         bool m_scrollable = false;

@@ -76,6 +76,7 @@ namespace onyxui {
         using rect_type = typename Backend::rect_type;
         using render_context_type = render_context<Backend>;
         using window_flags = typename window<Backend>::window_flags;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Construct a title bar
@@ -158,9 +159,10 @@ namespace onyxui {
         signal<> maximize_clicked;    ///< Maximize button clicked
         signal<> close_clicked;       ///< Close button clicked
 
-        // TODO Phase 2: Drag signals
-        // signal<> drag_started;
-        // signal<int, int> dragging;
+        // Phase 2: Drag signals
+        signal<> drag_started;        ///< Mouse drag started on title bar
+        signal<int, int> dragging;    ///< Mouse dragging (delta_x, delta_y from start)
+        signal<> drag_ended;          ///< Mouse drag ended
 
     protected:
         /**
@@ -168,6 +170,20 @@ namespace onyxui {
          * @param ctx Render context
          */
         void do_render(render_context_type& ctx) const override;
+
+        /**
+         * @brief Handle mouse events for dragging (Phase 2)
+         * @param event UI event
+         * @param phase Event phase
+         */
+        bool handle_event(const ui_event& event, event_phase phase) override;
+
+        /**
+         * @brief Get theme-specific style for title bar (Phase 8)
+         * @param theme Theme to extract properties from
+         * @return Resolved style with title bar colors based on parent window focus state
+         */
+        [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override;
 
     private:
         std::string m_title;
@@ -178,6 +194,11 @@ namespace onyxui {
         button<Backend>* m_minimize_button = nullptr;
         button<Backend>* m_maximize_button = nullptr;
         button<Backend>* m_close_button = nullptr;
+
+        // Phase 2: Drag state tracking
+        bool m_is_dragging = false;
+        int m_drag_start_x = 0;
+        int m_drag_start_y = 0;
 
         // Helper: Create and wire up buttons
         void create_buttons(const window_flags& flags);

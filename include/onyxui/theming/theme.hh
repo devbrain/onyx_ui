@@ -235,6 +235,33 @@ namespace onyxui {
             int inactive_delay_ms = 500;        ///< Delay before hiding after scroll ends
         };
 
+        /**
+         * @brief Window styling - Phase 8
+         * @details Defines the visual appearance of windows, including title bar,
+         *          borders, and focus indicators.
+         */
+        struct window_style {
+            // Title bar styling
+            visual_state title_focused;      ///< Title bar when window has focus
+            visual_state title_unfocused;    ///< Title bar when window doesn't have focus
+
+            // Border styling
+            box_style_type border_focused{};    ///< Border when window has focus
+            box_style_type border_unfocused{};  ///< Border when window doesn't have focus
+            color_type border_color_focused;    ///< Border color when focused
+            color_type border_color_unfocused;  ///< Border color when unfocused
+
+            // Content area
+            color_type content_background;   ///< Background color for content area
+
+            // Window shadow (for modal/floating windows)
+            shadow_config shadow;
+
+            // Layout
+            int title_bar_height = 1;        ///< Height of title bar (renderer units)
+            int border_width = 1;            ///< Width of window border
+        };
+
         // Widget-specific styles
         button_style button{};            // BREAKING CHANGE - refactored
         label_style label{};              // Unchanged
@@ -247,8 +274,11 @@ namespace onyxui {
         menu_item_style menu_item{};
         menu_bar_item_style menu_bar_item{};
 
-        // Scrollbar style (Phase 3 - PLACEHOLDER)
+        // Scrollbar style (Phase 3)
         scrollbar_theme scrollbar{};
+
+        // Window style (Phase 8)
+        window_style window{};
 
         // Global palette
         color_type window_bg;

@@ -91,6 +91,13 @@ add_executable(ui_unittest
         widgets/test_text_view_focus_debug.cc
         widgets/test_border_corruption.cc
         widgets/test_window.cc
+        widgets/test_window_list_dialog.cc
+        widgets/test_dialog.cc
+        widgets/test_window_modal.cc
+        widgets/test_window_scrollable.cc
+        widgets/test_window_system_menu.cc
+        widgets/test_window_theming.cc
+        widgets/test_window_title_bar_text_rendering.cc
         utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc
@@ -107,6 +114,8 @@ add_executable(ui_unittest
         reflection/test_scrollbar_style_yaml.cc
         # Layer management tests
         layer/test_layer_dirty_regions.cc
+        # Services tests
+        services/test_window_manager.cc
         # Theming tests
         theming/test_theme_palette.cc
         theming/test_theme_inheritance.cc

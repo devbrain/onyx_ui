@@ -449,6 +449,33 @@ namespace onyxui::conio {
             theme.menu_bar_item.open.background = menu_bar_open_bg;
             theme.menu_bar_item.open.foreground = menu_bar_open_fg;
 
+            // Window styling (Phase 8)
+            // Focused window: bright blue title bar with yellow text
+            theme.window.title_focused.background = color{0, 0, 255};      // Bright blue
+            theme.window.title_focused.foreground = color{255, 255, 0};    // Yellow
+            theme.window.title_focused.mnemonic_foreground = color{255, 255, 0};
+            theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Unfocused window: dark blue title bar with white text
+            theme.window.title_unfocused.background = color{0, 0, 170};    // Dark blue
+            theme.window.title_unfocused.foreground = color{255, 255, 255}; // White
+            theme.window.title_unfocused.mnemonic_foreground = color{170, 170, 170}; // Gray
+            theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Window borders
+            theme.window.border_focused = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
+            theme.window.border_unfocused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_color_focused = color{255, 255, 0};    // Yellow border when focused
+            theme.window.border_color_unfocused = color{170, 170, 170}; // Gray border when unfocused
+
+            // Window content area
+            theme.window.content_background = button_bg;  // Same as button background
+
+            // Window shadow
+            theme.window.shadow.enabled = true;
+            theme.window.shadow.offset_x = 2;
+            theme.window.shadow.offset_y = 1;
+
             return theme;
         }
 
@@ -520,6 +547,33 @@ namespace onyxui::conio {
             theme.menu_bar_item.open.background = menu_bar_open_bg;
             theme.menu_bar_item.open.foreground = menu_bar_open_fg;
 
+            // Window styling (Phase 8) - Borland Turbo style
+            // Focused window: dark cyan title bar with white text
+            theme.window.title_focused.background = color{0, 85, 85};      // Dark cyan
+            theme.window.title_focused.foreground = color{255, 255, 255};  // White
+            theme.window.title_focused.mnemonic_foreground = color{255, 255, 0}; // Yellow
+            theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Unfocused window: cyan title bar with black text
+            theme.window.title_unfocused.background = theme.window_bg;     // Cyan
+            theme.window.title_unfocused.foreground = theme.text_fg;       // Black
+            theme.window.title_unfocused.mnemonic_foreground = color{85, 85, 85}; // Dark gray
+            theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Window borders - double line for Borland style
+            theme.window.border_focused = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
+            theme.window.border_unfocused = conio_renderer::box_style{conio_renderer::border_style::double_line, true};
+            theme.window.border_color_focused = color{255, 255, 0};    // Yellow border when focused
+            theme.window.border_color_unfocused = theme.border_color;  // Yellow border (always)
+
+            // Window content area
+            theme.window.content_background = theme.window_bg;  // Cyan background
+
+            // Window shadow
+            theme.window.shadow.enabled = true;
+            theme.window.shadow.offset_x = 2;
+            theme.window.shadow.offset_y = 1;
+
             return theme;
         }
 
@@ -586,6 +640,33 @@ namespace onyxui::conio {
             theme.menu_bar_item.hover.foreground = color{255, 255, 0}; // Bright yellow
             theme.menu_bar_item.open.background = menu_bar_open_bg;
             theme.menu_bar_item.open.foreground = menu_bar_open_fg;
+
+            // Window styling (Phase 8) - Midnight Commander style
+            // Focused window: bright blue title bar with yellow text
+            theme.window.title_focused.background = color{0, 0, 170};    // Brighter blue
+            theme.window.title_focused.foreground = color{255, 255, 0};  // Bright yellow
+            theme.window.title_focused.mnemonic_foreground = color{255, 255, 0};
+            theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Unfocused window: dark blue title bar with light yellow text
+            theme.window.title_unfocused.background = theme.window_bg;   // Dark blue
+            theme.window.title_unfocused.foreground = theme.text_fg;     // Light yellow
+            theme.window.title_unfocused.mnemonic_foreground = color{170, 170, 85}; // Dim yellow
+            theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Window borders
+            theme.window.border_focused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_unfocused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_color_focused = color{255, 255, 0};    // Yellow border when focused
+            theme.window.border_color_unfocused = theme.border_color;  // Gray border
+
+            // Window content area
+            theme.window.content_background = theme.window_bg;  // Dark blue background
+
+            // Window shadow
+            theme.window.shadow.enabled = true;
+            theme.window.shadow.offset_x = 1;
+            theme.window.shadow.offset_y = 1;
 
             return theme;
         }
@@ -654,6 +735,33 @@ namespace onyxui::conio {
             theme.menu_bar_item.hover.foreground = button_hover_fg;
             theme.menu_bar_item.open.background = menu_bar_open_bg;
             theme.menu_bar_item.open.foreground = menu_bar_open_fg;
+
+            // Window styling (Phase 8) - DOS Edit style
+            // Focused window: black title bar with white text
+            theme.window.title_focused.background = color{0, 0, 0};        // Black
+            theme.window.title_focused.foreground = color{255, 255, 255};  // White
+            theme.window.title_focused.mnemonic_foreground = color{255, 255, 255};
+            theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Unfocused window: light gray title bar with dark gray text
+            theme.window.title_unfocused.background = theme.window_bg;     // Light gray
+            theme.window.title_unfocused.foreground = color{85, 85, 85};   // Dark gray
+            theme.window.title_unfocused.mnemonic_foreground = color{85, 85, 85};
+            theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Window borders
+            theme.window.border_focused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_unfocused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_color_focused = color{0, 0, 0};        // Black border when focused
+            theme.window.border_color_unfocused = theme.border_color;  // Dark gray border
+
+            // Window content area
+            theme.window.content_background = theme.window_bg;  // Light gray background
+
+            // Window shadow
+            theme.window.shadow.enabled = true;
+            theme.window.shadow.offset_x = 1;
+            theme.window.shadow.offset_y = 1;
 
             return theme;
         }
@@ -762,6 +870,33 @@ namespace onyxui::conio {
             theme.menu_bar_item.open.background = black;
             theme.menu_bar_item.open.foreground = white;
             theme.menu_bar_item.open.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics (NU8 style)
+
+            // Window styling (Phase 8) - Norton Utilities 8 style
+            // Focused window: white title bar with black text (classic NU8 look)
+            theme.window.title_focused.background = white;
+            theme.window.title_focused.foreground = black;
+            theme.window.title_focused.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics
+            theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Unfocused window: light gray title bar with dark gray text
+            theme.window.title_unfocused.background = light_gray;
+            theme.window.title_unfocused.foreground = dark_gray;
+            theme.window.title_unfocused.mnemonic_foreground = dark_gray;
+            theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Window borders - single line for NU8 style
+            theme.window.border_focused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_unfocused = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            theme.window.border_color_focused = white;      // White border when focused
+            theme.window.border_color_unfocused = light_gray; // Gray border when unfocused
+
+            // Window content area - blue background (classic NU8)
+            theme.window.content_background = theme.window_bg;
+
+            // Window shadow - enabled for classic DOS look
+            theme.window.shadow.enabled = true;
+            theme.window.shadow.offset_x = 2;
+            theme.window.shadow.offset_y = 1;
 
             return theme;
         }

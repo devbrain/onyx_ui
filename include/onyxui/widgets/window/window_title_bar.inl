@@ -23,7 +23,7 @@ namespace onyxui {
         // Use horizontal linear layout for title bar
         this->set_layout_strategy(
             std::make_unique<linear_layout<Backend>>(
-                linear_layout_direction::horizontal,
+                direction::horizontal,
                 5  // 5px spacing between elements
             )
         );
@@ -55,12 +55,14 @@ namespace onyxui {
             return;
         }
 
-        // Phase 1: Draw title bar background
-        auto style = ctx.style();
-        // TODO Phase 8: Use window theme style (focused/unfocused)
-        // For Phase 1: use button style as placeholder
-        auto bg_color = style.button.bg_normal;
-        ctx.fill_rect(this->bounds(), bg_color);
+        // Phase 8: Draw title bar background (uses theme.window.title_focused/unfocused)
+        // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
+        // 1. This fill_rect() draws background
+        // 2. Children (label + buttons) render on top automatically
+        //
+        // This layering works in real renderers (conio) where text draws over fills.
+        // Note: test_canvas_backend may show artifacts due to simplified rendering.
+        ctx.fill_rect(this->bounds());
 
         // Children (label and buttons) render automatically via framework
     }
@@ -100,6 +102,75 @@ namespace onyxui {
                 close_clicked.emit();
             });
         }
+    }
+
+    template<UIBackend Backend>
+    bool window_title_bar<Backend>::handle_event(const ui_event& event, event_phase phase) {
+        // Only handle events in target phase (after children have had a chance)
+        if (phase != event_phase::target) {
+            return base::handle_event(event, phase);
+        }
+
+        // Check if this is a mouse event
+        auto* mouse_evt = std::get_if<mouse_event>(&event);
+        if (!mouse_evt) {
+            return base::handle_event(event, phase);
+        }
+
+        // Phase 2: Handle mouse dragging
+        if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::press) {
+            // Start dragging
+            m_is_dragging = true;
+            m_drag_start_x = mouse_evt->x;
+            m_drag_start_y = mouse_evt->y;
+            drag_started.emit();
+            return true;  // Event handled
+        }
+
+        if (m_is_dragging && mouse_evt->act == mouse_event::action::move) {
+            // Continue dragging - emit delta from start position
+            int delta_x = mouse_evt->x - m_drag_start_x;
+            int delta_y = mouse_evt->y - m_drag_start_y;
+            dragging.emit(delta_x, delta_y);
+            return true;  // Event handled
+        }
+
+        if (m_is_dragging && mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::release) {
+            // End dragging
+            m_is_dragging = false;
+            drag_ended.emit();
+            return true;  // Event handled
+        }
+
+        // Not handled, pass to base
+        return base::handle_event(event, phase);
+    }
+
+    template<UIBackend Backend>
+    resolved_style<Backend> window_title_bar<Backend>::get_theme_style(const theme_type& theme) const {
+        // Check if parent is a window to determine focus state
+        bool parent_has_focus = false;
+        if (auto* parent_window = dynamic_cast<const window<Backend>*>(this->parent())) {
+            parent_has_focus = parent_window->has_focus();
+        }
+
+        // Use focused or unfocused title bar style based on parent window focus
+        const auto& title_state = parent_has_focus ? theme.window.title_focused : theme.window.title_unfocused;
+
+        return resolved_style<Backend>{
+            .background_color = title_state.background,
+            .foreground_color = title_state.foreground,
+            .mnemonic_foreground = title_state.mnemonic_foreground,
+            .border_color = theme.border_color,
+            .box_style = typename Backend::renderer_type::box_style{},  // Title bar has no border
+            .font = title_state.font,
+            .opacity = 1.0f,
+            .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+            .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+        };
     }
 
 } // namespace onyxui

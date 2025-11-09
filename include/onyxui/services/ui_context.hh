@@ -515,6 +515,7 @@
 #include <onyxui/hotkeys/hotkey_scheme_registry.hh>
 #include <onyxui/hotkeys/builtin_hotkey_schemes.hh>
 #include <onyxui/services/background_renderer.hh>
+#include <onyxui/services/window_manager.hh>
 
 namespace onyxui {
 
@@ -617,6 +618,7 @@ namespace onyxui {
         using hotkey_manager_type = hotkey_manager<Backend>;
         using hotkey_scheme_registry_type = hotkey_scheme_registry;
         using background_renderer_type = background_renderer<Backend>;
+        using window_manager_type = window_manager<Backend>;
 
         /**
          * @brief Construct a new UI context with default-initialized services
@@ -771,11 +773,28 @@ namespace onyxui {
             return m_background_renderer;
         }
 
+        /**
+         * @brief Get the window manager
+         * @return Reference to window manager
+         */
+        [[nodiscard]] window_manager_type& windows() noexcept {
+            return m_window_manager;
+        }
+
+        /**
+         * @brief Get the window manager (const)
+         * @return Const reference to window manager
+         */
+        [[nodiscard]] const window_manager_type& windows() const noexcept {
+            return m_window_manager;
+        }
+
     private:
         // Per-context services (isolated per UI instance)
         layer_manager_type m_layer_manager;
         input_manager_type m_input_manager;
         background_renderer_type m_background_renderer;
+        window_manager_type m_window_manager;
         scoped_connection m_theme_connection;  ///< Auto-disconnects on destruction
 
         // Shared services (singleton pattern - shared across all contexts)

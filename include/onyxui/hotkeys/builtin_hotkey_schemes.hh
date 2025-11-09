@@ -99,6 +99,17 @@ namespace onyxui::builtin_hotkey_schemes {
             {hotkey_action::scroll_page_down, parse_key_sequence("PageDown")},
             {hotkey_action::scroll_home, parse_key_sequence("Home")},
             {hotkey_action::scroll_end, parse_key_sequence("End")},
+
+            // Window Management (Phase 2)
+            {hotkey_action::enter_window_move_mode, parse_key_sequence("Alt+F7")},
+            {hotkey_action::enter_window_resize_mode, parse_key_sequence("Alt+F8")},
+            {hotkey_action::minimize_window, parse_key_sequence("Alt+F9")},
+            {hotkey_action::maximize_window, parse_key_sequence("F5")},
+            {hotkey_action::close_window, parse_key_sequence("Alt+F4")},
+            {hotkey_action::window_menu, parse_key_sequence("Alt+Space")},
+            {hotkey_action::next_window, parse_key_sequence("Ctrl+Tab")},
+            {hotkey_action::previous_window, parse_key_sequence("Ctrl+Shift+Tab")},
+            {hotkey_action::show_window_list, parse_key_sequence("Ctrl+W")},
         };
 
         return scheme;
@@ -168,6 +179,17 @@ namespace onyxui::builtin_hotkey_schemes {
             {hotkey_action::scroll_page_down, parse_key_sequence("PageDown")},
             {hotkey_action::scroll_home, parse_key_sequence("Home")},
             {hotkey_action::scroll_end, parse_key_sequence("End")},
+
+            // Window Management (Phase 2) - Norton Commander style
+            {hotkey_action::enter_window_move_mode, parse_key_sequence("Alt+F8")},  // Norton: Alt+F8
+            {hotkey_action::enter_window_resize_mode, parse_key_sequence("Ctrl+F8")},
+            {hotkey_action::minimize_window, parse_key_sequence("Alt+F9")},
+            {hotkey_action::maximize_window, parse_key_sequence("Alt+F5")},
+            {hotkey_action::close_window, parse_key_sequence("Alt+F3")},  // Norton: Alt+F3
+            {hotkey_action::window_menu, parse_key_sequence("Alt+0")},    // Norton: Alt+0
+            {hotkey_action::next_window, parse_key_sequence("Ctrl+F6")},
+            {hotkey_action::previous_window, parse_key_sequence("Ctrl+Shift+F6")},
+            {hotkey_action::show_window_list, parse_key_sequence("Ctrl+W")},
         };
 
         return scheme;

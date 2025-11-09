@@ -68,6 +68,7 @@ namespace onyxui {
     template<UIBackend Backend, typename ElementType> class hierarchical_input_manager;
     template<UIBackend Backend> class theme_registry;
     template<UIBackend Backend> class background_renderer;
+    template<UIBackend Backend> class window_manager;
     class hotkey_scheme_registry;
 
     /**
@@ -324,6 +325,28 @@ namespace onyxui {
         [[nodiscard]] static background_renderer<Backend>* background() noexcept {
             auto* ctx = current();
             return ctx ? &ctx->background() : nullptr;
+        }
+
+        /**
+         * @brief Get the window manager from current context
+         * @return Pointer to window manager, or nullptr if no context
+         *
+         * @details
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* mgr = ui_services<Backend>::window_manager()) {
+         *     mgr->show_window_list();
+         *     auto minimized = mgr->get_minimized_windows();
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static window_manager<Backend>* windows() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->windows() : nullptr;
         }
 
         // ================================================================

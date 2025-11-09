@@ -52,16 +52,23 @@ namespace onyxui {
      *
      * @details
      * Represents user intent independent of physical key bindings.
-     * Actions are organized by functional area (menu navigation, focus, etc.).
+     * Actions are organized by functional area (menu navigation, focus, window management, etc.).
      *
-     * **Current scope (Phase 1):**
-     * - Menu navigation only
+     * **Current scope:**
+     * - Menu navigation
+     * - Focus management
+     * - Scrolling
+     * - Window management (keyboard-based movement and state changes)
      *
      * **Future extensions:**
      * - File operations (new, open, save, etc.)
      * - Edit operations (cut, copy, paste, undo, redo)
      * - Application control (quit, settings, help)
      * - Custom user-defined actions
+     *
+     * **Note on Window Movement:**
+     * Mouse dragging is handled via direct event processing, not semantic actions.
+     * Semantic actions are for keyboard-based window management (accessibility).
      */
     enum class hotkey_action : std::uint8_t {
         // Menu Navigation
@@ -87,6 +94,17 @@ namespace onyxui {
         scroll_page_down,   ///< Scroll content down one page (Page Down)
         scroll_home,        ///< Scroll to top of content (Home)
         scroll_end,         ///< Scroll to end of content (End)
+
+        // Window Management (Phase 2)
+        enter_window_move_mode,   ///< Start keyboard window moving (Alt+F7 Windows, Alt+F8 Norton)
+        enter_window_resize_mode, ///< Start keyboard window resizing (Alt+F8 Windows)
+        minimize_window,          ///< Minimize active window (Alt+F9 Norton)
+        maximize_window,          ///< Maximize/restore active window (Alt+F5 Norton, F5 Windows)
+        close_window,             ///< Close active window (Alt+F3 Norton, Alt+F4 Windows)
+        window_menu,              ///< Open window system menu (Alt+Space Windows, Alt+0 Norton)
+        next_window,              ///< Switch to next window (Ctrl+F6 Windows, Ctrl+Tab)
+        previous_window,          ///< Switch to previous window (Ctrl+Shift+F6, Ctrl+Shift+Tab)
+        show_window_list,         ///< Show window list dialog (Ctrl+W Turbo Vision style)
 
         // Sentinel value for iteration/validation
         action_count        ///< Total number of actions (not a valid action)
@@ -119,6 +137,15 @@ namespace onyxui {
             case hotkey_action::scroll_page_down: return "scroll_page_down";
             case hotkey_action::scroll_home: return "scroll_home";
             case hotkey_action::scroll_end: return "scroll_end";
+            case hotkey_action::enter_window_move_mode: return "enter_window_move_mode";
+            case hotkey_action::enter_window_resize_mode: return "enter_window_resize_mode";
+            case hotkey_action::minimize_window: return "minimize_window";
+            case hotkey_action::maximize_window: return "maximize_window";
+            case hotkey_action::close_window: return "close_window";
+            case hotkey_action::window_menu: return "window_menu";
+            case hotkey_action::next_window: return "next_window";
+            case hotkey_action::previous_window: return "previous_window";
+            case hotkey_action::show_window_list: return "show_window_list";
             case hotkey_action::action_count: return "action_count";
         }
         return "unknown";

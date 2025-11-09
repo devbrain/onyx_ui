@@ -19,7 +19,7 @@ namespace onyxui {
     {
         if (m_scrollable) {
             // Create scroll_view to wrap content
-            m_scroll_view = this->template emplace_child<scroll_view<Backend>>();
+            m_scroll_view = this->template emplace_child<scroll_view>();
         }
     }
 
@@ -63,8 +63,39 @@ namespace onyxui {
 
         m_scrollable = scrollable;
 
-        // TODO Phase 6: Implement scrollable mode switching
-        // For Phase 1: scrollable flag is set at construction and doesn't change
+        // Phase 6: Implement scrollable mode switching
+        if (m_scrollable) {
+            // Switching to scrollable: create scroll_view and move content into it
+            if (!m_scroll_view) {
+                m_scroll_view = this->template emplace_child<scroll_view<Backend>>();
+            }
+
+            // If we have content, move it from direct child to scroll_view
+            if (m_content) {
+                // Remove content from direct children
+                auto content_unique = this->remove_child(m_content);
+                if (content_unique) {
+                    // Add to scroll_view
+                    m_scroll_view->add_child(std::move(content_unique));
+                }
+            }
+        } else {
+            // Switching to non-scrollable: remove scroll_view and move content out
+            if (m_scroll_view && m_content) {
+                // Remove content from scroll_view
+                auto content_unique = m_scroll_view->remove_child(m_content);
+                if (content_unique) {
+                    // Add as direct child
+                    this->add_child(std::move(content_unique));
+                }
+            }
+
+            // Remove scroll_view
+            if (m_scroll_view) {
+                [[maybe_unused]] auto removed = this->remove_child(m_scroll_view);
+                m_scroll_view = nullptr;
+            }
+        }
 
         this->invalidate_measure();
     }
@@ -75,8 +106,31 @@ namespace onyxui {
             return;
         }
 
-        // Phase 1: Content area background
+        // Phase 8: Draw content area background (uses theme.window.content_background)
+        // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
+        // This fill provides the background, children render on top automatically
+        ctx.fill_rect(this->bounds());
+
         // Children (content or scroll_view) render automatically via framework
+    }
+
+    template<UIBackend Backend>
+    resolved_style<Backend> window_content_area<Backend>::get_theme_style(const theme_type& theme) const {
+        // Content area uses window content background
+        return resolved_style<Backend>{
+            .background_color = theme.window.content_background,
+            .foreground_color = theme.text_fg,
+            .mnemonic_foreground = theme.text_fg,
+            .border_color = theme.border_color,
+            .box_style = typename Backend::renderer_type::box_style{},  // Content area has no border
+            .font = theme.label.font,
+            .opacity = 1.0f,
+            .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional<int>{},
+            .padding_vertical = std::optional<int>{},
+            .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+            .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+        };
     }
 
 } // namespace onyxui
