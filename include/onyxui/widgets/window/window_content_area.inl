@@ -6,6 +6,7 @@
 #pragma once
 
 #include <onyxui/widgets/containers/scroll_view.hh>
+#include <onyxui/layout/linear_layout.hh>
 
 namespace onyxui {
 
@@ -14,7 +15,13 @@ namespace onyxui {
         bool scrollable,
         ui_element<Backend>* parent
     )
-        : base(parent)
+        : base(
+            std::make_unique<linear_layout<Backend>>(
+                direction::vertical,
+                0  // No spacing for content area - just wraps single child
+            ),
+            parent
+          )
         , m_scrollable(scrollable)
     {
         if (m_scrollable) {

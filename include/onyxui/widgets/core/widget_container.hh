@@ -75,12 +75,46 @@ namespace onyxui {
         bool m_has_border = false;  ///< Whether to draw border frame
 
         /**
-         * @brief Construct a widget container
+         * @brief Construct a widget container WITH a layout strategy (REQUIRED)
+         * @param layout_strategy The layout strategy to use for positioning children
          * @param parent Parent element (nullptr for none)
+         *
+         * @details
+         * **COMPILE-TIME ENFORCEMENT:** All widget_container subclasses MUST provide
+         * a layout_strategy at construction. This prevents the "missing layout strategy"
+         * bug where containers measure to {0,0} and don't render.
+         *
+         * @example Fixed-layout container (window)
+         * @code
+         * window<Backend>::window()
+         *     : widget_container<Backend>(
+         *         std::make_unique<linear_layout<Backend>>(direction::vertical, 0),
+         *         nullptr
+         *       )
+         * { }
+         * @endcode
          */
-        explicit widget_container(ui_element<Backend>* parent = nullptr)
-            : base(parent) {
+        explicit widget_container(
+            std::unique_ptr<layout_strategy<Backend>> layout_strategy,
+            ui_element<Backend>* parent = nullptr
+        )
+            : base(parent)
+        {
+            // Set layout strategy immediately - containers can NEVER exist without one
+            this->set_layout_strategy(std::move(layout_strategy));
         }
+
+        /**
+         * @brief Default constructor DELETED - containers MUST have layout strategy
+         *
+         * @details
+         * COMPILE-TIME ENFORCEMENT: Attempting to use the default constructor
+         * will cause a compiler error. All containers must provide a layout_strategy.
+         *
+         * Without layout: containers measure to {0,0} and render nothing.
+         * This deletion catches the bug at compile time instead of runtime.
+         */
+        widget_container() = delete;
 
         /**
          * @brief Destructor

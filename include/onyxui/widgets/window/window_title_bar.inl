@@ -17,16 +17,15 @@ namespace onyxui {
         const window_flags& flags,
         ui_element<Backend>* parent
     )
-        : base(parent)
-        , m_title(std::move(title))
-    {
-        // Use horizontal linear layout for title bar
-        this->set_layout_strategy(
+        : base(
             std::make_unique<linear_layout<Backend>>(
                 direction::horizontal,
-                5  // 5px spacing between elements
-            )
-        );
+                0  // No spacing - title and buttons are adjacent
+            ),
+            parent
+          )
+        , m_title(std::move(title))
+    {
 
         // Create title label (expands to fill available space)
         m_title_label = this->template emplace_child<label>(m_title);

@@ -55,11 +55,44 @@ namespace onyxui {
         using theme_type = typename base::theme_type;
 
         /**
-         * @brief Construct a panel
+         * @brief Construct a panel with default vertical layout
          * @param parent Parent element (nullptr for none)
+         * @param spacing Spacing between children (backend-specific units, default 0)
+         *
+         * @details
+         * Panel is initialized with a default vertical linear_layout.
+         * Users can override this by calling set_layout_strategy() to use grid,
+         * anchor, absolute, or custom layouts.
+         *
+         * @example Using default layout
+         * @code
+         * auto panel = std::make_unique<panel<Backend>>();
+         * panel->add_child(create_button("Button 1"));  // Stacked vertically
+         * panel->add_child(create_label("Label 1"));
+         * @endcode
+         *
+         * @example With custom spacing
+         * @code
+         * auto panel = std::make_unique<panel<Backend>>(nullptr, 5);  // 5 units spacing
+         * @endcode
+         *
+         * @example Using custom layout
+         * @code
+         * auto panel = std::make_unique<panel<Backend>>();
+         * panel->set_layout_strategy(
+         *     std::make_unique<grid_layout<Backend>>(3, 2)  // 3x2 grid
+         * );
+         * @endcode
          */
-        explicit panel(ui_element<Backend>* parent = nullptr)
-            : base(parent) {
+        explicit panel(ui_element<Backend>* parent = nullptr, int spacing = 0)
+            : base(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical,
+                    spacing
+                ),
+                parent
+              )
+        {
             this->set_focusable(false);  // Panels aren't focusable
         }
 

@@ -18,17 +18,16 @@ namespace onyxui {
         window_flags flags,
         ui_element<Backend>* parent
     )
-        : base(parent)
-        , m_title(std::move(title))
-        , m_flags(flags)
-    {
-        // Set vertical layout strategy to stack title bar and content area
-        this->set_layout_strategy(
+        : base(
             std::make_unique<linear_layout<Backend>>(
                 direction::vertical,
                 0  // No spacing between title bar and content
-            )
-        );
+            ),
+            parent
+          )
+        , m_title(std::move(title))
+        , m_flags(flags)
+    {
 
         // Phase 1: Create title bar and content area
         // (Drag/resize implementation comes in later phases)

@@ -131,18 +131,21 @@ namespace onyxui {
          * @param parent Parent element
          */
         explicit menu_bar(ui_element<Backend>* parent = nullptr)
-            : base(parent)
-            , m_spacing(0)
+            : m_spacing(0)
             , m_h_align(horizontal_alignment::left)
             , m_v_align(vertical_alignment::top)
             , m_open_menu_index(std::nullopt)
-            , m_menu_system(this) {  // Phase 4: Initialize menu_system with this pointer
-
-            // Set up horizontal layout strategy
-            this->set_layout_strategy(
+            , base(
                 std::make_unique<linear_layout<Backend>>(
-                    direction::horizontal, m_spacing, m_h_align, m_v_align));
-
+                    direction::horizontal,
+                    m_spacing,  // Member variable already initialized
+                    m_h_align,  // Member variable already initialized
+                    m_v_align   // Member variable already initialized
+                ),
+                parent
+              )
+            , m_menu_system(this)  // Phase 4: Initialize menu_system with this pointer
+        {
             // Menu bar should expand to fill parent width (creates continuous stripe)
             this->set_width_constraint({size_policy::expand});
 

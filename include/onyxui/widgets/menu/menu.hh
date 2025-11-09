@@ -105,15 +105,18 @@ namespace onyxui {
          * @param parent Parent element
          */
         explicit menu(ui_element<Backend>* parent = nullptr)
-            : base(parent) {
+            : base(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical,
+                    0,  // No spacing between menu items
+                    horizontal_alignment::left,
+                    vertical_alignment::top
+                ),
+                parent
+              )
+        {
             this->m_has_border = true;  // Menus always have borders
             this->set_focusable(true);
-            // Use vertical layout (like vbox)
-            this->set_layout_strategy(
-                std::make_unique<linear_layout<Backend>>(
-                    direction::vertical, 0,
-                    horizontal_alignment::left,
-                    vertical_alignment::top));
 
             // NOTE: Semantic actions are registered when menu opens, not in constructor
             // This prevents multiple menus from conflicting with each other

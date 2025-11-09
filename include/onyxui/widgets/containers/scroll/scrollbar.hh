@@ -78,7 +78,10 @@ namespace onyxui {
          * @param orient Horizontal or vertical orientation
          */
         explicit scrollbar(orientation orient = orientation::vertical)
-            : m_orientation(orient)
+            : base(
+                std::make_unique<absolute_layout<Backend>>()  // Manually position components
+              )
+            , m_orientation(orient)
         {
             // Create child widgets
             auto thumb = std::make_unique<scrollbar_thumb<Backend>>();
@@ -105,9 +108,6 @@ namespace onyxui {
             this->add_child(std::move(thumb));
             this->add_child(std::move(arrow_dec));
             this->add_child(std::move(arrow_inc));
-
-            // Use absolute_layout since we manually position components
-            this->set_layout_strategy(std::make_unique<absolute_layout<Backend>>());
         }
 
         /**

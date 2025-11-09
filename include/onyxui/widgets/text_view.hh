@@ -80,17 +80,18 @@ namespace onyxui {
          * @param parent Optional parent element
          */
         explicit text_view(element_type* parent = nullptr)
-            : base(parent)
+            : base(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical,
+                    0,  // No spacing - single child (scroll_view)
+                    horizontal_alignment::stretch,
+                    vertical_alignment::stretch
+                ),
+                parent
+              )
         {
             // Make text_view itself focusable for keyboard scrolling
             base::set_focusable(true);
-
-            // Set layout strategy to measure single child (scroll_view)
-            base::set_layout_strategy(
-                std::make_unique<linear_layout<Backend>>(
-                    direction::vertical, 0,
-                    horizontal_alignment::stretch,
-                    vertical_alignment::stretch));
 
             // Initialize with empty scroll view
             create_scroll_view();
