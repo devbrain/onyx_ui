@@ -147,6 +147,53 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         CHECK_FALSE(g.set_cell(item_ptr, 2, 2, 1, 2));  // Would span to column 4
     }
 
+    // ===========================================================================
+    // Visual Rendering Tests (MANDATORY - see docs/CLAUDE/TESTING.md)
+    // ===========================================================================
+
+    SUBCASE("Visual rendering - layout strategy verification") {
+        grid<test_canvas_backend> g(3, 2, 2, 2);  // 3x2 grid with 2px spacing
+
+        // Add children to grid cells
+        g.add_child(std::make_unique<label<test_canvas_backend>>("A1"));
+        g.add_child(std::make_unique<label<test_canvas_backend>>("A2"));
+        g.add_child(std::make_unique<label<test_canvas_backend>>("A3"));
+        g.add_child(std::make_unique<button<test_canvas_backend>>("B1"));
+        g.add_child(std::make_unique<button<test_canvas_backend>>("B2"));
+        g.add_child(std::make_unique<button<test_canvas_backend>>("B3"));
+
+        // Measure
+        auto size = g.measure(80, 25);
+        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
+        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size_utils::get_height(size) > 0);
+
+        // Arrange
+        test_canvas_backend::rect_type bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 80, 25);
+        g.arrange(bounds);
+
+        // Render
+        auto canvas = render_to_canvas(g, 80, 25);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify expected content appears
+        CHECK(rendered.find("A1") != std::string::npos);
+        CHECK(rendered.find("A2") != std::string::npos);
+        CHECK(rendered.find("A3") != std::string::npos);
+        CHECK(rendered.find("B1") != std::string::npos);
+        CHECK(rendered.find("B2") != std::string::npos);
+        CHECK(rendered.find("B3") != std::string::npos);
+    }
+
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<grid<test_canvas_backend>>(
         [](auto& g) {

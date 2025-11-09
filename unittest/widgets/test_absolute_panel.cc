@@ -241,6 +241,58 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         CHECK_NOTHROW((void)panel.measure(300, 200));
     }
 
+    // ===========================================================================
+    // Visual Rendering Tests (MANDATORY - see docs/CLAUDE/TESTING.md)
+    // ===========================================================================
+
+    SUBCASE("Visual rendering - layout strategy verification") {
+        absolute_panel<test_canvas_backend> panel;
+
+        // Add children at different positions
+        auto lbl1 = std::make_unique<label<test_canvas_backend>>("Top Left");
+        auto* lbl1_ptr = lbl1.get();
+        panel.add_child(std::move(lbl1));
+        panel.set_position(lbl1_ptr, 10, 10);
+
+        auto btn1 = std::make_unique<button<test_canvas_backend>>("Center");
+        auto* btn1_ptr = btn1.get();
+        panel.add_child(std::move(btn1));
+        panel.set_position(btn1_ptr, 40, 12);
+
+        auto lbl2 = std::make_unique<label<test_canvas_backend>>("Bottom Right");
+        auto* lbl2_ptr = lbl2.get();
+        panel.add_child(std::move(lbl2));
+        panel.set_position(lbl2_ptr, 60, 20);
+
+        // Measure
+        auto size = panel.measure(100, 30);
+        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
+        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size_utils::get_height(size) > 0);
+
+        // Arrange
+        test_canvas_backend::rect_type bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 100, 30);
+        panel.arrange(bounds);
+
+        // Render
+        auto canvas = render_to_canvas(panel, 100, 30);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify expected content appears
+        CHECK(rendered.find("Top Left") != std::string::npos);
+        CHECK(rendered.find("Center") != std::string::npos);
+        CHECK(rendered.find("Bottom Right") != std::string::npos);
+    }
+
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<absolute_panel<test_canvas_backend>>(
         [](auto& panel) {

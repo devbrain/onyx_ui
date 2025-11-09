@@ -519,3 +519,101 @@ TEST_CASE("dialog - Edge cases") {
         // Should not crash
     }
 }
+
+// ============================================================================
+// Visual Rendering Tests (MANDATORY - see docs/CLAUDE/TESTING.md)
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rendering verification") {
+    SUBCASE("Dialog with message and buttons renders correctly") {
+        test_dialog<test_canvas_backend> dlg("Confirmation");
+        dlg.set_message("Are you sure you want to continue?");
+        dlg.add_yes_no_cancel_buttons();
+
+        // Measure
+        auto size = dlg.measure(60, 20);
+        INFO("Measured size: " << size.w << " x " << size.h);
+        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.h > 0);
+
+        // Arrange
+        dlg.arrange({0, 0, 60, 20});
+
+        // Render
+        auto canvas = render_to_canvas(dlg, 60, 20);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify expected content appears (title bar should show)
+        CHECK(rendered.find("Confirmation") != std::string::npos);
+    }
+
+    SUBCASE("Dialog with custom buttons renders correctly") {
+        test_dialog<test_canvas_backend> dlg("Save Changes?");
+        dlg.set_message("You have unsaved changes.");
+        dlg.add_button("Save", dialog<test_canvas_backend>::dialog_result::yes);
+        dlg.add_button("Don't Save", dialog<test_canvas_backend>::dialog_result::no);
+        dlg.add_button("Cancel", dialog<test_canvas_backend>::dialog_result::cancel);
+
+        // Measure
+        auto size = dlg.measure(70, 22);
+        INFO("Measured size: " << size.w << " x " << size.h);
+        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.h > 0);
+
+        // Arrange
+        dlg.arrange({5, 5, 70, 22});
+
+        // Render
+        auto canvas = render_to_canvas(dlg, 80, 30);  // Larger canvas to see full dialog
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify title appears
+        CHECK(rendered.find("Save Changes?") != std::string::npos);
+    }
+
+    SUBCASE("Simple info dialog renders correctly") {
+        auto dlg = show_info<test_canvas_backend>("Operation completed successfully!");
+
+        REQUIRE(dlg != nullptr);
+
+        // Measure
+        auto size = dlg->measure(50, 15);
+        INFO("Measured size: " << size.w << " x " << size.h);
+        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.h > 0);
+
+        // Arrange
+        dlg->arrange({0, 0, 50, 15});
+
+        // Render
+        auto canvas = render_to_canvas(*dlg, 50, 15);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify title appears
+        CHECK(rendered.find("Information") != std::string::npos);
+    }
+}

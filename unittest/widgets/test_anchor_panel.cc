@@ -243,6 +243,64 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         CHECK_NOTHROW((void)overlay.measure(500, 500));
     }
 
+    // ===========================================================================
+    // Visual Rendering Tests (MANDATORY - see docs/CLAUDE/TESTING.md)
+    // ===========================================================================
+
+    SUBCASE("Visual rendering - layout strategy verification") {
+        anchor_panel<test_canvas_backend> panel;
+
+        // Add children at different anchor points
+        auto tl = std::make_unique<label<test_canvas_backend>>("TL");
+        auto* tl_ptr = tl.get();
+        panel.add_child(std::move(tl));
+        panel.set_anchor(tl_ptr, anchor_point::top_left, 2, 1);
+
+        auto tc = std::make_unique<label<test_canvas_backend>>("TC");
+        auto* tc_ptr = tc.get();
+        panel.add_child(std::move(tc));
+        panel.set_anchor(tc_ptr, anchor_point::top_center);
+
+        auto br = std::make_unique<label<test_canvas_backend>>("BR");
+        auto* br_ptr = br.get();
+        panel.add_child(std::move(br));
+        panel.set_anchor(br_ptr, anchor_point::bottom_right, -2, -1);
+
+        auto center = std::make_unique<button<test_canvas_backend>>("Center");
+        auto* center_ptr = center.get();
+        panel.add_child(std::move(center));
+        panel.set_anchor(center_ptr, anchor_point::center);
+
+        // Measure
+        auto size = panel.measure(80, 25);
+        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
+        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size_utils::get_height(size) > 0);
+
+        // Arrange
+        test_canvas_backend::rect_type bounds;
+        rect_utils::set_bounds(bounds, 0, 0, 80, 25);
+        panel.arrange(bounds);
+
+        // Render
+        auto canvas = render_to_canvas(panel, 80, 25);
+        std::string rendered = canvas->render_ascii();
+
+        // Verify non-empty output
+        int content_chars = 0;
+        for (char c : rendered) {
+            if (c != ' ' && c != '\n') content_chars++;
+        }
+        INFO("Rendered " << content_chars << " non-whitespace characters");
+        CHECK(content_chars > 0);  // Must render something
+
+        // Verify expected content appears
+        CHECK(rendered.find("TL") != std::string::npos);
+        CHECK(rendered.find("TC") != std::string::npos);
+        CHECK(rendered.find("BR") != std::string::npos);
+        CHECK(rendered.find("Center") != std::string::npos);
+    }
+
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<anchor_panel<test_canvas_backend>>(
         [](auto& panel) {
