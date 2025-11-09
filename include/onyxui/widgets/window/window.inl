@@ -135,8 +135,33 @@ namespace onyxui {
         // Change state
         m_state = window_state::maximized;
 
-        // TODO Phase 4: Fill parent container
-        // For Phase 1: just change state, actual resizing comes later
+        // Phase 4: Fill parent container
+        // Get parent element and maximize to fill its bounds
+        auto* parent_elem = this->parent();
+        if (parent_elem) {
+            // Get parent's bounds to fill entire parent area
+            auto parent_bounds = parent_elem->bounds();
+
+            // Window fills entire parent (positioned at 0,0 relative to parent)
+            // Note: bounds are relative coordinates, so (0,0) means top-left of parent
+            typename Backend::rect_type maximized_bounds;
+            rect_utils::set_bounds(
+                maximized_bounds,
+                0,  // x: relative to parent (top-left corner)
+                0,  // y: relative to parent (top-left corner)
+                rect_utils::get_width(parent_bounds),
+                rect_utils::get_height(parent_bounds)
+            );
+
+            // Measure and arrange to new size
+            int const width = rect_utils::get_width(maximized_bounds);
+            int const height = rect_utils::get_height(maximized_bounds);
+
+            if (!this->children().empty() && ui_services<Backend>::themes()) {
+                this->measure(width, height);
+            }
+            this->arrange(maximized_bounds);
+        }
 
         // Emit signal
         maximized_sig.emit();
