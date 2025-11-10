@@ -260,6 +260,7 @@ namespace onyxui {
             // Layout
             int title_bar_height = 1;        ///< Height of title bar (renderer units)
             int border_width = 1;            ///< Width of window border
+            horizontal_alignment title_alignment = horizontal_alignment::left; ///< Title text alignment (left/center/right)
 
             // Title bar button icons (backend-specific)
             // Note: icon_style_type will be initialized to backend's default

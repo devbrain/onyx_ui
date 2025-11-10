@@ -9,7 +9,8 @@
 #include <onyxui/widgets/icon.hh>
 #include <onyxui/widgets/layout/spring.hh>
 #include <onyxui/layout/linear_layout.hh>
-#include <onyxui/layout/layout_strategy.hh>  // For size_constraint
+#include <onyxui/layout/layout_strategy.hh>  // For size_constraint, horizontal_alignment
+#include <onyxui/services/ui_services.hh>     // For theme access
 #include <iostream>
 #include <string>
 
@@ -32,28 +33,41 @@ namespace onyxui {
     {
         using icon_style = typename Backend::renderer_type::icon_style;
 
-        // Layout order: [menu_icon] [title] [spring] [minimize] [maximize] [close]
-        // Menu icon on LEFT edge, control buttons on RIGHT edge
+        // Get title alignment from current theme (defaults to left if no theme set)
+        horizontal_alignment alignment = horizontal_alignment::left;
+        if (auto* theme_registry = ui_services<Backend>::themes()) {
+            if (auto* theme = theme_registry->get_current_theme()) {
+                alignment = theme->window.title_alignment;
+            }
+        }
 
-        // 1. Menu icon (left side, optional)
+        // Layout order varies by alignment:
+        // LEFT:   [menu] [title] [spring]         [controls]
+        // CENTER: [menu] [spring] [title] [spring] [controls]
+        // RIGHT:  [menu] [spring] [title]          [controls]
+
+        // 1. Menu icon (left edge, optional)
         if (flags.has_menu_button) {
             m_menu_icon = this->template emplace_child<icon>(icon_style::menu);
         }
 
-        // 2. Create title label (fixed size based on content, not expanding)
-        m_title_label = this->template emplace_child<label>(m_title);
+        // 2. Add spring BEFORE title for center/right alignment
+        if (alignment == horizontal_alignment::center || alignment == horizontal_alignment::right) {
+            this->template emplace_child<spring>();
+        }
 
-        // IMPORTANT: Title label should NOT expand - it should be content-sized
-        // so that icons have space to render
+        // 3. Create title label (always content-sized)
+        m_title_label = this->template emplace_child<label>(m_title);
         size_constraint width_constraint;
-        width_constraint.policy = size_policy::content;  // Size based on text content
+        width_constraint.policy = size_policy::content;
         m_title_label->set_width_constraint(width_constraint);
 
-        // 3. Add a spring (flexible spacer) to push control buttons to the right
-        // This ensures control icons appear at the right edge of the title bar
-        this->template emplace_child<spring>();
+        // 4. Add spring AFTER title for left/center alignment
+        if (alignment == horizontal_alignment::left || alignment == horizontal_alignment::center) {
+            this->template emplace_child<spring>();
+        }
 
-        // 4. Create control icons (right side)
+        // 5. Create control icons (right edge)
         create_control_icons(flags);
     }
 
