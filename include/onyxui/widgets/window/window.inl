@@ -117,6 +117,11 @@ namespace onyxui {
         // Content area should have border (not the window itself)
         content_area->set_has_border(true);
 
+        // Content area should expand to fill remaining vertical space in window
+        size_constraint height_constraint;
+        height_constraint.policy = size_policy::expand;
+        content_area->set_height_constraint(height_constraint);
+
         m_content_area = content_area.get();  // Store raw pointer before moving
         this->add_child(std::move(content_area));
 

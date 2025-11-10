@@ -99,9 +99,6 @@ namespace onyxui {
         // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
         // 1. This fill_rect() draws background
         // 2. Children (label + buttons) render on top automatically
-        //
-        // This layering works in real renderers (conio) where text draws over fills.
-        // Note: test_canvas_backend may show artifacts due to simplified rendering.
         std::cerr << "[DEBUG] Drawing title bar background\n";
 
         // ctx.position() already contains this widget's absolute screen position

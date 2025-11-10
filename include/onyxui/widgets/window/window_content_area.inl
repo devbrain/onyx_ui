@@ -116,7 +116,16 @@ namespace onyxui {
         // Phase 8: Draw content area background (uses theme.window.content_background)
         // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
         // This fill provides the background, children render on top automatically
-        ctx.fill_rect(this->bounds());
+
+        // RELATIVE COORDINATES: Convert relative bounds to absolute for rendering
+        // ctx.position() contains absolute screen position (x,y)
+        // this->bounds() contains relative bounds (w,h from parent's content area)
+        typename Backend::rect_type absolute_bounds;
+        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
+        ctx.fill_rect(absolute_bounds);
+
+        // Draw border if enabled (via widget_container base class)
+        base::do_render(ctx);
 
         // Children (content or scroll_view) render automatically via framework
     }

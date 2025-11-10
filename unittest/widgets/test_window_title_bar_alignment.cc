@@ -32,16 +32,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         MESSAGE("Left-aligned output:");
         MESSAGE(output);
 
-        // Extract title bar line
+        // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
-        std::getline(iss, line); // Skip top border
-        std::getline(iss, line); // Title bar
+        std::getline(iss, line); // Title bar (first line)
 
         MESSAGE("Title bar: '" << line << "'");
 
         // Title should be near the left (after menu icon)
-        // Format: |=Title####################X|
+        // Format: =Title####################_OX
         CHECK(line.find("=Title") != std::string::npos);
     }
 
@@ -75,11 +74,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         MESSAGE("Center-aligned output:");
         MESSAGE(output);
 
-        // Extract title bar line
+        // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
-        std::getline(iss, line); // Skip top border
-        std::getline(iss, line); // Title bar
+        std::getline(iss, line); // Title bar (first line)
 
         MESSAGE("Title bar: '" << line << "'");
 
@@ -122,11 +120,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         MESSAGE("Right-aligned output:");
         MESSAGE(output);
 
-        // Extract title bar line
+        // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
-        std::getline(iss, line); // Skip top border
-        std::getline(iss, line); // Title bar
+        std::getline(iss, line); // Title bar (first line)
 
         MESSAGE("Title bar: '" << line << "'");
 

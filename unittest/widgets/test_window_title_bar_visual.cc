@@ -39,7 +39,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         MESSAGE("Rendered window output:");
         MESSAGE(output);
 
-        // Extract just the title bar line (first line inside border)
+        // Extract just the title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
         int line_num = 0;
@@ -47,8 +47,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         while (std::getline(iss, line)) {
             line_num++;
-            // Title bar should be on line 2 (after top border)
-            if (line_num == 2) {
+            // Title bar is now on line 1 (no top border after refactoring)
+            if (line_num == 1) {
                 title_bar_line = line;
                 break;
             }
@@ -102,7 +102,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         MESSAGE("Rendered window:");
         MESSAGE(output);
 
-        // Extract title bar line
+        // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
         int line_num = 0;
@@ -110,7 +110,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         while (std::getline(iss, line)) {
             line_num++;
-            if (line_num == 2) {
+            // Title bar is now on line 1 (no top border after refactoring)
+            if (line_num == 1) {
                 title_bar_line = line;
                 break;
             }
