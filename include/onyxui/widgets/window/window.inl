@@ -109,6 +109,34 @@ namespace onyxui {
             });
         }
 
+        // Phase 2: Connect window control buttons
+        if (m_title_bar) {
+            // Minimize button
+            if (m_flags.has_minimize_button) {
+                m_title_bar->minimize_clicked.connect([this]() {
+                    minimize();
+                });
+            }
+
+            // Maximize button
+            if (m_flags.has_maximize_button) {
+                m_title_bar->maximize_clicked.connect([this]() {
+                    if (m_state == window_state::maximized) {
+                        restore();
+                    } else {
+                        maximize();
+                    }
+                });
+            }
+
+            // Close button
+            if (m_flags.has_close_button) {
+                m_title_bar->close_clicked.connect([this]() {
+                    close();
+                });
+            }
+        }
+
         auto content_area = std::make_unique<window_content_area<Backend>>(
             m_flags.is_scrollable,
             this
