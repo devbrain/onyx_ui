@@ -898,6 +898,9 @@ namespace onyxui::conio {
             theme.window.shadow.offset_x = 2;
             theme.window.shadow.offset_y = 1;
 
+            // Title alignment - centered for modern look
+            theme.window.title_alignment = horizontal_alignment::center;
+
             return theme;
         }
     };
