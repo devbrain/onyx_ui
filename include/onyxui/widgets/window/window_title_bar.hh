@@ -197,6 +197,14 @@ namespace onyxui {
          */
         [[nodiscard]] resolved_style<Backend> get_theme_style(const theme_type& theme) const override;
 
+        /**
+         * @brief Don't inherit colors from parent
+         * @return false - title bar manages its own state-based colors (focused/unfocused)
+         */
+        [[nodiscard]] bool should_inherit_colors() const override {
+            return false;  // Title bar has state-based colors, don't inherit
+        }
+
     private:
         std::string m_title;
 

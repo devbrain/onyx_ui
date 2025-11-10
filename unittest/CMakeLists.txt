@@ -98,6 +98,8 @@ add_executable(ui_unittest
         widgets/test_window_system_menu.cc
         widgets/test_window_theming.cc
         widgets/test_window_title_bar_text_rendering.cc
+        widgets/test_window_title_bar_icons.cc
+        widgets/test_window_title_bar_visual.cc
         utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc

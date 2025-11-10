@@ -96,6 +96,17 @@ namespace onyxui {
 
     protected:
         /**
+         * @brief Measure the icon size
+         * @return Fixed size of 1x1 for text-based icons
+         */
+        [[nodiscard]] size_type do_measure([[maybe_unused]] int available_width,
+                                                           [[maybe_unused]] int available_height) override {
+            // Icons have a fixed size - typically 1x1 for character-based icons
+            // The actual glyph is determined by the backend's draw_icon() method
+            return size_type{1, 1};
+        }
+
+        /**
          * @brief Render icon using backend's draw_icon() method
          */
         void do_render(render_context_type& ctx) const override {
@@ -103,9 +114,9 @@ namespace onyxui {
                 return;
             }
 
-            // Draw icon at widget's position
-            auto bounds = this->bounds();
-            typename Backend::point_type position(bounds.x, bounds.y);
+            // Use context position (absolute screen coordinates)
+            // bounds() returns RELATIVE coords, but ctx.position() has absolute coords
+            const auto& position = ctx.position();
             ctx.draw_icon(m_icon_style, position);
         }
 

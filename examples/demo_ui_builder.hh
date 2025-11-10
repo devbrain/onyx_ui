@@ -60,6 +60,8 @@ void build_ui(
     onyxui::menu_bar<Backend>*& menu_bar,
     onyxui::text_view<Backend>*& text_view) {
 
+    std::cerr << "[DEBUG] build_ui called with renderer: " << (void*)renderer << std::endl;
+
     // Menu bar (at the top)
     menu_bar = demo_menu_builder::build_menu_bar<Backend>(
         widget,
@@ -100,11 +102,17 @@ void build_ui(
     normal_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
     auto* screenshot_btn = add_button(*widget, "Screenshot");
+    std::cerr << "[DEBUG] Screenshot button created at: " << (void*)screenshot_btn << std::endl;
     screenshot_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
-    screenshot_btn->clicked.connect([renderer]() {
+    screenshot_btn->clicked.connect([widget]() {
+        std::cerr << "[DEBUG] Screenshot button clicked!" << std::endl;
+
+        auto* renderer = widget->get_renderer();
         if (!renderer) {
+            std::cerr << "[DEBUG] ERROR: renderer is nullptr!" << std::endl;
             return;
         }
+        std::cerr << "[DEBUG] Renderer is valid: " << (void*)renderer << std::endl;
 
         // Generate filename with timestamp
         auto now = std::chrono::system_clock::now();
@@ -112,15 +120,19 @@ void build_ui(
             now.time_since_epoch()
         ).count();
         std::string filename = "screenshot_" + std::to_string(timestamp) + ".txt";
+        std::cerr << "[DEBUG] Generated filename: " << filename << std::endl;
 
         // Take screenshot
         std::ofstream file(filename);
         if (!file) {
+            std::cerr << "[DEBUG] ERROR: Failed to open file: " << filename << std::endl;
             return;
         }
+        std::cerr << "[DEBUG] File opened successfully, calling take_screenshot()..." << std::endl;
 
         renderer->take_screenshot(file);
         file.close();
+        std::cerr << "[DEBUG] Screenshot saved to: " << filename << std::endl;
     });
 
     auto* disabled_btn = add_button(*widget, "Disabled");

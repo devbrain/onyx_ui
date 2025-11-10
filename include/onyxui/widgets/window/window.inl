@@ -323,7 +323,7 @@ namespace onyxui {
 
         // Phase 5: Integrate with layer_manager
         auto* layers = ui_services<Backend>::layers();
-        std::cerr << "[DEBUG] layer_manager pointer: " << (void*)layers << "\n";
+        std::cerr << "[DEBUG] layer_manager pointer: " << static_cast<const void*>(layers) << "\n";
 
         if (layers) {
             // Remove existing layer if already shown

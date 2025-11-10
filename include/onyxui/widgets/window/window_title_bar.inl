@@ -7,8 +7,11 @@
 
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/icon.hh>
+#include <onyxui/widgets/layout/spring.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <onyxui/layout/layout_strategy.hh>  // For size_constraint
 #include <iostream>
+#include <string>
 
 namespace onyxui {
 
@@ -28,11 +31,18 @@ namespace onyxui {
         , m_title(std::move(title))
     {
 
-        // Create title label (expands to fill available space)
+        // Create title label (fixed size based on content, not expanding)
         m_title_label = this->template emplace_child<label>(m_title);
 
-        // Title label should expand
-        // TODO: Add flex/stretch property when available in layout system
+        // IMPORTANT: Title label should NOT expand - it should be content-sized
+        // so that icons have space to render
+        size_constraint width_constraint;
+        width_constraint.policy = size_policy::content;  // Size based on text content
+        m_title_label->set_width_constraint(width_constraint);
+
+        // Add a spring (flexible spacer) to push icons to the right
+        // This ensures icons appear at the right edge of the title bar
+        this->template emplace_child<spring>();
 
         // Create icon widgets based on flags
         create_icons(flags);
@@ -71,6 +81,33 @@ namespace onyxui {
         // Note: test_canvas_backend may show artifacts due to simplified rendering.
         std::cerr << "[DEBUG] Drawing title bar background\n";
         ctx.fill_rect(this->bounds());
+
+        // Debug: Print bounds of each child
+        std::cerr << "[DEBUG] Child widget bounds:\n";
+        int child_idx = 0;
+        for (const auto& child : this->children()) {
+            auto child_bounds = child->bounds();
+            std::string type_name = "unknown";
+            if (child_idx == 0 && m_title_label) type_name = "title_label";
+            else if (child_idx == 1) type_name = "spring"; // Spring is added after title
+            else if (child.get() == m_menu_icon) type_name = "menu_icon";
+            else if (child.get() == m_minimize_icon) type_name = "minimize_icon";
+            else if (child.get() == m_maximize_icon) type_name = "maximize_icon";
+            else if (child.get() == m_close_icon) type_name = "close_icon";
+
+            std::cerr << "  Child[" << child_idx << "] (" << type_name << ") at ("
+                      << child_bounds.x << "," << child_bounds.y
+                      << ") size (" << child_bounds.w << "x" << child_bounds.h << ")"
+                      << " visible=" << child->is_visible();
+
+            // For icons, show if they're at the right edge
+            if (type_name.find("icon") != std::string::npos || type_name == "close_icon") {
+                int right_edge = child_bounds.x + child_bounds.w;
+                std::cerr << " [right_edge=" << right_edge << "]";
+            }
+            std::cerr << "\n";
+            child_idx++;
+        }
 
         std::cerr << "[DEBUG] Title bar children will render automatically\n";
         // Children (label and buttons) render automatically via framework
