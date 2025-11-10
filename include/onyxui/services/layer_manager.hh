@@ -27,7 +27,8 @@
  *   │   ├── Notification Layer (z=500)
  *   │   ├── Modal Dialog Layer (z=400)
  *   │   ├── Dialog Layer (z=300)
- *   │   ├── Popup Layer (z=200)
+ *   │   ├── Popup Layer (z=200) - Dropdowns, context menus
+ *   │   ├── Window Layer (z=150) - Regular windows
  *   │   └── Tooltip Layer (z=100)
  *   │
  *   ├── Event Routing (top to bottom)
@@ -125,6 +126,7 @@ namespace onyxui {
     enum class layer_type : uint8_t {
         base,         ///< Main UI (z-index: 0)
         tooltip,      ///< Tooltips (z-index: 100)
+        window,       ///< Regular windows (z-index: 150)
         popup,        ///< Dropdowns, context menus (z-index: 200)
         dialog,       ///< Non-modal dialogs (z-index: 300)
         modal,        ///< Modal dialogs (z-index: 400)
@@ -164,6 +166,7 @@ namespace onyxui {
         switch (type) {
             case layer_type::base:         return 0;
             case layer_type::tooltip:      return 100;
+            case layer_type::window:       return 150;
             case layer_type::popup:        return 200;
             case layer_type::dialog:       return 300;
             case layer_type::modal:        return 400;

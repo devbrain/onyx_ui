@@ -340,8 +340,8 @@ namespace onyxui {
             );
             std::cerr << "[DEBUG] Created non-owning shared_ptr, use_count=" << m_layer_handle.use_count() << "\n";
 
-            // Show as non-modal dialog layer
-            m_layer_id = layers->add_layer(layer_type::dialog, m_layer_handle);
+            // Show as window layer (z=150, below popups z=200)
+            m_layer_id = layers->add_layer(layer_type::window, m_layer_handle);
             std::cerr << "[DEBUG] Added to layer_manager, layer_id=" << m_layer_id.value << "\n";
 
             // Set layer bounds to window's position/size
