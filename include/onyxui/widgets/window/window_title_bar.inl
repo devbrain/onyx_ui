@@ -30,8 +30,17 @@ namespace onyxui {
           )
         , m_title(std::move(title))
     {
+        using icon_style = typename Backend::renderer_type::icon_style;
 
-        // Create title label (fixed size based on content, not expanding)
+        // Layout order: [menu_icon] [title] [spring] [minimize] [maximize] [close]
+        // Menu icon on LEFT edge, control buttons on RIGHT edge
+
+        // 1. Menu icon (left side, optional)
+        if (flags.has_menu_button) {
+            m_menu_icon = this->template emplace_child<icon>(icon_style::menu);
+        }
+
+        // 2. Create title label (fixed size based on content, not expanding)
         m_title_label = this->template emplace_child<label>(m_title);
 
         // IMPORTANT: Title label should NOT expand - it should be content-sized
@@ -40,12 +49,12 @@ namespace onyxui {
         width_constraint.policy = size_policy::content;  // Size based on text content
         m_title_label->set_width_constraint(width_constraint);
 
-        // Add a spring (flexible spacer) to push icons to the right
-        // This ensures icons appear at the right edge of the title bar
+        // 3. Add a spring (flexible spacer) to push control buttons to the right
+        // This ensures control icons appear at the right edge of the title bar
         this->template emplace_child<spring>();
 
-        // Create icon widgets based on flags
-        create_icons(flags);
+        // 4. Create control icons (right side)
+        create_control_icons(flags);
     }
 
     template<UIBackend Backend>
@@ -88,9 +97,11 @@ namespace onyxui {
         for (const auto& child : this->children()) {
             auto child_bounds = child->bounds();
             std::string type_name = "unknown";
-            if (child_idx == 0 && m_title_label) type_name = "title_label";
-            else if (child_idx == 1) type_name = "spring"; // Spring is added after title
-            else if (child.get() == m_menu_icon) type_name = "menu_icon";
+
+            // Identify child by pointer comparison (works regardless of order)
+            if (child.get() == m_menu_icon) type_name = "menu_icon";
+            else if (dynamic_cast<label<Backend>*>(child.get()) == m_title_label) type_name = "title_label";
+            else if (dynamic_cast<spring<Backend>*>(child.get())) type_name = "spring";
             else if (child.get() == m_minimize_icon) type_name = "minimize_icon";
             else if (child.get() == m_maximize_icon) type_name = "maximize_icon";
             else if (child.get() == m_close_icon) type_name = "close_icon";
@@ -100,10 +111,14 @@ namespace onyxui {
                       << ") size (" << child_bounds.w << "x" << child_bounds.h << ")"
                       << " visible=" << child->is_visible();
 
-            // For icons, show if they're at the right edge
-            if (type_name.find("icon") != std::string::npos || type_name == "close_icon") {
-                int right_edge = child_bounds.x + child_bounds.w;
-                std::cerr << " [right_edge=" << right_edge << "]";
+            // For icons, show edge positions (menu on left, controls on right)
+            if (type_name.find("icon") != std::string::npos) {
+                if (type_name == "menu_icon") {
+                    std::cerr << " [left_edge=" << child_bounds.x << "]";
+                } else {
+                    int right_edge = child_bounds.x + child_bounds.w;
+                    std::cerr << " [right_edge=" << right_edge << "]";
+                }
             }
             std::cerr << "\n";
             child_idx++;
@@ -114,18 +129,11 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_title_bar<Backend>::create_icons(const window_flags& flags) {
+    void window_title_bar<Backend>::create_control_icons(const window_flags& flags) {
         using icon_style = typename Backend::renderer_type::icon_style;
 
-        // Create icon widgets (icons are NOT clickable by themselves)
-        // Click handling is done in handle_event() by checking bounds
-
-        // Menu icon (left side, optional)
-        if (flags.has_menu_button) {
-            m_menu_icon = this->template emplace_child<icon>(icon_style::menu);
-        }
-
-        // Control icons (right side)
+        // Create control icon widgets (right side of title bar)
+        // Icons are NOT clickable by themselves - click handling is in handle_event()
 
         // Minimize icon
         if (flags.has_minimize_button) {

@@ -220,8 +220,8 @@ namespace onyxui {
         int m_drag_start_x = 0;
         int m_drag_start_y = 0;
 
-        // Helper: Create and wire up icon widgets
-        void create_icons(const window_flags& flags);
+        // Helper: Create control icon widgets (minimize, maximize, close) on right side
+        void create_control_icons(const window_flags& flags);
     };
 
 } // namespace onyxui
