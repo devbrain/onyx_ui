@@ -410,6 +410,7 @@ namespace onyxui {
 
         // Phase 5: Layer manager integration
         layer_id m_layer_id{};              // Layer ID when shown in layer_manager
+        std::shared_ptr<ui_element<Backend>> m_layer_handle;  // Keeps weak_ptr in layer_manager alive
         window<Backend>* m_previous_active_window = nullptr;  // For restoring focus after modal closes
 
         // Child widgets (Phase 1: created but drag/resize not implemented yet)

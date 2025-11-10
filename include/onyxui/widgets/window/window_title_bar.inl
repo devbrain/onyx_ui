@@ -8,6 +8,7 @@
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/icon.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <iostream>
 
 namespace onyxui {
 
@@ -50,7 +51,14 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window_title_bar<Backend>::do_render(render_context_type& ctx) const {
+        std::cerr << "[DEBUG] window_title_bar::do_render() called\n";
+        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << "\n";
+        std::cerr << "[DEBUG] bounds=(" << this->bounds().x << "," << this->bounds().y << ","
+                  << this->bounds().w << "," << this->bounds().h << ")\n";
+        std::cerr << "[DEBUG] children count=" << this->children().size() << "\n";
+
         if (!this->is_visible()) {
+            std::cerr << "[DEBUG] Title bar not visible, returning\n";
             return;
         }
 
@@ -61,8 +69,10 @@ namespace onyxui {
         //
         // This layering works in real renderers (conio) where text draws over fills.
         // Note: test_canvas_backend may show artifacts due to simplified rendering.
+        std::cerr << "[DEBUG] Drawing title bar background\n";
         ctx.fill_rect(this->bounds());
 
+        std::cerr << "[DEBUG] Title bar children will render automatically\n";
         // Children (label and buttons) render automatically via framework
     }
 

@@ -70,6 +70,7 @@
 #include <optional>
 #include <functional>
 #include <algorithm>
+#include <iostream>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
 #include <onyxui/events/ui_event.hh>      // For ui_event, mouse_event, keyboard_event
@@ -518,6 +519,27 @@ namespace onyxui {
             return false;
         }
 
+        /**
+         * @brief Request automatic positioning for a layer
+         * @details Marks layer as needing positioning so it will be auto-positioned
+         *          on next render using position_layer()
+         */
+        void request_layer_positioning(layer_id id) {
+            if (auto it = find_layer(id); it != m_layers.end()) {
+                it->needs_positioning = true;
+            }
+        }
+
+        /**
+         * @brief Set layer bounds manually (for windows with explicit position/size)
+         */
+        void set_layer_bounds(layer_id id, const rect_type& bounds) {
+            if (auto it = find_layer(id); it != m_layers.end()) {
+                it->bounds = bounds;
+                it->needs_positioning = false;  // Manual bounds, no auto-positioning
+            }
+        }
+
         // ============================================================
         // Event Routing
         // ============================================================
@@ -661,8 +683,14 @@ namespace onyxui {
             // Phase 1.2: Clean up expired layers first
             cleanup_expired_layers();
 
+            std::cerr << "[DEBUG] render_all_layers: total layers=" << m_layers.size() << "\n";
             for (auto& layer : m_layers) {
-                if (!layer.visible || !layer.is_valid()) continue;
+                std::cerr << "[DEBUG] Layer id=" << layer.id.value << ", visible=" << layer.visible
+                          << ", is_valid=" << layer.is_valid() << "\n";
+                if (!layer.visible || !layer.is_valid()) {
+                    std::cerr << "[DEBUG] Skipping layer id=" << layer.id.value << "\n";
+                    continue;
+                }
 
                 // Position layer if needed
                 if (layer.needs_positioning) {
@@ -672,14 +700,20 @@ namespace onyxui {
 
                 // Measure, arrange, and render - Phase 1.2: Use safe access
                 layer.with_root([&](element_type* root_ptr) {
+                    std::cerr << "[DEBUG] Rendering layer id=" << layer.id.value << ", bounds=("
+                              << layer.bounds.x << "," << layer.bounds.y << ","
+                              << layer.bounds.w << "," << layer.bounds.h << ")\n";
                     // Measure and arrange
                     int const width = rect_utils::get_width(layer.bounds);
                     int const height = rect_utils::get_height(layer.bounds);
                     [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
+
+                    // Arrange with absolute coordinates (layer.bounds contains screen position)
                     root_ptr->arrange(layer.bounds);
 
                     // Render with theme (for proper styling in menus, dialogs, etc.)
                     root_ptr->render(renderer, theme);
+                    std::cerr << "[DEBUG] Finished rendering layer id=" << layer.id.value << "\n";
                 });
             }
         }

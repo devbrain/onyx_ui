@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <iostream>
 #include "onyxui/hotkeys/hotkey_action.hh"
 #include <onyxui/widgets/window/window_title_bar.hh>
 #include <onyxui/widgets/window/window_content_area.hh>
@@ -114,6 +115,9 @@ namespace onyxui {
         );
         m_content_area = content_area.get();  // Store raw pointer before moving
         this->add_child(std::move(content_area));
+
+        // Windows always have borders (for the window frame)
+        this->m_has_border = true;
 
         // Register with window_manager (if available)
         register_with_window_manager();
@@ -315,25 +319,44 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::show() {
+        std::cerr << "[DEBUG] window::show() called for window: " << m_title << "\n";
+
         // Phase 5: Integrate with layer_manager
         auto* layers = ui_services<Backend>::layers();
+        std::cerr << "[DEBUG] layer_manager pointer: " << (void*)layers << "\n";
+
         if (layers) {
             // Remove existing layer if already shown
             if (m_layer_id.is_valid()) {
+                std::cerr << "[DEBUG] Removing existing layer: " << m_layer_id.value << "\n";
                 layers->remove_layer(m_layer_id);
             }
 
             // Create non-owning shared_ptr (window manages its own lifetime)
-            auto non_owning = std::shared_ptr<ui_element<Backend>>(
+            // Store in m_layer_handle to keep weak_ptr in layer_manager alive
+            m_layer_handle = std::shared_ptr<ui_element<Backend>>(
                 static_cast<ui_element<Backend>*>(this),
                 [](ui_element<Backend>*) {}  // No-op deleter
             );
+            std::cerr << "[DEBUG] Created non-owning shared_ptr, use_count=" << m_layer_handle.use_count() << "\n";
 
             // Show as non-modal dialog layer
-            m_layer_id = layers->add_layer(layer_type::dialog, non_owning);
+            m_layer_id = layers->add_layer(layer_type::dialog, m_layer_handle);
+            std::cerr << "[DEBUG] Added to layer_manager, layer_id=" << m_layer_id.value << "\n";
+
+            // Set layer bounds to window's position/size
+            // Window uses absolute coordinates (layer and window have same bounds)
+            auto window_bounds = this->bounds();
+            std::cerr << "[DEBUG] Setting layer bounds to: (" << window_bounds.x << "," << window_bounds.y << ","
+                      << window_bounds.w << "," << window_bounds.h << ")\n";
+            layers->set_layer_bounds(m_layer_id, window_bounds);
+            std::cerr << "[DEBUG] Layer bounds set\n";
+        } else {
+            std::cerr << "[DEBUG] ERROR: layer_manager is nullptr!\n";
         }
 
         this->set_visible(true);
+        std::cerr << "[DEBUG] window::set_visible(true) called\n";
     }
 
     template<UIBackend Backend>
@@ -405,18 +428,23 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::do_render(render_context_type& ctx) const {
+        std::cerr << "[DEBUG] window::do_render() called for window: " << m_title << "\n";
+        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << ", m_has_border=" << this->m_has_border << "\n";
+        std::cerr << "[DEBUG] bounds=(" << this->bounds().x << "," << this->bounds().y << ","
+                  << this->bounds().w << "," << this->bounds().h << ")\n";
+        std::cerr << "[DEBUG] children count=" << this->children().size() << "\n";
+
         if (!this->is_visible()) {
+            std::cerr << "[DEBUG] Window not visible, returning\n";
             return;
         }
 
-        // Phase 8: Use window theme style with focus-aware border colors
-        // Draw window border (if window has border enabled)
-        if (this->m_has_border) {
-            auto style = ctx.style();
-            // Use border style and color from theme (focused/unfocused)
-            ctx.draw_rect(this->bounds(), style.box_style);
-        }
+        // Call base class to draw border with proper coordinate translation
+        // widget_container::do_render() translates relative coords to absolute
+        std::cerr << "[DEBUG] Calling base::do_render() to draw border\n";
+        base::do_render(ctx);
 
+        std::cerr << "[DEBUG] Children will render automatically via framework\n";
         // Children (title bar and content area) render automatically via framework
     }
 
