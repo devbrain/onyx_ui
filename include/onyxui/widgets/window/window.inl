@@ -325,16 +325,12 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::show() {
-        std::cerr << "[DEBUG] window::show() called for window: " << m_title << "\n";
-
         // Phase 5: Integrate with layer_manager
         auto* layers = ui_services<Backend>::layers();
-        std::cerr << "[DEBUG] layer_manager pointer: " << static_cast<const void*>(layers) << "\n";
 
         if (layers) {
             // Remove existing layer if already shown
             if (m_layer_id.is_valid()) {
-                std::cerr << "[DEBUG] Removing existing layer: " << m_layer_id.value << "\n";
                 layers->remove_layer(m_layer_id);
             }
 
@@ -344,25 +340,17 @@ namespace onyxui {
                 static_cast<ui_element<Backend>*>(this),
                 [](ui_element<Backend>*) {}  // No-op deleter
             );
-            std::cerr << "[DEBUG] Created non-owning shared_ptr, use_count=" << m_layer_handle.use_count() << "\n";
 
             // Show as window layer (z=150, below popups z=200)
             m_layer_id = layers->add_layer(layer_type::window, m_layer_handle);
-            std::cerr << "[DEBUG] Added to layer_manager, layer_id=" << m_layer_id.value << "\n";
 
             // Set layer bounds to window's position/size
             // Window uses absolute coordinates (layer and window have same bounds)
             auto window_bounds = this->bounds();
-            std::cerr << "[DEBUG] Setting layer bounds to: (" << window_bounds.x << "," << window_bounds.y << ","
-                      << window_bounds.w << "," << window_bounds.h << ")\n";
             layers->set_layer_bounds(m_layer_id, window_bounds);
-            std::cerr << "[DEBUG] Layer bounds set\n";
-        } else {
-            std::cerr << "[DEBUG] ERROR: layer_manager is nullptr!\n";
         }
 
         this->set_visible(true);
-        std::cerr << "[DEBUG] window::set_visible(true) called\n";
     }
 
     template<UIBackend Backend>
@@ -434,20 +422,12 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::do_render(render_context_type& ctx) const {
-        std::cerr << "[DEBUG] window::do_render() called for window: " << m_title << "\n";
-        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << "\n";
-        std::cerr << "[DEBUG] bounds=(" << this->bounds().x << "," << this->bounds().y << ","
-                  << this->bounds().w << "," << this->bounds().h << ")\n";
-        std::cerr << "[DEBUG] children count=" << this->children().size() << "\n";
-
         if (!this->is_visible()) {
-            std::cerr << "[DEBUG] Window not visible, returning\n";
             return;
         }
 
         // No custom rendering needed - children (title bar and content area) render automatically
         // Content area draws its own border (see window constructor where m_has_border is set)
-        std::cerr << "[DEBUG] Children will render automatically via framework\n";
     }
 
     template<UIBackend Backend>

@@ -84,14 +84,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window_title_bar<Backend>::do_render(render_context_type& ctx) const {
-        std::cerr << "[DEBUG] window_title_bar::do_render() called\n";
-        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << "\n";
-        std::cerr << "[DEBUG] bounds=(" << this->bounds().x << "," << this->bounds().y << ","
-                  << this->bounds().w << "," << this->bounds().h << ")\n";
-        std::cerr << "[DEBUG] children count=" << this->children().size() << "\n";
-
         if (!this->is_visible()) {
-            std::cerr << "[DEBUG] Title bar not visible, returning\n";
             return;
         }
 
@@ -99,7 +92,6 @@ namespace onyxui {
         // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
         // 1. This fill_rect() draws background
         // 2. Children (label + buttons) render on top automatically
-        std::cerr << "[DEBUG] Drawing title bar background\n";
 
         // ctx.position() already contains this widget's absolute screen position
         // bounds() contains relative bounds (for width/height)
@@ -107,45 +99,8 @@ namespace onyxui {
         typename Backend::rect_type absolute_bounds;
         rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
 
-        std::cerr << "[DEBUG] Title bar absolute fill rect: (" << absolute_bounds.x << "," << absolute_bounds.y << ","
-                  << absolute_bounds.w << "," << absolute_bounds.h << ")\n";
-
         ctx.fill_rect(absolute_bounds);
 
-        // Debug: Print bounds of each child
-        std::cerr << "[DEBUG] Child widget bounds:\n";
-        int child_idx = 0;
-        for (const auto& child : this->children()) {
-            auto child_bounds = child->bounds();
-            std::string type_name = "unknown";
-
-            // Identify child by pointer comparison (works regardless of order)
-            if (child.get() == m_menu_icon) type_name = "menu_icon";
-            else if (dynamic_cast<label<Backend>*>(child.get()) == m_title_label) type_name = "title_label";
-            else if (dynamic_cast<spring<Backend>*>(child.get())) type_name = "spring";
-            else if (child.get() == m_minimize_icon) type_name = "minimize_icon";
-            else if (child.get() == m_maximize_icon) type_name = "maximize_icon";
-            else if (child.get() == m_close_icon) type_name = "close_icon";
-
-            std::cerr << "  Child[" << child_idx << "] (" << type_name << ") at ("
-                      << child_bounds.x << "," << child_bounds.y
-                      << ") size (" << child_bounds.w << "x" << child_bounds.h << ")"
-                      << " visible=" << child->is_visible();
-
-            // For icons, show edge positions (menu on left, controls on right)
-            if (type_name.find("icon") != std::string::npos) {
-                if (type_name == "menu_icon") {
-                    std::cerr << " [left_edge=" << child_bounds.x << "]";
-                } else {
-                    int right_edge = child_bounds.x + child_bounds.w;
-                    std::cerr << " [right_edge=" << right_edge << "]";
-                }
-            }
-            std::cerr << "\n";
-            child_idx++;
-        }
-
-        std::cerr << "[DEBUG] Title bar children will render automatically\n";
         // Children (label and buttons) render automatically via framework
     }
 
