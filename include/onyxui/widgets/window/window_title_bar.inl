@@ -103,7 +103,17 @@ namespace onyxui {
         // This layering works in real renderers (conio) where text draws over fills.
         // Note: test_canvas_backend may show artifacts due to simplified rendering.
         std::cerr << "[DEBUG] Drawing title bar background\n";
-        ctx.fill_rect(this->bounds());
+
+        // ctx.position() already contains this widget's absolute screen position
+        // bounds() contains relative bounds (for width/height)
+        // make_absolute_bounds uses position for x,y and bounds for w,h
+        typename Backend::rect_type absolute_bounds;
+        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
+
+        std::cerr << "[DEBUG] Title bar absolute fill rect: (" << absolute_bounds.x << "," << absolute_bounds.y << ","
+                  << absolute_bounds.w << "," << absolute_bounds.h << ")\n";
+
+        ctx.fill_rect(absolute_bounds);
 
         // Debug: Print bounds of each child
         std::cerr << "[DEBUG] Child widget bounds:\n";

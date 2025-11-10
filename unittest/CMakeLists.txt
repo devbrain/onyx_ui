@@ -101,6 +101,7 @@ add_executable(ui_unittest
         widgets/test_window_title_bar_icons.cc
         widgets/test_window_title_bar_visual.cc
         widgets/test_window_title_bar_alignment.cc
+        widgets/test_window_borders.cc
         utils/test_visual_helpers.cc
         hotkeys/test_hotkeys.cc
         hotkeys/test_hotkey_manager.cc

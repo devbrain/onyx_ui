@@ -89,6 +89,18 @@ namespace onyxui {
         window_content_area& operator=(window_content_area&&) noexcept = default;
 
         // ====================================================================
+        // Border Management
+        // ====================================================================
+
+        /**
+         * @brief Set whether content area has a border
+         * @param has_border True to draw border around content area
+         */
+        void set_has_border(bool has_border) {
+            this->m_has_border = has_border;
+        }
+
+        // ====================================================================
         // Content Management
         // ====================================================================
 

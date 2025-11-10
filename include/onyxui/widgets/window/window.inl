@@ -113,11 +113,12 @@ namespace onyxui {
             m_flags.is_scrollable,
             this
         );
+
+        // Content area should have border (not the window itself)
+        content_area->set_has_border(true);
+
         m_content_area = content_area.get();  // Store raw pointer before moving
         this->add_child(std::move(content_area));
-
-        // Windows always have borders (for the window frame)
-        this->m_has_border = true;
 
         // Register with window_manager (if available)
         register_with_window_manager();
@@ -429,7 +430,7 @@ namespace onyxui {
     template<UIBackend Backend>
     void window<Backend>::do_render(render_context_type& ctx) const {
         std::cerr << "[DEBUG] window::do_render() called for window: " << m_title << "\n";
-        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << ", m_has_border=" << this->m_has_border << "\n";
+        std::cerr << "[DEBUG] is_visible=" << this->is_visible() << "\n";
         std::cerr << "[DEBUG] bounds=(" << this->bounds().x << "," << this->bounds().y << ","
                   << this->bounds().w << "," << this->bounds().h << ")\n";
         std::cerr << "[DEBUG] children count=" << this->children().size() << "\n";
@@ -439,13 +440,9 @@ namespace onyxui {
             return;
         }
 
-        // Call base class to draw border with proper coordinate translation
-        // widget_container::do_render() translates relative coords to absolute
-        std::cerr << "[DEBUG] Calling base::do_render() to draw border\n";
-        base::do_render(ctx);
-
+        // No custom rendering needed - children (title bar and content area) render automatically
+        // Content area draws its own border (see window constructor where m_has_border is set)
         std::cerr << "[DEBUG] Children will render automatically via framework\n";
-        // Children (title bar and content area) render automatically via framework
     }
 
     template<UIBackend Backend>

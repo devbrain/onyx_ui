@@ -878,10 +878,10 @@ namespace onyxui::conio {
             theme.window.title_focused.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics
             theme.window.title_focused.font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
 
-            // Unfocused window: light gray title bar with dark gray text
-            theme.window.title_unfocused.background = light_gray;
-            theme.window.title_unfocused.foreground = dark_gray;
-            theme.window.title_unfocused.mnemonic_foreground = dark_gray;
+            // Unfocused window: white title bar with black text (same as focused but not bold)
+            theme.window.title_unfocused.background = white;
+            theme.window.title_unfocused.foreground = black;
+            theme.window.title_unfocused.mnemonic_foreground = button_mnemonic_fg;  // Red mnemonics
             theme.window.title_unfocused.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
 
             // Window borders - single line for NU8 style
