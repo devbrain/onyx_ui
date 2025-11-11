@@ -32,17 +32,13 @@ namespace demo_windows {
     void register_window(std::shared_ptr<onyxui::window<Backend>> win) {
         auto& windows = get_active_windows<Backend>();
         windows.push_back(win);
-        std::cerr << "[DEBUG] register_window: Window added to storage, use_count=" << win.use_count()
-                  << ", total windows=" << windows.size() << std::endl;
 
         // Auto-cleanup when window closes
         win->closed.connect([win]() {
-            std::cerr << "[DEBUG] Window closed signal received" << std::endl;
             auto& windows = get_active_windows<Backend>();
             auto it = std::find(windows.begin(), windows.end(), win);
             if (it != windows.end()) {
                 windows.erase(it);
-                std::cerr << "[DEBUG] Window removed from storage, remaining windows=" << windows.size() << std::endl;
             }
         });
     }
@@ -61,7 +57,6 @@ namespace demo_windows {
         const std::string& content_text,
         onyxui::ui_element<Backend>* workspace = nullptr
     ) {
-        std::cerr << "[DEBUG] show_basic_window() called with title: '" << title << "'" << std::endl;
 
         // Create window with title and basic flags
         typename onyxui::window<Backend>::window_flags flags;
@@ -72,36 +67,27 @@ namespace demo_windows {
         flags.is_resizable = true;
         flags.is_movable = true;
 
-        std::cerr << "[DEBUG] Creating window..." << std::endl;
         auto win = std::make_shared<onyxui::window<Backend>>(title, flags, nullptr);  // No parent - floating layer
-        std::cerr << "[DEBUG] Window created, use_count=" << win.use_count() << std::endl;
 
         // Create content FIRST
         auto content = std::make_unique<onyxui::vbox<Backend>>(1);
         content->template emplace_child<onyxui::label>(content_text);
         win->set_content(std::move(content));
-        std::cerr << "[DEBUG] Window content set" << std::endl;
 
         // Set initial size and position AFTER content is added
         win->set_size(40, 15);
         win->set_position(5, 3);
-        std::cerr << "[DEBUG] Window size set to 40x15, position set to (5,3)" << std::endl;
 
         // Set workspace for maximize behavior
         if (workspace) {
             win->set_workspace(workspace);
-            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
         }
 
         // Register window to keep it alive
         register_window(win);
-        std::cerr << "[DEBUG] Window registered, total windows=" << get_active_windows<Backend>().size()
-                  << ", use_count=" << win.use_count() << std::endl;
 
         // Show window (automatically registers with window_manager)
-        std::cerr << "[DEBUG] Calling win->show()..." << std::endl;
         win->show();
-        std::cerr << "[DEBUG] win->show() completed" << std::endl;
 
         return win;
     }
@@ -113,7 +99,6 @@ namespace demo_windows {
      */
     template <onyxui::UIBackend Backend>
     void show_scrollable_window(onyxui::ui_element<Backend>* workspace = nullptr) {
-        std::cerr << "[DEBUG] show_scrollable_window() called" << std::endl;
 
         typename onyxui::window<Backend>::window_flags flags;
         flags.has_close_button = true;
@@ -122,12 +107,9 @@ namespace demo_windows {
         flags.is_resizable = true;
         flags.is_movable = true;
 
-        std::cerr << "[DEBUG] Creating scrollable window..." << std::endl;
         auto win = std::make_shared<onyxui::window<Backend>>("Scrollable Content", flags);
-        std::cerr << "[DEBUG] Scrollable window created, use_count=" << win.use_count() << std::endl;
         win->set_size(50, 20);
         win->set_position(10, 5);
-        std::cerr << "[DEBUG] Scrollable window size set to 50x20, position set to (10,5)" << std::endl;
 
         // Create content with text view
         auto content = std::make_unique<onyxui::vbox<Backend>>(0);
@@ -163,26 +145,19 @@ namespace demo_windows {
         }
 
         text_view->set_text(demo_text);
-        std::cerr << "[DEBUG] Scrollable window text content set" << std::endl;
 
         win->set_content(std::move(content));
-        std::cerr << "[DEBUG] Scrollable window content set" << std::endl;
 
         // Set workspace for maximize behavior
         if (workspace) {
             win->set_workspace(workspace);
-            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
         }
 
         // Register window to keep it alive
         register_window(win);
-        std::cerr << "[DEBUG] Scrollable window registered, total windows=" << get_active_windows<Backend>().size()
-                  << ", use_count=" << win.use_count() << std::endl;
 
         // Show window
-        std::cerr << "[DEBUG] Calling win->show() for scrollable window..." << std::endl;
         win->show();
-        std::cerr << "[DEBUG] Scrollable window show() completed" << std::endl;
     }
 
     /**
@@ -192,14 +167,10 @@ namespace demo_windows {
      */
     template <onyxui::UIBackend Backend>
     void show_modal_dialog(const std::string& message) {
-        std::cerr << "[DEBUG] show_modal_dialog() called with message: '" << message << "'" << std::endl;
 
-        std::cerr << "[DEBUG] Creating modal dialog..." << std::endl;
         auto dialog = std::make_shared<onyxui::dialog<Backend>>("Information");
-        std::cerr << "[DEBUG] Dialog created, use_count=" << dialog.use_count() << std::endl;
         dialog->set_size(40, 10);
         dialog->set_position(15, 8);
-        std::cerr << "[DEBUG] Dialog size set to 40x10, position set to (15,8)" << std::endl;
 
         // Create content
         auto content = std::make_unique<onyxui::vbox<Backend>>(2);
@@ -212,23 +183,16 @@ namespace demo_windows {
         auto* ok_btn = content->template emplace_child<onyxui::button>("OK");
         ok_btn->set_horizontal_align(onyxui::horizontal_alignment::center);
         ok_btn->clicked.connect([dialog]() {
-            std::cerr << "[DEBUG] Dialog OK button clicked" << std::endl;
             dialog->close();
         });
-        std::cerr << "[DEBUG] Dialog content created with message and OK button" << std::endl;
 
         dialog->set_content(std::move(content));
-        std::cerr << "[DEBUG] Dialog content set" << std::endl;
 
         // Register window to keep it alive (cast to base)
         register_window(std::static_pointer_cast<onyxui::window<Backend>>(dialog));
-        std::cerr << "[DEBUG] Dialog registered, total windows=" << get_active_windows<Backend>().size()
-                  << ", use_count=" << dialog.use_count() << std::endl;
 
         // Show as modal (blocks other windows)
-        std::cerr << "[DEBUG] Calling dialog->show_modal()..." << std::endl;
         dialog->show_modal();
-        std::cerr << "[DEBUG] Dialog show_modal() completed" << std::endl;
     }
 
     /**
@@ -238,7 +202,6 @@ namespace demo_windows {
      */
     template <onyxui::UIBackend Backend>
     void show_controls_window(onyxui::ui_element<Backend>* workspace = nullptr) {
-        std::cerr << "[DEBUG] show_controls_window() called" << std::endl;
 
         typename onyxui::window<Backend>::window_flags flags;
         flags.has_close_button = true;
@@ -248,12 +211,9 @@ namespace demo_windows {
         flags.is_resizable = false;
         flags.is_movable = true;
 
-        std::cerr << "[DEBUG] Creating interactive controls window..." << std::endl;
         auto win = std::make_shared<onyxui::window<Backend>>("Interactive Controls", flags);
-        std::cerr << "[DEBUG] Controls window created, use_count=" << win.use_count() << std::endl;
         win->set_size(45, 18);
         win->set_position(8, 4);
-        std::cerr << "[DEBUG] Controls window size set to 45x18, position set to (8,4)" << std::endl;
 
         auto content = std::make_unique<onyxui::vbox<Backend>>(1);
 
@@ -308,26 +268,19 @@ namespace demo_windows {
                 "This is a modal dialog!\nIt blocks interaction with other windows."
             );
         });
-        std::cerr << "[DEBUG] Controls window content created with buttons" << std::endl;
 
         win->set_content(std::move(content));
-        std::cerr << "[DEBUG] Controls window content set" << std::endl;
 
         // Set workspace for maximize behavior
         if (workspace) {
             win->set_workspace(workspace);
-            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
         }
 
         // Register window to keep it alive
         register_window(win);
-        std::cerr << "[DEBUG] Controls window registered, total windows=" << get_active_windows<Backend>().size()
-                  << ", use_count=" << win.use_count() << std::endl;
 
         // Show window
-        std::cerr << "[DEBUG] Calling win->show() for controls window..." << std::endl;
         win->show();
-        std::cerr << "[DEBUG] Controls window show() completed" << std::endl;
     }
 
 } // namespace demo_windows

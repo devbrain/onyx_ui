@@ -91,9 +91,7 @@ public:
      * @param renderer Pointer to the renderer
      */
     void set_renderer(typename Backend::renderer_type* renderer) {
-        std::cerr << "[DEBUG] set_renderer called with: " << (void*)renderer << std::endl;
         m_renderer = renderer;
-        std::cerr << "[DEBUG] m_renderer set to: " << (void*)m_renderer << std::endl;
     }
 
     /**
