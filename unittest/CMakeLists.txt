@@ -16,6 +16,7 @@ add_executable(ui_unittest
         core/test_relative_coordinates.cc
         core/test_background_renderer.cc
         core/test_hit_test_path.cc
+        geometry/test_coordinates.cc
         events/test_events.cc
         events/test_event_target.cc
         events/test_ui_event.cc
