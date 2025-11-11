@@ -19,6 +19,7 @@
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/services/layer_manager.hh>  // For layer_id and layer_type
+#include <onyxui/core/raii/scoped_layer.hh>  // For system menu popup
 #include <memory>
 #include <string>
 
@@ -462,6 +463,7 @@ namespace onyxui {
 
         // Phase 7: System menu (owned by window, not a child widget)
         std::unique_ptr<window_system_menu<Backend>> m_system_menu;
+        scoped_layer<Backend> m_system_menu_layer;  // RAII popup layer for system menu
 
         // Helper methods
         void register_with_window_manager();

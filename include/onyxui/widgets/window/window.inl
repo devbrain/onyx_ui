@@ -74,23 +74,22 @@ namespace onyxui {
                     // Update menu states before showing
                     m_system_menu->update_menu_states();
 
-                    // Phase 7: Position menu at icon location
+                    // Get menu and icon
                     auto* menu_icon = m_title_bar->get_menu_icon();
                     auto* menu = m_system_menu->get_menu();
 
                     if (menu_icon && menu) {
-                        // Get icon's absolute bounds
-                        auto icon_bounds = menu_icon->bounds();
+                        // Get icon's absolute screen bounds for menu positioning
+                        auto icon_abs_bounds = menu_icon->get_absolute_bounds();
 
-                        // Position menu below icon (at icon's bottom-left corner)
-                        // Note: Using relative coordinates - menu will be positioned relative to window
-                        int menu_x = rect_utils::get_x(icon_bounds);
-                        int menu_y = rect_utils::get_y(icon_bounds) + rect_utils::get_height(icon_bounds);
+                        // Position menu below icon (at icon's bottom-left corner in absolute coords)
+                        int menu_x = rect_utils::get_x(icon_abs_bounds);
+                        int menu_y = rect_utils::get_y(icon_abs_bounds) + rect_utils::get_height(icon_abs_bounds);
 
                         // Measure menu to get its size
                         auto menu_size = menu->measure(200, 300);  // Reasonable max size for menu
 
-                        // Set menu bounds
+                        // Set menu bounds (absolute screen coordinates)
                         typename Backend::rect_type menu_bounds;
                         rect_utils::set_bounds(
                             menu_bounds,
@@ -101,11 +100,30 @@ namespace onyxui {
                         );
 
                         menu->arrange(menu_bounds);
-                        menu->set_visible(true);
 
-                        // Activate menu: reset states and focus first item
-                        menu->reset_item_states();
-                        menu->focus_first();
+                        // Add menu as popup layer (RAII cleanup when m_system_menu_layer is reassigned/reset)
+                        auto* layers = ui_services<Backend>::layers();
+                        if (layers) {
+                            // Create shared_ptr wrapper for menu (doesn't take ownership, m_system_menu owns it)
+                            auto menu_handle = std::shared_ptr<ui_element<Backend>>(
+                                menu,
+                                [](ui_element<Backend>*) { /* no-op deleter */ }
+                            );
+
+                            m_system_menu_layer = layers->add_scoped_layer(
+                                layer_type::popup,
+                                menu_handle
+                            );
+
+                            // Activate menu: reset states and focus first item
+                            menu->reset_item_states();
+                            menu->focus_first();
+
+                            // Set focus to menu
+                            if (auto* focus = ui_services<Backend>::input()) {
+                                focus->set_focus(menu);
+                            }
+                        }
                     }
                 }
             });
