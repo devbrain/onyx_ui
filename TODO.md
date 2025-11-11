@@ -203,6 +203,19 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## 🔧 Code Quality Improvements
 
+### Future Refactoring (v2.0)
+
+- [ ] **Strong types for coordinate systems**
+  - Motivation: Bug fix on 2025-11-10 revealed mixing of absolute vs relative coordinates
+  - Current: `int x, y` used for both absolute screen coords and relative widget coords
+  - Proposal: Introduce `absolute_point` and `relative_point` types for compile-time safety
+  - Impact:
+    - Prevents coordinate mixing bugs at compile time
+    - Self-documenting API (clear intent)
+    - Requires touching ~100+ call sites
+  - Status: DEFER to v2.0 - requires breaking API changes
+  - Alternative: Use `get_absolute_bounds()` helper (already implemented) for now
+
 ### Low-Value Improvements (Skip for now)
 
 - [ ] **Refactor layout tests to use fixtures**
@@ -216,6 +229,15 @@ Based on `docs/unittest-review.md` recommendations:
 ## ✅ Recently Completed
 
 ### Code Quality Improvements (November 2025)
+
+- [x] **Window control button coordinate bug fix** - 2025-11-10
+  - Issue: Window control buttons (minimize, maximize, close, menu) not responding to clicks
+  - Root cause: Mixing absolute screen coordinates with relative widget coordinates
+  - Fix: Use `get_absolute_bounds()` helper to convert icon bounds before hit testing
+  - Impact: All window control buttons now work correctly
+  - Files: `window_title_bar.inl:135-171`, `test_window_title_bar_icons.cc:156-287`
+  - Tests: Added integration test for absolute coordinate click detection
+  - Related: Added TODO for strong types (v2.0) to prevent this bug class at compile time
 
 - [x] **Name hiding bug fix** - window focus methods - 2025-11-09
   - Issue: `window::has_focus()` was hiding `event_target::has_focus()` from base class

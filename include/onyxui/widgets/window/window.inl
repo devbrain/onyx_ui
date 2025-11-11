@@ -70,61 +70,55 @@ namespace onyxui {
 
             // Wire up menu button to show system menu
             m_title_bar->menu_clicked.connect([this]() {
-                if (m_system_menu) {
-                    // Update menu states before showing
-                    m_system_menu->update_menu_states();
+                if (!m_system_menu) {
+                    return;
+                }
 
-                    // Get menu and icon
-                    auto* menu_icon = m_title_bar->get_menu_icon();
-                    auto* menu = m_system_menu->get_menu();
+                m_system_menu->update_menu_states();
 
-                    if (menu_icon && menu) {
-                        // Get icon's absolute screen bounds for menu positioning
-                        auto icon_abs_bounds = menu_icon->get_absolute_bounds();
+                // Get menu and icon
+                auto* menu_icon = m_title_bar->get_menu_icon();
+                auto* menu = m_system_menu->get_menu();
 
-                        // Position menu below icon (at icon's bottom-left corner in absolute coords)
-                        int menu_x = rect_utils::get_x(icon_abs_bounds);
-                        int menu_y = rect_utils::get_y(icon_abs_bounds) + rect_utils::get_height(icon_abs_bounds);
+                if (!menu_icon || !menu) {
+                    return;
+                }
 
-                        // Measure menu to get its size
-                        auto menu_size = menu->measure(200, 300);  // Reasonable max size for menu
+                auto* layers = ui_services<Backend>::layers();
+                if (!layers) {
+                    return;
+                }
 
-                        // Set menu bounds (absolute screen coordinates)
-                        typename Backend::rect_type menu_bounds;
-                        rect_utils::set_bounds(
-                            menu_bounds,
-                            menu_x,
-                            menu_y,
-                            size_utils::get_width(menu_size),
-                            size_utils::get_height(menu_size)
-                        );
+                // Get icon's absolute screen bounds for menu positioning
+                auto icon_abs_bounds = menu_icon->get_absolute_bounds();
 
-                        menu->arrange(menu_bounds);
-
-                        // Add menu as popup layer (RAII cleanup when m_system_menu_layer is reassigned/reset)
-                        auto* layers = ui_services<Backend>::layers();
-                        if (layers) {
-                            // Create shared_ptr wrapper for menu (doesn't take ownership, m_system_menu owns it)
-                            auto menu_handle = std::shared_ptr<ui_element<Backend>>(
-                                menu,
-                                [](ui_element<Backend>*) { /* no-op deleter */ }
-                            );
-
-                            m_system_menu_layer = layers->add_scoped_layer(
-                                layer_type::popup,
-                                menu_handle
-                            );
-
-                            // Activate menu: reset states and focus first item
-                            menu->reset_item_states();
-                            menu->focus_first();
-
-                            // Set focus to menu
-                            if (auto* focus = ui_services<Backend>::input()) {
-                                focus->set_focus(menu);
-                            }
-                        }
+                // Use layer_manager's show_popup() to automatically position menu below icon
+                // This sets needs_positioning=true which triggers automatic layout
+                layer_id id = layers->show_popup(
+                    menu,
+                    icon_abs_bounds,
+                    popup_placement::below,
+                    [menu]() {
+                        menu->closing.emit();
                     }
+                );
+
+                // Wrap in scoped_layer for RAII cleanup
+                m_system_menu_layer = scoped_layer<Backend>(layers, id);
+
+                // Connect to menu's closing signal to dismiss the popup
+                // When a menu item is clicked, the menu emits closing signal
+                m_system_menu_closing_connection = scoped_connection(menu->closing, [this]() {
+                    m_system_menu_layer.reset();
+                });
+
+                // Activate menu: reset states and focus first item
+                menu->reset_item_states();
+                menu->focus_first();
+
+                // Set focus to menu
+                if (auto* focus = ui_services<Backend>::input()) {
+                    focus->set_focus(menu);
                 }
             });
         }

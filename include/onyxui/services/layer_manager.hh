@@ -683,15 +683,14 @@ namespace onyxui {
          * Theme must be explicitly passed to ensure popup menus/dialogs use correct styling.
          */
         void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type* theme) {
+            // Save viewport for workspace detection (Phase 4)
+            m_viewport = viewport;
+
             // Phase 1.2: Clean up expired layers first
             cleanup_expired_layers();
 
-            std::cerr << "[DEBUG] render_all_layers: total layers=" << m_layers.size() << "\n";
             for (auto& layer : m_layers) {
-                std::cerr << "[DEBUG] Layer id=" << layer.id.value << ", visible=" << layer.visible
-                          << ", is_valid=" << layer.is_valid() << "\n";
                 if (!layer.visible || !layer.is_valid()) {
-                    std::cerr << "[DEBUG] Skipping layer id=" << layer.id.value << "\n";
                     continue;
                 }
 
@@ -703,9 +702,6 @@ namespace onyxui {
 
                 // Measure, arrange, and render - Phase 1.2: Use safe access
                 layer.with_root([&](element_type* root_ptr) {
-                    std::cerr << "[DEBUG] Rendering layer id=" << layer.id.value << ", bounds=("
-                              << layer.bounds.x << "," << layer.bounds.y << ","
-                              << layer.bounds.w << "," << layer.bounds.h << ")\n";
                     // Measure and arrange
                     int const width = rect_utils::get_width(layer.bounds);
                     int const height = rect_utils::get_height(layer.bounds);
@@ -716,7 +712,6 @@ namespace onyxui {
 
                     // Render with theme (for proper styling in menus, dialogs, etc.)
                     root_ptr->render(renderer, theme);
-                    std::cerr << "[DEBUG] Finished rendering layer id=" << layer.id.value << "\n";
                 });
             }
         }
@@ -743,6 +738,21 @@ namespace onyxui {
          */
         [[nodiscard]] size_t layer_count() const noexcept {
             return m_layers.size();
+        }
+
+        /**
+         * @brief Get last rendered viewport bounds
+         * @return Viewport rectangle (screen dimensions)
+         *
+         * @details
+         * Returns the viewport bounds from the last render_all_layers() call.
+         * This provides the actual screen/workspace dimensions for windows
+         * that need to maximize without a parent.
+         *
+         * Default value is {0, 0, 0, 0} until first render.
+         */
+        [[nodiscard]] rect_type get_viewport() const noexcept {
+            return m_viewport;
         }
 
         /**
@@ -924,6 +934,7 @@ namespace onyxui {
         uint32_t m_next_id;
         std::vector<rect_type> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (for dirty region tracking)
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
+        rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
 
         // Helper methods
         auto find_layer(layer_id id) {

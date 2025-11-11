@@ -881,3 +881,104 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Window - Visual cont
     }
 }
 
+// Phase 1: Tests for window maximize with and without parent
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize behavior with parent") {
+    auto parent = std::make_unique<panel<test_canvas_backend>>();
+
+    typename window<test_canvas_backend>::window_flags flags;
+    flags.has_maximize_button = true;
+
+    auto* win = parent->template emplace_child<window>("Test", flags);
+
+    // Arrange parent to 80x25
+    [[maybe_unused]] auto measured = parent->measure(80, 25);
+    parent->arrange({0, 0, 80, 25});
+
+    // Window starts small
+    win->set_size(20, 10);
+    CHECK(win->bounds().w == 20);
+    CHECK(win->bounds().h == 10);
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
+
+    // Maximize
+    win->maximize();
+
+    // Should fill parent
+    CHECK(win->bounds().x == 0);
+    CHECK(win->bounds().y == 0);
+    CHECK(win->bounds().w == 80);
+    CHECK(win->bounds().h == 25);
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize behavior without parent") {
+    typename window<test_canvas_backend>::window_flags flags;
+    flags.has_maximize_button = true;
+
+    // Window with no parent
+    auto win = std::make_shared<window<test_canvas_backend>>("Test", flags);
+    win->set_size(20, 10);
+    win->set_position(5, 3);
+
+    CHECK(win->bounds().w == 20);
+    CHECK(win->bounds().h == 10);
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
+
+    // Maximize
+    win->maximize();
+
+    // Should fill screen (placeholder values from Phase 1)
+    CHECK(win->bounds().x == 0);
+    CHECK(win->bounds().y == 0);
+    CHECK(win->bounds().w == 80);  // Placeholder from Phase 1
+    CHECK(win->bounds().h == 25);  // Placeholder from Phase 1
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize updates layer bounds") {
+    typename window<test_canvas_backend>::window_flags flags;
+    flags.has_maximize_button = true;
+
+    auto win = std::make_shared<window<test_canvas_backend>>("Test", flags);
+    win->set_size(20, 10);
+    win->show();  // Adds to layer_manager
+
+    // Get layer manager
+    auto* layers = ui_services<test_canvas_backend>::layers();
+    REQUIRE(layers != nullptr);
+
+    // Maximize
+    win->maximize();
+
+    // Window bounds should be updated
+    CHECK(win->bounds().w == 80);
+    CHECK(win->bounds().h == 25);
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - restore after maximize") {
+    typename window<test_canvas_backend>::window_flags flags;
+    flags.has_maximize_button = true;
+
+    auto win = std::make_shared<window<test_canvas_backend>>("Test", flags);
+    win->set_size(20, 10);
+    win->set_position(5, 3);
+
+    // Save original bounds
+    auto original_bounds = win->bounds();
+
+    // Maximize
+    win->maximize();
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
+    CHECK(win->bounds().w == 80);
+    CHECK(win->bounds().h == 25);
+
+    // Restore
+    win->restore();
+    CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
+    CHECK(win->bounds().x == original_bounds.x);
+    CHECK(win->bounds().y == original_bounds.y);
+    CHECK(win->bounds().w == original_bounds.w);
+    CHECK(win->bounds().h == original_bounds.h);
+}
+

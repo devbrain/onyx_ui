@@ -91,6 +91,7 @@ add_executable(ui_unittest
         widgets/test_text_view_focus_debug.cc
         widgets/test_border_corruption.cc
         widgets/test_window.cc
+        widgets/test_main_window.cc
         widgets/test_window_list_dialog.cc
         widgets/test_dialog.cc
         widgets/test_window_modal.cc

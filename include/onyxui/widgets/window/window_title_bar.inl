@@ -129,39 +129,57 @@ namespace onyxui {
 
     template<UIBackend Backend>
     bool window_title_bar<Backend>::handle_event(const ui_event& event, event_phase phase) {
-        // Only handle events in target phase (after children have had a chance)
-        if (phase != event_phase::target) {
-            return base::handle_event(event, phase);
-        }
-
         // Check if this is a mouse event
         auto* mouse_evt = std::get_if<mouse_event>(&event);
-        if (!mouse_evt) {
-            return base::handle_event(event, phase);
-        }
 
-        // Handle icon clicks (use hit_test to find which icon was clicked)
-        if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::release) {
-            // Check each icon widget using hit_test
-            if (m_menu_icon && m_menu_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_menu_icon) {
+        // Handle mouse release in CAPTURE phase (before children)
+        // This allows us to intercept clicks on icon children
+        if (phase == event_phase::capture && mouse_evt && mouse_evt->act == mouse_event::action::release) {
+            // Helper lambda to check if absolute mouse coordinates are within an icon's bounds
+            // Uses get_absolute_bounds() to convert relative icon bounds to screen coordinates
+            auto icon_contains = [mouse_evt](ui_element<Backend>* icon) -> bool {
+                if (!icon) return false;
+
+                // Get icon's absolute screen bounds
+                auto abs_bounds = icon->get_absolute_bounds();
+
+                // Check if mouse is within icon bounds
+                return (mouse_evt->x >= rect_utils::get_x(abs_bounds) &&
+                       mouse_evt->x < rect_utils::get_x(abs_bounds) + rect_utils::get_width(abs_bounds) &&
+                       mouse_evt->y >= rect_utils::get_y(abs_bounds) &&
+                       mouse_evt->y < rect_utils::get_y(abs_bounds) + rect_utils::get_height(abs_bounds));
+            };
+
+            // Check which icon was clicked and emit corresponding signal
+            // NOTE: termbox2 sets btn=none on release because it doesn't track which button
+            if (icon_contains(m_menu_icon)) {
                 menu_clicked.emit();
                 return true;
             }
-            if (m_minimize_icon && m_minimize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_minimize_icon) {
+            if (icon_contains(m_minimize_icon)) {
                 minimize_clicked.emit();
                 return true;
             }
-            if (m_maximize_icon && m_maximize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_maximize_icon) {
+            if (icon_contains(m_maximize_icon)) {
                 maximize_clicked.emit();
                 return true;
             }
-            if (m_close_icon && m_close_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_close_icon) {
+            if (icon_contains(m_close_icon)) {
                 close_clicked.emit();
                 return true;
             }
         }
 
-        // Phase 2: Handle mouse dragging (only if not clicking an icon)
+        // Only handle other events in target phase (after children have had a chance)
+        if (phase != event_phase::target) {
+            return base::handle_event(event, phase);
+        }
+
+        if (!mouse_evt) {
+            return base::handle_event(event, phase);
+        }
+
+        // Handle mouse dragging (only if not clicking an icon)
         if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::press) {
             // Start dragging (unless clicking on an icon)
             bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_menu_icon) ||
@@ -186,8 +204,9 @@ namespace onyxui {
             return true;  // Event handled
         }
 
-        if (m_is_dragging && mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::release) {
+        if (m_is_dragging && mouse_evt->act == mouse_event::action::release) {
             // End dragging
+            // NOTE: termbox2 sets btn=none on release
             m_is_dragging = false;
             drag_ended.emit();
             return true;  // Event handled

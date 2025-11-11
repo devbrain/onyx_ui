@@ -62,8 +62,8 @@ void build_ui(
 
     std::cerr << "[DEBUG] build_ui called with renderer: " << (void*)renderer << std::endl;
 
-    // Menu bar (at the top)
-    menu_bar = demo_menu_builder::build_menu_bar<Backend>(
+    // Menu bar (at the top) - use main_window API
+    auto menu_bar_widget = demo_menu_builder::build_menu_bar_widget<Backend>(
         widget,
         theme_names,
         theme_actions,
@@ -72,19 +72,26 @@ void build_ui(
         quit_action,
         about_action
     );
+    menu_bar = menu_bar_widget.get();
+    widget->set_menu_bar(std::move(menu_bar_widget));
 
-    // Title
-    add_label(*widget, "DOS Theme Showcase - New Theme System");
+    // Create central widget for all content
+    auto central = std::make_unique<onyxui::panel<Backend>>();
+    central->set_vbox_layout(1);  // Vertical layout with 1px spacing
+    central->set_padding(onyxui::thickness::all(0));  // No padding for compact look
+
+    // Title (add to central widget)
+    add_label(*central, "DOS Theme Showcase - New Theme System");
 
     // Theme label (keep pointer for updates)
-    theme_label = add_label(*widget,
+    theme_label = add_label(*central,
         demo_utils::get_current_theme_display<Backend>(current_theme_index, theme_names));
 
     // Spacer
-    add_label(*widget, "");
+    add_label(*central, "");
 
     // Demo panel with border
-    auto* demo_panel = add_panel(*widget);
+    auto* demo_panel = add_panel(*central);
     demo_panel->set_has_border(true);
     demo_panel->set_padding(onyxui::thickness::all(1));
     demo_panel->set_vbox_layout(1);
@@ -93,15 +100,15 @@ void build_ui(
     add_label(*demo_panel, "Themes via service locator");
 
     // Spacer
-    add_label(*widget, "");
+    add_label(*central, "");
 
     // Button section
-    add_label(*widget, "Button States:");
+    add_label(*central, "Button States:");
 
-    auto* normal_btn = add_button(*widget, "Normal");
+    auto* normal_btn = add_button(*central, "Normal");
     normal_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
-    auto* screenshot_btn = add_button(*widget, "Screenshot");
+    auto* screenshot_btn = add_button(*central, "Screenshot");
     std::cerr << "[DEBUG] Screenshot button created at: " << (void*)screenshot_btn << std::endl;
     screenshot_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
     screenshot_btn->clicked.connect([widget]() {
@@ -135,15 +142,15 @@ void build_ui(
         std::cerr << "[DEBUG] Screenshot saved to: " << filename << std::endl;
     });
 
-    auto* disabled_btn = add_button(*widget, "Disabled");
+    auto* disabled_btn = add_button(*central, "Disabled");
     disabled_btn->set_enabled(false);
     disabled_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
 
     // Spacer
-    add_label(*widget, "");
+    add_label(*central, "");
 
     // Quit button (test mouse interaction!)
-    auto* quit_btn = add_button(*widget, "Quit");
+    auto* quit_btn = add_button(*central, "Quit");
     quit_btn->set_focusable(true);
     quit_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
     quit_btn->clicked.connect([widget]() {
@@ -151,10 +158,10 @@ void build_ui(
     });
 
     // Spacer
-    add_label(*widget, "");
+    add_label(*central, "");
 
     // Text View Section (Scrollable text display)
-    add_label(*widget, "Scrollable Text View (Arrow keys, PgUp/PgDn, Home/End):");
+    add_label(*central, "Scrollable Text View (Arrow keys, PgUp/PgDn, Home/End):");
 
     // Create text view with demo content
     auto text_view_widget = std::make_unique<onyxui::text_view<Backend>>();
@@ -209,12 +216,15 @@ void build_ui(
 
     // Save pointer before moving
     text_view = text_view_widget.get();
-    widget->add_child(std::move(text_view_widget));
+    central->add_child(std::move(text_view_widget));
 
     // Spacer and instructions
-    add_label(*widget, "");
-    add_label(*widget, "Press 1-4 to switch themes | F10 for menu (try File->Open!)");
-    add_label(*widget, "ESC, Ctrl+C, or Alt+F4 to quit");
+    add_label(*central, "");
+    add_label(*central, "Press 1-4 to switch themes | F10 for menu (try File->Open!)");
+    add_label(*central, "ESC, Ctrl+C, or Alt+F4 to quit");
+
+    // Set central widget on main_window
+    widget->set_central_widget(std::move(central));
 }
 
 } // namespace demo_ui_builder

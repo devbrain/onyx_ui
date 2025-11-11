@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <onyxui/widgets/main_window.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
@@ -24,7 +25,7 @@
 #include "demo_ui_builder.hh"
 
 template <onyxui::UIBackend Backend>
-class main_widget : public onyxui::panel<Backend> {
+class main_widget : public onyxui::main_window<Backend> {
 public:
     /**
      * @brief Construct the main widget
@@ -34,7 +35,7 @@ public:
      * Sets up UI structure, actions, and hotkeys.
      */
     main_widget()
-        : onyxui::panel<Backend>(nullptr)
+        : onyxui::main_window<Backend>()
         , m_current_theme_index(0)
         , m_should_quit(false)
     {
@@ -57,9 +58,7 @@ public:
             m_current_theme_index = 0;  // Fallback to first theme if Norton Blue not found
         }
 
-        // Set up layout
-        this->set_vbox_layout(1);  // Vertical layout with 1px spacing to allow button shadows to be visible
-        this->set_padding(onyxui::thickness::all(0));  // No internal padding for compact DOS look
+        // main_window handles layout - no need for set_vbox_layout or set_padding
 
         // Set up actions and hotkeys (must come before build_menu_bar)
         setup_actions();
