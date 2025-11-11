@@ -6,11 +6,13 @@
 #pragma once
 
 #include <iostream>
+#include "onyxui/concepts/backend.hh"
 #include "onyxui/hotkeys/hotkey_action.hh"
 #include <onyxui/widgets/window/window_title_bar.hh>
 #include <onyxui/widgets/window/window_content_area.hh>
 #include <onyxui/widgets/window/window_system_menu.hh>
 #include <onyxui/services/ui_services.hh>
+#include <vector>
 
 namespace onyxui {
 
@@ -205,16 +207,17 @@ namespace onyxui {
         // Change state
         m_state = window_state::maximized;
 
-        // Phase 4: Fill parent container
-        // Get parent element and maximize to fill its bounds
+        // Phase 4: Fill parent container or screen
+        typename Backend::rect_type maximized_bounds;
+
+        // Determine maximize bounds (priority order: parent > workspace > viewport)
         auto* parent_elem = this->parent();
         if (parent_elem) {
-            // Get parent's bounds to fill entire parent area
+            // Case 1: Window has parent (MDI) - maximize to fill parent
             auto parent_bounds = parent_elem->bounds();
 
             // Window fills entire parent (positioned at 0,0 relative to parent)
             // Note: bounds are relative coordinates, so (0,0) means top-left of parent
-            typename Backend::rect_type maximized_bounds;
             rect_utils::set_bounds(
                 maximized_bounds,
                 0,  // x: relative to parent (top-left corner)
@@ -222,15 +225,60 @@ namespace onyxui {
                 rect_utils::get_width(parent_bounds),
                 rect_utils::get_height(parent_bounds)
             );
+        } else if (m_workspace) {
+            // Case 2: Floating window with workspace - maximize to fill workspace
+            // Use workspace's full bounds (including position) since floating windows
+            // use absolute screen coordinates. The workspace (e.g., central_widget)
+            // may be offset from screen origin due to menu bar, status bar, etc.
+            maximized_bounds = m_workspace->bounds();
+        } else {
+            // Case 3: Floating window without workspace - maximize to fill viewport
+            // Phase 4: Query viewport from layer_manager for actual screen dimensions
+            auto* layers = ui_services<Backend>::layers();
+            if (layers) {
+                auto viewport = layers->get_viewport();
+                int const vp_width = rect_utils::get_width(viewport);
+                int const vp_height = rect_utils::get_height(viewport);
 
-            // Measure and arrange to new size
-            int const width = rect_utils::get_width(maximized_bounds);
-            int const height = rect_utils::get_height(maximized_bounds);
-
-            if (!this->children().empty() && ui_services<Backend>::themes()) {
-                [[maybe_unused]] auto measured_size = this->measure(width, height);
+                // Use viewport dimensions if available (non-zero)
+                if (vp_width > 0 && vp_height > 0) {
+                    rect_utils::set_bounds(
+                        maximized_bounds,
+                        0,  // x: absolute screen position
+                        0,  // y: absolute screen position
+                        vp_width,
+                        vp_height
+                    );
+                } else {
+                    // Fallback: viewport not yet initialized, use conservative default
+                    rect_utils::set_bounds(maximized_bounds, 0, 0, 80, 25);
+                }
+            } else {
+                // Fallback: no layer manager available, use conservative default
+                rect_utils::set_bounds(maximized_bounds, 0, 0, 80, 25);
             }
-            this->arrange(maximized_bounds);
+        }
+
+        // Measure and arrange to new size
+        int const width = rect_utils::get_width(maximized_bounds);
+        int const height = rect_utils::get_height(maximized_bounds);
+
+        if (!this->children().empty() && ui_services<Backend>::themes()) {
+            [[maybe_unused]] auto measured_size = this->measure(width, height);
+        }
+        this->arrange(maximized_bounds);
+
+        // Update layer bounds if this window is shown as a layer
+        if (m_layer_id.is_valid()) {
+            auto* layers = ui_services<Backend>::layers();
+            if (layers) {
+                layers->set_layer_bounds(m_layer_id, maximized_bounds);
+            }
+        }
+
+        // Update title bar icons (show restore icon instead of maximize)
+        if (m_title_bar) {
+            m_title_bar->show_restore_icon();
         }
 
         // Emit signal
@@ -253,11 +301,32 @@ namespace onyxui {
             // Restore bounds
             if (m_before_minimize.w > 0 && m_before_minimize.h > 0) {
                 this->arrange(m_before_minimize);
+
+                // Update layer bounds
+                if (m_layer_id.is_valid()) {
+                    auto* layers = ui_services<Backend>::layers();
+                    if (layers) {
+                        layers->set_layer_bounds(m_layer_id, m_before_minimize);
+                    }
+                }
             }
         } else if (old_state == window_state::maximized) {
             // Restore to normal bounds
             if (m_normal_bounds.w > 0 && m_normal_bounds.h > 0) {
                 this->arrange(m_normal_bounds);
+
+                // Update layer bounds
+                if (m_layer_id.is_valid()) {
+                    auto* layers = ui_services<Backend>::layers();
+                    if (layers) {
+                        layers->set_layer_bounds(m_layer_id, m_normal_bounds);
+                    }
+                }
+            }
+
+            // Update title bar icons (show maximize icon instead of restore)
+            if (m_title_bar) {
+                m_title_bar->show_maximize_icon();
             }
         }
 
@@ -449,7 +518,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::do_render(render_context_type& ctx) const {
+    void window<Backend>::do_render(render_context_type& /*ctx*/) const {
         if (!this->is_visible()) {
             return;
         }

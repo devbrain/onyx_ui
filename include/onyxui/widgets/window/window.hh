@@ -329,6 +329,45 @@ namespace onyxui {
         void hide();
 
         /**
+         * @brief Set workspace area for maximize bounds
+         * @param workspace Workspace element (e.g., main_window::central_widget())
+         *
+         * @details
+         * Sets a workspace reference for floating layer windows.
+         * When maximized, the window will fill the workspace bounds instead
+         * of the entire viewport. This allows windows to respect UI chrome
+         * (menu bars, status bars, etc.) without being parented to the workspace.
+         *
+         * **Key difference from parent:**
+         * - **Parent**: Window becomes child in widget tree, uses relative coords,
+         *   events route through widget hierarchy
+         * - **Workspace**: Window remains independent floating layer, uses absolute
+         *   coords, events route through layer_manager, but maximizes to workspace area
+         *
+         * **Maximize behavior priority**: parent > workspace > viewport
+         *
+         * **Use case**: Floating windows in main_window applications
+         * @code
+         * auto main = std::make_unique<main_window<Backend>>();
+         * auto win = std::make_shared<window<Backend>>("Tool", flags);
+         * win->set_workspace(main->central_widget());  // Respect workspace
+         * win->show();  // Still a floating layer
+         * win->maximize();  // Fills central_widget area, not entire screen
+         * @endcode
+         */
+        void set_workspace(ui_element<Backend>* workspace) noexcept {
+            m_workspace = workspace;
+        }
+
+        /**
+         * @brief Get workspace area (if set)
+         * @return Workspace element, or nullptr if not set
+         */
+        [[nodiscard]] ui_element<Backend>* get_workspace() const noexcept {
+            return m_workspace;
+        }
+
+        /**
          * @brief Bring window to front and request focus
          *
          * @details
@@ -412,6 +451,9 @@ namespace onyxui {
         layer_id m_layer_id{};              // Layer ID when shown in layer_manager
         std::shared_ptr<ui_element<Backend>> m_layer_handle;  // Keeps weak_ptr in layer_manager alive
         window<Backend>* m_previous_active_window = nullptr;  // For restoring focus after modal closes
+
+        // Workspace reference (not parent - just for maximize bounds)
+        ui_element<Backend>* m_workspace = nullptr;  // Optional workspace area for maximize bounds
 
         // Child widgets (Phase 1: created but drag/resize not implemented yet)
         // Note: Raw pointers - ownership transferred to base class children list

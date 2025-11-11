@@ -2,6 +2,158 @@
 
 This document tracks recent major changes and feature additions to the OnyxUI framework.
 
+## November 2025 - Workspace Reference Pattern for Window Maximize
+
+**Status:** ✅ Complete (1310 tests passing, 8056 assertions, zero warnings)
+
+### Overview
+
+Implemented workspace reference pattern for floating layer windows, enabling them to respect workspace bounds (e.g., central_widget area) when maximizing while maintaining proper event routing through layer_manager. This solves the problem of windows needing to be workspace-aware without becoming children of the workspace.
+
+### Problem Statement
+
+When implementing main_window with menu bar:
+- Windows maximized to full viewport, covering menu bar
+- Attempted solution: Parent windows to central_widget
+- **REGRESSION**: Window control buttons (close, minimize, maximize) stopped working
+- Root cause: Parented windows lost layer_manager's specialized event routing
+
+### Solution: Workspace Reference Pattern
+
+Instead of parent-child relationship (MDI), windows optionally reference a workspace element (SDI):
+
+```cpp
+class window {
+    ui_element<Backend>* m_workspace = nullptr;  // NOT a parent!
+
+public:
+    void set_workspace(ui_element<Backend>* workspace);
+    ui_element<Backend>* get_workspace() const;
+};
+```
+
+**Key Distinction:**
+- **Parent (MDI)**: Window becomes child in tree → relative coords → tree event routing
+- **Workspace (SDI)**: Window remains floating layer → absolute coords → layer event routing → but maximizes to workspace bounds
+
+### Core Changes
+
+#### window.hh - Workspace Support
+```cpp
+/**
+ * @brief Set workspace area for maximize bounds
+ * @param workspace Workspace element (e.g., main_window::central_widget())
+ *
+ * @details
+ * Sets a workspace reference for floating layer windows.
+ * When maximized, the window will fill the workspace bounds instead
+ * of the entire viewport. This allows windows to respect UI chrome
+ * (menu bars, status bars, etc.) without being parented to the workspace.
+ *
+ * **Maximize behavior priority**: parent > workspace > viewport
+ */
+void set_workspace(ui_element<Backend>* workspace) noexcept;
+```
+
+#### window.inl - Maximize Logic
+```cpp
+void window<Backend>::maximize() {
+    rect_type maximized_bounds;
+
+    // Priority: parent > workspace > viewport
+    auto* parent_elem = this->parent();
+    if (parent_elem) {
+        // Case 1: MDI - maximize to fill parent
+        maximized_bounds = parent_elem->bounds();
+    } else if (m_workspace) {
+        // Case 2: SDI with workspace - maximize to fill workspace
+        // Uses FULL bounds (including position offset from menu bar)
+        maximized_bounds = m_workspace->bounds();
+    } else {
+        // Case 3: Standalone - maximize to fill viewport
+        maximized_bounds = ui_services<Backend>::layers()->get_viewport();
+    }
+
+    // ... measure, arrange, update layer ...
+}
+```
+
+**Critical Fix**: Using full `m_workspace->bounds()` (not just dimensions) ensures the window accounts for menu bar offset.
+
+### Usage Example
+
+```cpp
+// Create main window with menu bar
+auto main = std::make_unique<main_window<Backend>>();
+main->set_menu_bar(build_menu_bar());
+
+// Create floating window with workspace awareness
+typename window<Backend>::window_flags flags;
+flags.has_maximize_button = true;
+auto win = std::make_shared<window<Backend>>("Document", flags);
+
+// Set workspace reference (NOT parent!)
+win->set_workspace(main->central_widget());
+
+// Window is still floating layer
+win->show();  // Added to layer_manager, absolute coordinates
+
+// Maximize respects workspace bounds
+win->maximize();  // Fills central_widget area only (excludes menu bar)
+```
+
+### Architecture Decision Record
+
+**Decision**: Use workspace reference pattern for SDI applications instead of parent-child relationship.
+
+**Rationale**:
+1. Preserves floating window UX (drag anywhere, z-order management)
+2. Maintains layer_manager event routing (buttons work correctly)
+3. Still respects workspace bounds for maximize
+4. Clean separation of concerns
+
+**Alternatives Considered**:
+1. ❌ Parent to central_widget: Breaks event routing (buttons stop working)
+2. ❌ Always maximize to viewport: Ignores menu bar (covers it)
+3. ✅ Workspace reference: Best of both worlds
+
+### Files Modified
+
+- `include/onyxui/widgets/window/window.hh` - Added m_workspace, set_workspace(), get_workspace()
+- `include/onyxui/widgets/window/window.inl` - Updated maximize() with workspace priority logic
+- `examples/demo_windows.hh` - Updated window creation functions to accept workspace parameter
+- `examples/demo_menu_builder.hh` - Pass central_widget as workspace reference
+- `docs/MAIN_WINDOW_IMPLEMENTATION.md` - Added Phase 5 documentation
+
+### Testing
+
+✅ All 1310 unit tests pass
+✅ Manual testing: Window buttons work correctly
+✅ Manual testing: Maximize respects workspace bounds
+✅ Zero regressions
+
+### Migration Notes
+
+**For SDI Applications (floating windows with main_window):**
+```cpp
+// OLD: Don't parent to central_widget (breaks buttons)
+auto win = std::make_shared<window<Backend>>("Title", flags, main->central_widget());  // ❌
+
+// NEW: Use workspace reference instead
+auto win = std::make_shared<window<Backend>>("Title", flags);  // Parentless
+win->set_workspace(main->central_widget());  // Workspace reference
+win->show();  // ✅ Buttons work, maximize respects workspace
+```
+
+**For MDI Applications (embedded windows):**
+```cpp
+// MDI: Still use parent (windows are embedded in widget tree)
+auto win = std::make_shared<window<Backend>>("Title", flags, main->central_widget());
+win->show();  // ✅ MDI pattern unchanged
+```
+
+---
+
 ## January 2025 - Three-Phase Event Routing (Capture/Target/Bubble)
 
 **Status:** ✅ Complete (1212 tests passing, 7004 assertions, zero warnings)

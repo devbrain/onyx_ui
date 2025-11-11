@@ -33,7 +33,7 @@ namespace demo_menu_builder {
  * @return Pointer to the created menu bar
  */
 template<typename Backend, typename Widget>
-onyxui::menu_bar<Backend>* build_menu_bar(
+std::unique_ptr<onyxui::menu_bar<Backend>> build_menu_bar_widget(
     Widget* widget,
     const std::vector<std::string>& theme_names,
     const std::vector<std::shared_ptr<onyxui::action<Backend>>>& theme_actions,
@@ -42,8 +42,8 @@ onyxui::menu_bar<Backend>* build_menu_bar(
     std::shared_ptr<onyxui::action<Backend>> quit_action,
     std::shared_ptr<onyxui::action<Backend>> about_action) {
 
-    // Create menu bar
-    auto menu_bar_ptr = std::make_unique<onyxui::menu_bar<Backend>>(widget);
+    // Create menu bar (no parent - will be set by main_window)
+    auto menu_bar_ptr = std::make_unique<onyxui::menu_bar<Backend>>();
 
     // File menu
     auto file_menu = std::make_unique<onyxui::menu<Backend>>();
@@ -130,10 +130,12 @@ onyxui::menu_bar<Backend>* build_menu_bar(
     // Basic Window
     auto basic_win_item = std::make_unique<onyxui::menu_item<Backend>>("");
     basic_win_item->set_mnemonic_text("&Basic Window");
-    basic_win_item->clicked.connect([]() {
-        demo_windows::show_basic_window<Backend>(
+    basic_win_item->clicked.connect([widget]() {
+        // Create window, then set workspace reference (not parent!)
+        auto win_handle = demo_windows::show_basic_window_with_workspace<Backend>(
             "Demo Window",
-            "This is a basic window with title bar controls!"
+            "This is a basic window with title bar controls!",
+            widget->central_widget()  // Workspace reference for maximize
         );
     });
     window_menu->add_item(std::move(basic_win_item));
@@ -141,16 +143,16 @@ onyxui::menu_bar<Backend>* build_menu_bar(
     // Scrollable Window
     auto scroll_win_item = std::make_unique<onyxui::menu_item<Backend>>("");
     scroll_win_item->set_mnemonic_text("&Scrollable Content");
-    scroll_win_item->clicked.connect([]() {
-        demo_windows::show_scrollable_window<Backend>();
+    scroll_win_item->clicked.connect([widget]() {
+        demo_windows::show_scrollable_window<Backend>(widget->central_widget());
     });
     window_menu->add_item(std::move(scroll_win_item));
 
     // Controls Window
     auto controls_win_item = std::make_unique<onyxui::menu_item<Backend>>("");
     controls_win_item->set_mnemonic_text("&Interactive Controls");
-    controls_win_item->clicked.connect([]() {
-        demo_windows::show_controls_window<Backend>();
+    controls_win_item->clicked.connect([widget]() {
+        demo_windows::show_controls_window<Backend>(widget->central_widget());
     });
     window_menu->add_item(std::move(controls_win_item));
 
@@ -190,13 +192,8 @@ onyxui::menu_bar<Backend>* build_menu_bar(
 
     menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
-    // Store pointer before moving
-    auto* menu_bar = menu_bar_ptr.get();
-
-    // Add menu bar to UI
-    widget->add_child(std::move(menu_bar_ptr));
-
-    return menu_bar;
+    // Return the unique_ptr - caller will add it to main_window
+    return menu_bar_ptr;
 }
 
 } // namespace demo_menu_builder

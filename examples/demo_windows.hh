@@ -52,11 +52,14 @@ namespace demo_windows {
      * @tparam Backend UI backend type
      * @param title Window title
      * @param content_text Content to display in the window
+     * @param workspace Workspace element for maximize bounds (nullptr for none)
+     * @return Shared pointer to created window
      */
     template <onyxui::UIBackend Backend>
-    void show_basic_window(
+    std::shared_ptr<onyxui::window<Backend>> show_basic_window_with_workspace(
         const std::string& title,
-        const std::string& content_text
+        const std::string& content_text,
+        onyxui::ui_element<Backend>* workspace = nullptr
     ) {
         std::cerr << "[DEBUG] show_basic_window() called with title: '" << title << "'" << std::endl;
 
@@ -70,7 +73,7 @@ namespace demo_windows {
         flags.is_movable = true;
 
         std::cerr << "[DEBUG] Creating window..." << std::endl;
-        auto win = std::make_shared<onyxui::window<Backend>>(title, flags);
+        auto win = std::make_shared<onyxui::window<Backend>>(title, flags, nullptr);  // No parent - floating layer
         std::cerr << "[DEBUG] Window created, use_count=" << win.use_count() << std::endl;
 
         // Create content FIRST
@@ -84,6 +87,12 @@ namespace demo_windows {
         win->set_position(5, 3);
         std::cerr << "[DEBUG] Window size set to 40x15, position set to (5,3)" << std::endl;
 
+        // Set workspace for maximize behavior
+        if (workspace) {
+            win->set_workspace(workspace);
+            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
+        }
+
         // Register window to keep it alive
         register_window(win);
         std::cerr << "[DEBUG] Window registered, total windows=" << get_active_windows<Backend>().size()
@@ -93,14 +102,17 @@ namespace demo_windows {
         std::cerr << "[DEBUG] Calling win->show()..." << std::endl;
         win->show();
         std::cerr << "[DEBUG] win->show() completed" << std::endl;
+
+        return win;
     }
 
     /**
      * @brief Create and show a window with scrollable text content
      * @tparam Backend UI backend type
+     * @param workspace Workspace element for maximize bounds (nullptr for none)
      */
     template <onyxui::UIBackend Backend>
-    void show_scrollable_window() {
+    void show_scrollable_window(onyxui::ui_element<Backend>* workspace = nullptr) {
         std::cerr << "[DEBUG] show_scrollable_window() called" << std::endl;
 
         typename onyxui::window<Backend>::window_flags flags;
@@ -155,6 +167,12 @@ namespace demo_windows {
 
         win->set_content(std::move(content));
         std::cerr << "[DEBUG] Scrollable window content set" << std::endl;
+
+        // Set workspace for maximize behavior
+        if (workspace) {
+            win->set_workspace(workspace);
+            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
+        }
 
         // Register window to keep it alive
         register_window(win);
@@ -216,9 +234,10 @@ namespace demo_windows {
     /**
      * @brief Create and show a window with interactive controls
      * @tparam Backend UI backend type
+     * @param workspace Workspace element for maximize bounds (nullptr for none)
      */
     template <onyxui::UIBackend Backend>
-    void show_controls_window() {
+    void show_controls_window(onyxui::ui_element<Backend>* workspace = nullptr) {
         std::cerr << "[DEBUG] show_controls_window() called" << std::endl;
 
         typename onyxui::window<Backend>::window_flags flags;
@@ -272,10 +291,11 @@ namespace demo_windows {
             "Spawn Another Window"
         );
         spawn_btn->set_horizontal_align(onyxui::horizontal_alignment::center);
-        spawn_btn->clicked.connect([]() {
-            show_basic_window<Backend>(
+        spawn_btn->clicked.connect([workspace]() {
+            show_basic_window_with_workspace<Backend>(
                 "Spawned Window",
-                "This window was spawned from another window!"
+                "This window was spawned from another window!",
+                workspace  // Pass workspace through
             );
         });
 
@@ -292,6 +312,12 @@ namespace demo_windows {
 
         win->set_content(std::move(content));
         std::cerr << "[DEBUG] Controls window content set" << std::endl;
+
+        // Set workspace for maximize behavior
+        if (workspace) {
+            win->set_workspace(workspace);
+            std::cerr << "[DEBUG] Workspace set for maximize behavior" << std::endl;
+        }
 
         // Register window to keep it alive
         register_window(win);
