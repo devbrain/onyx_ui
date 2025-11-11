@@ -16,23 +16,6 @@
 using namespace onyxui;
 using Backend = testing::test_canvas_backend;
 
-/**
- * Helper: Get full line at specific y position
- */
-static std::string get_line_at(const std::string& output, int y) {
-    std::istringstream iss(output);
-    std::string line;
-    int current_y = 0;
-
-    while (std::getline(iss, line)) {
-        if (current_y == y) {
-            return line;
-        }
-        current_y++;
-    }
-    return "";
-}
-
 TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with EXACT position checks") {
 
     SUBCASE("Basic window at origin - verify exact positions") {
@@ -53,40 +36,23 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
 
         // CRITICAL: Verify title bar is at row 0
-        std::string row0 = get_line_at(output, 0);
-        CHECK(row0.find("TestWin") != std::string::npos);
-
-        // CRITICAL: Title should appear early in row 0 (within first 10 chars)
-        size_t title_pos = row0.find("TestWin");
-        REQUIRE(title_pos != std::string::npos);
-        CHECK(title_pos < 10);  // Title at left or center, not at end
+        // Semantic assertion: Check that title text exists (not specific characters)
+        auto title_pos = canvas->find_text("TestWin");
+        REQUIRE(title_pos.has_value());
+        CHECK(title_pos->second == 0);  // Title at row 0
+        CHECK(title_pos->first < 10);   // Title at left or center, not at end
 
         // CRITICAL: Content border should start at row 1 (directly below title bar)
-        std::string row1 = get_line_at(output, 1);
-
-        // Check if row starts with box drawing characters (use string.find since UTF-8)
-        bool has_top_border = (row1.find("┌") == 0 || row1.find("+") == 0 ||
-                               row1.find("╔") == 0 || row1.find("#") == 0);
-        CHECK(has_top_border);
+        // Semantic assertion: Check for border presence, not specific characters
+        CHECK(canvas->has_border_at(0, 1));  // Top-left corner has border
 
         // CRITICAL: Middle rows (2-6) should have vertical borders at sides
-        for (int y = 2; y < 7; y++) {
-            std::string row = get_line_at(output, y);
-            if (!row.empty()) {
-                // Check for vertical border at start (UTF-8 safe)
-                bool has_left_border = (row.find("│") == 0 || row.find("|") == 0 ||
-                                       row.find("║") == 0 || row.find("#") == 0);
-                CHECK(has_left_border);
-            }
-        }
+        // Semantic assertion: Check for border line, not specific characters
+        CHECK(canvas->has_vertical_border_line(0, 2, 5));  // Left edge has borders
 
         // CRITICAL: Bottom row should have bottom border
-        std::string row7 = get_line_at(output, 7);
-        if (!row7.empty()) {
-            bool has_bottom_border = (row7.find("└") == 0 || row7.find("+") == 0 ||
-                                     row7.find("╚") == 0 || row7.find("#") == 0);
-            CHECK(has_bottom_border);
-        }
+        // Semantic assertion: Border at bottom-left corner
+        CHECK(canvas->has_border_at(0, 7));
     }
 
     SUBCASE("CRITICAL: Window at offset position (10,5) - catches coordinate bugs") {
@@ -115,44 +81,40 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         win->render(renderer, theme_ptr);
 
-        std::string output = canvas->render_ascii();
-
-
         // CRITICAL: Title bar should be at row 5 (y=5), column 10 (x=10)
-        std::string row5 = get_line_at(output, 5);
-
-        // Title should appear starting around column 10
-        size_t title_pos = row5.find("Offset");
-        REQUIRE(title_pos != std::string::npos);
+        // Semantic assertion: Check that title text exists at correct position
+        auto title_pos = canvas->find_text("Offset");
+        REQUIRE(title_pos.has_value());
+        CHECK(title_pos->second == 5);  // Title at row 5
 
         // CRITICAL: Title must be within window bounds [10, 30]
         // If double-offsetting occurred, title would be way off (like column 20+)
-        CHECK(title_pos >= 10);   // Not before window start
-        CHECK(title_pos <= 25);   // Reasonably within window width
+        CHECK(title_pos->first >= 10);   // Not before window start
+        CHECK(title_pos->first <= 25);   // Reasonably within window width
 
         // CRITICAL: Content border top should be at row 6 (y=6), starting at column 10
-        std::string row6 = get_line_at(output, 6);
-
-        // Border should be around column 10 (±2 for rendering variations)
-        // Check substring from column 8-12 for border character
-        if (row6.length() > 12) {
-            std::string border_region = row6.substr(8, 5);  // cols 8-12
-            bool has_border = (border_region.find("┌") != std::string::npos ||
-                              border_region.find("+") != std::string::npos ||
-                              border_region.find("#") != std::string::npos);
-            CHECK(has_border);
+        // Semantic assertion: Check for border presence in expected region
+        // Window should have border around column 10 (check range for rendering variations)
+        bool found_border = false;
+        for (int x = 8; x <= 12; ++x) {
+            if (canvas->has_border_at(x, 6)) {
+                found_border = true;
+                break;
+            }
         }
+        CHECK(found_border);
 
         // CRITICAL: Middle content rows should have borders starting around column 10
+        // Semantic assertion: Check for vertical border line in expected region
         for (int y = 7; y < 10; y++) {
-            std::string row = get_line_at(output, y);
-            if (row.length() > 12) {
-                std::string left_region = row.substr(8, 5);
-                bool has_vert = (left_region.find("│") != std::string::npos ||
-                                left_region.find("|") != std::string::npos ||
-                                left_region.find("#") != std::string::npos);
-                CHECK(has_vert);
+            bool found_vert = false;
+            for (int x = 8; x <= 12; ++x) {
+                if (canvas->has_border_at(x, y)) {
+                    found_vert = true;
+                    break;
+                }
             }
+            CHECK(found_vert);
         }
     }
 

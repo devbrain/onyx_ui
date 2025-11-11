@@ -236,6 +236,73 @@ namespace onyxui::testing {
             return result;
         }
 
+        /**
+         * @brief Semantic assertion: Check if text exists at exact position
+         * @param x Starting x coordinate
+         * @param y Y coordinate (row)
+         * @param text Expected text string
+         * @return true if text matches exactly at position
+         *
+         * @details
+         * This is a SEMANTIC assertion - tests BEHAVIOR not implementation.
+         * Example: CHECK(canvas.has_text_at(0, 0, "Window Title"));
+         */
+        [[nodiscard]] bool has_text_at(int x, int y, const std::string& text) const {
+            if (x < 0 || y < 0 || y >= m_height) return false;
+            if (x + static_cast<int>(text.length()) > m_width) return false;
+
+            for (size_t i = 0; i < text.length(); ++i) {
+                if (get_char(x + static_cast<int>(i), y) != text[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * @brief Semantic assertion: Check if there's non-empty content at position
+         * @details Use this instead of hardcoding expected characters
+         */
+        [[nodiscard]] bool has_content_at(int x, int y) const {
+            return !is_empty_at(x, y);
+        }
+
+        /**
+         * @brief Semantic assertion: Check if horizontal line of borders exists
+         * @param x Starting x coordinate
+         * @param y Y coordinate
+         * @param length Length of line to check
+         * @return true if all positions in line have border characters
+         */
+        [[nodiscard]] bool has_horizontal_border_line(int x, int y, int length) const {
+            for (int i = 0; i < length; ++i) {
+                if (!has_border_at(x + i, y)) return false;
+            }
+            return true;
+        }
+
+        /**
+         * @brief Semantic assertion: Check if vertical line of borders exists
+         * @param x X coordinate
+         * @param y Starting y coordinate
+         * @param length Length of line to check
+         * @return true if all positions in line have border characters
+         */
+        [[nodiscard]] bool has_vertical_border_line(int x, int y, int length) const {
+            for (int i = 0; i < length; ++i) {
+                if (!has_border_at(x, y + i)) return false;
+            }
+            return true;
+        }
+
+        /**
+         * @brief Semantic assertion: Check if rectangle has ANY border elements
+         * @details Less strict than has_complete_border - just checks if borders exist
+         */
+        [[nodiscard]] bool has_some_border_in_rect(int x, int y, int w, int h) const {
+            return count_borders_in_rect(x, y, w, h) > 0;
+        }
+
     private:
         int m_width;
         int m_height;
