@@ -36,8 +36,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto canvas = render_to_canvas(*win, 40, 20);
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Rendered window output:");
-        MESSAGE(output);
 
         // Extract just the title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
@@ -54,7 +52,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
             }
         }
 
-        MESSAGE("Title bar line: '" << title_bar_line << "'");
 
         // Visual assertions:
         // 1. Title bar should contain the window title
@@ -66,7 +63,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         // Check last 4 characters (where icons should be: menu, minimize, maximize, close)
         std::string right_edge = title_bar_line.substr(title_bar_line.length() - 4);
-        MESSAGE("Right edge (last 4 chars): '" << right_edge << "'");
 
         // Count non-space characters in right edge
         int non_space_count = 0;
@@ -76,7 +72,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
             }
         }
 
-        MESSAGE("Non-space characters in right edge: " << non_space_count);
 
         // Should have at least 4 icon characters (≡ ▁ □ ×) at right edge
         CHECK(non_space_count >= 4);
@@ -99,8 +94,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         // Render
         auto canvas = render_to_canvas(*win, 30, 15);
         std::string output = canvas->render_ascii();
-        MESSAGE("Rendered window:");
-        MESSAGE(output);
 
         // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
@@ -117,7 +110,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
             }
         }
 
-        MESSAGE("Title bar: '" << title_bar_line << "'");
 
         // Should contain title at left
         CHECK(title_bar_line.find("Short") != std::string::npos);
@@ -126,7 +118,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         REQUIRE(title_bar_line.length() >= 28);
         char last_char = title_bar_line[title_bar_line.length() - 1];
 
-        MESSAGE("Last character (close icon): '" << last_char << "' (code: " << (int)last_char << ")");
 
         // Close icon should be non-space
         CHECK(last_char != ' ');
@@ -158,8 +149,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         win2->render(renderer, theme);
 
         std::string output = canvas->render_ascii();
-        MESSAGE("Rendered two windows:");
-        MESSAGE(output);
 
         // Both windows should show their titles
         CHECK(output.find("Win1") != std::string::npos);
@@ -173,7 +162,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
             }
         }
 
-        MESSAGE("Total non-space characters: " << non_space);
 
         // Should have at least: borders + titles + icons for both windows
         CHECK(non_space >= 50);  // Reasonable threshold

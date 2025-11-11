@@ -72,12 +72,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         auto canvas = render_to_canvas(*win, 20, 8);
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Window at (0,0) size 20x8:");
-        MESSAGE(output);
 
         // CRITICAL: Verify title bar is at row 0
         std::string row0 = get_line_at(output, 0);
-        MESSAGE("Row 0 (title bar): '" << row0 << "'");
         CHECK(row0.find("TestWin") != std::string::npos);
 
         // CRITICAL: Title should appear early in row 0 (within first 10 chars)
@@ -87,18 +84,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         // CRITICAL: Content border should start at row 1 (directly below title bar)
         std::string row1 = get_line_at(output, 1);
-        MESSAGE("Row 1 (content border top): '" << row1 << "'");
 
         // Check if row starts with box drawing characters (use string.find since UTF-8)
         bool has_top_border = (row1.find("┌") == 0 || row1.find("+") == 0 ||
                                row1.find("╔") == 0 || row1.find("#") == 0);
-        MESSAGE("Row 1 starts with border: " << has_top_border);
         CHECK(has_top_border);
 
         // CRITICAL: Middle rows (2-6) should have vertical borders at sides
         for (int y = 2; y < 7; y++) {
             std::string row = get_line_at(output, y);
-            MESSAGE("Row " << y << ": '" << row << "'");
             if (!row.empty()) {
                 // Check for vertical border at start (UTF-8 safe)
                 bool has_left_border = (row.find("│") == 0 || row.find("|") == 0 ||
@@ -109,7 +103,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         // CRITICAL: Bottom row should have bottom border
         std::string row7 = get_line_at(output, 7);
-        MESSAGE("Row 7 (content border bottom): '" << row7 << "'");
         if (!row7.empty()) {
             bool has_bottom_border = (row7.find("└") == 0 || row7.find("+") == 0 ||
                                      row7.find("╚") == 0 || row7.find("#") == 0);
@@ -145,17 +138,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Window at (10,5) on 40x15 canvas:");
-        MESSAGE(output);
 
         // CRITICAL: Title bar should be at row 5 (y=5), column 10 (x=10)
         std::string row5 = get_line_at(output, 5);
-        MESSAGE("Row 5 (title bar at y=5): '" << row5 << "'");
 
         // Title should appear starting around column 10
         size_t title_pos = row5.find("Offset");
         REQUIRE(title_pos != std::string::npos);
-        MESSAGE("Title 'Offset' found at column: " << title_pos);
 
         // CRITICAL: Title must be within window bounds [10, 30]
         // If double-offsetting occurred, title would be way off (like column 20+)
@@ -164,7 +153,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         // CRITICAL: Content border top should be at row 6 (y=6), starting at column 10
         std::string row6 = get_line_at(output, 6);
-        MESSAGE("Row 6 (content top border at y=6): '" << row6 << "'");
 
         // Border should be around column 10 (±2 for rendering variations)
         // Check substring from column 8-12 for border character
@@ -173,7 +161,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
             bool has_border = (border_region.find("┌") != std::string::npos ||
                               border_region.find("+") != std::string::npos ||
                               border_region.find("#") != std::string::npos);
-            MESSAGE("Border region [8-12]: '" << border_region << "', has_border=" << has_border);
             CHECK(has_border);
         }
 
@@ -185,7 +172,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
                 bool has_vert = (left_region.find("│") != std::string::npos ||
                                 left_region.find("|") != std::string::npos ||
                                 left_region.find("#") != std::string::npos);
-                MESSAGE("Row " << y << " left region [8-12]: '" << left_region << "'");
                 CHECK(has_vert);
             }
         }

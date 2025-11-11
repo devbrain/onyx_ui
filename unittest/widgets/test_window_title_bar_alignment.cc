@@ -29,15 +29,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         auto canvas = render_to_canvas(*win, 30, 10);
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Left-aligned output:");
-        MESSAGE(output);
 
         // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
         std::getline(iss, line); // Title bar (first line)
 
-        MESSAGE("Title bar: '" << line << "'");
 
         // Title should be near the left (after menu icon)
         // Format: =Title####################_OX
@@ -71,15 +68,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         auto canvas = render_to_canvas(*win, 30, 10);
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Center-aligned output:");
-        MESSAGE(output);
 
         // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
         std::getline(iss, line); // Title bar (first line)
 
-        MESSAGE("Title bar: '" << line << "'");
 
         // Title should be roughly centered
         // Find "Title" position
@@ -87,7 +81,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         REQUIRE(title_pos != std::string::npos);
 
         // Center should be around position 12-14 (width 28 / 2 = 14, title length 5)
-        MESSAGE("Title position: " << title_pos);
         CHECK(title_pos >= 10);  // Not at left edge
         CHECK(title_pos <= 16);  // Roughly centered
     }
@@ -117,21 +110,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         auto canvas = render_to_canvas(*win, 30, 10);
         std::string output = canvas->render_ascii();
 
-        MESSAGE("Right-aligned output:");
-        MESSAGE(output);
 
         // Extract title bar line (first line - no border above it after refactoring)
         std::istringstream iss(output);
         std::string line;
         std::getline(iss, line); // Title bar (first line)
 
-        MESSAGE("Title bar: '" << line << "'");
 
         // Title should be near the right (before control icons)
         // Format: |####################Title_OX| (Title followed by minimize, maximize, close)
         size_t title_pos = line.find("Title");
         REQUIRE(title_pos != std::string::npos);
-        MESSAGE("Title position: " << title_pos);
         CHECK(title_pos >= 18);  // Should be far right (not left or center)
     }
 
@@ -144,8 +133,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         win1->measure(40, 10);
         win1->arrange({0, 0, 40, 10});
         auto canvas1 = render_to_canvas(*win1, 40, 10);
-        MESSAGE("Long title, left-aligned:");
-        MESSAGE(canvas1->render_ascii());
 
         // Test center alignment
         auto custom_theme = *theme_registry->get_current_theme();
@@ -159,8 +146,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         win2->measure(40, 10);
         win2->arrange({0, 0, 40, 10});
         auto canvas2 = render_to_canvas(*win2, 40, 10);
-        MESSAGE("Long title, center-aligned:");
-        MESSAGE(canvas2->render_ascii());
 
         // Just verify they render without errors
         CHECK(canvas1->render_ascii().length() > 0);

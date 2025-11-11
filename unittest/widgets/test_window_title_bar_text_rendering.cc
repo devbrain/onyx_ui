@@ -34,7 +34,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         auto canvas = render_to_canvas(lbl, 80, 25);
         std::string rendered = canvas->render_ascii();
 
-        MESSAGE("Label rendered output:\n" << rendered);
 
         // Label should render its text
         CHECK(rendered.find("Test Text") != std::string::npos);
@@ -51,29 +50,23 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         window<test_canvas_backend> win("My Title", flags);
 
         // Check visibility
-        MESSAGE("Window is_visible before measure: " << win.is_visible());
 
         auto size = win.measure(80, 25);
-        MESSAGE("Measured size: " << size.w << " x " << size.h);
 
         win.arrange({0, 0, 80, 25});
-        MESSAGE("Window is_visible after arrange: " << win.is_visible());
 
         // Check bounds
         auto bounds = win.bounds();
-        MESSAGE("Window bounds: x=" << bounds.x << ", y=" << bounds.y << ", w=" << bounds.w << ", h=" << bounds.h);
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();
 
-        MESSAGE("Window with title bar rendered output:\n" << rendered);
 
         // Count non-whitespace characters to see if ANYTHING rendered
         int non_whitespace = 0;
         for (char c : rendered) {
             if (c != ' ' && c != '\n') non_whitespace++;
         }
-        MESSAGE("Non-whitespace characters in output: " << non_whitespace);
 
         // Window should render content
         CHECK(non_whitespace > 0);

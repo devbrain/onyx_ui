@@ -46,7 +46,6 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
 
         // Measure and arrange
         auto measured = title_bar->measure(80, 1);
-        MESSAGE("Title bar measured size: " << measured.w << "x" << measured.h);
 
         title_bar->arrange({0, 0, 80, 1});
 
@@ -57,9 +56,6 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         // Check bounds of each child
         for (size_t i = 0; i < children.size(); ++i) {
             auto bounds = children[i]->bounds();
-            MESSAGE("Child " << i << " bounds: ("
-                    << bounds.x << "," << bounds.y << ") size ("
-                    << bounds.w << "x" << bounds.h << ")");
 
             // All children should have non-zero width and height
             CHECK(bounds.w > 0);
@@ -115,7 +111,6 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         // "Short" = 5 characters
         CHECK(title_bounds.w <= 10);  // Allow some padding but not full width
 
-        MESSAGE("Title label width: " << title_bounds.w);
     }
 
     SUBCASE("Icons are positioned after title with proper spacing") {
@@ -138,10 +133,6 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto max_bounds = children[3]->bounds();
         auto close_bounds = children[4]->bounds();
 
-        MESSAGE("Title: x=" << title_bounds.x << " w=" << title_bounds.w);
-        MESSAGE("Minimize: x=" << min_bounds.x);
-        MESSAGE("Maximize: x=" << max_bounds.x);
-        MESSAGE("Close: x=" << close_bounds.x);
 
         // Icons should be to the right of the title
         CHECK(min_bounds.x > (title_bounds.x + title_bounds.w));
@@ -173,7 +164,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         rect_utils::set_bounds(win_bounds, 5, 3, 40, 15);
         win->arrange(win_bounds);
 
-        MESSAGE("Window bounds: (5, 3, 40, 15)");
 
         // Get the title bar (first child of window)
         REQUIRE(!win->children().empty());
@@ -182,8 +172,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Title bar should be at (0, 0) relative to window, size (40, 1)
         auto tb_bounds = title_bar->bounds();
-        MESSAGE("Title bar bounds (relative): (" << tb_bounds.x << ", " << tb_bounds.y
-                << ", " << tb_bounds.w << ", " << tb_bounds.h << ")");
         CHECK(tb_bounds.x == 0);
         CHECK(tb_bounds.y == 0);
         CHECK(tb_bounds.w == 40);
@@ -196,8 +184,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         REQUIRE(close_icon != nullptr);
 
         auto icon_bounds = close_icon->bounds();
-        MESSAGE("Close icon bounds (relative to title bar): (" << icon_bounds.x << ", " << icon_bounds.y
-                << ", " << icon_bounds.w << ", " << icon_bounds.h << ")");
         CHECK(icon_bounds.x == 39);
         CHECK(icon_bounds.y == 0);
         CHECK(icon_bounds.w == 1);
@@ -224,22 +210,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Hit test from window root should find the close icon
         auto* target = win->hit_test(44, 3);
-        MESSAGE("Hit test target: " << (target ? "found" : "nullptr"));
         CHECK(target != nullptr);
 
         // Route the event through the three-phase system
         // This simulates what layer_manager does
         hit_test_path<Backend> path;
         auto* hit_target = win->hit_test(44, 3, path);
-        MESSAGE("Hit target with path: " << (hit_target ? "found" : "nullptr"));
-        MESSAGE("Path size: " << path.size());
         REQUIRE(hit_target != nullptr);
 
         // Route event through three phases
         bool handled = route_event(evt, path);
 
-        MESSAGE("Event handled: " << (handled ? "true" : "false"));
-        MESSAGE("Close clicked: " << (close_clicked ? "true" : "false"));
 
         // This should work: close icon click should be detected
         CHECK(close_clicked == true);
@@ -326,7 +307,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         [[maybe_unused]] bool handled = route_event(evt, path);
 
-        MESSAGE("Maximize clicked: " << (maximize_clicked ? "true" : "false"));
         CHECK(maximize_clicked == true);
     }
 
@@ -356,8 +336,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         [[maybe_unused]] auto measured = win_ptr->measure(30, 10);
         win_ptr->arrange(win_bounds);
 
-        MESSAGE("Initial window bounds: (" << win_ptr->bounds().x << ", " << win_ptr->bounds().y
-                << ", " << win_ptr->bounds().w << ", " << win_ptr->bounds().h << ")");
 
         // Get title bar
         REQUIRE(!win_ptr->children().empty());
@@ -367,7 +345,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Connect to maximize signal to verify it fires
         bool maximize_signal_fired = false;
         title_bar->maximize_clicked.connect([&]() {
-            MESSAGE("Maximize signal fired!");
             maximize_signal_fired = true;
         });
 
@@ -377,9 +354,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         for (auto& child : title_bar->children()) {
             auto* icon_ptr = dynamic_cast<icon<Backend>*>(child.get());
             if (icon_ptr) {
-                MESSAGE("Found icon at relative position: (" << icon_ptr->bounds().x << ", "
-                        << icon_ptr->bounds().y << ", " << icon_ptr->bounds().w << ", "
-                        << icon_ptr->bounds().h << ")");
                 maximize_icon = icon_ptr;
             }
         }
@@ -387,9 +361,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Get absolute bounds of maximize icon
         auto abs_icon_bounds = maximize_icon->get_absolute_bounds();
-        MESSAGE("Maximize icon absolute bounds: (" << abs_icon_bounds.x << ", "
-                << abs_icon_bounds.y << ", " << abs_icon_bounds.w << ", "
-                << abs_icon_bounds.h << ")");
 
         // Click on the icon
         mouse_event click;
@@ -402,19 +373,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Route through event system
         hit_test_path<Backend> path;
         auto* target = parent->hit_test(click.x, click.y, path);
-        MESSAGE("Hit test at (" << click.x << ", " << click.y << "): " << (target ? "found" : "nullptr"));
 
         if (target) {
             route_event(evt, path);
         }
 
         // Check if signal was fired
-        MESSAGE("Maximize signal fired: " << (maximize_signal_fired ? "YES" : "NO"));
 
         // Check if window was maximized
         auto final_bounds = win_ptr->bounds();
-        MESSAGE("Final window bounds: (" << final_bounds.x << ", " << final_bounds.y
-                << ", " << final_bounds.w << ", " << final_bounds.h << ")");
 
         // First verify signal fired
         CHECK(maximize_signal_fired == true);
@@ -459,12 +426,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
             auto* icon_ptr = dynamic_cast<icon<Backend>*>(child.get());
             if (icon_ptr) {
                 auto abs_bounds = icon_ptr->get_absolute_bounds();
-                MESSAGE("Icon at absolute: (" << abs_bounds.x << ", " << abs_bounds.y << ")");
                 icons.push_back(icon_ptr);
             }
         }
 
-        MESSAGE("Total icons found: " << icons.size());
         REQUIRE(icons.size() == 3);  // minimize, maximize, close
 
         // Test maximize button (middle icon with default ordering)
@@ -485,7 +450,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 
-        MESSAGE("Maximize fired: " << (maximize_fired ? "YES" : "NO"));
         CHECK(maximize_fired == true);
 
         // Verify window maximized
@@ -518,11 +482,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
 
         // Check actual bounds after harness arrangement
         auto actual_bounds = win->bounds();
-        MESSAGE("Window bounds after harness.render(): x=" << actual_bounds.x << ", y=" << actual_bounds.y
-                << ", w=" << actual_bounds.w << ", h=" << actual_bounds.h);
 
-        MESSAGE("Before maximize:");
-        MESSAGE(harness.dump_canvas());
 
         // Window starts at (0, 0) filling width but only 3 rows tall
         // Row 0: Title bar
@@ -579,8 +539,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
             }
         }
 
-        MESSAGE("After maximize click - window should fill parent:");
-        MESSAGE(harness.dump_canvas());
 
         // Window has parent, so maximize should fill parent (80x25)
         // Window should now be maximized to fill the entire canvas
