@@ -17,27 +17,6 @@ using namespace onyxui;
 using Backend = testing::test_canvas_backend;
 
 /**
- * Helper: Get character at specific position in rendered output
- * Returns ' ' if out of bounds
- */
-static char get_char_at(const std::string& output, int x, int y, int width) {
-    std::istringstream iss(output);
-    std::string line;
-    int current_y = 0;
-
-    while (std::getline(iss, line)) {
-        if (current_y == y) {
-            if (x >= 0 && x < static_cast<int>(line.length())) {
-                return line[x];
-            }
-            return ' ';
-        }
-        current_y++;
-    }
-    return ' ';
-}
-
-/**
  * Helper: Get full line at specific y position
  */
 static std::string get_line_at(const std::string& output, int y) {
@@ -65,7 +44,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         auto win = std::make_unique<window<Backend>>("TestWin", flags);
 
         // Small, controlled size
-        win->measure(20, 8);
+        (void)win->measure(20, 8);
         win->arrange({0, 0, 20, 8});
 
         // Render to exact canvas size
@@ -125,7 +104,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         testing::canvas_renderer renderer(canvas);
 
         // Measure and arrange at offset position (10, 5)
-        win->measure(20, 6);
+        (void)win->measure(20, 6);
         win->arrange({10, 5, 20, 6});
 
         // Render WITHOUT re-arranging

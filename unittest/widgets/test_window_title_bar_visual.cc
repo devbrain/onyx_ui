@@ -29,7 +29,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Measure and arrange window
-        win->measure(40, 20);
+        (void)win->measure(40, 20);
         win->arrange({0, 0, 40, 20});
 
         // Render to canvas
@@ -88,7 +88,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win = std::make_unique<window<Backend>>("Short", flags);
 
         // Measure and arrange
-        win->measure(30, 15);
+        (void)win->measure(30, 15);
         win->arrange({0, 0, 30, 15});
 
         // Render
@@ -133,10 +133,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win2 = std::make_unique<window<Backend>>("Win2", flags);
 
         // Arrange at different positions
-        win1->measure(25, 10);
+        (void)win1->measure(25, 10);
         win1->arrange({0, 0, 25, 10});
 
-        win2->measure(25, 10);
+        (void)win2->measure(25, 10);
         win2->arrange({5, 5, 25, 10});
 
         // Render both windows to same canvas (overlapping)

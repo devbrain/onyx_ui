@@ -45,7 +45,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto title_bar = std::make_unique<window_title_bar<Backend>>("Test", flags);
 
         // Measure and arrange
-        auto measured = title_bar->measure(80, 1);
+        [[maybe_unused]] auto measured = title_bar->measure(80, 1);
 
         title_bar->arrange({0, 0, 80, 1});
 
@@ -159,7 +159,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Measure and arrange window at screen position (5, 3) with size 40x15
-        win->measure(40, 15);
+        (void)win->measure(40, 15);
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 5, 3, 40, 15);
         win->arrange(win_bounds);
@@ -219,8 +219,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         REQUIRE(hit_target != nullptr);
 
         // Route event through three phases
-        bool handled = route_event(evt, path);
-
+        [[maybe_unused]] bool handled = route_event(evt, path);
 
         // This should work: close icon click should be detected
         CHECK(close_clicked == true);
@@ -425,7 +424,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         for (auto& child : title_bar->children()) {
             auto* icon_ptr = dynamic_cast<icon<Backend>*>(child.get());
             if (icon_ptr) {
-                auto abs_bounds = icon_ptr->get_absolute_bounds();
                 icons.push_back(icon_ptr);
             }
         }
@@ -479,10 +477,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         // Render using harness (this will measure, arrange, and render the whole tree)
         // Panel's default layout will position children at (0,0) and size them to fill
         harness.render(parent.get());
-
-        // Check actual bounds after harness arrangement
-        auto actual_bounds = win->bounds();
-
 
         // Window starts at (0, 0) filling width but only 3 rows tall
         // Row 0: Title bar

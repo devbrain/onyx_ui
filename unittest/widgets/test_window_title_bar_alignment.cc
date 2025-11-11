@@ -22,7 +22,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        win->measure(30, 10);
+        (void)win->measure(30, 10);
         win->arrange({0, 0, 30, 10});
 
         // Render
@@ -61,7 +61,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        win->measure(30, 10);
+        (void)win->measure(30, 10);
         win->arrange({0, 0, 30, 10});
 
         // Render
@@ -103,7 +103,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        win->measure(30, 10);
+        (void)win->measure(30, 10);
         win->arrange({0, 0, 30, 10});
 
         // Render
@@ -130,7 +130,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         // Test left alignment (default)
         auto win1 = std::make_unique<window<Backend>>("Very Long Window Title Text",
             typename window<Backend>::window_flags{});
-        win1->measure(40, 10);
+        (void)win1->measure(40, 10);
         win1->arrange({0, 0, 40, 10});
         auto canvas1 = render_to_canvas(*win1, 40, 10);
 
@@ -143,7 +143,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
 
         auto win2 = std::make_unique<window<Backend>>("Very Long Window Title Text",
             typename window<Backend>::window_flags{});
-        win2->measure(40, 10);
+        (void)win2->measure(40, 10);
         win2->arrange({0, 0, 40, 10});
         auto canvas2 = render_to_canvas(*win2, 40, 10);
 
