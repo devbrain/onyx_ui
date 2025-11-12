@@ -76,6 +76,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/event_target.hh>
 #include <onyxui/events/hit_test_path.hh>
+#include <onyxui/geometry/coordinates.hh>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/theming/themeable.hh>
 #include <onyxui/utils/safe_math.hh>
@@ -387,14 +388,14 @@ namespace onyxui {
 
             /**
              * @brief Arrange phase: assign final bounds
-             * @param final_bounds The allocated rectangle for this element
+             * @param final_bounds The allocated rectangle for this element (in relative coordinates)
              *
              * @exception Any exception thrown by do_arrange() override
              * @exception Any exception thrown by layout_strategy::arrange_children()
              * @note Exception safety: Basic guarantee - bounds updated before arrange, children may be partially arranged
              * @note Skipped if bounds unchanged and layout state is valid
              */
-            void arrange(const rect_type& final_bounds);
+            void arrange(geometry::relative_rect<Backend> final_bounds);
 
             /**
              * @brief Sort children by their z_index values
@@ -416,22 +417,20 @@ namespace onyxui {
 
             /**
              * @brief Perform hit testing to find element at coordinates
-             * @param x X coordinate in pixels
-             * @param y Y coordinate in pixels
-             * @return Pointer to the deepest visible element at (x,y), or nullptr if none found
+             * @param point Point in absolute screen coordinates
+             * @return Pointer to the deepest visible element at point, or nullptr if none found
              *
              * @note Exception safety: No-throw guarantee (no allocations, simple traversal)
              * @note Searches in reverse z-order (highest z-index checked first)
              * @note Only visible elements are considered for hit testing
              */
-            [[nodiscard]] ui_element* hit_test(int x, int y);
+            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point);
 
             /**
              * @brief Perform hit testing with path recording for event routing
-             * @param x X coordinate in pixels
-             * @param y Y coordinate in pixels
+             * @param point Point in absolute screen coordinates
              * @param path Path to record elements from root to target
-             * @return Pointer to the deepest visible element at (x,y), or nullptr if none found
+             * @return Pointer to the deepest visible element at point, or nullptr if none found
              *
              * @details
              * This overload records the complete path from root to target element,
@@ -452,7 +451,8 @@ namespace onyxui {
              *
              * @code
              * hit_test_path<Backend> path;
-             * auto* target = root->hit_test(10, 10, path);
+             * geometry::absolute_point<Backend> pt{typename Backend::point_type{10, 10}};
+             * auto* target = root->hit_test(pt, path);
              *
              * // Path now contains: [root, ..., target]
              * CHECK(path.target() == target);
@@ -466,7 +466,44 @@ namespace onyxui {
              * @see hit_test_path For path structure details
              * @see event_phase For three-phase event routing
              */
-            [[nodiscard]] ui_element* hit_test(int x, int y, hit_test_path<Backend>& path);
+            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path);
+
+            /**
+             * @brief Convenience overload for hit testing with raw coordinates
+             * @param x X coordinate in absolute screen space
+             * @param y Y coordinate in absolute screen space
+             * @return Pointer to the deepest visible element at (x, y), or nullptr
+             */
+            [[nodiscard]] ui_element* hit_test(int x, int y) {
+                typename Backend::point_type pt;
+                if constexpr (detail::has_member_x<typename Backend::point_type> &&
+                              detail::has_member_y<typename Backend::point_type>) {
+                    pt.x = x;
+                    pt.y = y;
+                } else {
+                    pt = typename Backend::point_type{x, y};
+                }
+                return hit_test(geometry::absolute_point<Backend>{pt});
+            }
+
+            /**
+             * @brief Convenience overload for hit testing with path recording and raw coordinates
+             * @param x X coordinate in absolute screen space
+             * @param y Y coordinate in absolute screen space
+             * @param path Path to record elements from root to target
+             * @return Pointer to the deepest visible element at (x, y), or nullptr
+             */
+            [[nodiscard]] ui_element* hit_test(int x, int y, hit_test_path<Backend>& path) {
+                typename Backend::point_type pt;
+                if constexpr (detail::has_member_x<typename Backend::point_type> &&
+                              detail::has_member_y<typename Backend::point_type>) {
+                    pt.x = x;
+                    pt.y = y;
+                } else {
+                    pt = typename Backend::point_type{x, y};
+                }
+                return hit_test(geometry::absolute_point<Backend>{pt}, path);
+            }
 
             // -----------------------------------------------------------------------
             // Public Setters
@@ -685,7 +722,9 @@ namespace onyxui {
             // Public Accessors
             // -----------------------------------------------------------------------
 
-            [[nodiscard]] const rect_type& bounds() const noexcept { return m_bounds; }
+            [[nodiscard]] geometry::relative_rect<Backend> bounds() const noexcept {
+                return geometry::relative_rect<Backend>{m_bounds};
+            }
 
             /**
              * @brief Get absolute bounds in screen coordinates
@@ -703,9 +742,9 @@ namespace onyxui {
              *
              * @example
              * @code
-             * rect_type abs_bounds = widget->get_absolute_bounds();
-             * int widget_abs_x = rect_utils::get_x(abs_bounds);
-             * int widget_abs_y = rect_utils::get_y(abs_bounds);
+             * auto abs_bounds = widget->get_absolute_bounds();
+             * int widget_abs_x = abs_bounds.x();
+             * int widget_abs_y = abs_bounds.y();
              *
              * // Convert absolute click to widget-relative
              * int rel_x = click_x - widget_abs_x;
@@ -715,34 +754,9 @@ namespace onyxui {
              * @note This walks the parent chain, so it's O(depth). Cache the result
              *       if you need to call it repeatedly in the same frame.
              */
-            [[nodiscard]] rect_type get_absolute_bounds() const noexcept {
-                // Start with relative bounds
-                int abs_x = rect_utils::get_x(m_bounds);
-                int abs_y = rect_utils::get_y(m_bounds);
-                int const width = rect_utils::get_width(m_bounds);
-                int const height = rect_utils::get_height(m_bounds);
-
-                // Walk up parent chain to accumulate absolute position
-                ui_element const* curr = m_parent;
-                while (curr) {
-                    // Get parent's bounds (also relative if it has a parent)
-                    rect_type parent_bounds = curr->m_bounds;
-
-                    // Get parent's content area (where children are positioned)
-                    rect_type parent_content = curr->get_content_area();
-
-                    // Add parent's position + content area offset
-                    abs_x += rect_utils::get_x(parent_bounds) + rect_utils::get_x(parent_content);
-                    abs_y += rect_utils::get_y(parent_bounds) + rect_utils::get_y(parent_content);
-
-                    // Move to next parent
-                    curr = curr->m_parent;
-                }
-
-                // Return absolute bounds
-                rect_type result;
-                rect_utils::set_bounds(result, abs_x, abs_y, width, height);
-                return result;
+            [[nodiscard]] geometry::absolute_rect<Backend> get_absolute_bounds() const noexcept {
+                // Use the coordinate conversion function
+                return geometry::to_absolute(geometry::relative_rect<Backend>{m_bounds}, this);
             }
 
             [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
@@ -1172,16 +1186,19 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void ui_element <Backend>::arrange(const rect_type& final_bounds) {
+    void ui_element <Backend>::arrange(geometry::relative_rect<Backend> final_bounds) {
+        // Unwrap the strong type to get the underlying rect
+        const rect_type& final_bounds_rect = final_bounds.get();
+
         // Check if bounds changed
-        const bool bounds_changed = !rect_utils::equal(m_bounds, final_bounds);
+        const bool bounds_changed = !rect_utils::equal(m_bounds, final_bounds_rect);
 
         // Mark old bounds as dirty if they changed
         if (bounds_changed && m_visible) {
             mark_dirty();
         }
 
-        m_bounds = final_bounds;
+        m_bounds = final_bounds_rect;
 
         if (!bounds_changed &&
             arrange_state == layout_state::valid &&
@@ -1239,20 +1256,16 @@ namespace onyxui {
     // NOLINTNEXTLINE(misc-no-recursion)
     // Note: Recursive tree traversal for hit testing, bounded by UI tree height
     template<UIBackend Backend>
-    ui_element <Backend>* ui_element <Backend>::hit_test(int x, int y) {
+    ui_element <Backend>* ui_element <Backend>::hit_test(geometry::absolute_point<Backend> point) {
         if (!m_visible) {
             return nullptr;
         }
 
-        // RELATIVE COORDINATES: Calculate absolute bounds for hit testing
-        // For root elements, m_bounds is at (0,0) so relative = absolute
-        // For nested elements, we need to account for parent positions
-        // This implementation assumes root element is at screen (0,0)
+        // Get absolute bounds for hit testing
+        auto absolute_bounds = get_absolute_bounds();
 
-        // Calculate absolute bounds (assuming parent offset has been applied)
-        rect_type absolute_bounds = m_bounds;  // For root, this is correct
-
-        if (!rect_utils::contains(absolute_bounds, x, y)) {
+        // Check if point is inside this element's bounds
+        if (!absolute_bounds.contains(point)) {
             return nullptr;
         }
 
@@ -1263,17 +1276,28 @@ namespace onyxui {
         int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
 
         // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
-        // To get absolute content position, add m_bounds position
-        int const content_abs_x = rect_utils::get_x(m_bounds) + content_rel_x;
-        int const content_abs_y = rect_utils::get_y(m_bounds) + content_rel_y;
+        // To get absolute content position, add absolute bounds position
+        int const content_abs_x = absolute_bounds.x() + content_rel_x;
+        int const content_abs_y = absolute_bounds.y() + content_rel_y;
 
         // Convert absolute click coordinates to relative (content-area-local) coordinates
-        int const child_x = x - content_abs_x;
-        int const child_y = y - content_abs_y;
+        int const child_x = point.x() - content_abs_x;
+        int const child_y = point.y() - content_abs_y;
+
+        // Create absolute point for children
+        typename Backend::point_type child_pt;
+        if constexpr (detail::has_member_x<typename Backend::point_type> &&
+                      detail::has_member_y<typename Backend::point_type>) {
+            child_pt.x = child_x;
+            child_pt.y = child_y;
+        } else {
+            child_pt = typename Backend::point_type{child_x, child_y};
+        }
+        geometry::absolute_point<Backend> child_point{child_pt};
 
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(child_x, child_y)) {
+            if (ui_element* hit = (*it)->hit_test(child_point)) {
                 return hit;
             }
         }
@@ -1284,15 +1308,16 @@ namespace onyxui {
     // NOLINTNEXTLINE(misc-no-recursion)
     // Note: Recursive tree traversal for hit testing with path recording
     template<UIBackend Backend>
-    ui_element <Backend>* ui_element <Backend>::hit_test(int x, int y, hit_test_path<Backend>& path) {
+    ui_element <Backend>* ui_element <Backend>::hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path) {
         if (!m_visible) {
             return nullptr;
         }
 
-        // RELATIVE COORDINATES: Calculate absolute bounds for hit testing
-        rect_type absolute_bounds = m_bounds;
+        // Get absolute bounds for hit testing
+        auto absolute_bounds = get_absolute_bounds();
 
-        if (!rect_utils::contains(absolute_bounds, x, y)) {
+        // Check if point is inside this element's bounds
+        if (!absolute_bounds.contains(point)) {
             return nullptr;
         }
 
@@ -1305,17 +1330,28 @@ namespace onyxui {
         int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
 
         // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
-        // To get absolute content position, add m_bounds position
-        int const content_abs_x = rect_utils::get_x(m_bounds) + content_rel_x;
-        int const content_abs_y = rect_utils::get_y(m_bounds) + content_rel_y;
+        // To get absolute content position, add absolute bounds position
+        int const content_abs_x = absolute_bounds.x() + content_rel_x;
+        int const content_abs_y = absolute_bounds.y() + content_rel_y;
 
         // Convert absolute click coordinates to relative (content-area-local) coordinates
-        int const child_x = x - content_abs_x;
-        int const child_y = y - content_abs_y;
+        int const child_x = point.x() - content_abs_x;
+        int const child_y = point.y() - content_abs_y;
+
+        // Create absolute point for children
+        typename Backend::point_type child_pt;
+        if constexpr (detail::has_member_x<typename Backend::point_type> &&
+                      detail::has_member_y<typename Backend::point_type>) {
+            child_pt.x = child_x;
+            child_pt.y = child_y;
+        } else {
+            child_pt = typename Backend::point_type{child_x, child_y};
+        }
+        geometry::absolute_point<Backend> child_point{child_pt};
 
         // Check children in reverse order (highest z-index first)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(child_x, child_y, path)) {
+            if (ui_element* hit = (*it)->hit_test(child_point, path)) {
                 return hit;
             }
         }

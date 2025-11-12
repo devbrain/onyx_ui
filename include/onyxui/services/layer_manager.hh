@@ -78,6 +78,7 @@
 #include <onyxui/events/event_phase.hh>   // For event_phase
 #include <onyxui/events/hit_test_path.hh> // For hit_test_path
 #include <onyxui/events/event_router.hh>  // For route_event()
+#include <onyxui/geometry/coordinates.hh>
 #include <onyxui/theming/theme.hh>
 
 namespace onyxui {
@@ -334,7 +335,7 @@ namespace onyxui {
                 // Try to get bounds from the widget itself (more accurate if manually positioned)
                 rect_type bounds_to_track = it->bounds;
                 it->with_root([&](element_type* root) {
-                    bounds_to_track = root->bounds();
+                    bounds_to_track = root->bounds().get();
                 });
                 m_removed_layer_dirty_regions.push_back(bounds_to_track);
                 m_layers.erase(it);
@@ -635,7 +636,17 @@ namespace onyxui {
 
                         // Build hit test path from root to target
                         hit_test_path<Backend> path;
-                        element_type* target = root_ptr->hit_test(x, y, path);
+                        // Create absolute point for hit testing
+                        typename Backend::point_type pt;
+                        if constexpr (detail::has_member_x<typename Backend::point_type> &&
+                                      detail::has_member_y<typename Backend::point_type>) {
+                            pt.x = x;
+                            pt.y = y;
+                        } else {
+                            pt = typename Backend::point_type{x, y};
+                        }
+                        geometry::absolute_point<Backend> abs_pt{pt};
+                        element_type* target = root_ptr->hit_test(abs_pt, path);
 
                         if (target) {
                             if (!path.empty()) {
@@ -708,7 +719,7 @@ namespace onyxui {
                     [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
 
                     // Arrange with absolute coordinates (layer.bounds contains screen position)
-                    root_ptr->arrange(layer.bounds);
+                    root_ptr->arrange(geometry::relative_rect<Backend>{layer.bounds});
 
                     // Render with theme (for proper styling in menus, dialogs, etc.)
                     root_ptr->render(renderer, theme);

@@ -559,7 +559,7 @@ namespace onyxui {
             rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, child_x, current_y,
                                    child_width, child_height);
-            child->arrange(child_bounds);
+            child->arrange(geometry::relative_rect<Backend>{child_bounds});
 
             current_y += child_height + m_spacing;
         }
@@ -690,7 +690,7 @@ namespace onyxui {
             rect_type child_bounds;
             rect_utils::set_bounds(child_bounds, current_x, child_y,
                                    child_width, child_height);
-            child->arrange(child_bounds);
+            child->arrange(geometry::relative_rect<Backend>{child_bounds});
 
             current_x += child_width + m_spacing;
         }

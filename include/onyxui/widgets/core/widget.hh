@@ -290,7 +290,7 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            auto bounds = this->bounds();
+            auto bounds = this->bounds().get();
             int x = rect_utils::get_x(bounds);
             int y = rect_utils::get_y(bounds) + rect_utils::get_height(bounds);
 
@@ -316,7 +316,7 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            return layers->show_popup(content, this->bounds(), placement, std::move(outside_click_callback));
+            return layers->show_popup(content, this->bounds().get(), placement, std::move(outside_click_callback));
         }
 
         /**
@@ -338,7 +338,7 @@ namespace onyxui {
             if (!layers) return layer_id::invalid();
 
             // Phase 1.3: Pass callback to emit menu's closing signal on outside click
-            return layers->show_popup(menu_content, this->bounds(), popup_placement::auto_best,
+            return layers->show_popup(menu_content, this->bounds().get(), popup_placement::auto_best,
                 [menu_content]() {
                     if (menu_content) {
                         menu_content->closing.emit();

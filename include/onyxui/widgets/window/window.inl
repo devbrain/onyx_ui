@@ -48,7 +48,7 @@ namespace onyxui {
             if (m_flags.is_movable && m_title_bar) {
                 m_title_bar->drag_started.connect([this]() {
                     // Save initial position when drag starts
-                    m_drag_initial_bounds = this->bounds();
+                    m_drag_initial_bounds = this->bounds().get();
                 });
 
                 m_title_bar->dragging.connect([this](int delta_x, int delta_y) {
@@ -56,7 +56,7 @@ namespace onyxui {
                     auto new_bounds = m_drag_initial_bounds;
                     new_bounds.x += delta_x;
                     new_bounds.y += delta_y;
-                    this->arrange(new_bounds);
+                    this->arrange(geometry::relative_rect<Backend>{new_bounds});
                     moved.emit();
                 });
             }
@@ -96,7 +96,7 @@ namespace onyxui {
                 // This sets needs_positioning=true which triggers automatic layout
                 layer_id id = layers->show_popup(
                     menu,
-                    icon_abs_bounds,
+                    icon_abs_bounds.get(),
                     popup_placement::below,
                     [menu]() {
                         menu->closing.emit();
@@ -187,7 +187,7 @@ namespace onyxui {
         }
 
         // Save current bounds for restore
-        m_before_minimize = this->bounds();
+        m_before_minimize = this->bounds().get();
 
         // Change state
         m_state = window_state::minimized;
@@ -213,7 +213,7 @@ namespace onyxui {
 
         // Save normal bounds for restore
         if (m_state == window_state::normal) {
-            m_normal_bounds = this->bounds();
+            m_normal_bounds = this->bounds().get();
         }
 
         // Change state
@@ -242,7 +242,7 @@ namespace onyxui {
             // Use workspace's full bounds (including position) since floating windows
             // use absolute screen coordinates. The workspace (e.g., central_widget)
             // may be offset from screen origin due to menu bar, status bar, etc.
-            maximized_bounds = m_workspace->bounds();
+            maximized_bounds = m_workspace->bounds().get();
         } else {
             // Case 3: Floating window without workspace - maximize to fill viewport
             // Phase 4: Query viewport from layer_manager for actual screen dimensions
@@ -278,7 +278,7 @@ namespace onyxui {
         if (!this->children().empty() && ui_services<Backend>::themes()) {
             [[maybe_unused]] auto measured_size = this->measure(width, height);
         }
-        this->arrange(maximized_bounds);
+        this->arrange(geometry::relative_rect<Backend>{maximized_bounds});
 
         // Update layer bounds if this window is shown as a layer
         if (m_layer_id.is_valid()) {
@@ -312,7 +312,7 @@ namespace onyxui {
 
             // Restore bounds
             if (m_before_minimize.w > 0 && m_before_minimize.h > 0) {
-                this->arrange(m_before_minimize);
+                this->arrange(geometry::relative_rect<Backend>{m_before_minimize});
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
@@ -325,7 +325,7 @@ namespace onyxui {
         } else if (old_state == window_state::maximized) {
             // Restore to normal bounds
             if (m_normal_bounds.w > 0 && m_normal_bounds.h > 0) {
-                this->arrange(m_normal_bounds);
+                this->arrange(geometry::relative_rect<Backend>{m_normal_bounds});
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
@@ -384,17 +384,17 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window<Backend>::set_position(int x, int y) {
-        auto current_bounds = this->bounds();
+        auto current_bounds = this->bounds().get();
         current_bounds.x = x;
         current_bounds.y = y;
-        this->arrange(current_bounds);
+        this->arrange(geometry::relative_rect<Backend>{current_bounds});
 
         moved.emit();
     }
 
     template<UIBackend Backend>
     void window<Backend>::set_size(int width, int height) {
-        auto current_bounds = this->bounds();
+        auto current_bounds = this->bounds().get();
         current_bounds.w = width;
         current_bounds.h = height;
 
@@ -403,7 +403,7 @@ namespace onyxui {
             [[maybe_unused]] auto measured_size = this->measure(width, height);
         }
 
-        this->arrange(current_bounds);
+        this->arrange(geometry::relative_rect<Backend>{current_bounds});
         this->invalidate_measure();
 
         resized_sig.emit();
@@ -455,7 +455,7 @@ namespace onyxui {
 
             // Set layer bounds to window's position/size
             // Window uses absolute coordinates (layer and window have same bounds)
-            auto window_bounds = this->bounds();
+            auto window_bounds = this->bounds().get();
             layers->set_layer_bounds(m_layer_id, window_bounds);
         }
 
@@ -561,7 +561,7 @@ namespace onyxui {
                     // Start resizing
                     m_is_resizing = true;
                     m_resize_handle = handle;
-                    m_resize_initial_bounds = this->bounds();
+                    m_resize_initial_bounds = this->bounds().get();
                     m_resize_start_x = mouse_evt->x;
                     m_resize_start_y = mouse_evt->y;
                     return true;  // Event handled
@@ -619,7 +619,7 @@ namespace onyxui {
                 apply_size_constraints(new_bounds);
 
                 // Update window bounds
-                this->arrange(new_bounds);
+                this->arrange(geometry::relative_rect<Backend>{new_bounds});
                 this->invalidate_measure();
                 resized_sig.emit();
 
@@ -662,10 +662,10 @@ namespace onyxui {
         auto bounds = this->bounds();
         int border = m_flags.resize_border_width;
 
-        bool on_left = (x >= bounds.x && x < bounds.x + border);
-        bool on_right = (x > bounds.x + bounds.w - border && x <= bounds.x + bounds.w);
-        bool on_top = (y >= bounds.y && y < bounds.y + border);
-        bool on_bottom = (y > bounds.y + bounds.h - border && y <= bounds.y + bounds.h);
+        bool on_left = (x >= bounds.x() && x < bounds.x() + border);
+        bool on_right = (x > bounds.x() + bounds.width() - border && x <= bounds.x() + bounds.width());
+        bool on_top = (y >= bounds.y() && y < bounds.y() + border);
+        bool on_bottom = (y > bounds.y() + bounds.height() - border && y <= bounds.y() + bounds.height());
 
         // Corners have priority
         if (on_top && on_left) return resize_handle::north_west;

@@ -104,7 +104,7 @@ class TestElement : public ui_element <TestBackend> {
         }
 
         // Expose bounds for testing
-        const TestRect& test_bounds() const { return bounds(); }
+        const TestRect& test_bounds() const { return bounds().get(); }
 };
 
 // Custom element with content size
@@ -173,7 +173,7 @@ namespace onyxui::testing {
         // Measure and arrange
         [[maybe_unused]] auto measured_size = element.measure(width, height);
         canvas_rect bounds{0, 0, width, height};
-        element.arrange(bounds);
+        element.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Render with current theme (if available)
         auto* themes_registry = ui_services<test_canvas_backend>::themes();
@@ -213,6 +213,21 @@ namespace onyxui::testing {
         }
 
         return oss.str();
+    }
+
+    // ============================================================================
+    // Helper function for Phase 2: Strong coordinate types
+    // ============================================================================
+
+    /**
+     * @brief Helper to create relative_rect from coordinates
+     * @details Wraps braced initializer lists for arrange() calls in tests
+     */
+    template<UIBackend Backend>
+    inline geometry::relative_rect<Backend> make_relative_rect(int x, int y, int w, int h) {
+        typename Backend::rect_type r;
+        rect_utils::set_bounds(r, x, y, w, h);
+        return geometry::relative_rect<Backend>{r};
     }
 
 } // namespace onyxui::testing

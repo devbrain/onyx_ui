@@ -311,7 +311,7 @@ namespace onyxui {
          */
         [[nodiscard]] rect_type get_menu_button_bounds(std::size_t index) const {
             if (index < m_menus.size() && m_menus[index].title_item) {
-                return m_menus[index].title_item->bounds();
+                return m_menus[index].title_item->bounds().get();
             }
             return rect_type{};
         }
@@ -469,7 +469,7 @@ namespace onyxui {
 
             // Draw continuous background stripe (Norton Utilities 8 style)
             // This fills the entire menu bar width, creating a continuous colored bar
-            ctx.fill_rect(this->bounds());
+            ctx.fill_rect(this->bounds().get());
 
             // Render children on top of background
             base::do_render(ctx);

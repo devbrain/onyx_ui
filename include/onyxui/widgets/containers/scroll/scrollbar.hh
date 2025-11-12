@@ -266,12 +266,12 @@ namespace onyxui {
 
             // Arrange children at calculated positions
             // Note: arrange() expects RELATIVE bounds (which calculate_layout provides)
-            m_thumb->arrange(layout.thumb);
+            m_thumb->arrange(geometry::relative_rect<Backend>{layout.thumb});
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(layout.arrow_decrement);
-                m_arrow_inc->arrange(layout.arrow_increment);
+                m_arrow_dec->arrange(geometry::relative_rect<Backend>{layout.arrow_decrement});
+                m_arrow_inc->arrange(geometry::relative_rect<Backend>{layout.arrow_increment});
 
                 // Make arrows visible
                 m_arrow_dec->set_visible(true);
@@ -338,7 +338,7 @@ namespace onyxui {
             auto const layout = calculate_layout(style);
 
             // Use systematic API to get absolute bounds
-            rect_type const abs_bounds = this->get_absolute_bounds();
+            rect_type const abs_bounds = this->get_absolute_bounds().get();
             int const abs_x = rect_utils::get_x(abs_bounds);
             int const abs_y = rect_utils::get_y(abs_bounds);
 
@@ -842,12 +842,12 @@ namespace onyxui {
             m_thumb_bounds = calculate_thumb_bounds();
 
             // Arrange children at calculated positions
-            m_thumb->arrange(layout.thumb);
+            m_thumb->arrange(geometry::relative_rect<Backend>{layout.thumb});
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(layout.arrow_decrement);
-                m_arrow_inc->arrange(layout.arrow_increment);
+                m_arrow_dec->arrange(geometry::relative_rect<Backend>{layout.arrow_decrement});
+                m_arrow_inc->arrange(geometry::relative_rect<Backend>{layout.arrow_increment});
                 m_arrow_dec->set_visible(true);
                 m_arrow_inc->set_visible(true);
             } else {

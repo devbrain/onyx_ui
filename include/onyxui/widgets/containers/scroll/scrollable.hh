@@ -463,7 +463,7 @@ namespace onyxui {
                 int const content_h = size_utils::get_height(m_content_size);
 
                 rect_type child_bounds{child_x, child_y, content_w, content_h};
-                child->arrange(child_bounds);
+                child->arrange(geometry::relative_rect<Backend>{child_bounds});
             }
         }
 
