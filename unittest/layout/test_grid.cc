@@ -30,17 +30,17 @@ TEST_SUITE("grid_layout") {
         CHECK(measured.w == 210);  // 2*100 + 1*10
         CHECK(measured.h == 105); // 2*50 + 1*5
 
-        parent->arrange({0, 0, 210, 105});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 210, 105));
 
         // Verify positions
-        CHECK(parent->child_at(0)->bounds().x == 0);
-        CHECK(parent->child_at(0)->bounds().y == 0);
-        CHECK(parent->child_at(1)->bounds().x == 110);
-        CHECK(parent->child_at(1)->bounds().y == 0);
-        CHECK(parent->child_at(2)->bounds().x == 0);
-        CHECK(parent->child_at(2)->bounds().y == 55);
-        CHECK(parent->child_at(3)->bounds().x == 110);
-        CHECK(parent->child_at(3)->bounds().y == 55);
+        CHECK(parent->child_at(0)->bounds().get().x == 0);
+        CHECK(parent->child_at(0)->bounds().get().y == 0);
+        CHECK(parent->child_at(1)->bounds().get().x == 110);
+        CHECK(parent->child_at(1)->bounds().get().y == 0);
+        CHECK(parent->child_at(2)->bounds().get().x == 0);
+        CHECK(parent->child_at(2)->bounds().get().y == 55);
+        CHECK(parent->child_at(3)->bounds().get().x == 110);
+        CHECK(parent->child_at(3)->bounds().get().y == 55);
     }
 
     TEST_CASE("Manual cell assignment") {
@@ -68,15 +68,15 @@ TEST_SUITE("grid_layout") {
         CHECK(measured.w > 0);  // Grid reports space needed for children
         CHECK(measured.h > 0);
 
-        parent->arrange({0, 0, measured.w, measured.h});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, measured.w, measured.h));
 
         // Verify positions (auto-assigned sequentially)
         // Child1 goes to (0,0), Child2 goes to (1,0) in the 3x3 grid
         // Grid arranges to measured size, so columns are not scaled
-        CHECK(child1_ptr->bounds().x == 0);
-        CHECK(child1_ptr->bounds().y == 0);
-        CHECK(child2_ptr->bounds().x == 50); // Second column starts at width of first column (50px)
-        CHECK(child2_ptr->bounds().y == 0);  // Still in first row
+        CHECK(child1_ptr->bounds().get().x == 0);
+        CHECK(child1_ptr->bounds().get().y == 0);
+        CHECK(child2_ptr->bounds().get().x == 50); // Second column starts at width of first column (50px)
+        CHECK(child2_ptr->bounds().get().y == 0);  // Still in first row
     }
 
     TEST_CASE("Column and row spanning") {
@@ -107,14 +107,14 @@ TEST_SUITE("grid_layout") {
         CHECK(measured.h > 0);
 
         // Arrange to measured size to avoid scaling
-        parent->arrange({0, 0, measured.w, measured.h});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, measured.w, measured.h));
 
         // With fill_parent policy, child1 fills its cell width
-        CHECK(child1_ptr->bounds().w <= 100); // Single cell width
+        CHECK(child1_ptr->bounds().get().w <= 100); // Single cell width
 
         // Child2 has fill_parent height policy, so it fills available cell height
         // Row height is 40px (from child1), so child2 fills to 40px
-        CHECK(child2_ptr->bounds().h >= 40); // Fills cell height
+        CHECK(child2_ptr->bounds().get().h >= 40); // Fills cell height
     }
 
     TEST_CASE("Fixed column and row dimensions") {
@@ -140,19 +140,19 @@ TEST_SUITE("grid_layout") {
         CHECK(measured.w == 250);  // 150 + 100
         CHECK(measured.h == 140); // 60 + 80
 
-        parent->arrange({0, 0, 250, 140});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 250, 140));
 
         // First column children
-        CHECK(parent->child_at(0)->bounds().w == 150);
-        CHECK(parent->child_at(2)->bounds().w == 150);
+        CHECK(parent->child_at(0)->bounds().get().w == 150);
+        CHECK(parent->child_at(2)->bounds().get().w == 150);
         // Second column children
-        CHECK(parent->child_at(1)->bounds().w == 100);
-        CHECK(parent->child_at(3)->bounds().w == 100);
+        CHECK(parent->child_at(1)->bounds().get().w == 100);
+        CHECK(parent->child_at(3)->bounds().get().w == 100);
         // First row children
-        CHECK(parent->child_at(0)->bounds().h == 60);
-        CHECK(parent->child_at(1)->bounds().h == 60);
+        CHECK(parent->child_at(0)->bounds().get().h == 60);
+        CHECK(parent->child_at(1)->bounds().get().h == 60);
         // Second row children
-        CHECK(parent->child_at(2)->bounds().h == 80);
-        CHECK(parent->child_at(3)->bounds().h == 80);
+        CHECK(parent->child_at(2)->bounds().get().h == 80);
+        CHECK(parent->child_at(3)->bounds().get().h == 80);
     }
 }
