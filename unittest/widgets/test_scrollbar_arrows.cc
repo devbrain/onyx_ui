@@ -49,7 +49,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -89,7 +89,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: I
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -129,7 +129,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     bool signal_emitted = false;
@@ -168,7 +168,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -200,7 +200,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -236,7 +236,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     bool signal_emitted = false;
@@ -264,7 +264,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: M
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     int emit_count = 0;
@@ -293,7 +293,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Connect to scroll_requested signal
     int last_emitted = 0;
