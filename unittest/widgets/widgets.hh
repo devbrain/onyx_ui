@@ -27,9 +27,10 @@ namespace onyxui {
             // Simulate a complete click (press + release)
             void simulate_click() {
                 // Ensure widget has valid bounds for hit testing
-                auto current_bounds = this->bounds();
+                auto current_bounds = this->bounds().get();
                 if (rect_utils::get_width(current_bounds) == 0 || rect_utils::get_height(current_bounds) == 0) {
-                    this->arrange({0, 0, 100, 50});
+                    typename Backend::rect r{0, 0, 100, 50};
+                    this->arrange(geometry::relative_rect<Backend>{r});
                 }
 
                 mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
@@ -49,9 +50,10 @@ namespace onyxui {
 
             void simulate_click() {
                 // Ensure widget has valid bounds for hit testing
-                auto current_bounds = this->bounds();
+                auto current_bounds = this->bounds().get();
                 if (rect_utils::get_width(current_bounds) == 0 || rect_utils::get_height(current_bounds) == 0) {
-                    this->arrange({0, 0, 100, 50});
+                    typename Backend::rect r{0, 0, 100, 50};
+                    this->arrange(geometry::relative_rect<Backend>{r});
                 }
 
                 mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
