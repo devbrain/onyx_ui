@@ -43,7 +43,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Anchor at corners") {
@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Anchor at edges") {
@@ -125,7 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Anchor with positive offsets") {
@@ -141,7 +141,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Anchor with negative offsets") {
@@ -157,7 +157,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Title bar layout") {
@@ -186,7 +186,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 50);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Game HUD layout") {
@@ -221,7 +221,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 800, 600);
-        CHECK_NOTHROW(hud.arrange(bounds));
+        CHECK_NOTHROW(hud.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Overlapping children") {
@@ -280,7 +280,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         // Arrange
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 80, 25);
-        panel.arrange(bounds);
+        panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Render
         auto canvas = render_to_canvas(panel, 80, 25);
@@ -327,6 +327,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         // Arranging should work without crashes
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 100, 100);
-        CHECK_NOTHROW(panel2.arrange(bounds));
+        CHECK_NOTHROW(panel2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 }
