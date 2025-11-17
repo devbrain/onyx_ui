@@ -87,7 +87,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
         auto child = make_fixed_panel<test_canvas_backend>(100, 200);
         scroll.add_child(std::move(child));
         [[maybe_unused]] auto size = scroll.measure(100, 100);
-        scroll.arrange({0, 0, 100, 100});
+        scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
         scroll.scroll_to(0, 50);
         CHECK(scroll_signal_count == 1);  // Signal emitted
@@ -115,8 +115,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
 
     // Scroll content
     scroll.scroll_to(0, 50);
@@ -136,8 +136,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
 
     // Scroll incrementally
     scroll.scroll_by(0, 25);
@@ -157,8 +157,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
 
     // Initially no content - scrollbar should be hidden
     [[maybe_unused]] auto size1 = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
 
     CHECK_FALSE(vscrollbar.is_visible());
 
@@ -166,7 +166,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size2 = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();  // Force visibility update
     CHECK(vscrollbar.is_visible());
@@ -183,7 +183,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(50, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();
     CHECK(vscrollbar.is_visible());  // Content height > viewport height
@@ -200,7 +200,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(50, 50);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();
     CHECK_FALSE(vscrollbar.is_visible());  // Content fits in viewport
@@ -217,7 +217,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 50);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();
     CHECK(hscrollbar.is_visible());  // Content width > viewport width
@@ -235,7 +235,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 300);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();
     CHECK(vscrollbar.is_visible());
@@ -253,7 +253,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(50, 50);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     controller.refresh();
     CHECK(vscrollbar.is_visible());  // Always visible even when content fits
@@ -273,7 +273,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Simulate scrollbar interaction
     vscrollbar.scroll_requested.emit(75);
@@ -293,7 +293,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 100);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Simulate scrollbar interaction
     hscrollbar.scroll_requested.emit(50);
@@ -313,7 +313,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Set initial scroll position
     scroll.scroll_to(25, 0);
@@ -337,7 +337,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Set initial scroll position
     scroll.scroll_to(0, 25);
@@ -362,7 +362,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(200, 300);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Update vertical
     vscrollbar.scroll_requested.emit(50);
@@ -385,7 +385,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Try to scroll beyond max
     vscrollbar.scroll_requested.emit(150);
@@ -405,7 +405,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Scroll to middle first
     scroll.scroll_to(0, 50);
@@ -428,7 +428,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 400);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Multiple scrollbar updates
     vscrollbar.scroll_requested.emit(50);
@@ -454,8 +454,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
 
     // Scroll via scrollable (simulating mouse wheel)
     scroll.scroll_by(0, 30);
@@ -483,7 +483,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 200);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Simulate scrollbar drag
     vscrollbar.scroll_requested.emit(50);
@@ -502,8 +502,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(100, 500);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
 
     // Rapid scroll sequence
     scroll.scroll_to(0, 50);
@@ -530,9 +530,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto child = make_fixed_panel<test_canvas_backend>(300, 400);
     scroll.add_child(std::move(child));
     [[maybe_unused]] auto size = scroll.measure(100, 100);
-    scroll.arrange({0, 0, 100, 100});
-    vscrollbar.arrange({0, 0, 16, 100});
-    hscrollbar.arrange({0, 0, 100, 16});
+    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    vscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 100}});
+    hscrollbar.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 16}});
 
     // Scroll from different sources
     scroll.scroll_to(50, 100);           // Direct scroll
