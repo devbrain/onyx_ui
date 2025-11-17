@@ -71,7 +71,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "modern_scroll_view -
     view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100, 100);
-    view->arrange({0, 0, 100, 100});
+    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view->scroll_to(0, 50);
 
@@ -113,7 +113,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "classic_scroll_view 
     view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100, 100);
-    view->arrange({0, 0, 100, 100});
+    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view->scroll_to(0, 50);
 
@@ -155,7 +155,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "compact_scroll_view 
     view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100, 100);
-    view->arrange({0, 0, 100, 100});
+    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view->scroll_to(0, 50);
 
@@ -195,7 +195,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "vertical_only_scroll
     view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100, 100);
-    view->arrange({0, 0, 100, 100});
+    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view->scroll_to(0, 50);
 
