@@ -47,7 +47,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         // Measure and arrange
         [[maybe_unused]] auto measured = title_bar->measure(80, 1);
 
-        title_bar->arrange({0, 0, 80, 1});
+        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
 
         // Should have 5 children (1 label + 1 spring + 3 icons)
         auto& children = title_bar->children();
@@ -99,7 +99,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto title_bar = std::make_unique<window_title_bar<Backend>>("Short", flags);
 
         [[maybe_unused]] auto measured_size = title_bar->measure(80, 1);
-        title_bar->arrange({0, 0, 80, 1});
+        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
 
         // First child should be the title label
         auto& children = title_bar->children();
@@ -122,7 +122,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto title_bar = std::make_unique<window_title_bar<Backend>>("MyApp", flags);
 
         [[maybe_unused]] auto measured_size = title_bar->measure(80, 1);
-        title_bar->arrange({0, 0, 80, 1});
+        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
 
         auto& children = title_bar->children();
         REQUIRE(children.size() == 5);  // title + spring + 3 icons
