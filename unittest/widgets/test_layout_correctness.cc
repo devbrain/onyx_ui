@@ -155,7 +155,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 500, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Verify horizontal positioning (no spacing)
         auto b1 = p1->bounds();
@@ -193,7 +193,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 500, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto b2 = p2->bounds();
@@ -228,7 +228,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 500);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto b2 = p2->bounds();
@@ -263,7 +263,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 500);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto b2 = p2->bounds();
@@ -306,7 +306,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 500, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto b2 = p2->bounds();
@@ -346,7 +346,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 500);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto b2 = p2->bounds();
@@ -393,7 +393,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto spring_bounds = spring_ptr->bounds();
@@ -439,7 +439,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto s1_bounds = spring1_ptr->bounds();
         auto p_bounds = panel_ptr->bounds();
@@ -484,7 +484,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 100);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto s1_bounds = spring1_ptr->bounds();
         auto s2_bounds = spring2_ptr->bounds();
@@ -524,7 +524,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 400);
-        box.arrange(bounds);
+        box.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto b1 = p1->bounds();
         auto spring_bounds = spring_ptr->bounds();
@@ -573,7 +573,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        dialog.arrange(bounds);
+        dialog.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Verify button row is positioned below title + spacing
         auto button_row_bounds = button_row_ptr->bounds();
@@ -606,7 +606,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 100);
-        toolbar.arrange(bounds);
+        toolbar.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto g1_bounds = g1_ptr->bounds();
         auto g2_bounds = g2_ptr->bounds();
@@ -651,7 +651,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 300);
-        CHECK_NOTHROW(form.arrange(bounds));
+        CHECK_NOTHROW(form.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
 
         CHECK(form.children().size() == 3);
     }
@@ -684,7 +684,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 50);
-        toolbar.arrange(bounds);
+        toolbar.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto left_bounds = left_ptr->bounds();
         auto right_bounds = right_ptr->bounds();
@@ -721,7 +721,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 600, 100);
-        container.arrange(bounds);
+        container.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto content_bounds = content_ptr->bounds();
 
@@ -775,7 +775,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 800, 600);
-        window.arrange(bounds);
+        window.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto h_bounds = header_ptr->bounds();
         auto c_bounds = content_ptr->bounds();
@@ -819,7 +819,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 900, 600);
-        split.arrange(bounds);
+        split.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         auto l_bounds = left_ptr->bounds();
         auto r_bounds = right_ptr->bounds();
@@ -861,6 +861,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 600, 800);
-        CHECK_NOTHROW(dashboard.arrange(bounds));
+        CHECK_NOTHROW(dashboard.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 }
