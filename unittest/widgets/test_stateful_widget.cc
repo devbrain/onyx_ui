@@ -89,7 +89,7 @@ namespace {
         // Helper methods to simulate mouse events using new API
         void simulate_mouse_enter() {
             // First set bounds so is_inside works
-            this->arrange({0, 0, 100, 50});
+            this->arrange(geometry::relative_rect<TBackend>{typename TBackend::rect_type{0, 0, 100, 50}});
             // First send mouse move outside to ensure we're not already inside
             mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
@@ -135,7 +135,7 @@ namespace {
         // Helper methods to simulate mouse events using new API
         void simulate_mouse_enter() {
             // First set bounds so is_inside works
-            this->arrange({0, 0, 100, 50});
+            this->arrange(geometry::relative_rect<TBackend>{typename TBackend::rect_type{0, 0, 100, 50}});
             // First send mouse move outside to ensure we're not already inside
             mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
@@ -563,7 +563,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
     [[maybe_unused]] auto size = widget.measure(100, 100);
     CHECK(widget.is_in_hover_state() == true);
 
-    widget.arrange({0, 0, 100, 50});
+    widget.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 50}});
     CHECK(widget.is_in_hover_state() == true);
 }
 
