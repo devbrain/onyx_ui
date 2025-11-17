@@ -759,7 +759,7 @@ TEST_SUITE("menu_integration") {
         using size_type = Backend::size_type;
         using rect_type = Backend::rect_type;
         size_type const size = bar->measure(800, 600);
-        bar->arrange(rect_type{0, 0, size.w, size.h});
+        bar->arrange(geometry::relative_rect<Backend>{rect_type{0, 0, size.w, size.h}});
 
         // Open File menu
         bar->open_menu(0);

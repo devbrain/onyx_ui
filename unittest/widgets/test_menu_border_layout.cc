@@ -66,7 +66,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
     rect_utils::set_bounds(menu_bounds, 10, 10,
                           size_utils::get_width(measured_size),
                           size_utils::get_height(measured_size));
-    test_menu->arrange(menu_bounds);
+    test_menu->arrange(geometry::relative_rect<Backend>{menu_bounds});
 
     auto menu_final_bounds = test_menu->bounds();
 
@@ -151,7 +151,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with many items
     rect_utils::set_bounds(menu_bounds, 0, 0,
                           size_utils::get_width(measured_size),
                           size_utils::get_height(measured_size));
-    test_menu->arrange(menu_bounds);
+    test_menu->arrange(geometry::relative_rect<Backend>{menu_bounds});
 
     auto menu_final_bounds = test_menu->bounds();
     int menu_bottom = rect_utils::get_y(menu_final_bounds) + rect_utils::get_height(menu_final_bounds);

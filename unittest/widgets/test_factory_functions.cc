@@ -195,7 +195,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 800, 50);
-        CHECK_NOTHROW(toolbar.arrange(bounds));
+        CHECK_NOTHROW(toolbar.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Form with vertical gaps and springs") {
@@ -224,6 +224,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 600);
-        CHECK_NOTHROW(form.arrange(bounds));
+        CHECK_NOTHROW(form.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 }

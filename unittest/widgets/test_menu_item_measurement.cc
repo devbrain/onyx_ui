@@ -117,7 +117,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         // After arrange(), the separator will fill available width
         typename Backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 100, 1);
-        sep->arrange(bounds);
+        sep->arrange(geometry::relative_rect<Backend>{bounds});
 
         auto arranged_bounds = sep->bounds();
         CHECK(rect_utils::get_width(arranged_bounds) == 100);  // Now fills available width
@@ -137,7 +137,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Text is 
 
         // Arrange with exactly the measured width
         Backend::rect_type bounds{0, 0, measured_width, 1};
-        item.arrange(bounds);
+        item.arrange(geometry::relative_rect<Backend>{bounds});
 
         // Now simulate rendering to check if text fits
         // The text "About" (5 chars) is drawn at position x+2
@@ -364,7 +364,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Measure and arrange
         auto root_size = root.measure(100, 100);
         (void)root_size;  // Measurement needed for arrange
-        root.arrange({0, 0, 100, 100});
+        root.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Get the button bounds from menu bar
         auto file_btn_bounds = menu_bar->get_menu_button_bounds(0);
@@ -413,7 +413,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Measure and arrange
         auto root_size = root->measure(80, 25);
         (void)root_size;  // Measurement needed for arrange
-        root->arrange({0, 0, 80, 25});
+        root->arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 80, 25}});
 
         // Render to canvas
         auto canvas = std::make_shared<test_canvas>(80, 25);
