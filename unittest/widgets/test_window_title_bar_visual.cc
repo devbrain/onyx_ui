@@ -30,7 +30,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         // Measure and arrange window
         (void)win->measure(40, 20);
-        win->arrange({0, 0, 40, 20});
+        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 40, 20}});
 
         // Render to canvas
         auto canvas = render_to_canvas(*win, 40, 20);
@@ -89,7 +89,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         // Measure and arrange
         (void)win->measure(30, 15);
-        win->arrange({0, 0, 30, 15});
+        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 30, 15}});
 
         // Render
         auto canvas = render_to_canvas(*win, 30, 15);
@@ -134,10 +134,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
 
         // Arrange at different positions
         (void)win1->measure(25, 10);
-        win1->arrange({0, 0, 25, 10});
+        win1->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 25, 10}});
 
         (void)win2->measure(25, 10);
-        win2->arrange({5, 5, 25, 10});
+        win2->arrange(geometry::relative_rect<Backend>{Backend::rect_type{5, 5, 25, 10}});
 
         // Render both windows to same canvas (overlapping)
         auto canvas = std::make_shared<testing::test_canvas>(40, 20);
