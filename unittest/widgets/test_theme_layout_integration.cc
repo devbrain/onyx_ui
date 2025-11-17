@@ -36,7 +36,7 @@ TEST_SUITE("Theme - Layout Integration") {
 
         // Measure/arrange with theme active
         (void)p.measure(100, 100);  // Call for side effect (layout calculation)
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         auto bounds_after = child->bounds();
 
@@ -53,7 +53,7 @@ TEST_SUITE("Theme - Layout Integration") {
         auto* child = parent.emplace_child<label>("Child");
 
         (void)parent.measure(100, 100);
-        parent.arrange({0, 0, 100, 100});
+        parent.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child should have inherited theme properties
         // (Actual theme values tested elsewhere; here we verify no layout issues)
@@ -70,19 +70,19 @@ TEST_SUITE("Theme - Layout Integration") {
         container.emplace_child<label>("Item 3");
 
         (void)container.measure(100, 100);
-        container.arrange({0, 0, 100, 100});
+        container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Store initial positions
         const auto& children = container.children();
         std::vector<typename Backend::rect_type> initial_bounds;
         for (const auto& child : children) {
-            initial_bounds.push_back(child->bounds());
+            initial_bounds.push_back(child->bounds().get());
         }
 
         // Apply theme again (simulating theme switch)
 
         (void)container.measure(100, 100);
-        container.arrange({0, 0, 100, 100});
+        container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Verify layout still correct (same positions for same theme)
         for (size_t i = 0; i < children.size(); ++i) {
@@ -101,7 +101,7 @@ TEST_SUITE("Theme - Layout Integration") {
         auto* child = p.emplace_child<label>("Content");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child coordinates are relative to parent's content area
         // Border and padding are already removed from the content rect before children are positioned
@@ -121,7 +121,7 @@ TEST_SUITE("Theme - Layout Integration") {
         auto* inner = middle->emplace_child<label>("Inner");
 
         (void)outer.measure(200, 200);
-        outer.arrange({0, 0, 200, 200});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 200}});
 
         // All widgets should have valid bounds through inheritance chain
         CHECK(rect_utils::get_width(outer.bounds()) > 0);
@@ -137,7 +137,7 @@ TEST_SUITE("Theme - Layout Integration") {
         vb.emplace_child<label>("C");
 
         (void)vb.measure(100, 100);
-        vb.arrange({0, 0, 100, 100});
+        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         const auto& children = vb.children();
         for (size_t i = 1; i < children.size(); ++i) {
@@ -160,7 +160,7 @@ TEST_SUITE("Theme - Layout Integration") {
         auto* child = gb.emplace_child<label>("Content");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child coordinates are relative to parent's content area
         // Title and border are handled by group_box; children positioned within content rect
@@ -176,13 +176,13 @@ TEST_SUITE("Theme - Layout Integration") {
 
         // Layout without theme
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Now apply theme (should invalidate and require re-layout)
 
         // Re-layout should work correctly
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Should not crash, layout should be valid
         CHECK(rect_utils::get_width(p.bounds()) == 100);
