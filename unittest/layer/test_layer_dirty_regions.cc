@@ -62,7 +62,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
     Backend::rect_type menu1_bounds;
     rect_utils::set_bounds(menu1_bounds, 10, 15, 40, 20);
     [[maybe_unused]] auto size1 = menu1_ptr->measure(40, 20);
-    menu1_ptr->arrange(menu1_bounds);
+    menu1_ptr->arrange(geometry::relative_rect<Backend>{menu1_bounds});
 
     SUBCASE("Single layer removal marks its bounds as dirty") {
         // Get dirty regions before removal
@@ -107,7 +107,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         Backend::rect_type menu2_bounds;
         rect_utils::set_bounds(menu2_bounds, 60, 15, 40, 30);
         [[maybe_unused]] auto size2 = menu2_ptr->measure(40, 30);
-        menu2_ptr->arrange(menu2_bounds);
+        menu2_ptr->arrange(geometry::relative_rect<Backend>{menu2_bounds});
 
         // Simulate menu switching: remove menu1, keep menu2
         layer_mgr->remove_layer(menu1_id);
@@ -139,7 +139,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         Backend::rect_type menu2_bounds;
         rect_utils::set_bounds(menu2_bounds, 60, 15, 40, 30);
         [[maybe_unused]] auto sz = menu2_ptr->measure(40, 30);
-        menu2_ptr->arrange(menu2_bounds);
+        menu2_ptr->arrange(geometry::relative_rect<Backend>{menu2_bounds});
 
         // Remove both menus
         layer_mgr->remove_layer(menu1_id);
@@ -197,7 +197,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates remove
     Backend::rect_type popup_bounds;
     rect_utils::set_bounds(popup_bounds, 20, 25, 30, 15);
     [[maybe_unused]] auto popup_size = popup_ptr->measure(30, 15);
-    popup_ptr->arrange(popup_bounds);
+    popup_ptr->arrange(geometry::relative_rect<Backend>{popup_bounds});
 
     // Display once (popup visible)
     ui.display();
