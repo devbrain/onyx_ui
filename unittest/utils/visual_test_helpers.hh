@@ -80,7 +80,7 @@ namespace onyxui::testing {
             // Measure and arrange widget to fill canvas
             [[maybe_unused]] auto size = widget->measure(m_width, m_height);
             rect_type bounds{0, 0, m_width, m_height};
-            widget->arrange(bounds);
+            widget->arrange(geometry::relative_rect<Backend>{bounds});
 
             // Render widget to canvas with theme
             typename Backend::renderer_type renderer(m_canvas);
