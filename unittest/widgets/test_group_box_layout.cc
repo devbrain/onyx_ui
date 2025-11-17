@@ -44,7 +44,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Test");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Group box always has border, child should be at (0,0) relative to parent's content area
         // (border offset is handled internally by group_box)
@@ -76,7 +76,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Option 1");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Title appears in border, doesn't affect content area
         // Child is at (0,0) relative to parent's content area (border offset handled internally)
@@ -109,7 +109,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Test");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child is at (0,0) relative to parent's content area
         // (border and padding offsets are handled internally by group_box)
@@ -141,7 +141,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Test");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         auto child_bounds = child->bounds();
         // Child is at (0,0) relative to parent's content area
@@ -169,7 +169,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child3 = gb.emplace_child<label>("Option 3");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // All children should start at x = 0 (relative to parent's content area)
         // (border and padding offsets are handled internally by group_box)
@@ -222,10 +222,10 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child2 = gb2.emplace_child<label>("B");
 
         (void)gb1.measure(100, 100);
-        gb1.arrange({0, 0, 100, 100});
+        gb1.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         (void)gb2.measure(100, 100);
-        gb2.arrange({0, 0, 100, 100});
+        gb2.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Both should have same layout (empty title vs no title)
         CHECK(rect_utils::get_x(child1->bounds()) == rect_utils::get_x(child2->bounds()));
@@ -244,7 +244,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Test");
 
         (void)gb.measure(200, 150);
-        gb.arrange({0, 0, 200, 150});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 150}});
 
         auto child_bounds = child->bounds();
 
@@ -276,10 +276,10 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child2 = gb2.emplace_child<label>("B");
 
         (void)gb1.measure(100, 100);
-        gb1.arrange({0, 0, 100, 100});
+        gb1.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         (void)gb2.measure(100, 100);
-        gb2.arrange({0, 0, 100, 100});
+        gb2.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Different border styles should have same layout
         CHECK(rect_utils::get_x(child1->bounds()) == rect_utils::get_x(child2->bounds()));
@@ -299,7 +299,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb.emplace_child<label>("Child");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child position should be same regardless of title length
         // Child is at (0,0) relative to parent's content area (border offset handled internally)
@@ -324,7 +324,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto* child = gb->emplace_child<label>("Nested");
 
         (void)outer.measure(100, 100);
-        outer.arrange({0, 0, 100, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Group box is at (0,0) relative to panel's content area
         // (panel's border and padding offsets are handled internally by panel)
