@@ -47,7 +47,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     setup_scrollbar_with_content(sb, orientation::vertical, 500, 100, 0);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Render to canvas
     auto canvas = render_to_canvas(sb, 80, 200);
@@ -100,7 +100,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Scroll at top") {
         setup_scrollbar_with_content(sb, orientation::vertical, 400, 100, 0);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_y_top = rect_utils::get_y(thumb);
@@ -112,7 +112,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Scroll at middle") {
         setup_scrollbar_with_content(sb, orientation::vertical, 400, 100, 150);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_y_mid = rect_utils::get_y(thumb);
@@ -125,7 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Scroll at bottom") {
         setup_scrollbar_with_content(sb, orientation::vertical, 400, 100, 300);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_y_bot = rect_utils::get_y(thumb);
@@ -144,7 +144,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     setup_scrollbar_with_content(sb, orientation::horizontal, 500, 100, 0);
 
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     // Render to canvas
     auto canvas = render_to_canvas(sb, 200, 80);
@@ -180,7 +180,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Small viewport (25%) = small thumb") {
         setup_scrollbar_with_content(sb, orientation::vertical, 400, 100, 0);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_h = rect_utils::get_height(thumb);
@@ -194,7 +194,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Large viewport (75%) = large thumb") {
         setup_scrollbar_with_content(sb, orientation::vertical, 200, 150, 0);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_h = rect_utils::get_height(thumb);
@@ -211,7 +211,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     setup_scrollbar_with_content(sb, orientation::vertical, 100, 200, 0);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
 
@@ -230,7 +230,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
 
     // Very small height
     [[maybe_unused]] auto size = sb.measure(16, 40);
-    sb.arrange({0, 0, 16, 40});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 40}});
 
     auto canvas = render_to_canvas(sb, 80, 40);
 
@@ -254,7 +254,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Huge content (1:100 ratio)") {
         setup_scrollbar_with_content(sb, orientation::vertical, 10000, 100, 0);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_h = rect_utils::get_height(thumb);
@@ -267,7 +267,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
     SUBCASE("Nearly equal content (95% fit)") {
         setup_scrollbar_with_content(sb, orientation::vertical, 210, 200, 0);
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         int thumb_h = rect_utils::get_height(thumb);
@@ -288,7 +288,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
         setup_scrollbar_with_content(sb, orientation::vertical, 500, 100, 0);
 
         [[maybe_unused]] auto size = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb = sb.get_thumb_bounds();
         CHECK(rect_utils::get_height(thumb) > rect_utils::get_width(thumb));
@@ -299,7 +299,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Visual: 
         setup_scrollbar_with_content(sb, orientation::horizontal, 500, 100, 0);
 
         [[maybe_unused]] auto size = sb.measure(200, 16);
-        sb.arrange({0, 0, 200, 16});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
         auto thumb = sb.get_thumb_bounds();
         CHECK(rect_utils::get_width(thumb) > rect_utils::get_height(thumb));
