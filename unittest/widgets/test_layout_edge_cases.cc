@@ -46,7 +46,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Measure with zero width
         (void)p.measure(0, 100);
-        p.arrange({0, 0, 0, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 100}});
 
         // Should not crash, child should have zero or minimal width
         auto child_bounds = child->bounds();
@@ -62,7 +62,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Measure with zero height
         (void)p.measure(100, 0);
-        p.arrange({0, 0, 100, 0});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 0}});
 
         // Should not crash, child should have zero or minimal height
         auto child_bounds = child->bounds();
@@ -78,7 +78,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Measure with zero size
         (void)p.measure(0, 0);
-        p.arrange({0, 0, 0, 0});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
 
         // Should not crash
         auto child_bounds = child->bounds();
@@ -96,7 +96,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Measure with size smaller than border (border = 2px total)
         (void)p.measure(1, 1);
-        p.arrange({0, 0, 1, 1});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1, 1}});
 
         // Content area should be clamped to zero
         auto child_bounds = child->bounds();
@@ -114,7 +114,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Small available space
         (void)p.measure(50, 50);
-        p.arrange({0, 0, 50, 50});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 50, 50}});
 
         // Content area should be clamped to non-negative
         auto child_bounds = child->bounds();
@@ -135,7 +135,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Padding: 100px per side
         // Should clamp to zero
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         auto child_bounds = child->bounds();
         CHECK(rect_utils::get_width(child_bounds) >= 0);
@@ -152,7 +152,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Very large but not overflow-inducing
         const int large_size = 100000;
         (void)p.measure(large_size, large_size);
-        p.arrange({0, 0, large_size, large_size});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, large_size, large_size}});
 
         // Should handle large sizes
         auto child_bounds = child->bounds();
@@ -173,7 +173,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Should not crash from overflow
         (void)p.measure(1000, 1000);
-        p.arrange({0, 0, 1000, 1000});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1000, 1000}});
 
         // Content area should be safely clamped
         auto child_bounds = child->bounds();
@@ -187,7 +187,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // No children
         (void)vb.measure(0, 0);
-        vb.arrange({0, 0, 0, 0});
+        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
 
         // Should not crash
         auto bounds = vb.bounds();
@@ -204,7 +204,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         vb.emplace_child<label>("C");
 
         (void)vb.measure(0, 0);
-        vb.arrange({0, 0, 0, 0});
+        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
 
         // Should not crash, children positioned at zero
         for (const auto& child : vb.children()) {
@@ -225,7 +225,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Width should be clamped to zero
         auto child_bounds = child->bounds();
@@ -248,7 +248,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = gb.emplace_child<label>("Test");
 
         (void)gb.measure(100, 100);
-        gb.arrange({0, 0, 100, 100});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Content area calculation:
         // Width: 100 - border(2) - padding(10000) should clamp to 0
@@ -268,7 +268,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Border takes 2px total, content area = 0
         (void)p.measure(2, 2);
-        p.arrange({0, 0, 2, 2});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 2, 2}});
 
         auto child_bounds = child->bounds();
         // Content area should be zero
@@ -287,7 +287,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Zero space available
         (void)vb.measure(0, 0);
-        vb.arrange({0, 0, 0, 0});
+        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
 
         // Should not crash
         for (const auto& child : vb.children()) {
@@ -310,7 +310,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Measure and arrange should use safe math
         (void)p.measure(1000, 1000);
-        p.arrange({0, 0, 1000, 1000});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1000, 1000}});
 
         // Should not crash or produce negative values
         auto child_bounds = child->bounds();
