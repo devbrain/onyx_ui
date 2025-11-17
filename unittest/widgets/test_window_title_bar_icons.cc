@@ -320,14 +320,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Create a parent container to maximize within
         auto parent = std::make_unique<panel<Backend>>();
-        typename Backend::rect_type parent_bounds;
-        rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
-        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
 
-        // Add window to parent
+        // Add window to parent FIRST
         parent->add_child(std::move(win));
         auto* win_ptr = dynamic_cast<window<Backend>*>(parent->children()[0].get());
         REQUIRE(win_ptr != nullptr);
+
+        // Now measure and arrange parent (which will layout its children)
+        typename Backend::rect_type parent_bounds;
+        rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
+        [[maybe_unused]] auto parent_size = parent->measure(80, 25);
+        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
 
         // Position window at (10, 5) with size 30x10
         typename Backend::rect_type win_bounds;
@@ -401,14 +404,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Create parent
         auto parent = std::make_unique<panel<Backend>>();
-        typename Backend::rect_type parent_bounds;
-        rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
-        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
 
-        // Add window
+        // Add window FIRST
         parent->add_child(std::move(win));
         auto* win_ptr = dynamic_cast<window<Backend>*>(parent->children()[0].get());
         REQUIRE(win_ptr != nullptr);
+
+        // Now measure and arrange parent
+        typename Backend::rect_type parent_bounds;
+        rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
+        [[maybe_unused]] auto parent_size = parent->measure(80, 25);
+        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
 
         // Position window
         typename Backend::rect_type win_bounds;
