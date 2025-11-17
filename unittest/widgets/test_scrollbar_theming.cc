@@ -56,7 +56,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: U
 
     // Measure and arrange
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Render to canvas - should use theme colors
     auto canvas = render_to_canvas(sb, 80, 200);
@@ -85,7 +85,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: T
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Get layout to check track bounds
     auto const* themes = ui_services<test_canvas_backend>::themes();
@@ -111,7 +111,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: T
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto const* themes = ui_services<test_canvas_backend>::themes();
     auto const* theme = themes->get_current_theme();
@@ -137,7 +137,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: H
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Simulate mouse move over thumb
     auto thumb = sb.get_thumb_bounds();
@@ -174,7 +174,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: P
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Simulate mouse press on thumb
     auto thumb = sb.get_thumb_bounds();
@@ -210,7 +210,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: M
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Simulate hover over thumb
     auto thumb = sb.get_thumb_bounds();
@@ -244,7 +244,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: D
     sb.set_enabled(false);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Render - should use disabled style
     auto canvas = render_to_canvas(sb, 80, 200);
@@ -288,7 +288,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: H
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     int thumb_h = rect_utils::get_height(thumb);
@@ -322,7 +322,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Get layout to check arrow bounds
     auto const* themes = ui_services<test_canvas_backend>::themes();
@@ -347,7 +347,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     // Check if we have arrows
     auto const* themes = ui_services<test_canvas_backend>::themes();
@@ -389,7 +389,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto const* themes = ui_services<test_canvas_backend>::themes();
     auto const* theme = themes->get_current_theme();
@@ -439,7 +439,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: C
     CHECK(size_utils::get_width(size) == 16);  // Theme width
 
     // Arrange
-    sb.arrange({0, 0, 16, 300});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 300}});
 
     // Get thumb bounds
     auto thumb = sb.get_thumb_bounds();
