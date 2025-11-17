@@ -81,7 +81,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Scroll
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Scroll via view
     view.scroll_to(0, 50);
@@ -154,7 +154,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
 
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view.scroll_to(0, 50);
 
@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
 
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     view.scroll_by(0, 25);
     view.scroll_by(0, 25);
@@ -184,7 +184,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
     view.add_child(std::move(child));
 
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Child fits, should remain at 0,0
     view.scroll_into_view(child_ptr);
@@ -265,7 +265,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Config
     view.add_child(make_fixed_panel<test_canvas_backend>(50, 50));
 
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Policy should still be set
     auto policy = view.content()->get_scrollbar_visibility_policy();
@@ -341,7 +341,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Comple
 
     // Measure and arrange
     [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange({0, 0, 100, 100});
+    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
 
     // Scroll via view
     view.scroll_to(0, 50);
