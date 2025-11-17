@@ -148,7 +148,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Thumb is
     scrollbar<test_canvas_backend> sb;
 
     [[maybe_unused]] auto size = sb.measure(100, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // No scroll info = no content = zero thumb
@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Child wi
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(1, 100);
-    sb.arrange({0, 0, 1, 100});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 1, 100}});
 
     // Verify thumb bounds are calculated (child widget positioning)
     auto thumb = sb.get_thumb_bounds();
@@ -190,7 +190,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     // Initial measure and arrange with default scroll_info (all zeros)
     [[maybe_unused]] auto size = sb.measure(1, 100);
-    sb.arrange({0, 0, 1, 100});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 1, 100}});
 
     // Thumb should be zero-sized initially (no scrolling needed)
     auto thumb_before = sb.get_thumb_bounds();
@@ -231,7 +231,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     // Now measure and arrange (this is when scrollbar gets its bounds)
     [[maybe_unused]] auto size = sb.measure(1, 100);
-    sb.arrange({0, 0, 1, 100});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 1, 100}});
 
     // BUG: Thumb should have non-zero bounds after arrange!
     // Without fix: thumb is zero-sized because arrange uses stale scroll_info
@@ -257,7 +257,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     // Measure and arrange with WIDTH=1 (like real scrollbar)
     [[maybe_unused]] auto size = sb.measure(1, 100);
-    sb.arrange({0, 0, 1, 100});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 1, 100}});
 
     // Check thumb bounds - SHOULD BE NON-ZERO
     auto thumb_bounds = sb.get_thumb_bounds();
@@ -310,7 +310,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Vertical
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Thumb size = (viewport_h / content_h) * track_h = (200/400) * 200 = 100
@@ -331,7 +331,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Vertical
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Thumb size = 100 (50% of track)
@@ -352,7 +352,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Vertical
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // At max scroll, thumb at bottom of track
@@ -371,7 +371,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Vertical
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Content fits - no scrolling needed, thumb should be zero height
@@ -390,7 +390,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Vertical
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Calculated thumb size = (200/20000) * 200 = 2 pixels
@@ -414,7 +414,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Horizont
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     auto thumb = sb.get_thumb_bounds();
     // Thumb size = (viewport_w / content_w) * track_w = (200/400) * 200 = 100
@@ -435,7 +435,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Horizont
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     auto thumb = sb.get_thumb_bounds();
     // At 50% scroll, thumb at 50% of available space = 50
@@ -454,7 +454,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Horizont
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     auto thumb = sb.get_thumb_bounds();
     // At max scroll, thumb at right of track
@@ -473,7 +473,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Horizont
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     auto thumb = sb.get_thumb_bounds();
     // Content fits - no scrolling needed, thumb should be zero width
@@ -495,7 +495,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Zero con
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Zero content = zero thumb
@@ -514,7 +514,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Zero vie
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Zero viewport = can't calculate meaningful thumb
@@ -533,7 +533,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Zero tra
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 0);
-    sb.arrange({0, 0, 16, 0});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 0}});
 
     auto thumb = sb.get_thumb_bounds();
     // Zero track = zero thumb
@@ -551,7 +551,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Very lar
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Very large content should still enforce minimum thumb size
@@ -572,7 +572,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Scroll o
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb = sb.get_thumb_bounds();
     // Thumb should still be calculated (clamped to track bounds)
@@ -594,14 +594,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Content 
 
     sb.set_scroll_info(info1);
     [[maybe_unused]] auto size = sb.measure(16, 150);
-    sb.arrange({0, 0, 16, 150});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 150}});
 
     auto thumb1 = sb.get_thumb_bounds();
     int height1 = rect_utils::get_height(thumb1);
 
     // Change content size (affects thumb size)
     sb.set_scroll_info(info2);
-    sb.arrange({0, 0, 16, 150});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 150}});
 
     auto thumb2 = sb.get_thumb_bounds();
     int height2 = rect_utils::get_height(thumb2);
@@ -618,14 +618,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Viewport
 
     sb.set_scroll_info(info1);
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb1 = sb.get_thumb_bounds();
     int height1 = rect_utils::get_height(thumb1);
 
     // Change viewport size (affects thumb size)
     sb.set_scroll_info(info2);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb2 = sb.get_thumb_bounds();
     int height2 = rect_utils::get_height(thumb2);
@@ -643,21 +643,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Scroll p
 
     sb.set_scroll_info(info1);
     [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb1 = sb.get_thumb_bounds();
     CHECK(rect_utils::get_y(thumb1) == 0);  // At top
 
     // Scroll to middle
     sb.set_scroll_info(info2);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb2 = sb.get_thumb_bounds();
     CHECK(rect_utils::get_y(thumb2) == 50);  // At middle
 
     // Scroll to bottom
     sb.set_scroll_info(info3);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb3 = sb.get_thumb_bounds();
     CHECK(rect_utils::get_y(thumb3) == 100);  // At bottom
@@ -678,7 +678,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Switch o
     sb.set_scroll_info(info);
 
     [[maybe_unused]] auto size_v = sb.measure(16, 200);
-    sb.arrange({0, 0, 16, 200});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
     auto thumb_v = sb.get_thumb_bounds();
     // Vertical: uses Y offset (100), thumb positioned proportionally
@@ -688,7 +688,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Switch o
     sb.set_orientation(orientation::horizontal);
 
     [[maybe_unused]] auto size_h = sb.measure(200, 16);
-    sb.arrange({0, 0, 200, 16});
+    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
     auto thumb_h = sb.get_thumb_bounds();
     // Horizontal: uses X offset (50), thumb positioned proportionally
@@ -708,14 +708,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Multiple
     for (int i = 0; i < 3; ++i) {
         sb.set_orientation(orientation::horizontal);
         [[maybe_unused]] auto size_h = sb.measure(200, 16);
-        sb.arrange({0, 0, 200, 16});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
 
         auto thumb_h = sb.get_thumb_bounds();
         CHECK(rect_utils::get_x(thumb_h) == 50);  // Consistent horizontal positioning
 
         sb.set_orientation(orientation::vertical);
         [[maybe_unused]] auto size_v = sb.measure(16, 200);
-        sb.arrange({0, 0, 16, 200});
+        sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
 
         auto thumb_v = sb.get_thumb_bounds();
         CHECK(rect_utils::get_y(thumb_v) == 50);  // Consistent vertical positioning
