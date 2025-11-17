@@ -28,7 +28,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         // Small, controlled size
         (void)win->measure(20, 8);
-        win->arrange({0, 0, 20, 8});
+        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 20, 8}});
 
         // Render to exact canvas size
         auto canvas = render_to_canvas(*win, 20, 8);
@@ -71,7 +71,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
 
         // Measure and arrange at offset position (10, 5)
         (void)win->measure(20, 6);
-        win->arrange({10, 5, 20, 6});
+        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{10, 5, 20, 6}});
 
         // Render WITHOUT re-arranging
         auto* themes_registry = ui_services<Backend>::themes();
