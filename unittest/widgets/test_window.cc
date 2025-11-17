@@ -892,7 +892,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize be
 
     // Arrange parent to 80x25
     [[maybe_unused]] auto measured = parent->measure(80, 25);
-    parent->arrange({0, 0, 80, 25});
+    parent->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     // Window starts small
     win->set_size(20, 10);

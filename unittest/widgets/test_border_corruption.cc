@@ -99,7 +99,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
 
         // Measure and arrange
         [[maybe_unused]] auto measured_size = text_view_widget->measure(200, 50);
-        text_view_widget->arrange({0, 0, 200, 10});  // Constrained to 10 rows
+        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 10}});  // Constrained to 10 rows
 
         // Render to canvas
         auto canvas = render_to_canvas(*text_view_widget, 200, 10);
@@ -304,7 +304,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // Need much more height than original 32 to accommodate all widgets without compression
         // Complex layout with multiple buttons, labels, panel, and text_view requires ~80 lines
         [[maybe_unused]] auto root_size = root.measure(240, 80);
-        root.arrange({0, 0, 240, 80});
+        root.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 240, 80}});
 
         // Render to canvas with sufficient height
         auto canvas = render_to_canvas(root, 240, 80);

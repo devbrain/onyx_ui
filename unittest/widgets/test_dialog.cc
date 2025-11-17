@@ -537,7 +537,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         CHECK(size.h > 0);
 
         // Arrange
-        dlg.arrange({0, 0, 60, 20});
+        dlg.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 60, 20}});
 
         // Render
         auto canvas = render_to_canvas(dlg, 60, 20);
@@ -569,7 +569,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         CHECK(size.h > 0);
 
         // Arrange
-        dlg.arrange({5, 5, 70, 22});
+        dlg.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{5, 5, 70, 22}});
 
         // Render
         auto canvas = render_to_canvas(dlg, 80, 30);  // Larger canvas to see full dialog
@@ -599,7 +599,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         CHECK(size.h > 0);
 
         // Arrange
-        dlg->arrange({0, 0, 50, 15});
+        dlg->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 50, 15}});
 
         // Render
         auto canvas = render_to_canvas(*dlg, 50, 15);
