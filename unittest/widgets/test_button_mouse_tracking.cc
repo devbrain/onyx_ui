@@ -48,7 +48,7 @@ namespace {
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse tracking and state management") {
     SUBCASE("Press then drag away - visual state should persist if pressed") {
         test_button<Backend> btn("Test");
-        btn.arrange({0, 0, 100, 20});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r{0, 0, 100, 20}; btn.arrange(geometry::relative_rect<test_canvas_backend>{r});  // Set bounds for hit testing
 
         // Initially button is in normal state
         CHECK(btn.is_visually_normal());
@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse track
 
     SUBCASE("Hover then leave - should return to normal if not pressed") {
         test_button<Backend> btn("Test");
-        btn.arrange({0, 0, 100, 20});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r{0, 0, 100, 20}; btn.arrange(geometry::relative_rect<test_canvas_backend>{r});  // Set bounds for hit testing
 
         // Initially normal
         CHECK(btn.is_visually_normal());
@@ -96,7 +96,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse track
 
     SUBCASE("Press, release inside - state should return to normal") {
         test_button<Backend> btn("Test");
-        btn.arrange({0, 0, 100, 20});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r{0, 0, 100, 20}; btn.arrange(geometry::relative_rect<test_canvas_backend>{r});  // Set bounds for hit testing
 
         // Initially normal
         CHECK(btn.is_visually_normal());
@@ -115,7 +115,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse track
 
     SUBCASE("Press, release while hovering - should return to HOVER state (Bug Reproduction)") {
         test_button<Backend> btn("Test");
-        btn.arrange({0, 0, 100, 20});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r{0, 0, 100, 20}; btn.arrange(geometry::relative_rect<test_canvas_backend>{r});  // Set bounds for hit testing
 
         // Initially normal
         CHECK(btn.is_visually_normal());
@@ -150,8 +150,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse track
     SUBCASE("Multiple buttons - drag away from one, press another - states should be independent") {
         test_button<Backend> btn1("Button 1");
         test_button<Backend> btn2("Button 2");
-        btn1.arrange({0, 0, 100, 20});  // Set bounds for hit testing
-        btn2.arrange({0, 30, 100, 20});  // Set bounds below btn1
+        test_canvas_backend::rect_type r1{0, 0, 100, 20}; btn1.arrange(geometry::relative_rect<test_canvas_backend>{r1});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r2{0, 30, 100, 20}; btn2.arrange(geometry::relative_rect<test_canvas_backend>{r2});  // Set bounds below btn1
 
         // Press on button 1
         simulate_mouse_press(btn1, 50, 10);
@@ -190,7 +190,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Mouse track
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hovered() returns false after mouse up") {
     SUBCASE("Mouse enter, press, release - is_hovered() should stay true") {
         test_button<Backend> btn("Test");
-        btn.arrange({0, 0, 100, 20});  // Set bounds for hit testing
+        test_canvas_backend::rect_type r{0, 0, 100, 20}; btn.arrange(geometry::relative_rect<test_canvas_backend>{r});  // Set bounds for hit testing
 
         // Simulate proper mouse tracking sequence
         // 1. Mouse enters button
@@ -225,7 +225,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hov
         // Position button at specific location
         auto size = btn.measure(100, 20);
         (void)size;  // Measurement needed for arrange
-        btn.arrange(Backend::rect_type{10, 10, 100, 20});
+        btn.arrange(geometry::relative_rect<Backend>{Backend::rect_type{10, 10, 100, 20}});
 
         // === REAL EVENT SEQUENCE FROM DEMO ===
 
@@ -267,11 +267,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Button - Bug: is_hov
         // Position buttons
         auto size1 = btn1.measure(100, 20);
         (void)size1;  // Measurement needed for arrange
-        btn1.arrange(Backend::rect_type{10, 10, 100, 20});
+        btn1.arrange(geometry::relative_rect<Backend>{Backend::rect_type{10, 10, 100, 20}});
 
         auto size2 = btn2.measure(100, 20);
         (void)size2;  // Measurement needed for arrange
-        btn2.arrange(Backend::rect_type{10, 40, 100, 20});  // Below btn1
+        btn2.arrange(geometry::relative_rect<Backend>{Backend::rect_type{10, 40, 100, 20}});  // Below btn1
 
         // === Click button 1 ===
 
