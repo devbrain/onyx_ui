@@ -103,7 +103,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(g.arrange(bounds));
+        CHECK_NOTHROW(g.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Cell spanning") {
@@ -171,7 +171,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         // Arrange
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 80, 25);
-        g.arrange(bounds);
+        g.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Render
         auto canvas = render_to_canvas(g, 80, 25);
@@ -223,6 +223,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         // Arranging should work without crashes
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 100, 100);
-        CHECK_NOTHROW(g2.arrange(bounds));
+        CHECK_NOTHROW(g2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 }
