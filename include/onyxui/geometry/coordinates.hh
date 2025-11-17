@@ -129,9 +129,6 @@ struct strong_rect {
     [[nodiscard]] constexpr const underlying_type& get() const { return value; }
     [[nodiscard]] constexpr underlying_type& get() { return value; }
 
-    [[nodiscard]] constexpr const underlying_type& operator -> () const { return value; }
-    [[nodiscard]] constexpr underlying_type& operator -> () { return value; }
-
     // No implicit conversions between coordinate systems!
     template<typename OtherTag>
     strong_rect(const strong_rect<Backend, OtherTag>&) = delete;

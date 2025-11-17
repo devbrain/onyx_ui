@@ -134,18 +134,18 @@ TEST_SUITE("layout_composition") {
 
         // Verify column 1
         auto c1 = container->child_at(0);
-        CHECK(c1->bounds()->x == 0);
-        CHECK(c1->bounds()->w == 150);
-        CHECK(c1->child_at(0)->bounds().y == 0);
-        CHECK(c1->child_at(1)->bounds().y == 45);  // 40 + 5
-        CHECK(c1->child_at(2)->bounds().y == 90);  // 40 + 5 + 40 + 5
+        CHECK(c1->bounds().get().x == 0);
+        CHECK(c1->bounds().get().w == 150);
+        CHECK(c1->child_at(0)->bounds().get().y == 0);
+        CHECK(c1->child_at(1)->bounds().get().y == 45);  // 40 + 5
+        CHECK(c1->child_at(2)->bounds().get().y == 90);  // 40 + 5 + 40 + 5
 
         // Verify column 2 (should expand to fill remaining space)
         auto c2 = container->child_at(1);
-        CHECK(c2->bounds().x == 165);  // 150 + 15
-        CHECK(c2->bounds().w == 235);  // 400 - 150 - 15
-        CHECK(c2->child_at(0)->bounds().y == 0);
-        CHECK(c2->child_at(1)->bounds().y == 45);
+        CHECK(c2->bounds().get().x == 165);  // 150 + 15
+        CHECK(c2->bounds().get().w == 235);  // 400 - 150 - 15
+        CHECK(c2->child_at(0)->bounds().get().y == 0);
+        CHECK(c2->child_at(1)->bounds().get().y == 45);
     }
 
     /**
@@ -180,31 +180,31 @@ TEST_SUITE("layout_composition") {
         auto measured = dashboard->measure(500, 600);
         CHECK(measured.w <= 500);
         CHECK(measured.h > 0);
-        dashboard->arrange({0, 0, 500, 600});
+        dashboard->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 600));
 
         // Verify header
         auto hdr = dashboard->child_at(0);
-        CHECK(hdr->bounds().y == 0);
-        CHECK(hdr->bounds().h == 60);
+        CHECK(hdr->bounds().get().y == 0);
+        CHECK(hdr->bounds().get().h == 60);
 
         // Verify grid positioning
         auto g = dashboard->child_at(1);
-        CHECK(g->bounds().y == 80);  // 60 + 20 spacing
-        CHECK(g->bounds().w == 500);
+        CHECK(g->bounds().get().y == 80);  // 60 + 20 spacing
+        CHECK(g->bounds().get().w == 500);
 
         // Verify grid has all 4 children arranged
         CHECK(g->child_count() == 4);
         // Verify all children have valid heights (expand width may be 0 in measure)
-        CHECK(g->child_at(0)->bounds().h == 100);
-        CHECK(g->child_at(1)->bounds().h == 100);
-        CHECK(g->child_at(2)->bounds().h == 100);
-        CHECK(g->child_at(3)->bounds().h == 100);
+        CHECK(g->child_at(0)->bounds().get().h == 100);
+        CHECK(g->child_at(1)->bounds().get().h == 100);
+        CHECK(g->child_at(2)->bounds().get().h == 100);
+        CHECK(g->child_at(3)->bounds().get().h == 100);
 
         // Verify grid structure - should be in 2x2 arrangement
-        CHECK(g->child_at(0)->bounds().y == g->child_at(1)->bounds().y);  // Row 1
-        CHECK(g->child_at(2)->bounds().y == g->child_at(3)->bounds().y);  // Row 2
-        CHECK(g->child_at(0)->bounds().x == g->child_at(2)->bounds().x);  // Col 1
-        CHECK(g->child_at(1)->bounds().x == g->child_at(3)->bounds().x);  // Col 2
+        CHECK(g->child_at(0)->bounds().get().y == g->child_at(1)->bounds().get().y);  // Row 1
+        CHECK(g->child_at(2)->bounds().get().y == g->child_at(3)->bounds().get().y);  // Row 2
+        CHECK(g->child_at(0)->bounds().get().x == g->child_at(2)->bounds().get().x);  // Col 1
+        CHECK(g->child_at(1)->bounds().get().x == g->child_at(3)->bounds().get().x);  // Col 2
     }
 
     /**
@@ -244,21 +244,21 @@ TEST_SUITE("layout_composition") {
         CHECK(measured.w >= 160);  // At least 2 columns worth
         CHECK(measured.h == 55);  // 20 + 5 + 30
 
-        form->arrange({0, 0, 400, 300});
+        form->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 300));
 
         // Verify field1 (cell 0,0)
         auto f1 = form->child_at(0);
-        CHECK(f1->bounds().x == 0);
-        CHECK(f1->bounds().y == 0);
-        CHECK(f1->child_at(0)->bounds().y == 0);  // label
-        CHECK(f1->child_at(1)->bounds().y == 25); // input: 20 + 5
+        CHECK(f1->bounds().get().x == 0);
+        CHECK(f1->bounds().get().y == 0);
+        CHECK(f1->child_at(0)->bounds().get().y == 0);  // label
+        CHECK(f1->child_at(1)->bounds().get().y == 25); // input: 20 + 5
 
         // Verify field2 (cell 1,0) - auto-assigned to next column
         auto f2 = form->child_at(1);
-        CHECK(f2->bounds().x > 80);  // Should be in second column
-        CHECK(f2->bounds().y == 0);
-        CHECK(f2->child_at(0)->bounds().y == 0);
-        CHECK(f2->child_at(1)->bounds().y == 25);
+        CHECK(f2->bounds().get().x > 80);  // Should be in second column
+        CHECK(f2->bounds().get().y == 0);
+        CHECK(f2->child_at(0)->bounds().get().y == 0);
+        CHECK(f2->child_at(1)->bounds().get().y == 25);
     }
 
     /**
@@ -307,34 +307,34 @@ TEST_SUITE("layout_composition") {
         auto measured = window->measure(600, 400);
         CHECK(measured.w <= 600);
         CHECK(measured.h <= 400);
-        window->arrange({0, 0, 600, 400});
+        window->arrange(testing::make_relative_rect<TestBackend>(0, 0, 600, 400));
 
         // Verify toolbar (anchored at top_center)
         auto tb = window->child_at(0);
         // Toolbar width: 3*60 + 2*5 = 190
         // Centered: (600 - 190) / 2 = 205
-        CHECK(tb->bounds().x == 205);
-        CHECK(tb->bounds().y == 0);
-        CHECK(tb->bounds().h == 40);
+        CHECK(tb->bounds().get().x == 205);
+        CHECK(tb->bounds().get().y == 0);
+        CHECK(tb->bounds().get().h == 40);
 
         // Verify toolbar's buttons (coordinates are relative to toolbar parent)
-        CHECK(tb->child_at(0)->bounds().x == 0);
-        CHECK(tb->child_at(1)->bounds().x == 65);  // 60 + 5
-        CHECK(tb->child_at(2)->bounds().x == 130);  // 60 + 5 + 60 + 5
+        CHECK(tb->child_at(0)->bounds().get().x == 0);
+        CHECK(tb->child_at(1)->bounds().get().x == 65);  // 60 + 5
+        CHECK(tb->child_at(2)->bounds().get().x == 130);  // 60 + 5 + 60 + 5
 
         // Verify sidebar (anchored at center_left)
         auto sb = window->child_at(1);
-        CHECK(sb->bounds().x == 0);
+        CHECK(sb->bounds().get().x == 0);
         // Sidebar height: 3*35 + 2*3 = 111
         // Centered: (400 - 111) / 2 = 144 (or 145)
-        CHECK(sb->bounds().y >= 144);
-        CHECK(sb->bounds().y <= 145);
-        CHECK(sb->bounds().w == 100);
+        CHECK(sb->bounds().get().y >= 144);
+        CHECK(sb->bounds().get().y <= 145);
+        CHECK(sb->bounds().get().w == 100);
 
         // Verify sidebar's items
-        CHECK(sb->child_at(0)->bounds().h == 35);
-        CHECK(sb->child_at(1)->bounds().h == 35);
-        CHECK(sb->child_at(2)->bounds().h == 35);
+        CHECK(sb->child_at(0)->bounds().get().h == 35);
+        CHECK(sb->child_at(1)->bounds().get().h == 35);
+        CHECK(sb->child_at(2)->bounds().get().h == 35);
     }
 
     /**
@@ -381,30 +381,30 @@ TEST_SUITE("layout_composition") {
         auto measured = canvas->measure(500, 400);
         CHECK(measured.w <= 500);
         CHECK(measured.h <= 400);
-        canvas->arrange({0, 0, 500, 400});
+        canvas->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 400));
 
         // Verify panel1
         auto p1 = canvas->child_at(0);
-        CHECK(p1->bounds().x == 50);
-        CHECK(p1->bounds().y == 50);
-        CHECK(p1->bounds().w == 100);  // Explicit width
-        CHECK(p1->bounds().h == 65);  // 2*30 + 5 spacing
+        CHECK(p1->bounds().get().x == 50);
+        CHECK(p1->bounds().get().y == 50);
+        CHECK(p1->bounds().get().w == 100);  // Explicit width
+        CHECK(p1->bounds().get().h == 65);  // 2*30 + 5 spacing
 
         // Verify panel1's children (coordinates are relative to panel1 parent)
-        CHECK(p1->child_at(0)->bounds().y == 0);
-        CHECK(p1->child_at(1)->bounds().y == 35);  // 30 + 5
+        CHECK(p1->child_at(0)->bounds().get().y == 0);
+        CHECK(p1->child_at(1)->bounds().get().y == 35);  // 30 + 5
 
         // Verify panel2
         auto p2 = canvas->child_at(1);
-        CHECK(p2->bounds().x == 200);
-        CHECK(p2->bounds().y == 150);
-        CHECK(p2->bounds().w == 130);  // 3*40 + 2*5
-        CHECK(p2->bounds().h == 25);
+        CHECK(p2->bounds().get().x == 200);
+        CHECK(p2->bounds().get().y == 150);
+        CHECK(p2->bounds().get().w == 130);  // 3*40 + 2*5
+        CHECK(p2->bounds().get().h == 25);
 
         // Verify panel2's buttons (coordinates are relative to panel2 parent)
-        CHECK(p2->child_at(0)->bounds().x == 0);
-        CHECK(p2->child_at(1)->bounds().x == 45);  // 40 + 5
-        CHECK(p2->child_at(2)->bounds().x == 90);  // 40 + 5 + 40 + 5
+        CHECK(p2->child_at(0)->bounds().get().x == 0);
+        CHECK(p2->child_at(1)->bounds().get().x == 45);  // 40 + 5
+        CHECK(p2->child_at(2)->bounds().get().x == 90);  // 40 + 5 + 40 + 5
     }
 
     /**
@@ -442,12 +442,12 @@ TEST_SUITE("layout_composition") {
         auto measured = root->measure(300, 200);
         CHECK(measured.w <= 300);
         CHECK(measured.h > 0);
-        root->arrange({0, 0, 300, 200});
+        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
 
         // Verify level 1 (root)
         CHECK(root->child_count() == 1);
         auto l2 = root->child_at(0);
-        CHECK(l2->bounds().w == 300);
+        CHECK(l2->bounds().get().w == 300);
 
         // Verify level 2 (horizontal row)
         CHECK(l2->child_count() == 2);
@@ -455,20 +455,20 @@ TEST_SUITE("layout_composition") {
         auto col2 = l2->child_at(1);
 
         // Columns should expand equally
-        CHECK(col1->bounds().w == 145);  // (300-10)/2, first gets extra
-        CHECK(col2->bounds().w == 145);
-        CHECK(col1->bounds().x == 0);
-        CHECK(col2->bounds().x == 155);  // 145 + 10
+        CHECK(col1->bounds().get().w == 145);  // (300-10)/2, first gets extra
+        CHECK(col2->bounds().get().w == 145);
+        CHECK(col1->bounds().get().x == 0);
+        CHECK(col2->bounds().get().x == 155);  // 145 + 10
 
         // Verify level 3 (vertical columns)
         CHECK(col1->child_count() == 2);
-        CHECK(col1->child_at(0)->bounds().h == 30);
-        CHECK(col1->child_at(0)->bounds().y == 0);
-        CHECK(col1->child_at(1)->bounds().y == 35);  // 30 + 5
+        CHECK(col1->child_at(0)->bounds().get().h == 30);
+        CHECK(col1->child_at(0)->bounds().get().y == 0);
+        CHECK(col1->child_at(1)->bounds().get().y == 35);  // 30 + 5
 
         CHECK(col2->child_count() == 2);
-        CHECK(col2->child_at(0)->bounds().h == 30);
-        CHECK(col2->child_at(1)->bounds().h == 30);
+        CHECK(col2->child_at(0)->bounds().get().h == 30);
+        CHECK(col2->child_at(1)->bounds().get().h == 30);
     }
 
     /**
@@ -515,22 +515,22 @@ TEST_SUITE("layout_composition") {
         CHECK(measured.w == 320);  // 100 + 10 + 0 (expand) + 10 + 120 + 10
         CHECK(measured.h == 40);
 
-        container->arrange({0, 0, 500, 200});
+        container->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 200));
 
         // Verify fixed panel
         auto fp = container->child_at(0);
-        CHECK(fp->bounds().w == 100);
-        CHECK(fp->bounds().x == 0);
+        CHECK(fp->bounds().get().w == 100);
+        CHECK(fp->bounds().get().x == 0);
 
         // Verify expanding panel (should take remaining space)
         auto ep = container->child_at(1);
-        CHECK(ep->bounds().x == 110);  // 100 + 10
-        CHECK(ep->bounds().w == 260);  // 500 - 100 - 10 - 120 - 10
+        CHECK(ep->bounds().get().x == 110);  // 100 + 10
+        CHECK(ep->bounds().get().w == 260);  // 500 - 100 - 10 - 120 - 10
 
         // Verify content panel
         auto cp = container->child_at(2);
-        CHECK(cp->bounds().x == 380);  // 500 - 120
-        CHECK(cp->bounds().w == 120);
+        CHECK(cp->bounds().get().x == 380);  // 500 - 120
+        CHECK(cp->bounds().get().w == 120);
     }
 
     /**
@@ -584,32 +584,32 @@ TEST_SUITE("layout_composition") {
         auto measured = grid->measure(500, 400);
         CHECK(measured.w > 0);
         CHECK(measured.h > 0);
-        grid->arrange({0, 0, 500, 400});
+        grid->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 400));
 
         // Verify all cells are positioned correctly (2x2 grid)
-        CHECK(grid->child_at(0)->bounds().x == 0);
-        CHECK(grid->child_at(0)->bounds().y == 0);
+        CHECK(grid->child_at(0)->bounds().get().x == 0);
+        CHECK(grid->child_at(0)->bounds().get().y == 0);
 
-        CHECK(grid->child_at(1)->bounds().x > 0);  // Second column
-        CHECK(grid->child_at(1)->bounds().y == 0);
+        CHECK(grid->child_at(1)->bounds().get().x > 0);  // Second column
+        CHECK(grid->child_at(1)->bounds().get().y == 0);
 
-        CHECK(grid->child_at(2)->bounds().x == 0);
-        CHECK(grid->child_at(2)->bounds().y > 0);  // Second row
+        CHECK(grid->child_at(2)->bounds().get().x == 0);
+        CHECK(grid->child_at(2)->bounds().get().y > 0);  // Second row
 
-        CHECK(grid->child_at(3)->bounds().x > 0);  // Second column
-        CHECK(grid->child_at(3)->bounds().y > 0);  // Second row
+        CHECK(grid->child_at(3)->bounds().get().x > 0);  // Second column
+        CHECK(grid->child_at(3)->bounds().get().y > 0);  // Second row
 
         // Verify nested layouts work
         auto vertical_cell = grid->child_at(0);
         CHECK(vertical_cell->child_count() == 2);
-        CHECK(vertical_cell->child_at(0)->bounds().h == 25);
-        CHECK(vertical_cell->child_at(1)->bounds().h == 25);
+        CHECK(vertical_cell->child_at(0)->bounds().get().h == 25);
+        CHECK(vertical_cell->child_at(1)->bounds().get().h == 25);
 
         auto horizontal_cell = grid->child_at(1);
         CHECK(horizontal_cell->child_count() == 2);
         // Both should expand to fill cell
-        CHECK(horizontal_cell->child_at(0)->bounds().w > 0);
-        CHECK(horizontal_cell->child_at(1)->bounds().w > 0);
+        CHECK(horizontal_cell->child_at(0)->bounds().get().w > 0);
+        CHECK(horizontal_cell->child_at(1)->bounds().get().w > 0);
 
         auto nested_grid_cell = grid->child_at(3);
         CHECK(nested_grid_cell->child_count() == 2);
