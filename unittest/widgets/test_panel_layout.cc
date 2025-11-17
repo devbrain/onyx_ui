@@ -44,7 +44,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         auto child_bounds = child->bounds();
@@ -86,7 +86,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Padding offset handled internally by parent
@@ -109,7 +109,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Border and padding offsets handled internally by parent
@@ -153,7 +153,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
 
         // Measure and arrange
         (void)main_panel.measure(155, 100);
-        main_panel.arrange({0, 0, 155, 100});
+        main_panel.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 155, 100}});
 
         // The bug: label_ptr->bounds() had y=65541 (overflow from negative)
         // With the fix, y should be positive and small
@@ -191,7 +191,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Child should start at 0,0 (no border offset)
         CHECK(rect_utils::get_x(child->bounds()) == 0);
