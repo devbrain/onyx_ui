@@ -44,7 +44,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Explicit positioning with auto-size") {
@@ -66,7 +66,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Explicit positioning with size override") {
@@ -82,7 +82,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Custom dialog layout") {
@@ -117,7 +117,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(dialog.arrange(bounds));
+        CHECK_NOTHROW(dialog.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Tooltip positioning") {
@@ -136,7 +136,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(overlay.arrange(bounds));
+        CHECK_NOTHROW(overlay.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Negative coordinates") {
@@ -152,7 +152,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(panel.arrange(bounds));
+        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Overlapping children") {
@@ -200,7 +200,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 500, 300);
-        CHECK_NOTHROW(node_canvas.arrange(bounds));
+        CHECK_NOTHROW(node_canvas.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Mixed auto and fixed sizing") {
@@ -273,7 +273,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         // Arrange
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 100, 30);
-        panel.arrange(bounds);
+        panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
         // Render
         auto canvas = render_to_canvas(panel, 100, 30);
@@ -319,6 +319,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         // Arranging should work without crashes
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(panel2.arrange(bounds));
+        CHECK_NOTHROW(panel2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 }
