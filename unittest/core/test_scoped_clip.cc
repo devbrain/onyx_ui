@@ -25,7 +25,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scoped_clip - RAII: 
 
     // Measure and arrange
     [[maybe_unused]] auto size = test_panel->measure(80, 25);
-    test_panel->arrange({0, 0, 80, 25});
+    test_panel->arrange(make_relative_rect<test_canvas_backend>(0, 0, 80, 25));
 
     // Render with clipping - just verify compilation and runtime
     auto canvas = render_to_canvas(*test_panel, 80, 25);
@@ -49,7 +49,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scoped_clip - RAII: 
 
     // Measure and arrange
     [[maybe_unused]] auto size = scrollable_panel->measure(80, 25);
-    scrollable_panel->arrange({0, 0, 80, 25});
+    scrollable_panel->arrange(make_relative_rect<test_canvas_backend>(0, 0, 80, 25));
 
     // Render (uses scoped_clip internally)
     auto canvas = render_to_canvas(*scrollable_panel, 80, 25);
