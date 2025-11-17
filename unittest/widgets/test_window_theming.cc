@@ -134,7 +134,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     SUBCASE("Window renders successfully when focused") {
         win.set_window_focus(true);
         [[maybe_unused]] auto size = win.measure(80, 25);
-        win.arrange({0, 0, 80, 25});
+        win.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();
@@ -150,7 +150,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     SUBCASE("Window renders successfully when unfocused") {
         win.set_window_focus(false);
         [[maybe_unused]] auto size = win.measure(80, 25);
-        win.arrange({0, 0, 80, 25});
+        win.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();
