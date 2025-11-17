@@ -45,38 +45,38 @@ TEST_SUITE("anchor_layout") {
         CHECK(measured.w > 0);
         CHECK(measured.h > 0);
 
-        parent->arrange({0, 0, 200, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 100));
 
         // Verify positions
         // Top row
-        CHECK(children[0]->bounds().x == 0);
-        CHECK(children[0]->bounds().y == 0);
+        CHECK(children[0]->bounds().get().x == 0);
+        CHECK(children[0]->bounds().get().y == 0);
 
-        CHECK(children[1]->bounds().x == 90);  // (200-20)/2
-        CHECK(children[1]->bounds().y == 0);
+        CHECK(children[1]->bounds().get().x == 90);  // (200-20)/2
+        CHECK(children[1]->bounds().get().y == 0);
 
-        CHECK(children[2]->bounds().x == 180); // 200-20
-        CHECK(children[2]->bounds().y == 0);
+        CHECK(children[2]->bounds().get().x == 180); // 200-20
+        CHECK(children[2]->bounds().get().y == 0);
 
         // Middle row
-        CHECK(children[3]->bounds().x == 0);
-        CHECK(children[3]->bounds().y == 45);  // (100-10)/2
+        CHECK(children[3]->bounds().get().x == 0);
+        CHECK(children[3]->bounds().get().y == 45);  // (100-10)/2
 
-        CHECK(children[4]->bounds().x == 90);  // (200-20)/2
-        CHECK(children[4]->bounds().y == 45);  // (100-10)/2
+        CHECK(children[4]->bounds().get().x == 90);  // (200-20)/2
+        CHECK(children[4]->bounds().get().y == 45);  // (100-10)/2
 
-        CHECK(children[5]->bounds().x == 180); // 200-20
-        CHECK(children[5]->bounds().y == 45);  // (100-10)/2
+        CHECK(children[5]->bounds().get().x == 180); // 200-20
+        CHECK(children[5]->bounds().get().y == 45);  // (100-10)/2
 
         // Bottom row
-        CHECK(children[6]->bounds().x == 0);
-        CHECK(children[6]->bounds().y == 90);  // 100-10
+        CHECK(children[6]->bounds().get().x == 0);
+        CHECK(children[6]->bounds().get().y == 90);  // 100-10
 
-        CHECK(children[7]->bounds().x == 90);  // (200-20)/2
-        CHECK(children[7]->bounds().y == 90);  // 100-10
+        CHECK(children[7]->bounds().get().x == 90);  // (200-20)/2
+        CHECK(children[7]->bounds().get().y == 90);  // 100-10
 
-        CHECK(children[8]->bounds().x == 180); // 200-20
-        CHECK(children[8]->bounds().y == 90);  // 100-10
+        CHECK(children[8]->bounds().get().x == 180); // 200-20
+        CHECK(children[8]->bounds().get().y == 90);  // 100-10
     }
 
     TEST_CASE("Anchor with offsets") {
@@ -99,10 +99,10 @@ TEST_SUITE("anchor_layout") {
         CHECK(measured.w <= 300);
         CHECK(measured.h <= 200);
 
-        parent->arrange({0, 0, 300, 200});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
 
         // Should be at top-right minus offsets
-        CHECK(child_ptr->bounds().x == 240);  // 300-50-10
-        CHECK(child_ptr->bounds().y == 15);   // 0+15
+        CHECK(child_ptr->bounds().get().x == 240);  // 300-50-10
+        CHECK(child_ptr->bounds().get().y == 15);   // 0+15
     }
 }

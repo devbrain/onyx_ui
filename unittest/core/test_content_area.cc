@@ -41,7 +41,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
     TEST_CASE("Content area - no margin or padding") {
         test_element_accessor elem;
-        elem.arrange({10, 20, 100, 50});
+        elem.arrange(testing::make_relative_rect<TestBackend>(10, 20, 100, 50));
 
         auto content = elem.get_content_area();
 
@@ -56,7 +56,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE("Content area - with padding only") {
         test_element_accessor elem;
         elem.set_padding({5, 3, 7, 9});  // L, T, R, B
-        elem.arrange({0, 0, 100, 100});
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
 
         auto content = elem.get_content_area();
 
@@ -72,7 +72,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE("Content area - with margin only") {
         test_element_accessor elem;
         elem.set_margin({10, 20, 10, 20});  // L, T, R, B
-        elem.arrange({0, 0, 200, 200});
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 200));
 
         auto content = elem.get_content_area();
 
@@ -89,7 +89,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         test_element_accessor elem;
         elem.set_margin({5, 5, 5, 5});
         elem.set_padding({3, 3, 3, 3});
-        elem.arrange({0, 0, 100, 100});
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
 
         auto content = elem.get_content_area();
 
@@ -105,7 +105,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE("Content area - clamped to non-negative") {
         test_element_accessor elem;
         elem.set_padding({100, 100, 100, 100});  // Huge padding
-        elem.arrange({0, 0, 50, 50});  // Small bounds
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 50, 50));  // Small bounds
 
         auto content = elem.get_content_area();
 
@@ -124,7 +124,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(testing::make_relative_rect<test_canvas_backend>(0, 0, 100, 100));
 
         auto child_bounds = child->bounds();
 
@@ -143,7 +143,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         auto* child = p.emplace_child<label>("Test");
 
         (void)p.measure(100, 100);
-        p.arrange({0, 0, 100, 100});
+        p.arrange(testing::make_relative_rect<test_canvas_backend>(0, 0, 100, 100));
 
         auto child_bounds = child->bounds();
 
@@ -156,7 +156,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE("Content area - safe math prevents overflow") {
         test_element_accessor elem;
         elem.set_padding({INT_MAX / 2, INT_MAX / 2, INT_MAX / 2, INT_MAX / 2});
-        elem.arrange({0, 0, 1000, 1000});
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
 
         // Should not crash or produce invalid values
         auto content = elem.get_content_area();
@@ -169,7 +169,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE("Content area - padding all sides equal") {
         test_element_accessor elem;
         elem.set_padding(thickness::all(10));
-        elem.arrange({0, 0, 100, 100});
+        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
 
         auto content = elem.get_content_area();
 

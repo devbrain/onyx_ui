@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+#include "utils/test_helpers.hh"
+
 using namespace onyxui;
 
 // Test helper class that implements required pure virtual methods
@@ -549,7 +551,7 @@ TEST_SUITE("RuleOfFive") {
 
             // Verify element can handle events
             // Need to set bounds first for hit testing with unified event API
-            dest.arrange({0, 0, 100, 100});
+            dest.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
             mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
             CHECK(dest.is_pressed());
@@ -590,11 +592,8 @@ TEST_SUITE("RuleOfFive") {
             // Size may be 0 if children have no intrinsic size - verify no crash
             (void)size2;
 
-            test_backend::rect bounds;
-            bounds.x = 0;
-            bounds.y = 0;
-            bounds.w = 200;
-            bounds.h = 200;
+            auto bounds = testing::make_relative_rect<TestBackend>(0,0,200,200);
+
 
             // Should not crash
             CHECK_NOTHROW(dest.arrange(bounds));

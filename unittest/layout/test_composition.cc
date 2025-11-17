@@ -63,29 +63,30 @@ TEST_SUITE("layout_composition") {
         CHECK(measured.w == 250);  // 3*80 + 2*5 = 250
         CHECK(measured.h == 70);  // 30 + 10 + 30 = 70
 
-        panel->arrange({0, 0, 300, 200});
+        panel->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
 
         // Verify row 1 positions
         auto r1 = panel->child_at(0);
-        CHECK(r1->bounds().x == 0);
-        CHECK(r1->bounds().y == 0);
-        CHECK(r1->bounds().h == 30);
+        auto b1 =r1->bounds().get();
+        CHECK(b1.x == 0);
+        CHECK(b1.y == 0);
+        CHECK(b1.h == 30);
 
         // Verify row 1's children
-        CHECK(r1->child_at(0)->bounds().x == 0);
-        CHECK(r1->child_at(0)->bounds().w == 80);
-        CHECK(r1->child_at(1)->bounds().x == 85);  // 80 + 5
-        CHECK(r1->child_at(2)->bounds().x == 170); // 80 + 5 + 80 + 5
+        CHECK(r1->child_at(0)->bounds().get().x == 0);
+        CHECK(r1->child_at(0)->bounds().get().w == 80);
+        CHECK(r1->child_at(1)->bounds().get().x == 85);  // 80 + 5
+        CHECK(r1->child_at(2)->bounds().get().x == 170); // 80 + 5 + 80 + 5
 
         // Verify row 2 positions
         auto r2 = panel->child_at(1);
-        CHECK(r2->bounds().x == 0);
-        CHECK(r2->bounds().y == 40);  // 30 + 10 spacing
-        CHECK(r2->bounds().h == 30);
+        CHECK(r2->bounds().get().x == 0);
+        CHECK(r2->bounds().get().y == 40);  // 30 + 10 spacing
+        CHECK(r2->bounds().get().h == 30);
 
         // Verify row 2's expanding children
-        CHECK(r2->child_at(0)->bounds().w == 148);  // (300-5)/2, first gets extra
-        CHECK(r2->child_at(1)->bounds().w == 147);
+        CHECK(r2->child_at(0)->bounds().get().w == 148);  // (300-5)/2, first gets extra
+        CHECK(r2->child_at(1)->bounds().get().w == 147);
     }
 
     /**
@@ -129,12 +130,12 @@ TEST_SUITE("layout_composition") {
         CHECK(measured.w == 165);  // 150 + 15 (col2 has no measured width yet)
         CHECK(measured.h == 130);  // Max of columns: 3*40 + 2*5
 
-        container->arrange({0, 0, 400, 300});
+        container->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 300));
 
         // Verify column 1
         auto c1 = container->child_at(0);
-        CHECK(c1->bounds().x == 0);
-        CHECK(c1->bounds().w == 150);
+        CHECK(c1->bounds()->x == 0);
+        CHECK(c1->bounds()->w == 150);
         CHECK(c1->child_at(0)->bounds().y == 0);
         CHECK(c1->child_at(1)->bounds().y == 45);  // 40 + 5
         CHECK(c1->child_at(2)->bounds().y == 90);  // 40 + 5 + 40 + 5

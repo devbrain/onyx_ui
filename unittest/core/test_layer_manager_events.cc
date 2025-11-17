@@ -36,7 +36,7 @@ public:
         , should_handle(handles_events)
         , events_received(0)
         , last_event_handled(false) {
-        arrange(TestRect{0, 0, 100, 50});
+        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
     }
 
     bool handle_mouse(const mouse_event& /*mouse*/) override {

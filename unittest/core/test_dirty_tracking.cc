@@ -56,7 +56,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Mark element dirty") {
-            root->arrange({10, 20, 100, 50});
+            root->arrange(testing::make_relative_rect<TestBackend>(10, 20, 100, 50));
 
             // arrange() marks old bounds dirty (initial bounds are 0,0,0,0)
             // Clear that first
@@ -92,8 +92,8 @@ TEST_SUITE("Dirty Region Tracking") {
         auto child2 = std::make_unique<DirtyTrackingElement>();
 
         // Set up hierarchy
-        child1->arrange({10, 10, 50, 30});
-        child2->arrange({70, 10, 50, 30});
+        child1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 30));
+        child2->arrange(testing::make_relative_rect<TestBackend>(70, 10, 50, 30));
 
         auto* child1_ptr = child1.get();
         auto* child2_ptr = child2.get();
@@ -149,7 +149,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Deep hierarchy propagation") {
             auto grandchild = std::make_unique<DirtyTrackingElement>();
-            grandchild->arrange({5, 5, 20, 10});
+            grandchild->arrange(testing::make_relative_rect<TestBackend>(5, 5, 20, 10));
             auto* grandchild_ptr = grandchild.get();
 
             child1_ptr->add_test_child(std::move(grandchild));
@@ -172,7 +172,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange({20, 30, 60, 40});
+        child->arrange(testing::make_relative_rect<TestBackend>(20, 30, 60, 40));
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
 
@@ -216,7 +216,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange({10, 10, 30, 20});
+        child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
 
@@ -225,7 +225,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Moving element marks old bounds dirty") {
             // Move to new position
-            child_ptr->arrange({50, 60, 30, 20});
+            child_ptr->arrange(testing::make_relative_rect<TestBackend>(50, 60, 30, 20));
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 1);
@@ -236,7 +236,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Resizing element marks old bounds dirty") {
             // Resize at same position
-            child_ptr->arrange({10, 10, 50, 40});
+            child_ptr->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 40));
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 1);
@@ -249,7 +249,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("No bounds change doesn't mark dirty") {
             // Arrange with same bounds
-            child_ptr->arrange({10, 10, 30, 20});
+            child_ptr->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.empty());
@@ -300,26 +300,26 @@ TEST_SUITE("Dirty Region Tracking") {
         //       └── label1
 
         auto root = std::make_unique<DirtyTrackingElement>();
-        root->arrange({0, 0, 800, 600});
+        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 800, 600));
 
         auto panel1 = std::make_unique<DirtyTrackingElement>();
-        panel1->arrange({10, 10, 380, 280});
+        panel1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 380, 280));
         auto* panel1_ptr = panel1.get();
 
         auto button1 = std::make_unique<DirtyTrackingElement>();
-        button1->arrange({20, 20, 100, 30});
+        button1->arrange(testing::make_relative_rect<TestBackend>(20, 20, 100, 30));
         auto* button1_ptr = button1.get();
 
         auto button2 = std::make_unique<DirtyTrackingElement>();
-        button2->arrange({20, 60, 100, 30});
+        button2->arrange(testing::make_relative_rect<TestBackend>(20, 60, 100, 30));
         auto* button2_ptr = button2.get();
 
         auto panel2 = std::make_unique<DirtyTrackingElement>();
-        panel2->arrange({410, 10, 380, 280});
+        panel2->arrange(testing::make_relative_rect<TestBackend>(410, 10, 380, 280));
         auto* panel2_ptr = panel2.get();
 
         auto label1 = std::make_unique<DirtyTrackingElement>();
-        label1->arrange({420, 20, 200, 20});
+        label1->arrange(testing::make_relative_rect<TestBackend>(420, 20, 200, 20));
 
         // Build hierarchy
         panel1->add_test_child(std::move(button1));
@@ -339,7 +339,7 @@ TEST_SUITE("Dirty Region Tracking") {
             panel2_ptr->set_visible(false);
 
             // Move button2
-            button2_ptr->arrange({30, 70, 100, 30});
+            button2_ptr->arrange(testing::make_relative_rect<TestBackend>(30, 70, 100, 30));
 
             // Check all dirty regions collected at root
             auto regions = root->get_and_clear_dirty_regions();
@@ -384,7 +384,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange({10, 10, 30, 20});
+        child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
         child->set_visible(false);
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
@@ -397,7 +397,7 @@ TEST_SUITE("Dirty Region Tracking") {
             CHECK(!child_ptr->is_visible());
 
             // Change bounds while hidden
-            child_ptr->arrange({50, 50, 40, 30});
+            child_ptr->arrange(testing::make_relative_rect<TestBackend>(50, 50, 40, 30));
 
             // Should not mark dirty (element is hidden)
             auto regions = root->get_and_clear_dirty_regions();
@@ -409,7 +409,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
 
         SUBCASE("Empty bounds") {
-            root->arrange({0, 0, 0, 0});
+            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 0, 0));
             root->mark_dirty();
 
             auto regions = root->get_and_clear_dirty_regions();

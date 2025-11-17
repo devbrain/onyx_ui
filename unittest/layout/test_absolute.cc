@@ -40,18 +40,18 @@ TEST_SUITE("absolute_layout") {
         CHECK(measured.w <= 200);
         CHECK(measured.h <= 150);
 
-        parent->arrange({0, 0, 200, 150});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 150));
 
         // Verify positions
-        CHECK(child1_ptr->bounds().x == 10);
-        CHECK(child1_ptr->bounds().y == 20);
-        CHECK(child1_ptr->bounds().w == 50);
-        CHECK(child1_ptr->bounds().h == 30);
+        CHECK(child1_ptr->bounds().get().x == 10);
+        CHECK(child1_ptr->bounds().get().y == 20);
+        CHECK(child1_ptr->bounds().get().w == 50);
+        CHECK(child1_ptr->bounds().get().h == 30);
 
-        CHECK(child2_ptr->bounds().x == 100);
-        CHECK(child2_ptr->bounds().y == 50);
-        CHECK(child2_ptr->bounds().w == 60);
-        CHECK(child2_ptr->bounds().h == 40);
+        CHECK(child2_ptr->bounds().get().x == 100);
+        CHECK(child2_ptr->bounds().get().y == 50);
+        CHECK(child2_ptr->bounds().get().w == 60);
+        CHECK(child2_ptr->bounds().get().h == 40);
     }
 
     TEST_CASE("Position with size override") {
@@ -74,12 +74,12 @@ TEST_SUITE("absolute_layout") {
         CHECK(measured.w <= 300);
         CHECK(measured.h <= 200);
 
-        parent->arrange({0, 0, 300, 200});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
 
         // Should use overridden size, not measured size
-        CHECK(child_ptr->bounds().x == 25);
-        CHECK(child_ptr->bounds().y == 35);
-        CHECK(child_ptr->bounds().w == 150);
-        CHECK(child_ptr->bounds().h == 75);
+        CHECK(child_ptr->bounds().get().x == 25);
+        CHECK(child_ptr->bounds().get().y == 35);
+        CHECK(child_ptr->bounds().get().w == 150);
+        CHECK(child_ptr->bounds().get().h == 75);
     }
 }

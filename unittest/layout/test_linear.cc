@@ -34,15 +34,15 @@ TEST_SUITE("linear_layout") {
         CHECK(measured.w == 320); // 3*100 + 2*10
         CHECK(measured.h == 50);
 
-        parent->arrange({0, 0, 320, 50});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 320, 50));
 
         // Verify child positions
-        CHECK(parent->child_at(0)->bounds().x == 0);
-        CHECK(parent->child_at(0)->bounds().w == 100);
-        CHECK(parent->child_at(1)->bounds().x == 110);
-        CHECK(parent->child_at(1)->bounds().w == 100);
-        CHECK(parent->child_at(2)->bounds().x == 220);
-        CHECK(parent->child_at(2)->bounds().w == 100);
+        CHECK(parent->child_at(0)->bounds().get().x == 0);
+        CHECK(parent->child_at(0)->bounds().get().w == 100);
+        CHECK(parent->child_at(1)->bounds().get().x == 110);
+        CHECK(parent->child_at(1)->bounds().get().w == 100);
+        CHECK(parent->child_at(2)->bounds().get().x == 220);
+        CHECK(parent->child_at(2)->bounds().get().w == 100);
     }
 
     TEST_CASE("Vertical layout with expand children") {
@@ -66,15 +66,15 @@ TEST_SUITE("linear_layout") {
         // Since children have fill_parent policy, they should measure to 0 initially
         CHECK(measured.w == 0);    // Children with fill_parent don't contribute to measure
         CHECK(measured.h == 5);   // Just the spacing between 2 children
-        parent->arrange({0, 0, 200, 300});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 300));
 
         // Verify children split space equally (300 pixels total, 5 pixels spacing)
         // Available space = 300 - 5 = 295, divided by 2 = 147.5 each
         // First child gets the extra pixel from rounding (standard behavior in CSS flexbox)
-        CHECK(parent->child_at(0)->bounds().h == 148); // Gets the extra pixel from rounding
-        CHECK(parent->child_at(0)->bounds().y == 0);
-        CHECK(parent->child_at(1)->bounds().h == 147); // Floor of 295/2
-        CHECK(parent->child_at(1)->bounds().y == 153);      // 148 + 5 spacing
+        CHECK(parent->child_at(0)->bounds().get().h == 148); // Gets the extra pixel from rounding
+        CHECK(parent->child_at(0)->bounds().get().y == 0);
+        CHECK(parent->child_at(1)->bounds().get().h == 147); // Floor of 295/2
+        CHECK(parent->child_at(1)->bounds().get().y == 153);      // 148 + 5 spacing
     }
 
     TEST_CASE("Weighted distribution") {
@@ -101,11 +101,11 @@ TEST_SUITE("linear_layout") {
         CHECK(measured.w == 0);  // Weighted children contribute 0 to measure
         CHECK(measured.h == 0);
 
-        parent->arrange({0, 0, 400, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 100));
 
-        CHECK(parent->child_at(0)->bounds().w == 100); // 1/4 of 400
-        CHECK(parent->child_at(1)->bounds().w == 200); // 2/4 of 400
-        CHECK(parent->child_at(2)->bounds().w == 100); // 1/4 of 400
+        CHECK(parent->child_at(0)->bounds().get().w == 100); // 1/4 of 400
+        CHECK(parent->child_at(1)->bounds().get().w == 200); // 2/4 of 400
+        CHECK(parent->child_at(2)->bounds().get().w == 100); // 1/4 of 400
     }
 
     TEST_CASE("Alignment in cross axis") {
@@ -138,11 +138,11 @@ TEST_SUITE("linear_layout") {
         CHECK(measured.w == 150);  // 3 * 50
         CHECK(measured.h == 30);   // max height
 
-        parent->arrange({0, 0, 200, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 100));
 
-        CHECK(parent->child_at(0)->bounds().y == 0);      // top aligned
-        CHECK(parent->child_at(1)->bounds().y == 35);     // centered (100-30)/2
-        CHECK(parent->child_at(2)->bounds().y == 70);     // bottom aligned (100-30)
+        CHECK(parent->child_at(0)->bounds().get().y == 0);      // top aligned
+        CHECK(parent->child_at(1)->bounds().get().y == 35);     // centered (100-30)/2
+        CHECK(parent->child_at(2)->bounds().get().y == 70);     // bottom aligned (100-30)
     }
 
     TEST_CASE("Min/max constraints") {
@@ -158,20 +158,20 @@ TEST_SUITE("linear_layout") {
         // Test minimum constraint
         auto measured1 = parent->measure(30, 100);
         CHECK(measured1.w >= 50);  // Reports at least minimum
-        parent->arrange({0, 0, 30, 100});
-        CHECK(parent->child_at(0)->bounds().w == 50); // Clamped to min even with expand
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 30, 100));
+        CHECK(parent->child_at(0)->bounds().get().w == 50); // Clamped to min even with expand
 
         // Test maximum constraint
         auto measured2 = parent->measure(200, 100);
         CHECK(measured2.w <= 200);
-        parent->arrange({0, 0, 200, 100});
-        CHECK(parent->child_at(0)->bounds().w == 150); // Expands to max (clamped at 150)
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 100));
+        CHECK(parent->child_at(0)->bounds().get().w == 150); // Expands to max (clamped at 150)
 
         // Test within constraints
         auto measured3 = parent->measure(120, 100);
         CHECK(measured3.w <= 120);
-        parent->arrange({0, 0, 120, 100});
-        CHECK(parent->child_at(0)->bounds().w == 120); // Expands to available space
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 120, 100));
+        CHECK(parent->child_at(0)->bounds().get().w == 120); // Expands to available space
     }
 
     TEST_CASE("Visibility handling") {
@@ -193,11 +193,11 @@ TEST_SUITE("linear_layout") {
         TestSize const measured = parent->measure(1000, 100);
         CHECK(measured.w == 210); // 2*100 + 1*10 (only one spacing)
 
-        parent->arrange({0, 0, 210, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 210, 100));
 
         // Verify positions skip hidden child
-        CHECK(parent->child_at(0)->bounds().x == 0);
-        CHECK(parent->child_at(2)->bounds().x == 110); // Right after first child + spacing
+        CHECK(parent->child_at(0)->bounds().get().x == 0);
+        CHECK(parent->child_at(2)->bounds().get().x == 110); // Right after first child + spacing
     }
 
     TEST_CASE("Percentage sizing - horizontal") {
@@ -219,10 +219,10 @@ TEST_SUITE("linear_layout") {
 
         // Parent width = 400, so children should be 200 (50%) and 120 (30%)
         [[maybe_unused]] auto size = parent->measure(1000, 1000);
-        parent->arrange({0, 0, 400, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 100));
 
-        CHECK(parent->child_at(0)->bounds().w == 200);  // 50% of 400
-        CHECK(parent->child_at(1)->bounds().w == 120);  // 30% of 400
+        CHECK(parent->child_at(0)->bounds().get().w == 200);  // 50% of 400
+        CHECK(parent->child_at(1)->bounds().get().w == 120);  // 30% of 400
     }
 
     TEST_CASE("Percentage sizing - vertical") {
@@ -244,10 +244,10 @@ TEST_SUITE("linear_layout") {
 
         // Parent height = 500, so children should be 200 (40%) and 125 (25%)
         [[maybe_unused]] auto size2 = parent->measure(1000, 1000);
-        parent->arrange({0, 0, 100, 500});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 500));
 
-        CHECK(parent->child_at(0)->bounds().h == 200);  // 40% of 500
-        CHECK(parent->child_at(1)->bounds().h == 125);  // 25% of 500
+        CHECK(parent->child_at(0)->bounds().get().h == 200);  // 40% of 500
+        CHECK(parent->child_at(1)->bounds().get().h == 125);  // 25% of 500
     }
 
     TEST_CASE("Percentage sizing with min/max constraints") {
@@ -263,9 +263,9 @@ TEST_SUITE("linear_layout") {
 
         // Parent width = 400, 80% would be 320, but clamped to max 150
         [[maybe_unused]] auto size3 = parent->measure(1000, 1000);
-        parent->arrange({0, 0, 400, 100});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 100));
 
-        CHECK(parent->child_at(0)->bounds().w == 150);  // Clamped to max
+        CHECK(parent->child_at(0)->bounds().get().w == 150);  // Clamped to max
     }
 
     TEST_CASE("Content sizing") {

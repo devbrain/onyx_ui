@@ -102,15 +102,15 @@ TEST_SUITE("ui_element") {
 
     TEST_CASE("Hit testing") {
         auto parent = std::make_unique<TestElement>();
-        parent->arrange({0, 0, 200, 150});
+        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 150));
 
         auto child1 = std::make_unique<TestElement>();
-        child1->arrange({10, 10, 50, 30});
+        child1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 30));
         auto child1_ptr = child1.get();
         parent->add_test_child(std::move(child1));
 
         auto child2 = std::make_unique<TestElement>();
-        child2->arrange({100, 50, 60, 40});
+        child2->arrange(testing::make_relative_rect<TestBackend>(100, 50, 60, 40));
         auto child2_ptr = child2.get();
         parent->add_test_child(std::move(child2));
 
@@ -177,8 +177,8 @@ TEST_SUITE("ui_element") {
             auto size = root->measure(1000, 1000);
             CHECK(size.w >= 0);
             CHECK(size.h >= 0);
-            root->arrange(test_backend::rect{0, 0, 1000, 1000});
-            CHECK(root->bounds().w == 1000);
+            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
+            CHECK(root->bounds().get().w == 1000);
 
             // Test hit_test (walks DOWN the tree)
             auto* hit = root->hit_test(500, 500);
@@ -200,7 +200,7 @@ TEST_SUITE("ui_element") {
             // All operations should work without stack overflow
             current->invalidate_measure();
             auto size = root->measure(1000, 1000);
-            root->arrange(test_backend::rect{0, 0, 1000, 1000});
+            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
             auto* hit = root->hit_test(500, 500);
 
             CHECK(size.w >= 0);
@@ -221,7 +221,7 @@ TEST_SUITE("ui_element") {
             // Should handle invalidation efficiently
             root->invalidate_measure();
             auto size = root->measure(1000, 1000);
-            root->arrange(test_backend::rect{0, 0, 1000, 1000});
+            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
 
             // Hit testing should work
             auto* hit = root->hit_test(500, 500);

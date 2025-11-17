@@ -151,14 +151,14 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - relative to absolute (single level)") {
         // Create parent at (100, 50)
         panel<Backend> parent;
-        parent.arrange({100, 50, 200, 100});
+        parent.arrange(testing::make_relative_rect<TestBackend>(100, 50, 200, 100));
 
         // Create child at (10, 5) relative to parent
         auto* child = parent.emplace_child<label>("Child");
-        child->arrange({10, 5, 50, 20});
+        child->arrange(testing::make_relative_rect<TestBackend>(10, 5, 50, 20));
 
         // Convert child's relative bounds to absolute
-        Backend::rect child_rel_backend = child->bounds();
+        const auto child_rel_backend = child->bounds();
         relative_rect<Backend> child_rel{child_rel_backend};
 
         absolute_rect<Backend> child_abs = to_absolute(child_rel, child);

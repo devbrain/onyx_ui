@@ -40,7 +40,7 @@ public:
         : TestElement(nullptr)
         , m_manager(mgr)
         , m_layer_id(layer_id::invalid()) {
-        arrange(TestRect{0, 0, 100, 50});
+        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
     }
 
     void set_layer_id(layer_id id) { m_layer_id = id; }
@@ -66,7 +66,7 @@ private:
 class EventCountingElement : public TestElement {
 public:
     explicit EventCountingElement() : TestElement(nullptr), event_count(0) {
-        arrange(TestRect{0, 0, 100, 50});
+        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
     }
 
     bool handle_mouse(const mouse_event& /*mouse*/) override {
