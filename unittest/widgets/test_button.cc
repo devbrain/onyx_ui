@@ -152,7 +152,8 @@ TEST_CASE("Button - Keyboard activation") {
 
         // Layout the UI
         [[maybe_unused]] auto measured_size = root->measure(80, 25);
-        root->arrange({0, 0, 80, 25});
+        typename test_backend::rect r{0, 0, 80, 25};
+        root->arrange(geometry::relative_rect<test_backend>{r});
 
         // Get input manager
         auto* input = ui_services<test_backend>::input();
