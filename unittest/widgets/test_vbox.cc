@@ -68,7 +68,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layo
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(main_layout.arrange(bounds));
+        CHECK_NOTHROW(main_layout.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
     }
 
     SUBCASE("Child alignment configuration") {
