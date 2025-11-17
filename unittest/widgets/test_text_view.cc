@@ -39,7 +39,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         [[maybe_unused]] auto size = panel.measure(100, 100);
 
         // Arrange and render
-        panel.arrange({0, 0, 40, 10});
+        panel.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         auto canvas = render_to_canvas(panel, 40, 10);
 
@@ -85,7 +85,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         [[maybe_unused]] auto scroll_info = scrollable_widget.get_scroll_info();
 
         // Arrange and render
-        scrollable_widget.arrange({0, 0, 40, 10});
+        scrollable_widget.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
 
@@ -135,7 +135,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40, 10);
 
-        scroll_view_ptr->arrange({0, 0, 40, 10});
+        scroll_view_ptr->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
@@ -178,7 +178,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         // Measure and arrange
         [[maybe_unused]] auto size = scrollable_widget.measure(40, 10);
 
-        scrollable_widget.arrange({0, 0, 40, 10});
+        scrollable_widget.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         // Render
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
@@ -216,7 +216,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40, 10);
 
-        scroll_view_ptr->arrange({0, 0, 40, 10});
+        scroll_view_ptr->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
@@ -437,7 +437,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo lay
 
         // Measure and arrange before render
         [[maybe_unused]] auto measured_size = root.measure(40, 10);
-        root.arrange({0, 0, 40, 10});
+        root.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
 
         // Render
         auto canvas = render_to_canvas(root, 40, 10);
@@ -664,12 +664,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Measurem
 
         // Measure and arrange
         [[maybe_unused]] auto size = view.measure(50, 20);
-        view.arrange({0, 0, 50, 20});
+        view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 50, 20}});
 
         // Should not crash and should update bounds
         auto bounds = view.bounds();
-        CHECK(bounds.w == 50);
-        CHECK(bounds.h == 20);
+        CHECK(rect_utils::get_width(bounds) == 50);
+        CHECK(rect_utils::get_height(bounds) == 20);
     }
 
     SUBCASE("Content exceeds viewport") {
