@@ -151,14 +151,14 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - relative to absolute (single level)") {
         // Create parent at (100, 50)
         panel<Backend> parent;
-        parent.arrange(testing::make_relative_rect<TestBackend>(100, 50, 200, 100));
+        parent.arrange(testing::make_relative_rect<Backend>(100, 50, 200, 100));
 
         // Create child at (10, 5) relative to parent
         auto* child = parent.emplace_child<label>("Child");
-        child->arrange(testing::make_relative_rect<TestBackend>(10, 5, 50, 20));
+        child->arrange(testing::make_relative_rect<Backend>(10, 5, 50, 20));
 
         // Convert child's relative bounds to absolute
-        const auto child_rel_backend = child->bounds();
+        const auto child_rel_backend = child->bounds().get();
         relative_rect<Backend> child_rel{child_rel_backend};
 
         absolute_rect<Backend> child_abs = to_absolute(child_rel, child);
@@ -174,18 +174,18 @@ TEST_SUITE("geometry::coordinates") {
         // Create hierarchy: root -> parent -> child
         // Root at (0, 0)
         panel<Backend> root;
-        root.arrange({0, 0, 400, 300});
+        root.arrange(testing::make_relative_rect<Backend>(0, 0, 400, 300));
 
         // Parent at (50, 30) relative to root
         auto* parent = root.emplace_child<panel>();
-        parent->arrange({50, 30, 200, 150});
+        parent->arrange(testing::make_relative_rect<Backend>(50, 30, 200, 150));
 
         // Child at (10, 5) relative to parent
         auto* child = parent->emplace_child<label>("Child");
-        child->arrange({10, 5, 50, 20});
+        child->arrange(testing::make_relative_rect<Backend>(10, 5, 50, 20));
 
         // Convert child's relative bounds to absolute
-        Backend::rect child_rel_backend = child->bounds();
+        Backend::rect child_rel_backend = child->bounds().get();
         relative_rect<Backend> child_rel{child_rel_backend};
 
         absolute_rect<Backend> child_abs = to_absolute(child_rel, child);
@@ -201,7 +201,7 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - absolute to relative") {
         // Create parent at (100, 50)
         panel<Backend> parent;
-        parent.arrange({100, 50, 200, 100});
+        parent.arrange(testing::make_relative_rect<Backend>(100, 50, 200, 100));
 
         // Absolute rect at (110, 60)
         Backend::rect abs_backend{110, 60, 50, 30};
@@ -220,11 +220,11 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - point relative to absolute") {
         // Create parent at (100, 50)
         panel<Backend> parent;
-        parent.arrange({100, 50, 200, 100});
+        parent.arrange(testing::make_relative_rect<Backend>(100, 50, 200, 100));
 
         // Create child at (10, 5) relative to parent
         auto* child = parent.emplace_child<label>("Child");
-        child->arrange({10, 5, 50, 20});
+        child->arrange(testing::make_relative_rect<Backend>(10, 5, 50, 20));
 
         // Point at (5, 8) relative to child
         Backend::point pt_backend{5, 8};
@@ -241,7 +241,7 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - point absolute to relative") {
         // Create parent at (100, 50)
         panel<Backend> parent;
-        parent.arrange({100, 50, 200, 100});
+        parent.arrange(testing::make_relative_rect<Backend>(100, 50, 200, 100));
 
         // Absolute point at (115, 63)
         Backend::point pt_backend{115, 63};
@@ -257,10 +257,10 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Coordinate conversion - root element (no parent)") {
         // Root element has no parent
         panel<Backend> root;
-        root.arrange({10, 20, 200, 100});
+        root.arrange(testing::make_relative_rect<Backend>(10, 20, 200, 100));
 
         // For root element, relative == absolute
-        Backend::rect root_rel_backend = root.bounds();
+        Backend::rect root_rel_backend = root.bounds().get();
         relative_rect<Backend> root_rel{root_rel_backend};
 
         absolute_rect<Backend> root_abs = to_absolute(root_rel, &root);
@@ -311,19 +311,19 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Integration - Complex hierarchy") {
         // Create a 3-level deep hierarchy
         panel<Backend> root;
-        root.arrange({0, 0, 800, 600});
+        root.arrange(testing::make_relative_rect<Backend>(0, 0, 800, 600));
 
         auto* level1 = root.emplace_child<panel>();
-        level1->arrange({50, 40, 400, 300});
+        level1->arrange(testing::make_relative_rect<Backend>(50, 40, 400, 300));
 
         auto* level2 = level1->emplace_child<panel>();
-        level2->arrange({30, 20, 200, 150});
+        level2->arrange(testing::make_relative_rect<Backend>(30, 20, 200, 150));
 
         auto* level3 = level2->emplace_child<label>("Nested");
-        level3->arrange({10, 5, 100, 75});
+        level3->arrange(testing::make_relative_rect<Backend>(10, 5, 100, 75));
 
         // Convert deepest child to absolute
-        Backend::rect level3_rel_backend = level3->bounds();
+        Backend::rect level3_rel_backend = level3->bounds().get();
         relative_rect<Backend> level3_rel{level3_rel_backend};
 
         absolute_rect<Backend> level3_abs = to_absolute(level3_rel, level3);
@@ -347,21 +347,21 @@ TEST_SUITE("geometry::coordinates") {
     TEST_CASE("Integration - Sibling elements") {
         // Create parent with multiple children
         panel<Backend> parent;
-        parent.arrange({100, 50, 300, 200});
+        parent.arrange(testing::make_relative_rect<Backend>(100, 50, 300, 200));
 
         auto* child1 = parent.emplace_child<label>("Child1");
-        child1->arrange({10, 10, 80, 40});
+        child1->arrange(testing::make_relative_rect<Backend>(10, 10, 80, 40));
 
         auto* child2 = parent.emplace_child<label>("Child2");
-        child2->arrange({10, 60, 80, 40});
+        child2->arrange(testing::make_relative_rect<Backend>(10, 60, 80, 40));
 
         auto* child3 = parent.emplace_child<label>("Child3");
-        child3->arrange({100, 10, 80, 40});
+        child3->arrange(testing::make_relative_rect<Backend>(100, 10, 80, 40));
 
         // Convert all children to absolute
-        Backend::rect c1_rel = child1->bounds();
-        Backend::rect c2_rel = child2->bounds();
-        Backend::rect c3_rel = child3->bounds();
+        Backend::rect c1_rel = child1->bounds().get();
+        Backend::rect c2_rel = child2->bounds().get();
+        Backend::rect c3_rel = child3->bounds().get();
 
         absolute_rect<Backend> c1_abs = to_absolute(relative_rect<Backend>{c1_rel}, child1);
         absolute_rect<Backend> c2_abs = to_absolute(relative_rect<Backend>{c2_rel}, child2);
