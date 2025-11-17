@@ -57,7 +57,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     // Add to root and layout
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     SUBCASE("Initially unfocused") {
         CHECK(input->get_focused() == nullptr);
@@ -110,7 +110,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     // Add to root and layout
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     SUBCASE("Click on text gives text_view focus (not label)") {
         // Click at (5, 5) - should hit a label child
@@ -211,7 +211,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
 
     // Now both text_views have fixed heights and won't compete for space
     [[maybe_unused]] auto _ = root->measure(80, 400);
-    root->arrange({0, 0, 80, 400});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 400}});
 
     SUBCASE("Click first text_view gives it focus") {
         mouse_event click{
@@ -255,7 +255,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         // Now click on text_view2 (lower in the layout)
         // First, find where text_view2 actually is
         auto text_view2_bounds = text_view2->bounds();
-        int text_view2_y = text_view2_bounds.y + (text_view2_bounds.h / 2);  // Middle of text_view2
+        int text_view2_y = rect_utils::get_y(text_view2_bounds) + (rect_utils::get_height(text_view2_bounds) / 2);  // Middle of text_view2
 
         mouse_event click2{
             .x = 5,
@@ -328,7 +328,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Event co
 
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     // Verify text_view doesn't consume the press event
     // With unified event API, the child labels will consume the event,
@@ -365,7 +365,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     SUBCASE("Mouse release doesn't give focus") {
         mouse_event release{
@@ -445,7 +445,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Capture 
 
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     SUBCASE("Verify capture phase is used") {
         // This test verifies the architecture:
@@ -497,7 +497,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Non-focu
 
     root->add_child(std::move(text_view_widget));
     [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange({0, 0, 80, 25});
+    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
 
     SUBCASE("Click doesn't give focus to non-focusable widget") {
         mouse_event click{
