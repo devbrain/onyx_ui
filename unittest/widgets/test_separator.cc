@@ -93,7 +93,7 @@ TEST_SUITE("Separator Widget") {
             separator<CanvasBackend> sep(orientation::horizontal);
 
             [[maybe_unused]] auto size = sep.measure(50, 10);
-            sep.arrange({0, 5, 50, 1});
+            sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 5, 50, 1}});
 
             auto bounds = sep.bounds();
             CHECK(rect_utils::get_x(bounds) == 0);
@@ -106,7 +106,7 @@ TEST_SUITE("Separator Widget") {
             separator<CanvasBackend> sep(orientation::vertical);
 
             [[maybe_unused]] auto size = sep.measure(10, 50);
-            sep.arrange({5, 0, 1, 50});
+            sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{5, 0, 1, 50}});
 
             auto bounds = sep.bounds();
             CHECK(rect_utils::get_x(bounds) == 5);
@@ -191,7 +191,7 @@ TEST_SUITE("Separator Widget") {
 
         // Measure and arrange
         [[maybe_unused]] auto menu_size = menu.measure(20, 50);
-        menu.arrange({0, 0, 20, 50});
+        menu.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 20, 50}});
 
         // Verify separator has height=1
         auto& children = menu.children();
@@ -230,7 +230,7 @@ TEST_SUITE("Separator Widget") {
 
         // Measure and arrange
         [[maybe_unused]] auto toolbar_size = toolbar.measure(50, 3);
-        toolbar.arrange({0, 0, 50, 3});
+        toolbar.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 50, 3}});
 
         // Verify separator has width=1
         auto& children = toolbar.children();
@@ -258,7 +258,7 @@ TEST_SUITE("Separator Widget") {
 
         // Render with first theme
         [[maybe_unused]] auto size = sep.measure(10, 1);
-        sep.arrange({0, 0, 10, 1});
+        sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 10, 1}});
         auto canvas1 = render_to_canvas(sep, 10, 1);
 
         // Register second theme
@@ -270,7 +270,7 @@ TEST_SUITE("Separator Widget") {
 
         // Render with second theme
         [[maybe_unused]] auto size2 = sep.measure(10, 1);
-        sep.arrange({0, 0, 10, 1});
+        sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 10, 1}});
         auto canvas2 = render_to_canvas(sep, 10, 1);
 
         // Verify different line characters were used
