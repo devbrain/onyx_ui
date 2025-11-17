@@ -77,7 +77,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         inner_vbox->emplace_child<label>("Item 2");
 
         (void)outer.measure(100, 100);
-        outer.arrange({0, 0, 100, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Panel: border(1) + padding(2) = 3 inset (accounted for in parent arrange)
@@ -127,7 +127,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         panel2->emplace_child<label>("Right");
 
         (void)container.measure(200, 100);
-        container.arrange({0, 0, 200, 100});
+        container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 100}});
 
         // Panels should be positioned side by side with spacing
         auto p1_bounds = panel1->bounds();
@@ -168,7 +168,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         outer.emplace_child<label>("Footer");
 
         (void)outer.measure(200, 100);
-        outer.arrange({0, 0, 200, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 100}});
 
         // Verify vertical spacing
         const auto& children = outer.children();
@@ -203,7 +203,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* text_label = inner->emplace_child<label>("Text");
 
         (void)outer.measure(200, 150);
-        outer.arrange({0, 0, 200, 150});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 150}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Outer panel: border(1) + left_padding(10) = 11 (accounted for in parent arrange)
@@ -250,7 +250,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         gb4->emplace_child<label>("Content 4");
 
         (void)main_container.measure(300, 200);
-        main_container.arrange({0, 0, 300, 200});
+        main_container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 300, 200}});
 
         // Verify all group boxes were laid out
         auto top_row_bounds = top_row->bounds();
@@ -309,7 +309,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* l5_label = l4->emplace_child<label>("Deep");
 
         (void)l1.measure(200, 200);
-        l1.arrange({0, 0, 200, 200});
+        l1.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 200}});
 
         // Track cumulative offsets
         // L1: border(1) = 1
@@ -350,7 +350,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* text_label = inner->emplace_child<label>("Text");
 
         (void)outer.measure(100, 100);
-        outer.arrange({0, 0, 100, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         auto initial_label_bounds = text_label->bounds();
         int initial_x = rect_utils::get_x(initial_label_bounds);
@@ -359,7 +359,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         // Remove inner border
         inner->set_has_border(false);
         (void)outer.measure(100, 100);
-        outer.arrange({0, 0, 100, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         auto new_label_bounds = text_label->bounds();
         int const new_x = rect_utils::get_x(new_label_bounds);
@@ -381,7 +381,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         }
 
         (void)container.measure(100, 500);
-        container.arrange({0, 0, 100, 500});
+        container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 500}});
 
         // Verify each child is spaced 2px from previous
         const auto& children = container.children();
@@ -410,7 +410,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* text_label = l2->emplace_child<label>("Text");
 
         (void)l1.measure(300, 300);
-        l1.arrange({0, 0, 300, 300});
+        l1.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 300, 300}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // L1 positions L2 at (10, 20) via padding (accounted for in parent arrange)
@@ -446,7 +446,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         p2->emplace_child<label>("Second");
 
         (void)container.measure(200, 200);
-        container.arrange({0, 0, 200, 200});
+        container.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 200}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // First panel at container_padding(3) (accounted for in parent arrange)
@@ -480,7 +480,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         vb2->emplace_child<label>("2B");
 
         (void)gb.measure(200, 200);
-        gb.arrange({0, 0, 200, 200});
+        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 200, 200}});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Group box border(1) + padding(2) = 3 (accounted for in parent arrange)
@@ -516,7 +516,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         empty2->set_vbox_layout(0);
 
         (void)outer.measure(100, 100);
-        outer.arrange({0, 0, 100, 100});
+        outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
 
         // Should not crash, all panels positioned
         CHECK(rect_utils::get_y(empty1->bounds()) >= 0);
