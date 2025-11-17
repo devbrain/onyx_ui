@@ -27,7 +27,7 @@ template<UIBackend Backend>
     // Walk parent chain to accumulate offsets
     const ui_element<Backend>* current = element->parent();
     while (current) {
-        auto parent_bounds = current->bounds();  // Returns Backend::rect_type
+        auto parent_bounds = current->bounds().get();  // Get underlying Backend::rect_type
 
         // Add parent's position to result using rect_utils
         const int px = rect_utils::get_x(parent_bounds);
@@ -58,7 +58,7 @@ template<UIBackend Backend>
     auto result = abs.get();  // Start with absolute rect
 
     // Get parent's absolute position
-    auto parent_abs = parent->get_absolute_bounds();  // Returns Backend::rect_type
+    auto parent_abs = parent->get_absolute_bounds().get();  // Get underlying Backend::rect_type
     const int px = rect_utils::get_x(parent_abs);
     const int py = rect_utils::get_y(parent_abs);
 
@@ -82,14 +82,14 @@ template<UIBackend Backend>
     int abs_y = rel_pt.y();
 
     // Add element's own position
-    auto element_bounds = element->bounds();
+    auto element_bounds = element->bounds().get();  // Get underlying Backend::rect_type
     abs_x += rect_utils::get_x(element_bounds);
     abs_y += rect_utils::get_y(element_bounds);
 
     // Walk parent chain to accumulate offsets
     const ui_element<Backend>* current = element->parent();
     while (current) {
-        auto parent_bounds = current->bounds();
+        auto parent_bounds = current->bounds().get();  // Get underlying Backend::rect_type
         abs_x += rect_utils::get_x(parent_bounds);
         abs_y += rect_utils::get_y(parent_bounds);
         current = current->parent();

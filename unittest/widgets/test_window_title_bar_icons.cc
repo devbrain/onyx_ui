@@ -366,8 +366,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Click on the icon
         mouse_event click;
-        click.x = rect_utils::get_x(abs_icon_bounds);
-        click.y = rect_utils::get_y(abs_icon_bounds);
+        click.x = abs_icon_bounds.x();
+        click.y = abs_icon_bounds.y();
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
@@ -444,8 +444,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         auto max_bounds = maximize_icon->get_absolute_bounds();
 
         mouse_event click;
-        click.x = rect_utils::get_x(max_bounds);
-        click.y = rect_utils::get_y(max_bounds);
+        click.x = max_bounds.x();
+        click.y = max_bounds.y();
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
 
@@ -528,8 +528,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
 
         // Click maximize button
         mouse_event click;
-        click.x = rect_utils::get_x(abs_icon_bounds);
-        click.y = rect_utils::get_y(abs_icon_bounds);
+        click.x = abs_icon_bounds.x();
+        click.y = abs_icon_bounds.y();
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
 

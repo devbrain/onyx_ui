@@ -143,11 +143,11 @@ namespace onyxui {
                 // Get icon's absolute screen bounds
                 auto abs_bounds = icon->get_absolute_bounds();
 
-                // Check if mouse is within icon bounds
-                return (mouse_evt->x >= rect_utils::get_x(abs_bounds) &&
-                       mouse_evt->x < rect_utils::get_x(abs_bounds) + rect_utils::get_width(abs_bounds) &&
-                       mouse_evt->y >= rect_utils::get_y(abs_bounds) &&
-                       mouse_evt->y < rect_utils::get_y(abs_bounds) + rect_utils::get_height(abs_bounds));
+                // Check if mouse is within icon bounds (use strong_rect accessors)
+                return (mouse_evt->x >= abs_bounds.x() &&
+                       mouse_evt->x < abs_bounds.x() + abs_bounds.width() &&
+                       mouse_evt->y >= abs_bounds.y() &&
+                       mouse_evt->y < abs_bounds.y() + abs_bounds.height());
             };
 
             // Check which icon was clicked and emit corresponding signal
