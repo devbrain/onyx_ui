@@ -32,7 +32,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - VISUA
     // CRITICAL: Use renderer viewport for measure/arrange (like ui_handle does)
     auto bounds = renderer.get_viewport();
     [[maybe_unused]] auto size = demo_widget->measure(rect_utils::get_width(bounds), rect_utils::get_height(bounds));
-    demo_widget->arrange(bounds);
+    demo_widget->arrange(geometry::relative_rect<test_canvas_backend>{bounds});
 
     // Get current theme for rendering
     auto* themes = ui_services<test_canvas_backend>::themes();
