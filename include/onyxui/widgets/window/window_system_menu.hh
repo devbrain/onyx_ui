@@ -14,8 +14,8 @@
  * ```
  * ┌─────────────────┐
  * │ &Restore        │  (disabled if normal)
- * │ &Move           │  (Phase 7: optional)
- * │ &Size           │  (Phase 7: optional)
+ * │ &Move           │  (disabled - keyboard move not implemented)
+ * │ &Size           │  (disabled - keyboard resize not implemented)
  * │ Mi&nimize       │  (disabled if minimized)
  * │ Ma&ximize       │  (disabled if maximized)
  * ├─────────────────┤
@@ -60,8 +60,8 @@ namespace onyxui {
      * @details
      * Creates and manages a popup menu with standard window operations:
      * - Restore (if minimized or maximized)
-     * - Move (optional, Phase 7)
-     * - Size (optional, Phase 7)
+     * - Move (currently disabled - keyboard-driven move not yet implemented)
+     * - Size (currently disabled - keyboard-driven resize not yet implemented)
      * - Minimize
      * - Maximize
      * - Close
@@ -75,10 +75,10 @@ namespace onyxui {
      * 3. User selects action or dismisses menu
      * 4. Menu triggers window operation
      *
-     * ## Phase 7 Implementation
+     * ## Current Implementation
      *
-     * - Basic menu with Restore, Minimize, Maximize, Close
-     * - Move and Size are optional (can be added later)
+     * - Menu with Restore, Minimize, Maximize, Close (fully functional)
+     * - Move and Size items are present but disabled (keyboard control not implemented)
      * - Menu items auto-update based on window state
      */
     template<UIBackend Backend>
@@ -138,8 +138,8 @@ namespace onyxui {
 
         // Menu items (owned by menu, we keep pointers for state management)
         menu_item<Backend>* m_restore_item = nullptr;
-        menu_item<Backend>* m_move_item = nullptr;      // Optional (Phase 7+)
-        menu_item<Backend>* m_size_item = nullptr;      // Optional (Phase 7+)
+        menu_item<Backend>* m_move_item = nullptr;      // Disabled (keyboard move not implemented)
+        menu_item<Backend>* m_size_item = nullptr;      // Disabled (keyboard resize not implemented)
         menu_item<Backend>* m_minimize_item = nullptr;
         menu_item<Backend>* m_maximize_item = nullptr;
         menu_item<Backend>* m_close_item = nullptr;

@@ -114,7 +114,7 @@ namespace onyxui {
             return false;
         }
 
-        // Phase 1: CAPTURE (root → target, forward iteration)
+        // EVENT ROUTING PHASE 1 OF 3: CAPTURE (root → target, forward iteration)
         // Parents get event BEFORE children
         for (size_t i = 0; i < path.size(); ++i) {
             auto* element = path[i];
@@ -123,14 +123,14 @@ namespace onyxui {
             }
         }
 
-        // Phase 2: TARGET (at target only)
+        // EVENT ROUTING PHASE 2 OF 3: TARGET (at target only)
         // Event delivered to the element that was hit
         auto* target = path.target();
         if (target->handle_event(event, event_phase::target)) {
             return true;  // Event consumed at target
         }
 
-        // Phase 3: BUBBLE (target → root, backward iteration)
+        // EVENT ROUTING PHASE 3 OF 3: BUBBLE (target → root, backward iteration)
         // Children handle BEFORE parents
         for (size_t i = path.size(); i > 0; --i) {
             auto* element = path[i - 1];

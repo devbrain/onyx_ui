@@ -100,7 +100,8 @@ namespace onyxui {
         };
 
         /**
-         * @brief Resize handle zones (Phase 3)
+         * @brief Resize handle zones for window edges and corners
+         * @details Identifies which edge or corner the user is dragging for resize operations
          */
         enum class resize_handle : uint8_t {
             none,        ///< Not on a resize handle
@@ -129,7 +130,7 @@ namespace onyxui {
             bool is_modal = false;              ///< Show as modal (blocks other windows)
             bool dim_background = false;        ///< Dim background when modal (optional)
 
-            // Phase 3: Size constraints
+            // Size constraints for window resize
             int min_width = 100;                ///< Minimum window width
             int min_height = 50;                ///< Minimum window height
             int max_width = 0;                  ///< Maximum window width (0 = no limit)
@@ -265,7 +266,7 @@ namespace onyxui {
         }
 
         // ====================================================================
-        // Focus Management (Phase 8)
+        // Focus Management
         // ====================================================================
 
         // Bring base class keyboard focus methods into scope (prevents name hiding)
@@ -299,7 +300,7 @@ namespace onyxui {
         }
 
         // ====================================================================
-        // Testing Accessors (Phase 7)
+        // Testing Accessors (internal implementation details exposed for testing)
         // ====================================================================
 
         /**
@@ -414,7 +415,7 @@ namespace onyxui {
          */
         bool handle_event(const ui_event& event, event_phase phase) override;
 
-        // Phase 3: Resize helpers (protected for testing)
+        // Resize helpers (protected for testing and subclass customization)
         resize_handle get_resize_handle_at(int x, int y) const;
         void apply_size_constraints(rect_type& bounds) const;
 

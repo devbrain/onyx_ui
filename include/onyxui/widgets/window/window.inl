@@ -30,7 +30,7 @@ namespace onyxui {
           )
           , m_title(std::move(title))
           , m_flags(flags) {
-        // Phase 1: Create title bar and content area
+        // Create title bar and content area
         // (Drag/resize implementation comes in later phases)
 
         if (m_flags.has_title_bar) {
@@ -41,7 +41,7 @@ namespace onyxui {
             );
             m_title_bar = title_bar.get(); // Store raw pointer before moving
 
-            // Phase 2: Connect drag signals (if movable)
+            // Connect drag signals for window movement (if movable)
             if (m_flags.is_movable && m_title_bar) {
                 m_title_bar->drag_started.connect([this]() {
                     // Save initial position when drag starts
@@ -61,7 +61,7 @@ namespace onyxui {
             this->add_child(std::move(title_bar));
         }
 
-        // Phase 7: Create system menu (if menu button enabled)
+        // Create system menu with window controls (if menu button enabled)
         if (m_flags.has_menu_button && m_title_bar) {
             m_system_menu = std::make_unique <window_system_menu <Backend>>(this);
 
@@ -120,7 +120,7 @@ namespace onyxui {
             });
         }
 
-        // Phase 2: Connect window control buttons
+        // Connect window control button signals (minimize/maximize/close)
         if (m_title_bar) {
             // Minimize button
             if (m_flags.has_minimize_button) {
@@ -170,7 +170,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     window <Backend>::~window() {
-        // Phase 5: Remove from layer_manager
+        // Remove from layer_manager (cleanup on window destruction)
         hide();
 
         // Unregister from window_manager
@@ -189,13 +189,13 @@ namespace onyxui {
         // Change state
         m_state = window_state::minimized;
 
-        // Hide window (Phase 1: simple implementation)
+        // Hide window by removing from layer_manager
         this->set_visible(false);
 
         // Emit signal
         minimized_sig.emit();
 
-        // Notify window_manager (Phase 4)
+        // Notify window_manager of window state change
         auto* mgr = ui_services <Backend>::windows();
         if (mgr) {
             mgr->handle_minimize(this);
@@ -386,7 +386,7 @@ namespace onyxui {
         // Emit signal
         restored_sig.emit();
 
-        // Notify window_manager (Phase 4)
+        // Notify window_manager of window state change
         auto* mgr = ui_services <Backend>::windows();
         if (mgr) {
             mgr->handle_restore(this);
@@ -569,7 +569,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window <Backend>::hide() {
-        // Phase 5: Remove from layer_manager
+        // Remove from layer_manager (cleanup on window destruction)
         auto* layers = ui_services <Backend>::layers();
         if (layers && m_layer_id.is_valid()) {
             layers->remove_layer(m_layer_id);

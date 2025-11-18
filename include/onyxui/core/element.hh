@@ -878,11 +878,37 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             /**
-             * @brief Check if a point is inside this element
-             * Implementation for event_target's pure virtual method
+             * @brief Check if a point is inside this element (absolute screen coordinates)
+             * @param x Absolute screen X coordinate
+             * @param y Absolute screen Y coordinate
+             * @return true if point is within this element's absolute bounds
              *
-             * @note Recursively computes absolute bounds by walking up the entire tree hierarchy.
-             * @note Uses std::function for recursive lambda (requires #include <functional>).
+             * @details
+             * **CRITICAL**: After the relative coordinate refactoring (2025-11), child elements
+             * store bounds relative to their parent's content area. This method converts relative
+             * bounds to absolute screen coordinates by recursively walking up the parent chain.
+             *
+             * **Algorithm:**
+             * 1. **Root element**: Bounds are already absolute → direct contains() check
+             * 2. **Child element**:
+             *    - Recursively compute parent's absolute position (walk to root)
+             *    - Add parent's content area offset (accounts for margin/padding/border)
+             *    - Add this element's relative position
+             *    - Result: absolute screen coordinates for hit testing
+             *
+             * **Performance**: O(tree depth) per call - typically 5-15 levels, max ~30 in complex UIs.
+             * The recursive lambda using std::function is necessary to handle relative→absolute
+             * conversion at each level without polluting the public API with helper methods.
+             *
+             * **Thread Safety**: Not thread-safe (accesses parent chain without synchronization).
+             *
+             * **Why This Matters**: Mouse events arrive in absolute screen coordinates, but widget
+             * bounds are stored relative to parent content. This conversion is essential for
+             * correct event routing in deeply nested UIs (e.g., modal dialogs with buttons).
+             *
+             * @note Requires #include <functional> for std::function
+             * @see geometry::to_absolute() for the public coordinate conversion API
+             * @see hit_test() for the tree traversal algorithm that uses is_inside()
              */
             [[nodiscard]] bool is_inside(int x, int y) const override {
                 // CRITICAL FIX: After relative coordinate refactoring, m_bounds is relative for children.

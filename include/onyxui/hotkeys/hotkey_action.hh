@@ -95,7 +95,7 @@ namespace onyxui {
         scroll_home,        ///< Scroll to top of content (Home)
         scroll_end,         ///< Scroll to end of content (End)
 
-        // Window Management (Phase 2)
+        // Window Management - Turbo Vision style (Ctrl+W, Ctrl+Tab, etc.)
         enter_window_move_mode,   ///< Start keyboard window moving (Alt+F7 Windows, Alt+F8 Norton)
         enter_window_resize_mode, ///< Start keyboard window resizing (Alt+F8 Windows)
         minimize_window,          ///< Minimize active window (Alt+F9 Norton)

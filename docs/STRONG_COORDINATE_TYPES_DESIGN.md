@@ -1,12 +1,15 @@
 # Strong Coordinate Types Design Document
 
-**Status**: Design Phase
-**Target Version**: v2.0 (Breaking API Change - NO backward compatibility)
+**Status**: ✅ IMPLEMENTED (as of November 2025)
+**Version**: v2.0
+**Implementation**: See `include/onyxui/geometry/coordinates.hh` and `.inl`
 **Created**: 2025-11-11
-**Last Updated**: 2025-11-11 (Corrected to use Backend type wrappers)
+**Last Updated**: 2025-11-18 (Implementation complete, all 1334 tests passing)
 **Author**: Architecture Team
 
-**Migration Policy**: This is a **clean break v2.0 release**. No deprecated APIs, no transition period. All coordinate types will be replaced with strong types in a single release.
+**Note**: This document served as the design specification for the relative coordinate system refactoring. For current documentation, see [Architecture Guide](CLAUDE/ARCHITECTURE.md#relative-coordinate-system).
+
+**Migration Policy**: This was a **clean break v2.0 release**. No deprecated APIs, no transition period. All coordinate types were replaced with strong types in a single release (Phase 1 and Phase 2 complete).
 
 ---
 

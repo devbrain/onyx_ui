@@ -250,9 +250,9 @@ namespace onyxui {
          * @return Layer ID for later reference
          *
          * @details
-         * **Phase 1.2**: This is the SAFE API that tracks element lifetime.
-         * The layer_manager tracks the element via weak_ptr and automatically
-         * handles cleanup if the element is destroyed.
+         * **Safe Lifetime Tracking**: This API tracks element lifetime using weak_ptr.
+         * The layer_manager automatically handles cleanup if the element is destroyed,
+         * preventing dangling references and use-after-free bugs.
          *
          * **Usage**:
          * @code
@@ -282,7 +282,7 @@ namespace onyxui {
                 popup_placement::below,  // placement
                 dialog_position::center,  // dialog_pos
                 false,  // needs_positioning
-                nullptr  // outside_click_callback (Phase 1.3)
+                nullptr  // outside_click_callback (optional click-outside handler)
             });
 
             sort_layers_by_z_index();
@@ -292,7 +292,7 @@ namespace onyxui {
         }
 
         /**
-         * @brief Create a layer with RAII automatic cleanup (Phase 1.4)
+         * @brief Create a layer with RAII automatic cleanup
          *
          * @param type Layer type (determines default z-index)
          * @param root Root element for this layer (shared_ptr for lifetime safety)
@@ -425,7 +425,7 @@ namespace onyxui {
                 it->anchor_bounds = anchor_bounds;
                 it->placement = placement;
                 it->needs_positioning = true;
-                it->outside_click_callback = std::move(outside_click_callback);  // Phase 1.3
+                it->outside_click_callback = std::move(outside_click_callback);  // Optional click-outside handler
             }
 
             return id;
@@ -516,7 +516,7 @@ namespace onyxui {
          */
         [[nodiscard]] bool is_layer_visible(layer_id id) const {
             if (auto it = find_layer_const(id); it != m_layers.end()) {
-                // Phase 1.2: Return false for expired layers
+                // Return false for expired layers (safe lifetime tracking)
                 return it->is_valid() && it->visible;
             }
             return false;
@@ -561,7 +561,7 @@ namespace onyxui {
          * This prevents double conversion and ensures consistent event handling.
          */
         bool route_event(const ui_event& event) {
-            // Phase 1.2: Clean up expired layers first
+            // Clean up expired layers first (automatic lifetime management)
             cleanup_expired_layers();
 
             // No conversion needed - we already have ui_event!
@@ -576,7 +576,7 @@ namespace onyxui {
                 }
             }
 
-            // Phase 1.3: Generic click-outside detection
+            // Generic click-outside detection for dismissible layers
             // We need to defer the callback to avoid modifying m_layers while iterating
             std::function<void()> deferred_callback;
 
@@ -689,14 +689,14 @@ namespace onyxui {
          * @details
          * Renders all visible layers from lowest z to highest z.
          * Performs layout (measure/arrange) before rendering.
-         * **Phase 1.2**: Automatically skips expired layers.
+         * Automatically skips expired layers (safe lifetime tracking).
          * Theme must be explicitly passed to ensure popup menus/dialogs use correct styling.
          */
         void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type* theme) {
             // Save viewport for workspace detection (Phase 4)
             m_viewport = viewport;
 
-            // Phase 1.2: Clean up expired layers first
+            // Clean up expired layers first (automatic lifetime management)
             cleanup_expired_layers();
 
             for (auto& layer : m_layers) {
@@ -710,7 +710,7 @@ namespace onyxui {
                     layer.needs_positioning = false;
                 }
 
-                // Measure, arrange, and render - Phase 1.2: Use safe access
+                // Measure, arrange, and render using safe lifetime access
                 layer.with_root([&](element_type* root_ptr) {
                     // Measure and arrange
                     int const width = rect_utils::get_width(layer.bounds);
@@ -734,7 +734,7 @@ namespace onyxui {
          * @brief Check if any modal layer is active
          *
          * @details
-         * **Phase 1.2**: Only counts valid (non-expired) modal layers.
+         * Only counts valid (non-expired) modal layers via safe lifetime tracking.
          */
         [[nodiscard]] bool has_modal_layer() const {
             return std::any_of(m_layers.begin(), m_layers.end(),
@@ -874,7 +874,7 @@ namespace onyxui {
             layer_id id;
             layer_type type = layer_type::base;
             int z_index = 0;
-            std::weak_ptr<element_type> root;  // Safe lifetime tracking (Phase 1.2)
+            std::weak_ptr<element_type> root;  // Safe lifetime tracking via weak_ptr
             std::shared_ptr<element_type> owner;  // Keeps root alive (may be non-owning for show_popup/etc)
             bool visible = true;
             bool modal = false;
@@ -887,7 +887,7 @@ namespace onyxui {
             dialog_position dialog_pos = dialog_position::center;
             bool needs_positioning = false;
 
-            // Click-outside callback (Phase 1.3)
+            // Click-outside callback for dismissible layers
             std::function<void()> outside_click_callback;
 
             /**
@@ -972,7 +972,7 @@ namespace onyxui {
          * @brief Remove layers whose elements have been destroyed
          *
          * @details
-         * **Phase 1.2**: Automatic cleanup of expired layers.
+         * Automatic cleanup of expired layers via weak_ptr tracking.
          * Scans the layer list and removes any layers whose weak_ptr has expired.
          * Called automatically at strategic points (event routing, rendering).
          *
@@ -1001,7 +1001,7 @@ namespace onyxui {
         }
 
         void position_dialog(layer_data& layer, const rect_type& viewport) {
-            // Phase 1.2: Use safe access for positioning
+            // Use safe weak_ptr access for positioning
             layer.with_root([&](element_type* root_ptr) {
                 // Measure to get desired size
                 int const vp_width = rect_utils::get_width(viewport);
@@ -1021,7 +1021,7 @@ namespace onyxui {
         }
 
         void position_popup(layer_data& layer, const rect_type& viewport) {
-            // Phase 1.2: Use safe access for positioning
+            // Use safe weak_ptr access for positioning
             layer.with_root([&](element_type* root_ptr) {
                 // Measure to get desired size
                 int const vp_width = rect_utils::get_width(viewport);
