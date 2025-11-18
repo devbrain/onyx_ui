@@ -881,9 +881,8 @@ namespace onyxui {
              * @brief Check if a point is inside this element
              * Implementation for event_target's pure virtual method
              *
-             * @note Currently supports up to one level of nesting (child of root).
-             * For deeply nested widgets, use hit_test() which traverses the full hierarchy.
-             * @warning Does not recursively compute absolute bounds for deeply nested elements.
+             * @note Recursively computes absolute bounds by walking up the entire tree hierarchy.
+             * @note Uses std::function for recursive lambda (requires #include <functional>).
              */
             [[nodiscard]] bool is_inside(int x, int y) const override {
                 // CRITICAL FIX: After relative coordinate refactoring, m_bounds is relative for children.
@@ -894,18 +893,40 @@ namespace onyxui {
                     return rect_utils::contains(m_bounds, x, y);
                 }
 
-                // Child element - compute absolute bounds
-                // Absolute position = parent_absolute_content_position + child_relative_position
+                // Child element - compute absolute bounds by recursively walking up the tree
+                // Absolute position = parent_absolute_position + parent_content_offset + child_relative_position
+
+                // Recursive helper: get absolute position of any element
+                std::function<void(const ui_element*, int&, int&)> get_absolute_pos;
+                get_absolute_pos = [&get_absolute_pos](const ui_element* elem, int& abs_x, int& abs_y) {
+                    if (!elem->m_parent) {
+                        // Root element
+                        abs_x = rect_utils::get_x(elem->m_bounds);
+                        abs_y = rect_utils::get_y(elem->m_bounds);
+                    } else {
+                        // Get parent's absolute position
+                        int parent_x, parent_y;
+                        get_absolute_pos(elem->m_parent, parent_x, parent_y);
+
+                        // Add parent's content offset
+                        rect_type elem_parent_content = elem->m_parent->get_content_area();
+                        parent_x += rect_utils::get_x(elem_parent_content);
+                        parent_y += rect_utils::get_y(elem_parent_content);
+
+                        // Add this element's relative position
+                        abs_x = parent_x + rect_utils::get_x(elem->m_bounds);
+                        abs_y = parent_y + rect_utils::get_y(elem->m_bounds);
+                    }
+                };
+
+                // Get parent's absolute position
+                int parent_abs_x, parent_abs_y;
+                get_absolute_pos(m_parent, parent_abs_x, parent_abs_y);
+
+                // Get parent's content area
                 rect_type parent_content = m_parent->get_content_area();
 
-                // Parent's content area is relative to parent's bounds
-                // Get parent's absolute position
-                int parent_abs_x = rect_utils::get_x(m_parent->m_bounds);
-                int parent_abs_y = rect_utils::get_y(m_parent->m_bounds);
-
-                // If parent also has a parent, we need to recurse (TODO: optimize with caching)
-                // For now, assume parent is root (works for popup menus)
-
+                // Compute this element's absolute position
                 int content_abs_x = parent_abs_x + rect_utils::get_x(parent_content);
                 int content_abs_y = parent_abs_y + rect_utils::get_y(parent_content);
 
