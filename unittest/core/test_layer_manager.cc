@@ -22,6 +22,17 @@ using TestEvent = test_backend::event_type;
 using TestRenderer = test_backend::renderer_type;
 using TestMouseEvent = test_backend::mouse_button_event_type;
 
+// Helper function to create ui_event from backend event
+inline ui_event make_ui_event() {
+    TestEvent backend_event;
+    backend_event.type = TestEvent::mouse_down;
+    auto ui_event_opt = test_backend::create_event(backend_event);
+    if (!ui_event_opt) {
+        throw std::runtime_error("Failed to create ui_event");
+    }
+    return *ui_event_opt;
+}
+
 /**
  * @class TestLayer
  * @brief Test element that tracks events and rendering
@@ -283,8 +294,13 @@ TEST_SUITE("Layer Manager") {
         layer_manager<test_backend> mgr;
 
         // Use the generic event type
-        TestEvent event;
-        event.type = TestEvent::mouse_down;
+        TestEvent backend_event;
+        backend_event.type = TestEvent::mouse_down;
+
+        // Convert to ui_event for routing (layer_manager now uses unified event API)
+        auto ui_event_opt = test_backend::create_event(backend_event);
+        REQUIRE(ui_event_opt.has_value());
+        ui_event event = *ui_event_opt;
 
         SUBCASE("No layers - event not handled") {
             CHECK(!mgr.route_event(event));
@@ -670,7 +686,7 @@ TEST_SUITE("Layer Manager") {
         CHECK(mgr.layer_count() == 2);
 
         // Test event routing with remaining layers
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         base->event_handled = true;
         modal->event_handled = false;
 

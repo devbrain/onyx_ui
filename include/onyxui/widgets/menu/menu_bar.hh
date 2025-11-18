@@ -502,7 +502,9 @@ namespace onyxui {
     // Implementation of methods using ui_services
     template<UIBackend Backend>
     void menu_bar<Backend>::open_menu(std::size_t index) {
-        if (index >= m_menus.size()) return;
+        if (index >= m_menus.size()) {
+            return;
+        }
 
         // Close current menu if different
         if (m_open_menu_index && *m_open_menu_index != index) {
@@ -536,6 +538,27 @@ namespace onyxui {
             focus->set_focus(entry.dropdown_menu.get());  // Pass raw pointer
             if (entry.dropdown_menu) {
                 entry.dropdown_menu->focus_first();
+            }
+        }
+
+        // CRITICAL FIX: Stabilize window layout after opening menu
+        // Opening a menu can trigger layout invalidation (via focus changes, layer creation, etc.)
+        // If the window is left dirty, the menu layer may not render properly until the next frame
+        auto* window = this->parent();
+        while (window && window->parent()) {
+            window = window->parent();  // Walk up to root (window)
+        }
+        if (window && (window->needs_measure() || window->needs_arrange())) {
+            auto const bounds = window->bounds().get();
+            int const width = rect_utils::get_width(bounds);
+            int const height = rect_utils::get_height(bounds);
+            if (auto* themes = ui_services<Backend>::themes()) {
+                if (window->needs_measure()) {
+                    [[maybe_unused]] auto const measured = window->measure(width, height);
+                }
+                if (window->needs_arrange()) {
+                    window->arrange(geometry::relative_rect<Backend>{bounds});
+                }
             }
         }
     }

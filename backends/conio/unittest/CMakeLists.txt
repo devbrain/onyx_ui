@@ -35,6 +35,7 @@ target_link_libraries(conio_unittest PRIVATE
         onyxui_conio_backend
         doctest::doctest
         test_support  # Test utilities (test_types, test_config)
+        thirdparty::failsafe  # Explicit dependency for headers
 )
 
 # Apply warning flags

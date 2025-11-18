@@ -204,7 +204,7 @@ TEST_SUITE("geometry::coordinates") {
         parent.arrange(testing::make_relative_rect<Backend>(100, 50, 200, 100));
 
         // Absolute rect at (110, 60)
-        Backend::rect abs_backend{110, 60, 50, 30};
+        Backend::rect const abs_backend{110, 60, 50, 30};
         absolute_rect<Backend> abs{abs_backend};
 
         // Convert to relative coordinates

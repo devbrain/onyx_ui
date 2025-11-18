@@ -310,6 +310,14 @@ namespace onyxui {
             return m_system_menu.get();
         }
 
+        /**
+         * @brief Get content area (for testing)
+         * @return Pointer to window content area
+         */
+        [[nodiscard]] window_content_area<Backend>* get_content_area() noexcept {
+            return m_content_area;
+        }
+
         // ====================================================================
         // Display
         // ====================================================================

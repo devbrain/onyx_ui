@@ -12,6 +12,7 @@
 #include <onyxui/core/signal.hh>
 
 #include <vector>
+#include <iostream>
 
 namespace onyxui {
 
@@ -253,12 +254,39 @@ namespace onyxui {
             bool const show_v = m_scrollable->should_show_vertical_scrollbar();
             bool const show_h = m_scrollable->should_show_horizontal_scrollbar();
 
+            bool visibility_changed = false;
+
             if (m_vscrollbar) {
+                bool const was_visible = m_vscrollbar->is_visible();
                 m_vscrollbar->set_visible(show_v);
+                if (was_visible != show_v) {
+                    visibility_changed = true;
+                }
             }
 
             if (m_hscrollbar) {
+                bool const was_visible = m_hscrollbar->is_visible();
                 m_hscrollbar->set_visible(show_h);
+                if (was_visible != show_h) {
+                    visibility_changed = true;
+                }
+            }
+
+            // When scrollbar visibility changes, we need the grid to re-measure
+            // to recalculate row/column sizes with the new visibility state.
+            // Invalidate the grid so it remeasures with correct scrollbar visibility.
+            if (visibility_changed && !m_relayout_in_progress) {
+                if (m_vscrollbar) {
+                    m_relayout_in_progress = true;  // Prevent recursion
+
+                    auto* grid = m_vscrollbar->parent();
+                    if (grid) {
+                        // Invalidate grid's measure
+                        grid->invalidate_measure();
+                    }
+
+                    m_relayout_in_progress = false;
+                }
             }
         }
 
@@ -270,6 +298,7 @@ namespace onyxui {
 
         bool m_updating_from_scrollable = false;       ///< Guard: scrollable → scrollbar update in progress
         bool m_updating_from_scrollbar = false;        ///< Guard: scrollbar → scrollable update in progress
+        bool m_relayout_in_progress = false;           ///< Guard: prevent recursion during visibility change re-layout
     };
 
 } // namespace onyxui

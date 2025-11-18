@@ -259,8 +259,9 @@ namespace onyxui {
             // ============================================================
             // Route event through layers first (top to bottom).
             // If a layer handles the event or a modal blocks it, don't route to root widget.
+            // ARCHITECTURAL FIX: Pass ui_event instead of native_event to prevent double conversion
             if (auto* layers = ui_services<Backend>::layers()) {
-                if (layers->route_event(native_event)) {
+                if (layers->route_event(ui_evt)) {
                     return true;  // Layer handled the event
                 }
             }
@@ -293,9 +294,8 @@ namespace onyxui {
             // Use variant dispatch to handle keyboard events
             if (auto* kbd_evt = std::get_if<keyboard_event>(&ui_evt)) {
                 // 1. Handle Tab navigation (input_manager traverses tree automatically)
-                // NOTE: Still uses native_event for backward compatibility with input_manager
                 if (auto* input = ui_services<Backend>::input()) {
-                    if (input->handle_tab_navigation_in_tree(native_event, m_root.get())) {
+                    if (input->handle_tab_navigation_in_tree(*kbd_evt, m_root.get())) {
                         return true;  // Tab was handled, focus changed
                     }
                 }

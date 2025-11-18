@@ -84,9 +84,12 @@ namespace onyxui {
             m_content_ptr = content.get();
             m_vscrollbar_ptr = vscrollbar.get();
             m_hscrollbar_ptr = hscrollbar.get();
+            auto* corner_ptr = corner.get();  // Also store corner pointer for set_cell()
 
             // Set alignment to position scrollbars at widget edges
             vscrollbar->set_horizontal_align(horizontal_alignment::right);  // Vertical scrollbar at right edge
+            vscrollbar->set_vertical_align(vertical_alignment::stretch);    // Stretch to fill full height
+            hscrollbar->set_horizontal_align(horizontal_alignment::stretch); // Stretch to fill full width
             hscrollbar->set_vertical_align(vertical_alignment::bottom);      // Horizontal scrollbar at bottom edge
 
             // Set default vertical layout for scrollable content
@@ -103,12 +106,24 @@ namespace onyxui {
             content->set_horizontal_align(horizontal_alignment::stretch);
             content->set_vertical_align(vertical_alignment::stretch);
 
-            // Add components to grid (grid will auto-assign to 2x2 cells)
-            // Auto-assignment goes left-to-right, top-to-bottom
-            grid_widget->add_child(std::move(content));      // Cell (0,0)
-            grid_widget->add_child(std::move(vscrollbar));   // Cell (0,1)
-            grid_widget->add_child(std::move(hscrollbar));   // Cell (1,0)
-            grid_widget->add_child(std::move(corner));       // Cell (1,1)
+            // Add components to grid and explicitly assign cell positions
+            // CRITICAL: Must use explicit assignment, NOT auto-assignment!
+            // Auto-assignment fails when scrollbars are initially hidden - they get
+            // skipped and corner takes their cell positions. Then when scrollbars
+            // become visible, they get assigned to wrong cells.
+            grid_widget->add_child(std::move(content));
+            grid_widget->add_child(std::move(vscrollbar));
+            grid_widget->add_child(std::move(hscrollbar));
+            grid_widget->add_child(std::move(corner));
+
+            // Explicitly assign each child to its correct cell
+            grid_ptr->set_cell(m_content_ptr, 0, 0);        // Scrollable at (0,0)
+            grid_ptr->set_cell(m_vscrollbar_ptr, 0, 1);     // Vertical scrollbar at (0,1)
+            grid_ptr->set_cell(m_hscrollbar_ptr, 1, 0);     // Horizontal scrollbar at (1,0)
+            grid_ptr->set_cell(corner_ptr, 1, 1);           // Corner spacer at (1,1)
+
+            // Note: Grid doesn't need explicit stretch alignment because it's the only
+            // child in scroll_view's linear layout, which stretches single children by default
 
             // Create controller
             m_controller = std::make_unique<controller_type>(

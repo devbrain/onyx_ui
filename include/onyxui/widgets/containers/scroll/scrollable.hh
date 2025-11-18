@@ -15,6 +15,7 @@
 #include <onyxui/core/rendering/draw_context.hh>
 #include <onyxui/theming/theme.hh>
 #include <algorithm>
+#include <iostream>
 
 namespace onyxui {
 

@@ -156,6 +156,37 @@ namespace onyxui {
             this->set_interaction_state(base::interaction_state::normal);
         }
 
+        /**
+         * @brief Override handle_mouse to track menu opening
+         *
+         * @details
+         * Track when we're about to open a menu so layer_manager can
+         * skip routing the release event to the newly created layer.
+         */
+        bool handle_mouse(const mouse_event& mouse) override {
+            // If this is a press event, mark that we're potentially opening a menu
+            if (mouse.act == mouse_event::action::press) {
+                m_opening_menu = true;
+            }
+
+            // Let base class handle the event (emits clicked signal which opens menu)
+            bool handled = base::handle_mouse(mouse);
+
+            // Clear flag after release
+            if (mouse.act == mouse_event::action::release) {
+                m_opening_menu = false;
+            }
+
+            return handled;
+        }
+
+        /**
+         * @brief Check if this item is about to open a menu
+         */
+        [[nodiscard]] bool is_opening_menu() const noexcept {
+            return m_opening_menu;
+        }
+
     protected:
         /**
          * @brief Render the menu bar item
@@ -264,6 +295,7 @@ namespace onyxui {
         mnemonic_info<Backend> m_mnemonic_info;   ///< Parsed mnemonic (unused for now)
         bool m_has_mnemonic = false;              ///< Whether mnemonic is active
         bool m_is_menu_open = false;              ///< Whether this item's menu is open
+        bool m_opening_menu = false;              ///< Whether this item is about to open a menu
     };
 
 } // namespace onyxui

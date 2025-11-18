@@ -20,6 +20,17 @@ using namespace onyxui;
 // Type aliases
 using Backend = test_backend;
 using TestEvent = test_backend::event_type;
+
+// Helper function to create ui_event from backend event
+inline ui_event make_ui_event() {
+    TestEvent backend_event;
+    backend_event.type = TestEvent::mouse_down;
+    auto ui_event_opt = test_backend::create_event(backend_event);
+    if (!ui_event_opt) {
+        throw std::runtime_error("Failed to create ui_event");
+    }
+    return *ui_event_opt;
+}
 using TestMouseEvent = test_backend::mouse_button_event_type;
 using TestRenderer = test_backend::renderer_type;
 using TestRect = test_backend::rect_type;
@@ -76,7 +87,7 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::dialog, dialog, 100);
         mgr.add_layer(layer_type::modal, modal, 200);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         bool const handled = mgr.route_event(event);
 
         // Modal should receive event
@@ -105,7 +116,7 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::modal, modal1, 100);
         mgr.add_layer(layer_type::modal, modal2, 200);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Only topmost modal should receive event
@@ -131,7 +142,7 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         // Hide the modal
         mgr.hide_layer(modal_id);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Base should receive event (modal is hidden)
@@ -154,7 +165,7 @@ TEST_SUITE("Layer Manager - Modal Blocking") {
         mgr.add_layer(layer_type::modal, modal, 100);
         mgr.add_layer(layer_type::popup, popup, 200);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         bool const handled = mgr.route_event(event);
 
         // Popup handles event
@@ -190,7 +201,7 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::tooltip, layer3, 200);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // All should receive event (none handle it)
@@ -214,7 +225,7 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::tooltip, layer3, 200);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         bool const handled = mgr.route_event(event);
 
         CHECK(handled);
@@ -248,7 +259,7 @@ TEST_SUITE("Layer Manager - Event Routing Order") {
         // Hide middle layer
         mgr.hide_layer(id2);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Visible layers receive event
@@ -309,7 +320,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
         CHECK(mgr.layer_count() == 1);
 
         // Send regular event (not mouse event with coordinates)
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         CHECK_NOTHROW(mgr.route_event(event));
     }
 
@@ -368,7 +379,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
     TEST_CASE("No layers - event not handled") {
         layer_manager<Backend> mgr;
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         bool const handled = mgr.route_event(event);
 
         CHECK_FALSE(handled);
@@ -386,7 +397,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
         mgr.hide_layer(id1);
         mgr.hide_layer(id2);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         bool const handled = mgr.route_event(event);
 
         CHECK_FALSE(handled);
@@ -399,7 +410,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
         mgr.add_layer(layer_type::popup, layer);
 
         // Default-constructed event
-        TestEvent const event{};
+        ui_event const event = make_ui_event();
         CHECK_NOTHROW(mgr.route_event(event));
     }
 
@@ -413,7 +424,7 @@ TEST_SUITE("Layer Manager - Event Propagation") {
 
         // Send 100 events rapidly
         for (int i = 0; i < 100; ++i) {
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             mgr.route_event(event);
         }
 
@@ -440,7 +451,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer2, 100);
         mgr.add_layer(layer_type::popup, layer3, 100);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Behavior depends on implementation
@@ -460,7 +471,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer1, -100);
         mgr.add_layer(layer_type::popup, layer2, 100);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Higher z-index should receive first
@@ -480,7 +491,7 @@ TEST_SUITE("Layer Manager - Z-Index Behavior") {
         mgr.add_layer(layer_type::popup, layer1, 0);
         mgr.add_layer(layer_type::popup, layer2, 999999);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         mgr.route_event(event);
 
         // Very high z-index should work correctly

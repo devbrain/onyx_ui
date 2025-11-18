@@ -225,11 +225,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
     [[maybe_unused]] auto new_size = view->measure(200, 100);
     view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
 
-    // Scroll should clamp to new max
+    // Scroll should clamp to new max (which may be 0 if content fits in viewport)
     auto new_offset = point_utils::get_y(view->content()->get_scroll_offset());
     auto new_info = view->content()->get_scroll_info();
-    int new_max_scroll = size_utils::get_height(new_info.content_size) - size_utils::get_height(new_info.viewport_size);
-    CHECK(new_offset <= new_max_scroll);
+    int new_max_scroll = std::max(0, size_utils::get_height(new_info.content_size) - size_utils::get_height(new_info.viewport_size));
+    CHECK(new_offset >= 0);  // Offset should never be negative
+    CHECK(new_offset <= new_max_scroll);  // Offset should not exceed max
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear all children") {

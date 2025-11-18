@@ -28,10 +28,12 @@ template<UIBackend Backend>
     const ui_element<Backend>* current = element->parent();
     while (current) {
         auto parent_bounds = current->bounds().get();  // Get underlying Backend::rect_type
+        auto parent_content = current->get_content_area();  // Get parent's content area
 
-        // Add parent's position to result using rect_utils
-        const int px = rect_utils::get_x(parent_bounds);
-        const int py = rect_utils::get_y(parent_bounds);
+        // Children are positioned relative to parent's content area
+        // So we need to add: parent's position + content area offset
+        const int px = rect_utils::get_x(parent_bounds) + rect_utils::get_x(parent_content);
+        const int py = rect_utils::get_y(parent_bounds) + rect_utils::get_y(parent_content);
 
         // Offset the result rectangle
         rect_utils::set_bounds(result,
@@ -90,8 +92,11 @@ template<UIBackend Backend>
     const ui_element<Backend>* current = element->parent();
     while (current) {
         auto parent_bounds = current->bounds().get();  // Get underlying Backend::rect_type
-        abs_x += rect_utils::get_x(parent_bounds);
-        abs_y += rect_utils::get_y(parent_bounds);
+        auto parent_content = current->get_content_area();  // Get parent's content area
+
+        // Children are positioned relative to parent's content area
+        abs_x += rect_utils::get_x(parent_bounds) + rect_utils::get_x(parent_content);
+        abs_y += rect_utils::get_y(parent_bounds) + rect_utils::get_y(parent_content);
         current = current->parent();
     }
 

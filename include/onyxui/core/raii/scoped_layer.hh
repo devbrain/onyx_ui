@@ -73,7 +73,8 @@ public:
     scoped_layer(layer_manager_type* manager, layer_id id) noexcept
         : m_manager(manager)
         , m_id(id)
-    {}
+    {
+    }
 
     /**
      * @brief Deleted copy constructor (non-copyable)

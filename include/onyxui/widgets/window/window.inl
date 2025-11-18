@@ -5,44 +5,41 @@
 
 #pragma once
 
-#include <iostream>
 #include "onyxui/concepts/backend.hh"
 #include "onyxui/hotkeys/hotkey_action.hh"
 #include <onyxui/widgets/window/window_title_bar.hh>
 #include <onyxui/widgets/window/window_content_area.hh>
 #include <onyxui/widgets/window/window_system_menu.hh>
 #include <onyxui/services/ui_services.hh>
+#include <failsafe/logger.hh>
 #include <vector>
 
 namespace onyxui {
-
     template<UIBackend Backend>
-    window<Backend>::window(
+    window <Backend>::window(
         std::string title,
         window_flags flags,
-        ui_element<Backend>* parent
+        ui_element <Backend>* parent
     )
         : base(
-            std::make_unique<linear_layout<Backend>>(
-                direction::vertical,
-                0  // No spacing between title bar and content
-            ),
-            parent
+              std::make_unique <linear_layout <Backend>>(
+                  direction::vertical,
+                  0 // No spacing between title bar and content
+              ),
+              parent
           )
-        , m_title(std::move(title))
-        , m_flags(flags)
-    {
-
+          , m_title(std::move(title))
+          , m_flags(flags) {
         // Phase 1: Create title bar and content area
         // (Drag/resize implementation comes in later phases)
 
         if (m_flags.has_title_bar) {
-            auto title_bar = std::make_unique<window_title_bar<Backend>>(
+            auto title_bar = std::make_unique <window_title_bar <Backend>>(
                 m_title,
                 m_flags,
                 this
             );
-            m_title_bar = title_bar.get();  // Store raw pointer before moving
+            m_title_bar = title_bar.get(); // Store raw pointer before moving
 
             // Phase 2: Connect drag signals (if movable)
             if (m_flags.is_movable && m_title_bar) {
@@ -56,7 +53,7 @@ namespace onyxui {
                     auto new_bounds = m_drag_initial_bounds;
                     new_bounds.x += delta_x;
                     new_bounds.y += delta_y;
-                    this->arrange(geometry::relative_rect<Backend>{new_bounds});
+                    this->arrange(geometry::relative_rect <Backend>{new_bounds});
                     moved.emit();
                 });
             }
@@ -66,7 +63,7 @@ namespace onyxui {
 
         // Phase 7: Create system menu (if menu button enabled)
         if (m_flags.has_menu_button && m_title_bar) {
-            m_system_menu = std::make_unique<window_system_menu<Backend>>(this);
+            m_system_menu = std::make_unique <window_system_menu <Backend>>(this);
 
             // Wire up menu button to show system menu
             m_title_bar->menu_clicked.connect([this]() {
@@ -84,7 +81,7 @@ namespace onyxui {
                     return;
                 }
 
-                auto* layers = ui_services<Backend>::layers();
+                auto* layers = ui_services <Backend>::layers();
                 if (!layers) {
                     return;
                 }
@@ -104,7 +101,7 @@ namespace onyxui {
                 );
 
                 // Wrap in scoped_layer for RAII cleanup
-                m_system_menu_layer = scoped_layer<Backend>(layers, id);
+                m_system_menu_layer = scoped_layer <Backend>(layers, id);
 
                 // Connect to menu's closing signal to dismiss the popup
                 // When a menu item is clicked, the menu emits closing signal
@@ -117,7 +114,7 @@ namespace onyxui {
                 menu->focus_first();
 
                 // Set focus to menu
-                if (auto* focus = ui_services<Backend>::input()) {
+                if (auto* focus = ui_services <Backend>::input()) {
                     focus->set_focus(menu);
                 }
             });
@@ -151,7 +148,7 @@ namespace onyxui {
             }
         }
 
-        auto content_area = std::make_unique<window_content_area<Backend>>(
+        auto content_area = std::make_unique <window_content_area <Backend>>(
             m_flags.is_scrollable,
             this
         );
@@ -164,7 +161,7 @@ namespace onyxui {
         height_constraint.policy = size_policy::expand;
         content_area->set_height_constraint(height_constraint);
 
-        m_content_area = content_area.get();  // Store raw pointer before moving
+        m_content_area = content_area.get(); // Store raw pointer before moving
         this->add_child(std::move(content_area));
 
         // Register with window_manager (if available)
@@ -172,7 +169,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    window<Backend>::~window() {
+    window <Backend>::~window() {
         // Phase 5: Remove from layer_manager
         hide();
 
@@ -181,9 +178,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::minimize() {
+    void window <Backend>::minimize() {
         if (m_state == window_state::minimized) {
-            return;  // Already minimized
+            return; // Already minimized
         }
 
         // Save current bounds for restore
@@ -199,16 +196,16 @@ namespace onyxui {
         minimized_sig.emit();
 
         // Notify window_manager (Phase 4)
-        auto* mgr = ui_services<Backend>::windows();
+        auto* mgr = ui_services <Backend>::windows();
         if (mgr) {
             mgr->handle_minimize(this);
         }
     }
 
     template<UIBackend Backend>
-    void window<Backend>::maximize() {
+    void window <Backend>::maximize() {
         if (m_state == window_state::maximized) {
-            return;  // Already maximized
+            return; // Already maximized
         }
 
         // Save normal bounds for restore
@@ -232,8 +229,8 @@ namespace onyxui {
             // Note: bounds are relative coordinates, so (0,0) means top-left of parent
             rect_utils::set_bounds(
                 maximized_bounds,
-                0,  // x: relative to parent (top-left corner)
-                0,  // y: relative to parent (top-left corner)
+                0, // x: relative to parent (top-left corner)
+                0, // y: relative to parent (top-left corner)
                 rect_utils::get_width(parent_bounds),
                 rect_utils::get_height(parent_bounds)
             );
@@ -246,7 +243,7 @@ namespace onyxui {
         } else {
             // Case 3: Floating window without workspace - maximize to fill viewport
             // Phase 4: Query viewport from layer_manager for actual screen dimensions
-            auto* layers = ui_services<Backend>::layers();
+            auto* layers = ui_services <Backend>::layers();
             if (layers) {
                 auto viewport = layers->get_viewport();
                 int const vp_width = rect_utils::get_width(viewport);
@@ -256,8 +253,8 @@ namespace onyxui {
                 if (vp_width > 0 && vp_height > 0) {
                     rect_utils::set_bounds(
                         maximized_bounds,
-                        0,  // x: absolute screen position
-                        0,  // y: absolute screen position
+                        0, // x: absolute screen position
+                        0, // y: absolute screen position
                         vp_width,
                         vp_height
                     );
@@ -271,18 +268,30 @@ namespace onyxui {
             }
         }
 
-        // Measure and arrange to new size
+        // Measure and arrange to new size with stabilization loop
+        // In scrollable windows, scrollbar visibility can toggle during arrange, causing
+        // scroll_controller to call grid->invalidate_measure(). We need to loop until
+        // the layout stabilizes (no more measure/arrange needed).
         int const width = rect_utils::get_width(maximized_bounds);
         int const height = rect_utils::get_height(maximized_bounds);
 
-        if (!this->children().empty() && ui_services<Backend>::themes()) {
-            [[maybe_unused]] auto measured_size = this->measure(width, height);
-        }
-        this->arrange(geometry::relative_rect<Backend>{maximized_bounds});
+        constexpr int MAX_LAYOUT_PASSES = 10;  // Prevent infinite loops
+        int pass_count = 0;
+
+        do {
+            if (!this->children().empty() && ui_services <Backend>::themes()) {
+                [[maybe_unused]] const auto measured_size = this->measure(width, height);
+            }
+            this->arrange(geometry::relative_rect <Backend>{maximized_bounds});
+            ++pass_count;
+        } while ((this->needs_measure() || this->needs_arrange()) &&
+                 pass_count < MAX_LAYOUT_PASSES &&
+                 !this->children().empty() &&
+                 ui_services <Backend>::themes());
 
         // Update layer bounds if this window is shown as a layer
         if (m_layer_id.is_valid()) {
-            auto* layers = ui_services<Backend>::layers();
+            auto* layers = ui_services <Backend>::layers();
             if (layers) {
                 layers->set_layer_bounds(m_layer_id, maximized_bounds);
             }
@@ -293,14 +302,38 @@ namespace onyxui {
             m_title_bar->show_restore_icon();
         }
 
+        // CRITICAL FIX: Restore focus to window after maximize
+        // Layout changes during maximize can cause focus to shift to child widgets
+        // (e.g., scroll_view in scrollable windows), requiring explicit focus restoration
+        auto* input = ui_services <Backend>::input();
+        if (input) {
+            input->set_focus(this);
+
+            // CRITICAL FIX: Release mouse capture after maximize
+            // The panel or other widgets may have captured the mouse during the maximize
+            // button click, preventing the first click after maximize from working correctly
+            input->release_capture();
+        }
+
+        // CRITICAL FIX: Final stabilization pass after layer/focus updates
+        // The operations above (set_layer_bounds, show_restore_icon, set_focus) can trigger
+        // layout invalidation. Do one final measure/arrange to ensure the window is not left dirty.
+        if ((this->needs_measure() || this->needs_arrange()) &&
+            !this->children().empty() &&
+            ui_services <Backend>::themes()) {
+            [[maybe_unused]] const auto measured_size = this->measure(width, height);
+            this->arrange(geometry::relative_rect <Backend>{maximized_bounds});
+            ++pass_count;
+        }
+
         // Emit signal
         maximized_sig.emit();
     }
 
     template<UIBackend Backend>
-    void window<Backend>::restore() {
+    void window <Backend>::restore() {
         if (m_state == window_state::normal) {
-            return;  // Already in normal state
+            return; // Already in normal state
         }
 
         auto old_state = m_state;
@@ -312,11 +345,11 @@ namespace onyxui {
 
             // Restore bounds
             if (m_before_minimize.w > 0 && m_before_minimize.h > 0) {
-                this->arrange(geometry::relative_rect<Backend>{m_before_minimize});
+                this->arrange(geometry::relative_rect <Backend>{m_before_minimize});
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
-                    auto* layers = ui_services<Backend>::layers();
+                    auto* layers = ui_services <Backend>::layers();
                     if (layers) {
                         layers->set_layer_bounds(m_layer_id, m_before_minimize);
                     }
@@ -325,11 +358,11 @@ namespace onyxui {
         } else if (old_state == window_state::maximized) {
             // Restore to normal bounds
             if (m_normal_bounds.w > 0 && m_normal_bounds.h > 0) {
-                this->arrange(geometry::relative_rect<Backend>{m_normal_bounds});
+                this->arrange(geometry::relative_rect <Backend>{m_normal_bounds});
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
-                    auto* layers = ui_services<Backend>::layers();
+                    auto* layers = ui_services <Backend>::layers();
                     if (layers) {
                         layers->set_layer_bounds(m_layer_id, m_normal_bounds);
                     }
@@ -342,18 +375,26 @@ namespace onyxui {
             }
         }
 
+        // CRITICAL FIX: Release mouse capture after restore
+        // The restore button or other widgets may have captured the mouse during
+        // the restore button click, preventing subsequent clicks from working correctly
+        auto* input = ui_services <Backend>::input();
+        if (input) {
+            input->release_capture();
+        }
+
         // Emit signal
         restored_sig.emit();
 
         // Notify window_manager (Phase 4)
-        auto* mgr = ui_services<Backend>::windows();
+        auto* mgr = ui_services <Backend>::windows();
         if (mgr) {
             mgr->handle_restore(this);
         }
     }
 
     template<UIBackend Backend>
-    void window<Backend>::close() {
+    void window <Backend>::close() {
         // Emit closing signal (can be cancelled in future)
         closing.emit();
 
@@ -362,12 +403,12 @@ namespace onyxui {
 
         // Phase 5: Restore focus if this was a modal window
         if (m_flags.is_modal && m_previous_active_window) {
-            auto* win_mgr = ui_services<Backend>::windows();
+            auto* win_mgr = ui_services <Backend>::windows();
             if (win_mgr) {
                 win_mgr->set_active_window(m_previous_active_window);
             }
 
-            auto* focus_mgr = ui_services<Backend>::input();
+            auto* focus_mgr = ui_services <Backend>::input();
             if (focus_mgr) {
                 focus_mgr->set_focus(m_previous_active_window);
             }
@@ -383,46 +424,81 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_position(int x, int y) {
+    void window <Backend>::set_position(int x, int y) {
         auto current_bounds = this->bounds().get();
         current_bounds.x = x;
         current_bounds.y = y;
-        this->arrange(geometry::relative_rect<Backend>{current_bounds});
+        this->arrange(geometry::relative_rect <Backend>{current_bounds});
 
         moved.emit();
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_size(int width, int height) {
+    void window <Backend>::set_size(int width, int height) {
         auto current_bounds = this->bounds().get();
         current_bounds.w = width;
         current_bounds.h = height;
 
         // Only measure if needed (widget has children and theme is available)
-        if (!this->children().empty() && ui_services<Backend>::themes()) {
-            [[maybe_unused]] auto measured_size = this->measure(width, height);
+        if (!this->children().empty() && ui_services <Backend>::themes()) {
+            (void)this->measure(width, height);
         }
 
-        this->arrange(geometry::relative_rect<Backend>{current_bounds});
+        this->arrange(geometry::relative_rect <Backend>{current_bounds});
+
+        // CRITICAL FIX: Handle layout invalidation during arrange (e.g., scrollbar visibility changes)
+        // When scrollbars appear/disappear during arrange, they invalidate the grid's layout.
+        // Check if layout became dirty and do ONE additional measure/arrange pass if needed.
+        // This is a standard pattern for handling layout dependency cycles in UI frameworks.
+        if ((this->needs_measure() || this->needs_arrange()) && !this->children().empty() && ui_services <
+                Backend>::themes()) {
+            (void)this->measure(width, height);
+            this->arrange(geometry::relative_rect <Backend>{current_bounds});
+        }
+
         this->invalidate_measure();
 
         resized_sig.emit();
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_content(std::unique_ptr<ui_element<Backend>> content) {
+    void window <Backend>::set_content(std::unique_ptr <ui_element <Backend>> content) {
         if (m_content_area) {
             m_content_area->set_content(std::move(content));
+
+            // Invalidate layout since content changed
+            this->invalidate_measure();
+
+            // If window already has bounds (was sized), trigger re-layout
+            const auto current_bounds = this->bounds().get();
+            if (rect_utils::get_width(current_bounds) > 0 &&
+                rect_utils::get_height(current_bounds) > 0) {
+                // Re-measure and re-arrange window with current size
+                [[maybe_unused]] const auto measured_size = this->measure(
+                    rect_utils::get_width(current_bounds),
+                    rect_utils::get_height(current_bounds)
+                );
+                this->arrange(geometry::relative_rect <Backend>{current_bounds});
+
+                // Force content_area to re-arrange its children
+                // (window::arrange may skip if bounds unchanged due to caching)
+                auto ca_bounds = m_content_area->bounds();
+                [[maybe_unused]] auto ca_measured = m_content_area->measure(
+                    ca_bounds.width(),
+                    ca_bounds.height()
+                );
+                m_content_area->arrange(geometry::relative_rect <Backend>{ca_bounds.get()});
+            }
         }
     }
 
     template<UIBackend Backend>
-    ui_element<Backend>* window<Backend>::get_content() noexcept {
+    ui_element <Backend>* window <Backend>::get_content() noexcept {
         return m_content_area ? m_content_area->get_content() : nullptr;
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_title(const std::string& title) {
+    void window <Backend>::set_title(const std::string& title) {
         if (m_title != title) {
             m_title = title;
 
@@ -433,9 +509,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::show() {
+    void window <Backend>::show() {
         // Phase 5: Integrate with layer_manager
-        auto* layers = ui_services<Backend>::layers();
+        auto* layers = ui_services <Backend>::layers();
 
         if (layers) {
             // Remove existing layer if already shown
@@ -445,9 +521,10 @@ namespace onyxui {
 
             // Create non-owning shared_ptr (window manages its own lifetime)
             // Store in m_layer_handle to keep weak_ptr in layer_manager alive
-            m_layer_handle = std::shared_ptr<ui_element<Backend>>(
-                static_cast<ui_element<Backend>*>(this),
-                [](ui_element<Backend>*) {}  // No-op deleter
+            m_layer_handle = std::shared_ptr <ui_element <Backend>>(
+                static_cast <ui_element <Backend>*>(this),
+                [](ui_element <Backend>*) {
+                } // No-op deleter
             );
 
             // Show as window layer (z=150, below popups z=200)
@@ -455,7 +532,7 @@ namespace onyxui {
 
             // Set layer bounds to window's position/size
             // Window uses absolute coordinates (layer and window have same bounds)
-            auto window_bounds = this->bounds().get();
+            const auto window_bounds = this->bounds().get();
             layers->set_layer_bounds(m_layer_id, window_bounds);
         }
 
@@ -463,10 +540,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::show_modal() {
+    void window <Backend>::show_modal() {
         // Phase 5: Integrate with layer_manager modal layer
-        auto* layers = ui_services<Backend>::layers();
-        if (layers) {
+        if (auto* layers = ui_services <Backend>::layers()) {
             // Remove existing layer if already shown
             if (m_layer_id.is_valid()) {
                 layers->remove_layer(m_layer_id);
@@ -480,23 +556,21 @@ namespace onyxui {
 
         // Phase 5: Auto-focus modal window
         // Save previous active window for restoration when modal closes
-        auto* win_mgr = ui_services<Backend>::windows();
-        if (win_mgr) {
+        if (auto* win_mgr = ui_services <Backend>::windows()) {
             m_previous_active_window = win_mgr->get_active_window();
             win_mgr->set_active_window(this);
         }
 
         // Request focus for modal
-        auto* focus_mgr = ui_services<Backend>::input();
-        if (focus_mgr) {
+        if (auto* focus_mgr = ui_services <Backend>::input()) {
             focus_mgr->set_focus(this);
         }
     }
 
     template<UIBackend Backend>
-    void window<Backend>::hide() {
+    void window <Backend>::hide() {
         // Phase 5: Remove from layer_manager
-        auto* layers = ui_services<Backend>::layers();
+        auto* layers = ui_services <Backend>::layers();
         if (layers && m_layer_id.is_valid()) {
             layers->remove_layer(m_layer_id);
             m_layer_id = layer_id::invalid();
@@ -506,21 +580,21 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::bring_to_front() {
+    void window <Backend>::bring_to_front() {
         // Bring layer to front in layer_manager
-        auto* layers = ui_services<Backend>::layers();
+        auto* layers = ui_services <Backend>::layers();
         if (layers && m_layer_id.is_valid()) {
             layers->bring_to_front(m_layer_id);
         }
 
         // Request keyboard focus from input_manager
-        auto* input = ui_services<Backend>::input();
+        auto* input = ui_services <Backend>::input();
         if (input) {
             input->set_focus(this);
         }
 
         // Set as active window in window_manager
-        auto* wm = ui_services<Backend>::windows();
+        auto* wm = ui_services <Backend>::windows();
         if (wm) {
             wm->set_active_window(this);
         }
@@ -530,7 +604,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::do_render(render_context_type& /*ctx*/) const {
+    void window <Backend>::do_render(render_context_type& /*ctx*/) const {
         if (!this->is_visible()) {
             return;
         }
@@ -540,14 +614,14 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    bool window<Backend>::handle_event(const ui_event& event, event_phase phase) {
+    bool window <Backend>::handle_event(const ui_event& event, event_phase phase) {
         // Only handle events in bubble phase (after children)
         if (phase != event_phase::bubble) {
             return base::handle_event(event, phase);
         }
 
         // Check if this is a mouse event
-        auto* mouse_evt = std::get_if<mouse_event>(&event);
+        auto* mouse_evt = std::get_if <mouse_event>(&event);
         if (!mouse_evt) {
             return base::handle_event(event, phase);
         }
@@ -564,7 +638,7 @@ namespace onyxui {
                     m_resize_initial_bounds = this->bounds().get();
                     m_resize_start_x = mouse_evt->x;
                     m_resize_start_y = mouse_evt->y;
-                    return true;  // Event handled
+                    return true; // Event handled
                 }
             }
 
@@ -619,18 +693,19 @@ namespace onyxui {
                 apply_size_constraints(new_bounds);
 
                 // Update window bounds
-                this->arrange(geometry::relative_rect<Backend>{new_bounds});
+                this->arrange(geometry::relative_rect <Backend>{new_bounds});
                 this->invalidate_measure();
                 resized_sig.emit();
 
-                return true;  // Event handled
+                return true; // Event handled
             }
 
-            if (m_is_resizing && mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::release) {
+            if (m_is_resizing && mouse_evt->btn == mouse_event::button::left && mouse_evt->act ==
+                mouse_event::action::release) {
                 // End resizing
                 m_is_resizing = false;
                 m_resize_handle = resize_handle::none;
-                return true;  // Event handled
+                return true; // Event handled
             }
         }
 
@@ -639,22 +714,22 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::register_with_window_manager() {
-        auto* mgr = ui_services<Backend>::windows();
+    void window <Backend>::register_with_window_manager() {
+        auto* mgr = ui_services <Backend>::windows();
         if (mgr) {
             mgr->register_window(this);
         }
     }
 
     template<UIBackend Backend>
-    void window<Backend>::unregister_from_window_manager() {
-        if (auto* mgr = ui_services<Backend>::windows()) {
+    void window <Backend>::unregister_from_window_manager() {
+        if (auto* mgr = ui_services <Backend>::windows()) {
             mgr->unregister_window(this);
         }
     }
 
     template<UIBackend Backend>
-    typename window<Backend>::resize_handle window<Backend>::get_resize_handle_at(int x, int y) const {
+    typename window <Backend>::resize_handle window <Backend>::get_resize_handle_at(int x, int y) const {
         if (!m_flags.is_resizable) {
             return resize_handle::none;
         }
@@ -683,7 +758,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::apply_size_constraints(rect_type& bounds) const {
+    void window <Backend>::apply_size_constraints(rect_type& bounds) const {
         // Apply minimum size
         if (bounds.w < m_flags.min_width) {
             bounds.w = m_flags.min_width;
@@ -702,7 +777,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window<Backend>::set_window_focus(bool focused) {
+    void window <Backend>::set_window_focus(bool focused) {
         if (m_has_focus != focused) {
             m_has_focus = focused;
 
@@ -719,9 +794,9 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    resolved_style<Backend> window<Backend>::get_theme_style(const theme_type& theme) const {
+    resolved_style <Backend> window <Backend>::get_theme_style(const theme_type& theme) const {
         // Use focused or unfocused border colors based on focus state
-        return resolved_style<Backend>{
+        return resolved_style <Backend>{
             .background_color = theme.window.content_background,
             .foreground_color = theme.text_fg,
             .mnemonic_foreground = theme.text_fg,
@@ -729,11 +804,11 @@ namespace onyxui {
             .box_style = m_has_focus ? theme.window.border_focused : theme.window.border_unfocused,
             .font = theme.label.font,
             .opacity = 1.0f,
-            .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
-            .padding_horizontal = std::optional<int>{},
-            .padding_vertical = std::optional<int>{},
-            .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
-            .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+            .icon_style = std::optional <typename Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::optional <int>{},
+            .padding_vertical = std::optional <int>{},
+            .mnemonic_font = std::optional <typename Backend::renderer_type::font>{},
+            .submenu_icon = std::optional <typename Backend::renderer_type::icon_style>{}
         };
     }
 
@@ -742,12 +817,12 @@ namespace onyxui {
     // ========================================================================
 
     template<UIBackend Backend>
-    std::vector<window<Backend>*> window_manager<Backend>::get_visible_windows() const {
-        std::vector<window<Backend>*> visible;
+    std::vector <window <Backend>*> window_manager <Backend>::get_visible_windows() const {
+        std::vector <window <Backend>*> visible;
         visible.reserve(m_windows.size());
 
         for (auto* win : m_windows) {
-            if (win && win->is_visible() && win->get_state() != window<Backend>::window_state::minimized) {
+            if (win && win->is_visible() && win->get_state() != window <Backend>::window_state::minimized) {
                 visible.push_back(win);
             }
         }
@@ -756,12 +831,12 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    std::vector<window<Backend>*> window_manager<Backend>::get_minimized_windows() const {
-        std::vector<window<Backend>*> minimized;
+    std::vector <window <Backend>*> window_manager <Backend>::get_minimized_windows() const {
+        std::vector <window <Backend>*> minimized;
         minimized.reserve(m_windows.size());
 
         for (auto* win : m_windows) {
-            if (win && win->get_state() == window<Backend>::window_state::minimized) {
+            if (win && win->get_state() == window <Backend>::window_state::minimized) {
                 minimized.push_back(win);
             }
         }
@@ -770,8 +845,8 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    std::vector<window<Backend>*> window_manager<Backend>::get_modal_windows() const {
-        std::vector<window<Backend>*> modal;
+    std::vector <window <Backend>*> window_manager <Backend>::get_modal_windows() const {
+        std::vector <window <Backend>*> modal;
         modal.reserve(m_windows.size());
 
         for (auto* win : m_windows) {
@@ -785,7 +860,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_manager<Backend>::show_window_list() {
+    void window_manager <Backend>::show_window_list() {
         // Note: This is a basic implementation for Phase 4
         // Full implementation with proper modal support comes in Phase 5
 
@@ -803,7 +878,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_manager<Backend>::cycle_next_window() {
+    void window_manager <Backend>::cycle_next_window() {
         auto visible = get_visible_windows();
         if (visible.empty()) {
             m_active_window = nullptr;
@@ -820,7 +895,7 @@ namespace onyxui {
             // Cycle to next window (wrap around)
             ++it;
             if (it == visible.end()) {
-                m_active_window = visible[0];  // Wrap to first
+                m_active_window = visible[0]; // Wrap to first
             } else {
                 m_active_window = *it;
             }
@@ -833,7 +908,7 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_manager<Backend>::cycle_previous_window() {
+    void window_manager <Backend>::cycle_previous_window() {
         auto visible = get_visible_windows();
         if (visible.empty()) {
             m_active_window = nullptr;
@@ -859,8 +934,8 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window_manager<Backend>::register_hotkeys() {
-        auto* hotkeys = ui_services<Backend>::hotkeys();
+    void window_manager <Backend>::register_hotkeys() {
+        auto* hotkeys = ui_services <Backend>::hotkeys();
         if (!hotkeys) return;
 
         // Ctrl+W - Show window list (Turbo Vision style)
@@ -881,5 +956,4 @@ namespace onyxui {
             [this]() { this->cycle_previous_window(); }
         );
     }
-
 } // namespace onyxui

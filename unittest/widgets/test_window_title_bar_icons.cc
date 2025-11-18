@@ -194,6 +194,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // window_y + title_bar_y + icon_y = 3 + 0 + 0 = 3
         // So clicking at absolute coordinates (44, 3) should trigger close icon
 
+        // DEBUG: Print actual absolute bounds
+        auto icon_abs = close_icon->get_absolute_bounds();
+        INFO("Icon absolute bounds: (" << icon_abs.x() << ", " << icon_abs.y()
+             << ", " << icon_abs.width() << ", " << icon_abs.height() << ")");
+        INFO("Expected: (44, 3, 1, 1)");
+
         // Create a mouse click event at absolute coordinates (44, 3)
         mouse_event click;
         click.x = 44;
@@ -218,8 +224,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         auto* hit_target = win->hit_test(44, 3, path);
         REQUIRE(hit_target != nullptr);
 
+        INFO("Hit test path size: " << path.size());
+        for (size_t i = 0; i < path.size(); ++i) {
+            INFO("Path[" << i << "]: " << typeid(*path[i]).name());
+        }
+
         // Route event through three phases
         [[maybe_unused]] bool handled = route_event(evt, path);
+        INFO("Event handled: " << handled);
 
         // This should work: close icon click should be detected
         CHECK(close_clicked == true);

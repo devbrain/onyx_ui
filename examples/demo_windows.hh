@@ -104,15 +104,16 @@ namespace demo_windows {
         flags.has_close_button = true;
         flags.has_minimize_button = true;
         flags.has_maximize_button = true;
+        flags.has_menu_button = true;
         flags.is_resizable = true;
         flags.is_movable = true;
+        flags.is_scrollable = true;  // Enable scrollbars for overflowing content
 
         auto win = std::make_shared<onyxui::window<Backend>>("Scrollable Content", flags);
-        win->set_size(50, 20);
-        win->set_position(10, 5);
 
         // Create content with text view
         auto content = std::make_unique<onyxui::vbox<Backend>>(0);
+
         auto* text_view = content->template emplace_child<onyxui::text_view>();
         text_view->set_has_border(true);
         text_view->set_horizontal_align(onyxui::horizontal_alignment::stretch);
@@ -147,6 +148,10 @@ namespace demo_windows {
         text_view->set_text(demo_text);
 
         win->set_content(std::move(content));
+
+        // Set initial size and position AFTER content is added
+        win->set_size(50, 20);
+        win->set_position(10, 5);
 
         // Set workspace for maximize behavior
         if (workspace) {
@@ -210,10 +215,11 @@ namespace demo_windows {
         flags.has_menu_button = true;
         flags.is_resizable = false;
         flags.is_movable = true;
+        flags.is_scrollable = true;  // Enable scrollbars for overflowing content
 
         auto win = std::make_shared<onyxui::window<Backend>>("Interactive Controls", flags);
-        win->set_size(45, 18);
-        win->set_position(8, 4);
+
+        std::cout << "[DEBUG Interactive Controls] Window created\n";
 
         auto content = std::make_unique<onyxui::vbox<Backend>>(1);
 
@@ -222,6 +228,8 @@ namespace demo_windows {
             "Window Control Demonstration"
         );
         title->set_horizontal_align(onyxui::horizontal_alignment::center);
+
+        std::cout << "[DEBUG Interactive Controls] Created title label\n";
 
         // Spacer
         content->template emplace_child<onyxui::label>("");
@@ -269,7 +277,17 @@ namespace demo_windows {
             );
         });
 
+        std::cout << "[DEBUG Interactive Controls] About to set content\n";
         win->set_content(std::move(content));
+        std::cout << "[DEBUG Interactive Controls] Content set\n";
+
+        // Set initial size and position AFTER content is added
+        std::cout << "[DEBUG Interactive Controls] About to set size 45x18\n";
+        win->set_size(45, 18);
+        std::cout << "[DEBUG Interactive Controls] Size set\n";
+
+        win->set_position(8, 4);
+        std::cout << "[DEBUG Interactive Controls] Position set to (8, 4)\n";
 
         // Set workspace for maximize behavior
         if (workspace) {
@@ -280,7 +298,20 @@ namespace demo_windows {
         register_window(win);
 
         // Show window
+        std::cout << "[DEBUG Interactive Controls] About to show window\n";
         win->show();
+        std::cout << "[DEBUG Interactive Controls] Window shown\n";
+
+        // Check final content bounds
+        auto* final_content = win->get_content();
+        if (final_content) {
+            auto fc_bounds = final_content->bounds();
+            std::cout << "[DEBUG Interactive Controls] Final content bounds: ("
+                      << fc_bounds.x() << ", " << fc_bounds.y() << ", "
+                      << fc_bounds.width() << ", " << fc_bounds.height() << ")\n";
+        } else {
+            std::cout << "[DEBUG Interactive Controls] Final content is NULL!\n";
+        }
     }
 
 } // namespace demo_windows

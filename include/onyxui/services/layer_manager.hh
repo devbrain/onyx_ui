@@ -71,7 +71,6 @@
 #include <optional>
 #include <functional>
 #include <algorithm>
-#include <iostream>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
 #include <onyxui/events/ui_event.hh>      // For ui_event, mouse_event, keyboard_event
@@ -551,22 +550,22 @@ namespace onyxui {
         /**
          * @brief Route event through layer stack
          *
-         * @param event Event to route
+         * @param event UI event to route (already converted from native)
          * @return true if event was handled by a layer
          *
          * @details
          * Routes events from top layer to bottom. If a modal is active,
          * only routes to modal and layers above it.
+         *
+         * ARCHITECTURAL FIX: Now accepts ui_event directly instead of native event.
+         * This prevents double conversion and ensures consistent event handling.
          */
-        bool route_event(const event_type& event) {
+        bool route_event(const ui_event& event) {
             // Phase 1.2: Clean up expired layers first
             cleanup_expired_layers();
 
-            // Convert native event to ui_event using unified event API
-            std::optional<ui_event> ui_evt = Backend::create_event(event);
-            if (!ui_evt) {
-                return false;  // Unknown/unsupported event type
-            }
+            // No conversion needed - we already have ui_event!
+            const ui_event& ui_evt = event;
 
             // Check if modal is active
             std::optional<int> modal_z_index;
@@ -579,17 +578,17 @@ namespace onyxui {
 
             // Phase 1.3: Generic click-outside detection
             // We need to defer the callback to avoid modifying m_layers while iterating
-            std::function<void()> const deferred_callback;
+            std::function<void()> deferred_callback;
 
-            // Check if this is a mouse click event
-            if constexpr (requires { event_traits<event_type>::is_button_press(event); }) {
-                if (event_traits<event_type>::is_button_press(event)) {
+            // Check if this is a mouse click event using ui_event
+            if (const auto* mouse = std::get_if<mouse_event>(&ui_evt)) {
+                if (mouse->act == mouse_event::action::press) {
                     // Check if we have any popup layers
                     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
                         if (it->type == layer_type::popup && it->visible && it->is_valid()) {
-                            // Get click position
-                            int click_x = event_traits<event_type>::mouse_x(event);
-                            int click_y = event_traits<event_type>::mouse_y(event);
+                            // Get click position from mouse event
+                            int click_x = mouse->x;
+                            int click_y = mouse->y;
 
                             // Check if click is outside popup bounds
                             if (!rect_utils::contains(it->bounds, click_x, click_y)) {
@@ -606,13 +605,13 @@ namespace onyxui {
                             break;
                         }
                     }
-
-                    // Now invoke the deferred callback (after iteration is complete)
-                    if (deferred_callback) {
-                        deferred_callback();
-                        return true;  // We handled the click by triggering callback
-                    }
                 }
+            }
+
+            // Now invoke the deferred callback (after iteration is complete)
+            if (deferred_callback) {
+                deferred_callback();
+                return true;  // We handled the click by triggering callback
             }
 
             // Route to layers (highest z first)
@@ -630,7 +629,7 @@ namespace onyxui {
                 bool handled = false;
                 it->with_root([&](element_type* root_ptr) {
                     // For mouse events, use hit-testing with three-phase routing
-                    if (auto* mouse = std::get_if<mouse_event>(&ui_evt.value())) {
+                    if (auto* mouse = std::get_if<mouse_event>(&ui_evt)) {
                         int const x = mouse->x;
                         int const y = mouse->y;
 
@@ -651,15 +650,15 @@ namespace onyxui {
                         if (target) {
                             if (!path.empty()) {
                                 // Route event through three phases (capture/target/bubble)
-                                handled = ::onyxui::route_event(ui_evt.value(), path);
+                                handled = ::onyxui::route_event(ui_evt, path);
                             } else {
                                 // Path empty (simple widget tree) - deliver directly to target
-                                handled = target->handle_event(ui_evt.value(), event_phase::target);
+                                handled = target->handle_event(ui_evt, event_phase::target);
                             }
                         }
                     } else {
                         // Non-mouse events (keyboard, resize) - deliver to root directly
-                        handled = root_ptr->handle_event(ui_evt.value(), event_phase::target);
+                        handled = root_ptr->handle_event(ui_evt, event_phase::target);
                     }
                 });
 

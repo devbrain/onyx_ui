@@ -357,6 +357,39 @@ namespace onyxui {
             void invalidate_arrange() noexcept;
 
             /**
+             * @brief Check if element needs measure pass
+             * @return true if measure cache is invalid and needs recalculation
+             *
+             * @details
+             * Returns true when:
+             * - Element was just created (never measured)
+             * - invalidate_measure() was called
+             * - Properties affecting size changed (width, height, margin, etc.)
+             *
+             * Useful for detecting if layout was invalidated during an arrange pass
+             * (e.g., when scrollbar visibility changes), allowing conditional re-layout.
+             */
+            [[nodiscard]] bool needs_measure() const noexcept {
+                return measure_state == layout_state::dirty;
+            }
+
+            /**
+             * @brief Check if element needs arrange pass
+             * @return true if arrange cache is invalid and needs recalculation
+             *
+             * @details
+             * Returns true when:
+             * - Element was just created (never arranged)
+             * - invalidate_arrange() was called
+             * - measure() was called (measure invalidates arrange)
+             *
+             * Useful for detecting if layout was invalidated during an arrange pass.
+             */
+            [[nodiscard]] bool needs_arrange() const noexcept {
+                return arrange_state == layout_state::dirty;
+            }
+
+            /**
              * @brief Measure phase: calculate desired size
              * @param available_width Maximum width available (pixels)
              * @param available_height Maximum height available (pixels)
@@ -759,6 +792,41 @@ namespace onyxui {
                 return geometry::to_absolute(geometry::relative_rect<Backend>{m_bounds}, this);
             }
 
+            /**
+             * @brief Calculate the content area (bounds minus margin and padding)
+             * @return Rectangle representing the content area (relative coordinates)
+             * @note noexcept - uses only safe arithmetic operations
+             * @note virtual - subclasses can override to account for borders, title bars, etc.
+             *
+             * @details
+             * The content area is where child elements are positioned. It's calculated by
+             * subtracting margin and padding from the element's bounds.
+             *
+             * Position is relative to this element's bounds origin (0,0). For absolute
+             * positioning, use get_absolute_bounds() to convert to screen coordinates.
+             */
+            [[nodiscard]] virtual rect_type get_content_area() const noexcept {
+                // Content area position is relative to this widget's bounds origin (0,0).
+                // Absolute positioning is computed during rendering by accumulating parent offsets.
+                const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
+                const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
+
+                // Calculate dimensions with safe subtraction
+                const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
+                const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
+
+                int w = safe_math::subtract_clamped(rect_utils::get_width(m_bounds), total_h_spacing);
+                int h = safe_math::subtract_clamped(rect_utils::get_height(m_bounds), total_v_spacing);
+
+                // Clamp to non-negative
+                w = std::max(0, w);
+                h = std::max(0, h);
+
+                rect_type content_area;
+                rect_utils::set_bounds(content_area, x, y, w, h);
+                return content_area;
+            }
+
             [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
             [[nodiscard]] const size_constraint& width_constraint() const noexcept { return m_width_constraint; }
             [[nodiscard]] const size_constraint& height_constraint() const noexcept { return m_height_constraint; }
@@ -895,33 +963,6 @@ namespace onyxui {
              */
             virtual void do_render([[maybe_unused]] render_context<Backend>& ctx) const {
                 // Base: nothing to render
-            }
-
-            /**
-             * @brief Calculate the content area (bounds minus margin and padding)
-             * @note noexcept - uses only safe arithmetic operations
-             * @note virtual - subclasses can override to account for borders
-             */
-            virtual rect_type get_content_area() const noexcept {
-                // Content area position is relative to this widget's bounds origin (0,0).
-                // Absolute positioning is computed during rendering by accumulating parent offsets.
-                const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
-                const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
-
-                // Calculate dimensions with safe subtraction
-                const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
-                const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
-
-                int w = safe_math::subtract_clamped(rect_utils::get_width(m_bounds), total_h_spacing);
-                int h = safe_math::subtract_clamped(rect_utils::get_height(m_bounds), total_v_spacing);
-
-                // Clamp to non-negative
-                w = std::max(0, w);
-                h = std::max(0, h);
-
-                rect_type content_area;
-                rect_utils::set_bounds(content_area, x, y, w, h);
-                return content_area;
             }
 
         private:
@@ -1269,35 +1310,10 @@ namespace onyxui {
             return nullptr;
         }
 
-        // For children, convert absolute point to relative coordinates
-        // Children are positioned relative to our content area
-        rect_type content_area = get_content_area();
-        int const content_rel_x = rect_utils::get_x(content_area);  // Relative to m_bounds
-        int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
-
-        // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
-        // To get absolute content position, add absolute bounds position
-        int const content_abs_x = absolute_bounds.x() + content_rel_x;
-        int const content_abs_y = absolute_bounds.y() + content_rel_y;
-
-        // Convert absolute click coordinates to relative (content-area-local) coordinates
-        int const child_x = point.x() - content_abs_x;
-        int const child_y = point.y() - content_abs_y;
-
-        // Create absolute point for children
-        typename Backend::point_type child_pt;
-        if constexpr (detail::has_member_x<typename Backend::point_type> &&
-                      detail::has_member_y<typename Backend::point_type>) {
-            child_pt.x = child_x;
-            child_pt.y = child_y;
-        } else {
-            child_pt = typename Backend::point_type{child_x, child_y};
-        }
-        geometry::absolute_point<Backend> child_point{child_pt};
-
         // Check children in reverse order (highest z-index first)
+        // Pass the same absolute point - children will use get_absolute_bounds() to check if hit
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(child_point)) {
+            if (ui_element* hit = (*it)->hit_test(point)) {
                 return hit;
             }
         }
@@ -1324,34 +1340,10 @@ namespace onyxui {
         // Record this element in the path
         path.push(this);
 
-        // For children, convert absolute point to relative coordinates
-        rect_type content_area = get_content_area();
-        int const content_rel_x = rect_utils::get_x(content_area);  // Relative to m_bounds
-        int const content_rel_y = rect_utils::get_y(content_area);  // Relative to m_bounds
-
-        // CRITICAL FIX: Content area position is RELATIVE to m_bounds.
-        // To get absolute content position, add absolute bounds position
-        int const content_abs_x = absolute_bounds.x() + content_rel_x;
-        int const content_abs_y = absolute_bounds.y() + content_rel_y;
-
-        // Convert absolute click coordinates to relative (content-area-local) coordinates
-        int const child_x = point.x() - content_abs_x;
-        int const child_y = point.y() - content_abs_y;
-
-        // Create absolute point for children
-        typename Backend::point_type child_pt;
-        if constexpr (detail::has_member_x<typename Backend::point_type> &&
-                      detail::has_member_y<typename Backend::point_type>) {
-            child_pt.x = child_x;
-            child_pt.y = child_y;
-        } else {
-            child_pt = typename Backend::point_type{child_x, child_y};
-        }
-        geometry::absolute_point<Backend> child_point{child_pt};
-
         // Check children in reverse order (highest z-index first)
+        // Pass the same absolute point - children will use get_absolute_bounds() to check if hit
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(child_point, path)) {
+            if (ui_element* hit = (*it)->hit_test(point, path)) {
                 return hit;
             }
         }

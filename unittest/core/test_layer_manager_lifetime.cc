@@ -30,6 +30,17 @@ using TestRenderer = test_backend::renderer_type;
 using TestRect = test_backend::rect_type;
 // TestElement is already defined in test_helpers.hh
 
+// Helper function to create ui_event from backend event
+inline ui_event make_ui_event() {
+    TestEvent backend_event;
+    backend_event.type = TestEvent::mouse_down;
+    auto ui_event_opt = test_backend::create_event(backend_event);
+    if (!ui_event_opt) {
+        throw std::runtime_error("Failed to create ui_event");
+    }
+    return *ui_event_opt;
+}
+
 /**
  * @class SelfRemovingElement
  * @brief Element that removes its own layer when it receives an event
@@ -99,7 +110,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             elem.reset();
 
             // Phase 1.2: Automatic cleanup of expired layers
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup and not crash
 
             // Verify layer was removed
@@ -135,7 +146,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             // Query doesn't cleanup, but layer is logically expired
             // Cleanup happens on next route_event() or render_all_layers()
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             mgr.route_event(event);
             CHECK(mgr.layer_count() == 0);
         }
@@ -158,7 +169,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         elem1.reset();
         elem3.reset();
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         // Phase 1.2: Should auto-cleanup expired layers, only route to elem2
         CHECK_NOTHROW(mgr.route_event(event));
 
@@ -179,7 +190,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem1.reset();  // Destroy first (lowest z-index)
 
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
 
             // After Phase 1.2, only elem2 and elem3 should receive event
@@ -198,7 +209,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem2.reset();  // Destroy middle
 
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
         }
 
@@ -214,7 +225,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             elem3.reset();  // Destroy last (highest z-index)
 
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
         }
     }
@@ -278,7 +289,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         tooltip.reset();
 
         SUBCASE("Route event after tooltip destroyed") {
-            TestEvent const event;
+            ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
         }
 
@@ -469,7 +480,7 @@ TEST_SUITE("Layer Manager - Cleanup Safety") {
         }  // Widgets destroyed here (shared_ptr goes out of scope)
 
         // Phase 1.2: Automatic cleanup of expired layers
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup expired layers
 
         // Verify layers were cleaned up
@@ -492,7 +503,7 @@ TEST_SUITE("Layer Manager - Self-Removal") {
         self_removing->set_layer_id(id);
         CHECK(mgr.layer_count() == 1);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         // Element will remove itself when it processes the event
         // Should not crash from iterator invalidation
         CHECK_NOTHROW(mgr.route_event(event));
@@ -518,7 +529,7 @@ TEST_SUITE("Layer Manager - Self-Removal") {
 
         CHECK(mgr.layer_count() == 3);
 
-        TestEvent const event;
+        ui_event const event = make_ui_event();
         // Highest z-index (elem3) will remove itself first
         // Should not crash from concurrent modification
         CHECK_NOTHROW(mgr.route_event(event));
