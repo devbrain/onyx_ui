@@ -29,7 +29,12 @@ These are the interactive widgets that the user can interact with.
 
 -   **`button`:** A standard clickable button.
 -   **`label`:** A widget for displaying text.
--   **`textbox`:** A widget for entering text.
+
+### Input Widgets
+
+These widgets allow users to enter and edit data.
+
+-   **`line_edit`:** Single-line text input with cursor, selection, and horizontal scrolling.
 
 ### Spacing
 
@@ -57,11 +62,19 @@ These are more complex widgets that are used for specific purposes.
 
 For more detailed information on each widget, including its API and usage examples, please refer to the individual widget pages:
 
+**Basic Widgets:**
 -   **[Button](./widgets/button.md)**
 -   **[Label](./widgets/label.md)**
+
+**Input Widgets:**
+-   **[Line Edit](./widgets/line-edit.md)** - Single-line text input
+
+**Layout Containers:**
 -   **[Panel](./widgets/panel.md)**
 -   **[VBox and HBox](./widgets/vbox-hbox.md)**
 -   **[Grid](./widgets/grid.md)**
+
+**Scrolling Widgets:**
 -   **[scroll_view](./widgets/scroll-view.md)**
 -   **[scrollable](./widgets/scrollable.md)**
 -   **[scrollbar](./widgets/scrollbar.md)**
