@@ -75,6 +75,38 @@ line_edit:
   cursor_overwrite_icon: cursor_overwrite  # Block █ for overwrite mode
   cursor_blink_interval_ms: 500            # Cursor blink interval (500ms = 0.5s on/off)
 
+# Checkbox styling (toggleable boolean input)
+checkbox:
+  # Normal state (unchecked)
+  normal:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 255 }  # White text
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  # Hover state
+  hover:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 0 }    # Yellow text
+    background: { r: 0, g: 0, b: 255 }      # Bright blue
+
+  # Checked state
+  checked:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 0 }    # Yellow text (highlight checked)
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  # Disabled state
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 85, g: 85, b: 85 }     # Dark gray
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+  unchecked_icon: checkbox_unchecked       # [ ] unchecked box
+  checked_icon: checkbox_checked           # [X] checked box
+  indeterminate_icon: checkbox_indeterminate  # [-] indeterminate box
+  spacing: 1                               # Space between box and text
+
 # Panel styling
 panel:
   background: { r: 0, g: 0, b: 170 }       # Dark blue

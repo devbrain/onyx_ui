@@ -122,7 +122,12 @@ namespace onyxui::conio {
 
                 // Text editing cursors
                 cursor_insert,    // │ (vertical bar for insert mode)
-                cursor_overwrite  // █ (block for overwrite mode)
+                cursor_overwrite, // █ (block for overwrite mode)
+
+                // Checkbox icons
+                checkbox_unchecked,      // [ ] (unchecked box)
+                checkbox_checked,        // [X] (checked box)
+                checkbox_indeterminate   // [-] (indeterminate box)
             };
 
             /**
@@ -368,8 +373,16 @@ namespace onyxui::conio {
              * int total_width = icon_size.w + padding + text_width;
              * @endcode
              */
-            [[nodiscard]] static size get_icon_size([[maybe_unused]] const icon_style& icon) noexcept {
-                return size{1, 1}; // Icons are 1x1 characters in TUI
+            [[nodiscard]] static size get_icon_size(const icon_style& icon) noexcept {
+                // Checkbox icons are 3x1 (e.g., "[ ]", "[X]", "[-]")
+                switch (icon) {
+                    case icon_style::checkbox_unchecked:
+                    case icon_style::checkbox_checked:
+                    case icon_style::checkbox_indeterminate:
+                        return size{3, 1};
+                    default:
+                        return size{1, 1}; // All other icons are 1x1 characters
+                }
             }
 
             /**

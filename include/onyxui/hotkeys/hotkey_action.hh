@@ -85,7 +85,8 @@ namespace onyxui {
         focus_previous,     ///< Move focus to previous widget (Shift+Tab)
 
         // Widget Activation
-        activate_focused,   ///< Activate currently focused widget (Enter/Space in most schemes)
+        activate_focused,   ///< Activate currently focused widget (Enter in most schemes)
+        activate_widget,    ///< Activate widget without submitting form (Space key for checkbox/radio)
 
         // Scrolling Navigation
         scroll_up,          ///< Scroll content up one line (Up arrow in scroll contexts)
@@ -171,6 +172,7 @@ namespace onyxui {
             case hotkey_action::focus_next: return "focus_next";
             case hotkey_action::focus_previous: return "focus_previous";
             case hotkey_action::activate_focused: return "activate_focused";
+            case hotkey_action::activate_widget: return "activate_widget";
             case hotkey_action::scroll_up: return "scroll_up";
             case hotkey_action::scroll_down: return "scroll_down";
             case hotkey_action::scroll_page_up: return "scroll_page_up";

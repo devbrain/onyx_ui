@@ -202,6 +202,30 @@ namespace onyxui {
         };
 
         /**
+         * @brief Checkbox styling - Phase 2
+         * @details Defines the visual appearance of checkboxes in different states
+         */
+        struct checkbox_style {
+            // Visual states
+            visual_state normal;        ///< Normal state (unchecked)
+            visual_state hover;         ///< Mouse hover state
+            visual_state checked;       ///< Checked state
+            visual_state disabled;      ///< Disabled state
+
+            // Checkbox-specific styling
+            font_type mnemonic_font{};  ///< Font for mnemonic character (typically underlined)
+
+            // Checkbox box icons (backend-specific)
+            // These represent the checkbox box itself ([ ], [X], [-])
+            icon_style_type unchecked_icon{};      ///< Icon for unchecked box (e.g., [ ])
+            icon_style_type checked_icon{};        ///< Icon for checked box (e.g., [X])
+            icon_style_type indeterminate_icon{};  ///< Icon for indeterminate box (e.g., [-])
+
+            // Layout
+            int spacing = 1;  ///< Space between box and label text (renderer units)
+        };
+
+        /**
          * @brief Scrollbar theme - PLACEHOLDER for Phase 3
          * @details Will be fully implemented in Phase 3 of scrolling system
          */
@@ -294,7 +318,8 @@ namespace onyxui {
         // Widget-specific styles
         button_style button{};            // BREAKING CHANGE - refactored
         label_style label{};              // Unchanged
-        line_edit_style line_edit{};      // NEW: Line edit input widget
+        line_edit_style line_edit{};      // NEW: Line edit input widget (Phase 1)
+        checkbox_style checkbox{};        // NEW: Checkbox input widget (Phase 2)
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged

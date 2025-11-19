@@ -13,6 +13,7 @@
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/text_view.hh>
 #include <onyxui/widgets/input/line_edit.hh>
+#include <onyxui/widgets/input/checkbox.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include "demo_menu_builder.hh"
 #include "demo_utils.hh"
@@ -191,6 +192,39 @@ void build_ui(
     edit3->set_horizontal_align(onyxui::horizontal_alignment::stretch);
     edit3->set_has_border(true);
     central->add_child(std::move(edit3));
+
+    // Spacer
+    add_label(*central, "");
+
+    // Checkbox Section (Toggleable options)
+    add_label(*central, "Checkbox (Click or Space to toggle):");
+
+    // Basic checkbox (unchecked)
+    auto* check1 = central->template emplace_child<onyxui::checkbox>("Enable notifications");
+    check1->set_horizontal_align(onyxui::horizontal_alignment::left);
+    check1->toggled.connect([](bool checked) {
+        // Handle checkbox state change
+        (void)checked;  // Suppress unused warning for demo
+    });
+
+    // Pre-checked checkbox
+    auto* check2 = central->template emplace_child<onyxui::checkbox>("Remember me", true);
+    check2->set_horizontal_align(onyxui::horizontal_alignment::left);
+
+    // Tri-state checkbox (for "select all" scenarios)
+    auto* check3 = central->template emplace_child<onyxui::checkbox>("Select All");
+    check3->set_tri_state_enabled(true);
+    check3->set_tri_state(onyxui::tri_state::indeterminate);  // Start in indeterminate state
+    check3->set_horizontal_align(onyxui::horizontal_alignment::left);
+    check3->state_changed.connect([](onyxui::tri_state state) {
+        // Handle tri-state changes
+        (void)state;  // Suppress unused warning for demo
+    });
+
+    // Disabled checkbox
+    auto* check4 = central->template emplace_child<onyxui::checkbox>("Disabled option", true);
+    check4->set_enabled(false);
+    check4->set_horizontal_align(onyxui::horizontal_alignment::left);
 
     // Spacer
     add_label(*central, "");

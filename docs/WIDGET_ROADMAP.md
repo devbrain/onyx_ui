@@ -35,7 +35,7 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 - ✅ **Input**: line_edit (single-line text input with scrolling)
 
 **Missing Widgets** (Critical):
-- ❌ **checkbox** - Boolean toggle
+- ✅ **checkbox** - Boolean toggle (COMPLETED)
 - ❌ **radio_button** - Mutually exclusive options
 - ❌ **slider** - Numeric range input
 - ❌ **progress_bar** - Progress indicator
@@ -209,43 +209,72 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 
 **Goal**: Boolean toggles and mutually exclusive options
 
+**Status**: checkbox ✅ COMPLETED | radio_button ❌ Pending
+
+---
+
+#### ✅ checkbox COMPLETED
+
+**Files Created**:
+- ✅ `include/onyxui/widgets/input/checkbox.hh` - Complete widget (394 lines)
+- ✅ `include/onyxui/hotkeys/hotkey_action.hh` - Added `activate_widget` semantic action
+- ✅ `include/onyxui/hotkeys/builtin_hotkey_schemes.hh` - Space key binding
+- ✅ `unittest/widgets/test_checkbox.cc` - 28 test cases, 74 assertions (all passing)
+- ✅ `examples/demo_ui_builder.hh` - 4 checkbox examples in demo
+
+**Implemented Features**:
+- ✅ Two-state mode (checked/unchecked)
+- ✅ Tri-state mode (checked/unchecked/indeterminate for "select all" scenarios)
+- ✅ Keyboard toggle (Space key via `activate_widget` semantic action)
+- ✅ Mouse toggle (click anywhere on widget)
+- ✅ Text label with mnemonic support (storage ready)
+- ✅ Disabled state
+- ✅ Theme integration for colors and styles
+- ✅ Focus management
+
+**Signals**:
+- ✅ `toggled(bool checked)` - Emitted on checked ⟷ unchecked transitions
+- ✅ `state_changed(tri_state state)` - Emitted on any state change
+
+**Testing**:
+- ✅ 28 comprehensive test cases covering all features
+- ✅ Construction, state management, signals, events, tri-state, mnemonics, layout
+- ✅ All tests passing (74 assertions, zero warnings)
+
+**Success Criteria Met**:
+- ✅ Click checkbox toggles state
+- ✅ Space key toggles checkbox
+- ✅ Visual states (checked/unchecked/indeterminate) themed correctly
+- ✅ Signals emit on state changes
+- ✅ Tri-state mode works correctly
+- ✅ Disabled state prevents interaction
+
+---
+
+#### ❌ radio_button PENDING
+
 **Files to Create**:
-- `include/onyxui/widgets/input/checkbox.hh`
-- `include/onyxui/widgets/input/checkbox.inl`
 - `include/onyxui/widgets/input/radio_button.hh`
-- `include/onyxui/widgets/input/radio_button.inl`
-- `include/onyxui/widgets/input/button_group.hh` (for radio buttons)
-- `unittest/widgets/test_checkbox.cc`
+- `include/onyxui/widgets/input/button_group.hh` (for radio button groups)
 - `unittest/widgets/test_radio_button.cc`
 - `unittest/widgets/test_button_group.cc`
 
-**checkbox Features**:
-- Checked/unchecked/indeterminate states
-- Keyboard toggle (Space key)
-- Mouse toggle (click)
-- Text label with mnemonic
-- Disabled state
-
-**radio_button Features**:
+**radio_button Features** (Planned):
 - Grouped mutually exclusive selection
 - Keyboard navigation (arrow keys within group)
 - Mouse selection (click)
 - Text label with mnemonic
 - button_group for managing radio groups
 
-**Signals**:
-- checkbox: `toggled(bool checked)`
-- checkbox: `state_changed(tri_state state)` - For indeterminate
+**Signals** (Planned):
 - radio_button: `toggled(bool checked)`
 - button_group: `button_toggled(int id, bool checked)`
 
-**Success Criteria**:
-- ✅ Click checkbox toggles state
-- ✅ Space key toggles checkbox
-- ✅ Radio buttons in group are mutually exclusive
-- ✅ Arrow keys navigate radio group
-- ✅ Visual states (checked/unchecked) themed correctly
-- ✅ Signals emit on state changes
+**Success Criteria** (Pending):
+- ❌ Radio buttons in group are mutually exclusive
+- ❌ Arrow keys navigate radio group
+- ❌ Visual states (selected/unselected) themed correctly
+- ❌ Signals emit on state changes
 
 ### Phase 3: progress_bar + slider (Week 3)
 

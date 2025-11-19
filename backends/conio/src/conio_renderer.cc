@@ -388,7 +388,30 @@ namespace onyxui::conio {
             return;
         }
 
-        // Map icon style to character
+        // Handle multi-character checkbox icons (3 characters wide)
+        if (style == icon_style::checkbox_unchecked ||
+            style == icon_style::checkbox_checked ||
+            style == icon_style::checkbox_indeterminate) {
+
+            // Classic DOS-style 3-character checkbox rendering
+            const char* checkbox_str;
+            switch (style) {
+                case icon_style::checkbox_unchecked:      checkbox_str = "[ ]"; break;
+                case icon_style::checkbox_checked:        checkbox_str = "[X]"; break;
+                case icon_style::checkbox_indeterminate:  checkbox_str = "[-]"; break;
+                default: checkbox_str = "[ ]"; break;
+            }
+
+            // Render 3 characters horizontally
+            for (int i = 0; i < 3 && r.x + i < clip.x + clip.w; ++i) {
+                if (r.x + i >= clip.x) {
+                    m_pimpl->m_vram.put(r.x + i, r.y, checkbox_str[i], fg, bg);
+                }
+            }
+            return;
+        }
+
+        // Map single-character icon style to character
         int ch;
         switch (style) {
             // General purpose icons

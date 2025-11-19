@@ -146,4 +146,8 @@ enum dos_char {
     // Text editing cursors
     DOS_CURSOR_INSERT = 0x2502, // │ (vertical bar for insert mode)
     DOS_CURSOR_OVERWRITE = 0x2588, // █ (full block for overwrite mode)
+
+    // Note: Checkbox icons (checkbox_unchecked, checkbox_checked, checkbox_indeterminate)
+    // are rendered as 3-character ASCII strings: "[ ]", "[X]", "[-]"
+    // See conio_renderer::draw_icon() for implementation
 };

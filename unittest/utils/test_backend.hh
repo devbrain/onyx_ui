@@ -158,7 +158,12 @@ namespace onyxui {
                 minimize,       // Minimize icon (▁)
                 maximize,       // Maximize icon (□)
                 restore,        // Restore icon (▢)
-                close_x         // Close icon (×)
+                close_x,        // Close icon (×)
+                cursor_insert,  // Text insert cursor (│)
+                cursor_overwrite, // Text overwrite cursor (█)
+                checkbox_unchecked,      // Checkbox unchecked ([ ])
+                checkbox_checked,        // Checkbox checked ([X])
+                checkbox_indeterminate   // Checkbox indeterminate ([-])
             };
             struct font {
                 bool operator==(const font&) const = default;
@@ -267,8 +272,16 @@ namespace onyxui {
              * // icon_size = {w: 1, h: 1}
              * @endcode
              */
-            [[nodiscard]] static size get_icon_size([[maybe_unused]] const icon_style& icon) noexcept {
-                return size{1, 1};  // Icons are 1x1 in test backend
+            [[nodiscard]] static size get_icon_size(const icon_style& icon) noexcept {
+                // Checkbox icons are 3x1 (e.g., "[ ]", "[X]", "[-]")
+                switch (icon) {
+                    case icon_style::checkbox_unchecked:
+                    case icon_style::checkbox_checked:
+                    case icon_style::checkbox_indeterminate:
+                        return size{3, 1};
+                    default:
+                        return size{1, 1};  // All other icons are 1x1
+                }
             }
 
             /**

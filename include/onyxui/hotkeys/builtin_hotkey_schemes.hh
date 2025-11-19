@@ -91,6 +91,7 @@ namespace onyxui::builtin_hotkey_schemes {
 
             // Widget Activation
             {hotkey_action::activate_focused, parse_key_sequence("Enter")},
+            {hotkey_action::activate_widget, parse_key_sequence("Space")},
 
             // Scrolling Navigation
             {hotkey_action::scroll_up, parse_key_sequence("Up")},
@@ -202,6 +203,7 @@ namespace onyxui::builtin_hotkey_schemes {
 
             // Widget Activation
             {hotkey_action::activate_focused, parse_key_sequence("Enter")},
+            {hotkey_action::activate_widget, parse_key_sequence("Space")},
 
             // Scrolling Navigation
             {hotkey_action::scroll_up, parse_key_sequence("Up")},

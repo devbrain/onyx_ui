@@ -93,6 +93,15 @@ namespace onyxui::conio {
             case conio_renderer::icon_style::maximize:    return "maximize";
             case conio_renderer::icon_style::restore:     return "restore";
             case conio_renderer::icon_style::close_x:     return "close_x";
+
+            // Text editing cursors
+            case conio_renderer::icon_style::cursor_insert:    return "cursor_insert";
+            case conio_renderer::icon_style::cursor_overwrite: return "cursor_overwrite";
+
+            // Checkbox icons
+            case conio_renderer::icon_style::checkbox_unchecked:      return "checkbox_unchecked";
+            case conio_renderer::icon_style::checkbox_checked:        return "checkbox_checked";
+            case conio_renderer::icon_style::checkbox_indeterminate:  return "checkbox_indeterminate";
         }
         throw std::runtime_error("Unknown icon_style value");
     }
@@ -119,6 +128,15 @@ namespace onyxui::conio {
         if (str == "maximize")    return conio_renderer::icon_style::maximize;
         if (str == "restore")     return conio_renderer::icon_style::restore;
         if (str == "close_x")     return conio_renderer::icon_style::close_x;
+
+        // Text editing cursors
+        if (str == "cursor_insert")    return conio_renderer::icon_style::cursor_insert;
+        if (str == "cursor_overwrite") return conio_renderer::icon_style::cursor_overwrite;
+
+        // Checkbox icons
+        if (str == "checkbox_unchecked")      return conio_renderer::icon_style::checkbox_unchecked;
+        if (str == "checkbox_checked")        return conio_renderer::icon_style::checkbox_checked;
+        if (str == "checkbox_indeterminate")  return conio_renderer::icon_style::checkbox_indeterminate;
 
         throw std::runtime_error("Invalid icon_style string: " + std::string(str));
     }

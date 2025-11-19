@@ -288,6 +288,52 @@ namespace onyxui::conio {
             theme.line_edit.cursor_blink_interval_ms = 500;
 
             // ====================================================================
+            // Checkbox Configuration
+            // ====================================================================
+            // Set checkbox box icons
+            theme.checkbox.unchecked_icon = conio_renderer::icon_style::checkbox_unchecked;         // [ ]
+            theme.checkbox.checked_icon = conio_renderer::icon_style::checkbox_checked;             // [X]
+            theme.checkbox.indeterminate_icon = conio_renderer::icon_style::checkbox_indeterminate; // [-]
+
+            // NORMAL state: unchecked checkbox at rest
+            theme.checkbox.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_fg"),
+                .background = builder.resolve_color("button_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_fg")
+            };
+
+            // HOVER state: mouse hovering over checkbox
+            theme.checkbox.hover = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_hover_fg"),
+                .background = builder.resolve_color("button_hover_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_hover_fg")
+            };
+
+            // CHECKED state: checkbox is checked
+            theme.checkbox.checked = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_hover_fg"),  // Highlighted when checked
+                .background = builder.resolve_color("button_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_hover_fg")
+            };
+
+            // DISABLED state: checkbox is disabled
+            theme.checkbox.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_disabled_fg"),
+                .background = builder.resolve_color("button_disabled_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_disabled_fg")
+            };
+
+            // Mnemonic font: underlined to indicate keyboard shortcut
+            theme.checkbox.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+
+            // Spacing between box and text label
+            theme.checkbox.spacing = 1;
+
+            // ====================================================================
             // Menu Bar Item Manual Configuration
             // ====================================================================
             // Menu bar items don't have a builder API yet, configure manually
