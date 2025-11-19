@@ -35,6 +35,7 @@ These are the interactive widgets that the user can interact with.
 These widgets allow users to enter and edit data.
 
 -   **`line_edit`:** Single-line text input with cursor, selection, and horizontal scrolling.
+-   **`checkbox`:** Toggleable boolean/tri-state input with themed icons and mnemonic support.
 
 ### Spacing
 
@@ -68,6 +69,7 @@ For more detailed information on each widget, including its API and usage exampl
 
 **Input Widgets:**
 -   **[Line Edit](./widgets/line-edit.md)** - Single-line text input
+-   **[Checkbox](./widgets/checkbox.md)** - Boolean/tri-state toggle input
 
 **Layout Containers:**
 -   **[Panel](./widgets/panel.md)**
