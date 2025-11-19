@@ -127,6 +127,39 @@ TEST_CASE("theme_builder - with_label") {
     CHECK(theme.label.background.b == 170);
 }
 
+TEST_CASE("theme_builder - with_line_edit") {
+    auto builder = theme_builder<test_backend>::create("Test", "Test")
+        .with_palette({
+            {"text", 0xFFFFFF},
+            {"bg", 0x0000AA},
+            {"border", 0xFFFF00},
+            {"placeholder", 0xAAAAAA},
+            {"cursor", 0xFF0000}
+        });
+
+    builder.with_line_edit()
+        .text_color("text")
+        .background_color("bg")
+        .border_color("border")
+        .placeholder_color("placeholder")
+        .cursor_color("cursor")
+        .padding(1, 0)
+        .cursor_insert_icon(test_backend::renderer_type::icon_style::check)
+        .cursor_overwrite_icon(test_backend::renderer_type::icon_style::cross);
+    auto theme = builder.build();
+
+    CHECK(theme.line_edit.text.r == 255);           // White text
+    CHECK(theme.line_edit.background.b == 170);     // Blue background
+    CHECK(theme.line_edit.border_color.r == 255);   // Yellow border
+    CHECK(theme.line_edit.border_color.g == 255);
+    CHECK(theme.line_edit.placeholder_text.r == 170); // Gray placeholder
+    CHECK(theme.line_edit.cursor.r == 255);         // Red cursor
+    CHECK(theme.line_edit.padding_horizontal == 1);
+    CHECK(theme.line_edit.padding_vertical == 0);
+    CHECK(theme.line_edit.cursor_insert_icon == test_backend::renderer_type::icon_style::check);
+    CHECK(theme.line_edit.cursor_overwrite_icon == test_backend::renderer_type::icon_style::cross);
+}
+
 TEST_CASE("theme_builder - with_panel") {
     auto builder = theme_builder<test_backend>::create("Test", "Test")
         .with_palette({{"bg", 0x0000AA}, {"border", 0xFFFF00}});

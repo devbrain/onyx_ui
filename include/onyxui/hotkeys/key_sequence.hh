@@ -448,11 +448,13 @@ namespace onyxui {
             {"Tab", key_code::tab},
             {"Space", key_code::space},
             {"Backspace", key_code::backspace},
+            {"Delete", key_code::delete_key},
             // Navigation keys
             {"Home", key_code::home},
             {"End", key_code::end},
             {"PageUp", key_code::page_up},
             {"PageDown", key_code::page_down},
+            {"Insert", key_code::insert},
         };
     }
 

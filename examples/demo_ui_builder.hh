@@ -12,6 +12,7 @@
 #include <onyxui/widgets/button.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/text_view.hh>
+#include <onyxui/widgets/input/line_edit.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include "demo_menu_builder.hh"
 #include "demo_utils.hh"
@@ -147,6 +148,49 @@ void build_ui(
     quit_btn->clicked.connect([widget]() {
         widget->quit();
     });
+
+    // Spacer
+    add_label(*central, "");
+
+    // Line Edit Section (Text input demonstration)
+    add_label(*central, "Line Edit (Text Input):");
+
+    // Basic text input with border (fixed width to test text scrolling)
+    auto edit1 = std::make_unique<onyxui::line_edit<Backend>>("Type here...");
+    edit1->set_horizontal_align(onyxui::horizontal_alignment::left);
+    edit1->set_has_border(true);
+
+    // Set fixed width to test horizontal text scrolling
+    onyxui::size_constraint width_constraint;
+    width_constraint.policy = onyxui::size_policy::content;
+    width_constraint.preferred_size = 30;  // 30 characters wide
+    width_constraint.min_size = 30;
+    width_constraint.max_size = 30;
+    edit1->set_width_constraint(width_constraint);
+
+    auto* edit1_ptr = edit1.get();
+    central->add_child(std::move(edit1));
+
+    // Status label to show what was typed
+    auto* status_label = add_label(*central, "Type something and press Enter");
+    edit1_ptr->text_changed.connect([status_label](const std::string& text) {
+        status_label->set_text("Current text: " + (text.empty() ? "(empty)" : text));
+    });
+
+    // Password mode example
+    auto edit2 = std::make_unique<onyxui::line_edit<Backend>>();
+    edit2->set_placeholder("Password (dots shown)");
+    edit2->set_password_mode(true);
+    edit2->set_horizontal_align(onyxui::horizontal_alignment::stretch);
+    edit2->set_has_border(true);
+    central->add_child(std::move(edit2));
+
+    // Read-only example with pre-filled text
+    auto edit3 = std::make_unique<onyxui::line_edit<Backend>>("Read-only text (cannot edit)");
+    edit3->set_read_only(true);
+    edit3->set_horizontal_align(onyxui::horizontal_alignment::stretch);
+    edit3->set_has_border(true);
+    central->add_child(std::move(edit3));
 
     // Spacer
     add_label(*central, "");

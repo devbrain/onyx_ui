@@ -411,6 +411,10 @@ namespace onyxui::conio {
             case icon_style::restore:     ch = DOS_RESTORE; break;
             case icon_style::close_x:     ch = DOS_CLOSE_X; break;
 
+            // Text editing cursors
+            case icon_style::cursor_insert:    ch = DOS_CURSOR_INSERT; break;
+            case icon_style::cursor_overwrite: ch = DOS_CURSOR_OVERWRITE; break;
+
             default:                      return;
         }
 

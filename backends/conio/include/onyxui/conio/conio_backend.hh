@@ -127,6 +127,8 @@ namespace onyxui::conio {
                     kbd.key = key_code::insert;
                 } else if (native.key == TB_KEY_DELETE) {
                     kbd.key = key_code::delete_key;
+                } else if (native.key == TB_KEY_BACKSPACE || native.key == TB_KEY_BACKSPACE2) {
+                    kbd.key = key_code::backspace;
                 } else if (native.key == TB_KEY_ENTER) {
                     kbd.key = key_code::enter;
                 } else if (native.key == TB_KEY_TAB) {
@@ -153,17 +155,21 @@ namespace onyxui::conio {
                     return std::nullopt;
                 }
 
-                // Build modifiers (terminal reality: Enter=Ctrl+M, Tab=Ctrl+I)
-                const bool is_enter_or_tab = (native.key == TB_KEY_ENTER || native.key == TB_KEY_TAB);
+                // Build modifiers (terminal reality: Enter=Ctrl+M, Tab=Ctrl+I, Backspace=Ctrl+H)
+                // Exclude keys that have inherent Ctrl/Shift codes from spurious modifier detection
+                const bool is_special_control_key = (native.key == TB_KEY_ENTER ||
+                                                      native.key == TB_KEY_TAB ||
+                                                      native.key == TB_KEY_BACKSPACE ||
+                                                      native.key == TB_KEY_BACKSPACE2);
 
                 key_modifier mods = key_modifier::none;
-                if (!is_enter_or_tab && (native.mod & TB_MOD_CTRL) != 0) mods |= key_modifier::ctrl;
+                if (!is_special_control_key && (native.mod & TB_MOD_CTRL) != 0) mods |= key_modifier::ctrl;
                 if ((native.mod & TB_MOD_ALT) != 0) mods |= key_modifier::alt;
 
                 // For uppercase letters, shift=true (already normalized to lowercase)
                 if (native.ch >= 'A' && native.ch <= 'Z') {
                     mods |= key_modifier::shift;
-                } else if (!is_enter_or_tab && (native.mod & TB_MOD_SHIFT) != 0) {
+                } else if (!is_special_control_key && (native.mod & TB_MOD_SHIFT) != 0) {
                     mods |= key_modifier::shift;
                 }
 

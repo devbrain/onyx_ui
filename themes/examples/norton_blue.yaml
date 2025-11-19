@@ -60,6 +60,21 @@ label:
   font: { bold: false, reverse: false, underline: false }
   mnemonic_font: { bold: false, reverse: false, underline: true }
 
+# Line Edit styling (text input widgets)
+line_edit:
+  text: { r: 255, g: 255, b: 255 }         # White text
+  background: { r: 0, g: 0, b: 170 }       # Dark blue background
+  border_color: { r: 255, g: 255, b: 0 }   # Yellow border
+  placeholder_text: { r: 170, g: 170, b: 170 }  # Light gray for placeholder
+  cursor: { r: 255, g: 255, b: 0 }         # Yellow cursor
+  box_style: single_line                   # Single-line border
+  font: { bold: false, reverse: false, underline: false }
+  padding_horizontal: 1
+  padding_vertical: 0
+  cursor_insert_icon: cursor_insert        # Vertical bar │ for insert mode
+  cursor_overwrite_icon: cursor_overwrite  # Block █ for overwrite mode
+  cursor_blink_interval_ms: 500            # Cursor blink interval (500ms = 0.5s on/off)
+
 # Panel styling
 panel:
   background: { r: 0, g: 0, b: 170 }       # Dark blue

@@ -295,6 +295,59 @@ void apply_defaults(ui_theme<Backend>& theme) {
         theme.label.background = theme.button.normal.background;
     }
 
+    // === LineEdit defaults ===
+    // Set color defaults if not already set
+    if (theme.line_edit.text == default_color && has_button_normal) {
+        theme.line_edit.text = theme.button.normal.foreground;
+    }
+
+    if (theme.line_edit.background == default_color && has_button_normal) {
+        theme.line_edit.background = theme.button.normal.background;
+    }
+
+    if (theme.line_edit.border_color == default_color && completeness.has_border_color) {
+        theme.line_edit.border_color = theme.border_color;
+    }
+
+    // Placeholder text should be dimmed version of normal text
+    if (theme.line_edit.placeholder_text == default_color && has_button_normal) {
+        theme.line_edit.placeholder_text = generate_disabled_state<Backend>(theme.button.normal).foreground;
+    }
+
+    // Cursor should be a bright, visible color (use accent/border color)
+    if (theme.line_edit.cursor == default_color && completeness.has_border_color) {
+        theme.line_edit.cursor = theme.border_color;
+    }
+
+    // Set default box_style if not already set (critical for borders!)
+    // Check if box_style is default-initialized (border_style::none)
+    if constexpr (requires { typename Backend::renderer_type::border_style; }) {
+        using border_style = typename Backend::renderer_type::border_style;
+        using box_style = typename Backend::renderer_type::box_style;
+
+        // If box_style.style is none (default), set it to single_line
+        if (theme.line_edit.box_style.style == border_style::none) {
+            theme.line_edit.box_style = box_style{border_style::single_line, true};
+        }
+    }
+
+    // Set default cursor icons if not already set (only if backend supports cursor icons)
+    if constexpr (requires {
+        typename Backend::renderer_type::icon_style;
+        Backend::renderer_type::icon_style::cursor_insert;
+        Backend::renderer_type::icon_style::cursor_overwrite;
+    }) {
+        using icon_style = typename Backend::renderer_type::icon_style;
+
+        // Default cursor icons: vertical bar for insert, block for overwrite
+        if (theme.line_edit.cursor_insert_icon == icon_style{}) {
+            theme.line_edit.cursor_insert_icon = icon_style::cursor_insert;
+        }
+        if (theme.line_edit.cursor_overwrite_icon == icon_style{}) {
+            theme.line_edit.cursor_overwrite_icon = icon_style::cursor_overwrite;
+        }
+    }
+
     // === Panel defaults ===
     if (!completeness.has_panel_background && completeness.has_window_bg) {
         theme.panel.background = theme.window_bg;

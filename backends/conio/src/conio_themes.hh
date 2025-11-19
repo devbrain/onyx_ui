@@ -279,6 +279,15 @@ namespace onyxui::conio {
             theme.scrollbar.arrow_right_icon = conio_renderer::icon_style::arrow_right;
 
             // ====================================================================
+            // Line Edit Configuration
+            // ====================================================================
+            // Set cursor icons for text editing
+            theme.line_edit.cursor_insert_icon = conio_renderer::icon_style::cursor_insert;      // │ (vertical bar)
+            theme.line_edit.cursor_overwrite_icon = conio_renderer::icon_style::cursor_overwrite; // █ (block)
+            // Cursor blink interval in milliseconds (500ms = 0.5s on/off cycle)
+            theme.line_edit.cursor_blink_interval_ms = 500;
+
+            // ====================================================================
             // Menu Bar Item Manual Configuration
             // ====================================================================
             // Menu bar items don't have a builder API yet, configure manually
@@ -422,6 +431,14 @@ namespace onyxui::conio {
             // Apply label colors
             theme.label.text = button_fg;
             theme.label.background = button_bg;
+
+            // Apply line_edit colors
+            theme.line_edit.text = button_fg;
+            theme.line_edit.background = button_bg;
+            theme.line_edit.border_color = theme.border_color;
+            theme.line_edit.placeholder_text = button_disabled_fg;  // Dim for placeholder
+            theme.line_edit.cursor = button_hover_fg;  // Bright yellow cursor
+            theme.line_edit.box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
 
             // Apply panel colors
             theme.panel.background = button_bg;

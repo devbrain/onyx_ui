@@ -118,7 +118,11 @@ namespace onyxui::conio {
                 minimize,      // ▁ (minimize to taskbar)
                 maximize,      // □ (maximize window)
                 restore,       // ▢ (restore from maximized)
-                close_x        // × (close window)
+                close_x,       // × (close window)
+
+                // Text editing cursors
+                cursor_insert,    // │ (vertical bar for insert mode)
+                cursor_overwrite  // █ (block for overwrite mode)
             };
 
             /**

@@ -141,4 +141,9 @@ enum dos_char {
     DOS_MAXIMIZE = 0x25A1, // □ (white square)
     DOS_RESTORE = 0x25A2, // ▢ (white square with rounded corners)
     DOS_CLOSE_X = 0x00D7, // × (multiplication sign)
+
+    // ──────────────────────────────────────
+    // Text editing cursors
+    DOS_CURSOR_INSERT = 0x2502, // │ (vertical bar for insert mode)
+    DOS_CURSOR_OVERWRITE = 0x2588, // █ (full block for overwrite mode)
 };

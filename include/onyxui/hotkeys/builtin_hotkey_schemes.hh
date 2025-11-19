@@ -110,6 +110,37 @@ namespace onyxui::builtin_hotkey_schemes {
             {hotkey_action::next_window, parse_key_sequence("Ctrl+Tab")},
             {hotkey_action::previous_window, parse_key_sequence("Ctrl+Shift+Tab")},
             {hotkey_action::show_window_list, parse_key_sequence("Ctrl+W")},
+
+            // Text Editing - Cursor Movement
+            {hotkey_action::cursor_move_left, parse_key_sequence("Left")},
+            {hotkey_action::cursor_move_right, parse_key_sequence("Right")},
+            {hotkey_action::cursor_move_word_left, parse_key_sequence("Ctrl+Left")},
+            {hotkey_action::cursor_move_word_right, parse_key_sequence("Ctrl+Right")},
+            {hotkey_action::cursor_move_home, parse_key_sequence("Home")},
+            {hotkey_action::cursor_move_end, parse_key_sequence("End")},
+
+            // Text Editing - Selection
+            {hotkey_action::cursor_select_left, parse_key_sequence("Shift+Left")},
+            {hotkey_action::cursor_select_right, parse_key_sequence("Shift+Right")},
+            {hotkey_action::cursor_select_word_left, parse_key_sequence("Ctrl+Shift+Left")},
+            {hotkey_action::cursor_select_word_right, parse_key_sequence("Ctrl+Shift+Right")},
+            {hotkey_action::cursor_select_home, parse_key_sequence("Shift+Home")},
+            {hotkey_action::cursor_select_end, parse_key_sequence("Shift+End")},
+            {hotkey_action::cursor_select_all, parse_key_sequence("Ctrl+A")},
+
+            // Text Editing - Deletion
+            {hotkey_action::text_delete_char, parse_key_sequence("Delete")},
+            {hotkey_action::text_backspace, parse_key_sequence("Backspace")},
+            {hotkey_action::text_delete_word, parse_key_sequence("Ctrl+Delete")},
+            {hotkey_action::text_backspace_word, parse_key_sequence("Ctrl+Backspace")},
+
+            // Text Editing - Clipboard
+            {hotkey_action::text_copy, parse_key_sequence("Ctrl+C")},
+            {hotkey_action::text_cut, parse_key_sequence("Ctrl+X")},
+            {hotkey_action::text_paste, parse_key_sequence("Ctrl+V")},
+
+            // Text Editing - Mode Toggle
+            {hotkey_action::text_toggle_overwrite, parse_key_sequence("Insert")},
         };
 
         return scheme;
@@ -190,6 +221,37 @@ namespace onyxui::builtin_hotkey_schemes {
             {hotkey_action::next_window, parse_key_sequence("Ctrl+F6")},
             {hotkey_action::previous_window, parse_key_sequence("Ctrl+Shift+F6")},
             {hotkey_action::show_window_list, parse_key_sequence("Ctrl+W")},
+
+            // Text Editing - Cursor Movement (same as Windows)
+            {hotkey_action::cursor_move_left, parse_key_sequence("Left")},
+            {hotkey_action::cursor_move_right, parse_key_sequence("Right")},
+            {hotkey_action::cursor_move_word_left, parse_key_sequence("Ctrl+Left")},
+            {hotkey_action::cursor_move_word_right, parse_key_sequence("Ctrl+Right")},
+            {hotkey_action::cursor_move_home, parse_key_sequence("Home")},
+            {hotkey_action::cursor_move_end, parse_key_sequence("End")},
+
+            // Text Editing - Selection (same as Windows)
+            {hotkey_action::cursor_select_left, parse_key_sequence("Shift+Left")},
+            {hotkey_action::cursor_select_right, parse_key_sequence("Shift+Right")},
+            {hotkey_action::cursor_select_word_left, parse_key_sequence("Ctrl+Shift+Left")},
+            {hotkey_action::cursor_select_word_right, parse_key_sequence("Ctrl+Shift+Right")},
+            {hotkey_action::cursor_select_home, parse_key_sequence("Shift+Home")},
+            {hotkey_action::cursor_select_end, parse_key_sequence("Shift+End")},
+            {hotkey_action::cursor_select_all, parse_key_sequence("Ctrl+A")},
+
+            // Text Editing - Deletion (same as Windows)
+            {hotkey_action::text_delete_char, parse_key_sequence("Delete")},
+            {hotkey_action::text_backspace, parse_key_sequence("Backspace")},
+            {hotkey_action::text_delete_word, parse_key_sequence("Ctrl+Delete")},
+            {hotkey_action::text_backspace_word, parse_key_sequence("Ctrl+Backspace")},
+
+            // Text Editing - Clipboard (same as Windows)
+            {hotkey_action::text_copy, parse_key_sequence("Ctrl+C")},
+            {hotkey_action::text_cut, parse_key_sequence("Ctrl+X")},
+            {hotkey_action::text_paste, parse_key_sequence("Ctrl+V")},
+
+            // Text Editing - Mode Toggle (same as Windows)
+            {hotkey_action::text_toggle_overwrite, parse_key_sequence("Insert")},
         };
 
         return scheme;

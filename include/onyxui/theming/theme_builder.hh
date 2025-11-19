@@ -83,6 +83,7 @@ public:
     // Forward declarations for nested builders
     class button_builder;
     class label_builder;
+    class line_edit_builder;
     class panel_builder;
     class menu_builder;
     class menu_item_builder;
@@ -295,6 +296,12 @@ public:
     label_builder with_label();
 
     /**
+     * @brief Configure line_edit widget
+     * @return line_edit_builder (implicit conversion back to theme_builder)
+     */
+    line_edit_builder with_line_edit();
+
+    /**
      * @brief Configure panel widget
      * @return panel_builder (implicit conversion back to theme_builder)
      */
@@ -394,6 +401,7 @@ private:
     // Friend all nested builders for direct theme access
     friend class button_builder;
     friend class label_builder;
+    friend class line_edit_builder;
     friend class panel_builder;
     friend class menu_builder;
     friend class menu_item_builder;
@@ -706,6 +714,145 @@ public:
     label_builder& mnemonic_font(Args&&... args) {
         m_parent.m_theme.label.mnemonic_font =
             typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
+// LineEdit Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::line_edit_builder {
+public:
+    theme_builder& m_parent;  // Public for state_builder access
+
+    explicit line_edit_builder(theme_builder& parent) : m_parent(parent) {}
+
+    /**
+     * @brief Set line_edit text color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    line_edit_builder& text_color(std::string_view color_name) {
+        m_parent.m_theme.line_edit.text = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set line_edit background color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    line_edit_builder& background_color(std::string_view color_name) {
+        m_parent.m_theme.line_edit.background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set line_edit border color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    line_edit_builder& border_color(std::string_view color_name) {
+        m_parent.m_theme.line_edit.border_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set placeholder text color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    line_edit_builder& placeholder_color(std::string_view color_name) {
+        m_parent.m_theme.line_edit.placeholder_text = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set cursor color by palette name
+     * @param color_name Color name
+     * @return *this (for chaining)
+     */
+    line_edit_builder& cursor_color(std::string_view color_name) {
+        m_parent.m_theme.line_edit.cursor = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set box style (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::box_style
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    line_edit_builder& box_style(Args&&... args) {
+        m_parent.m_theme.line_edit.box_style =
+            typename Backend::renderer_type::box_style{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Set font (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::font
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    line_edit_builder& font(Args&&... args) {
+        m_parent.m_theme.line_edit.font =
+            typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Set line_edit padding
+     * @param horizontal Horizontal padding
+     * @param vertical Vertical padding
+     * @return *this (for chaining)
+     */
+    line_edit_builder& padding(int horizontal, int vertical) {
+        m_parent.m_theme.line_edit.padding_horizontal = horizontal;
+        m_parent.m_theme.line_edit.padding_vertical = vertical;
+        return *this;
+    }
+
+    /**
+     * @brief Set cursor insert icon (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::icon_style
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    line_edit_builder& cursor_insert_icon(Args&&... args) {
+        m_parent.m_theme.line_edit.cursor_insert_icon =
+            typename Backend::renderer_type::icon_style{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Set cursor overwrite icon (perfect forwarding)
+     * @param args Constructor arguments for Backend::renderer_type::icon_style
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    line_edit_builder& cursor_overwrite_icon(Args&&... args) {
+        m_parent.m_theme.line_edit.cursor_overwrite_icon =
+            typename Backend::renderer_type::icon_style{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Set cursor blink interval in milliseconds
+     * @param interval_ms Blink interval in milliseconds (e.g., 500 for 0.5s on/off)
+     * @return *this (for chaining)
+     */
+    line_edit_builder& cursor_blink_interval(int interval_ms) {
+        m_parent.m_theme.line_edit.cursor_blink_interval_ms = interval_ms;
         return *this;
     }
 
@@ -1245,6 +1392,11 @@ typename theme_builder<Backend>::button_builder theme_builder<Backend>::with_but
 template<UIBackend Backend>
 typename theme_builder<Backend>::label_builder theme_builder<Backend>::with_label() {
     return label_builder{*this};
+}
+
+template<UIBackend Backend>
+typename theme_builder<Backend>::line_edit_builder theme_builder<Backend>::with_line_edit() {
+    return line_edit_builder{*this};
 }
 
 template<UIBackend Backend>

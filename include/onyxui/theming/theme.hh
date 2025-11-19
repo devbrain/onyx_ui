@@ -127,6 +127,25 @@ namespace onyxui {
             font_type mnemonic_font{};     // Font for mnemonic character (typically underlined)
         };
 
+        struct line_edit_style {
+            color_type text;                // Text color
+            color_type background;          // Background color
+            color_type border_color;        // Border color
+            color_type placeholder_text;    // Placeholder text color
+            color_type cursor;              // Cursor color
+            box_style_type box_style{};     // Border style
+            font_type font{};               // Font for text
+            int padding_horizontal = 1;     // Horizontal padding (left/right)
+            int padding_vertical = 0;       // Vertical padding (top/bottom)
+
+            // Cursor icons (backend-specific)
+            icon_style_type cursor_insert_icon{};    // Cursor icon for insert mode (e.g., vertical bar │)
+            icon_style_type cursor_overwrite_icon{}; // Cursor icon for overwrite mode (e.g., block █)
+
+            // Cursor animation
+            int cursor_blink_interval_ms = 500;  // Cursor blink interval in milliseconds (500ms = 0.5s on/off)
+        };
+
         struct menu_style {
             color_type background;
             color_type border_color;
@@ -275,6 +294,7 @@ namespace onyxui {
         // Widget-specific styles
         button_style button{};            // BREAKING CHANGE - refactored
         label_style label{};              // Unchanged
+        line_edit_style line_edit{};      // NEW: Line edit input widget
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged
