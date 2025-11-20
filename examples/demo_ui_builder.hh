@@ -16,6 +16,8 @@
 #include <onyxui/widgets/input/checkbox.hh>
 #include <onyxui/widgets/input/radio_button.hh>
 #include <onyxui/widgets/input/button_group.hh>
+#include <onyxui/widgets/input/progress_bar.hh>
+#include <onyxui/widgets/input/slider.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include "demo_menu_builder.hh"
 #include "demo_utils.hh"
@@ -91,6 +93,13 @@ void build_ui(
     // Button section
     add_label(*central, "Button States:");
 
+    auto* screenshot_btn = add_button(*central, "Screenshot");
+    screenshot_btn->set_focusable(true);
+    screenshot_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
+    screenshot_btn->clicked.connect([widget]() {
+        widget->take_screenshot();
+    });
+
     auto* quit_btn = add_button(*central, "Quit");
     quit_btn->set_focusable(true);
     quit_btn->set_horizontal_align(onyxui::horizontal_alignment::left);
@@ -138,8 +147,59 @@ void build_ui(
 
     size_group->set_checked_id(1);  // Medium selected by default
 
+    // Progress Bar Section
+    add_label(*central, "Progress Bar:");
+    auto* progress1 = central->template emplace_child<onyxui::progress_bar>();
+    progress1->set_horizontal_align(onyxui::horizontal_alignment::left);
+    progress1->set_range(0, 100);
+    progress1->set_value(45);
+    progress1->set_text_visible(false);  // Disable text overlay to show track
+    progress1->set_text_format("%v%");
+    onyxui::size_constraint progress_width;
+    progress_width.policy = onyxui::size_policy::content;
+    progress_width.preferred_size = 40;
+    progress_width.min_size = 40;
+    progress_width.max_size = 40;
+    progress1->set_width_constraint(progress_width);
+
+    auto* progress2 = central->template emplace_child<onyxui::progress_bar>();
+    progress2->set_horizontal_align(onyxui::horizontal_alignment::left);
+    progress2->set_range(0, 100);
+    progress2->set_value(75);
+    progress2->set_text_visible(false);  // Disable text overlay to show track
+    progress2->set_text_format("%v/%m");
+    progress2->set_width_constraint(progress_width);
+
+    // Slider Section
+    add_label(*central, "Slider:");
+    auto* slider1 = central->template emplace_child<onyxui::slider>();
+    slider1->set_horizontal_align(onyxui::horizontal_alignment::left);
+    slider1->set_range(0, 100);
+    slider1->set_value(50);
+    slider1->set_single_step(5);
+    slider1->set_page_step(10);
+    onyxui::size_constraint slider_width;
+    slider_width.policy = onyxui::size_policy::content;
+    slider_width.preferred_size = 50;
+    slider_width.min_size = 50;
+    slider_width.max_size = 50;
+    slider1->set_width_constraint(slider_width);
+
+    // Ensure slider has enough height to render
+    onyxui::size_constraint slider_height;
+    slider_height.policy = onyxui::size_policy::content;
+    slider_height.preferred_size = 3;
+    slider_height.min_size = 3;
+    slider1->set_height_constraint(slider_height);
+
+    // Connect slider to progress bar for interactive demo
+    slider1->value_changed.connect([progress1](int value) {
+        progress1->set_value(value);
+    });
+
     // Instructions
     add_label(*central, "");
+    add_label(*central, "Use Arrow/PgUp/PgDn/Home/End keys to control slider (when focused)");
     add_label(*central, "Press 1-4 to switch themes | F10 for menu | ESC to quit");
 
     // Set central widget on main_window

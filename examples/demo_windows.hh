@@ -219,8 +219,6 @@ namespace demo_windows {
 
         auto win = std::make_shared<onyxui::window<Backend>>("Interactive Controls", flags);
 
-        std::cout << "[DEBUG Interactive Controls] Window created\n";
-
         auto content = std::make_unique<onyxui::vbox<Backend>>(1);
 
         // Title

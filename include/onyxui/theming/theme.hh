@@ -249,6 +249,33 @@ namespace onyxui {
         };
 
         /**
+         * @brief Progress bar styling
+         * @details Visual appearance for progress indicators (determinate and indeterminate modes)
+         */
+        struct progress_bar_style {
+            color_type filled_color;     ///< Color for filled/progress portion
+            color_type empty_color;      ///< Color for empty/remaining portion
+            color_type text_color;       ///< Color for text overlay
+            font_type text_font;         ///< Font for text overlay
+            icon_style_type filled_icon{};  ///< Icon for filled portion (default: progress_filled)
+            icon_style_type empty_icon{};   ///< Icon for empty portion (default: progress_empty)
+        };
+
+        /**
+         * @brief Slider styling
+         * @details Visual appearance for interactive slider controls
+         */
+        struct slider_style {
+            color_type track_filled_color;   ///< Color for filled portion of track
+            color_type track_empty_color;    ///< Color for empty portion of track
+            color_type thumb_color;          ///< Color for thumb/handle
+            color_type tick_color;           ///< Color for tick marks
+            icon_style_type filled_icon{};   ///< Icon for filled track portion (default: slider_filled)
+            icon_style_type empty_icon{};    ///< Icon for empty track portion (default: slider_empty)
+            icon_style_type thumb_icon{};    ///< Icon for slider thumb (default: slider_thumb)
+        };
+
+        /**
          * @brief Scrollbar theme - PLACEHOLDER for Phase 3
          * @details Will be fully implemented in Phase 3 of scrolling system
          */
@@ -344,6 +371,8 @@ namespace onyxui {
         line_edit_style line_edit{};      // NEW: Line edit input widget (Phase 1)
         checkbox_style checkbox{};        // NEW: Checkbox input widget (Phase 2)
         radio_button_style radio_button{};// NEW: Radio button input widget (Phase 2)
+        progress_bar_style progress_bar{};// NEW: Progress bar widget
+        slider_style slider{};            // NEW: Slider input widget
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged

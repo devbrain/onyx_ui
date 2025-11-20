@@ -92,6 +92,8 @@ public:
     class separator_builder;
     class scrollbar_builder;
     class window_builder;
+    class progress_bar_builder;
+    class slider_builder;
     class state_builder;
 
     // ===================================================================
@@ -349,6 +351,18 @@ public:
      */
     window_builder with_window();
 
+    /**
+     * @brief Configure progress_bar widget
+     * @return progress_bar_builder (implicit conversion back to theme_builder)
+     */
+    progress_bar_builder with_progress_bar();
+
+    /**
+     * @brief Configure slider widget
+     * @return slider_builder (implicit conversion back to theme_builder)
+     */
+    slider_builder with_slider();
+
     // ===================================================================
     // Build
     // ===================================================================
@@ -410,6 +424,8 @@ private:
     friend class separator_builder;
     friend class scrollbar_builder;
     friend class window_builder;
+    friend class progress_bar_builder;
+    friend class slider_builder;
     friend class state_builder;
 };
 
@@ -1381,6 +1397,196 @@ public:
 };
 
 // ===========================================================================
+// Progress Bar Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::progress_bar_builder {
+public:
+    theme_builder& m_parent;
+
+    explicit progress_bar_builder(theme_builder& parent) : m_parent(parent) {}
+
+    /**
+     * @brief Set filled portion color (progress indicator)
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& filled_color(std::string_view color_name) {
+        m_parent.m_theme.progress_bar.filled_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set filled portion color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& filled_color(std::uint32_t hex) {
+        m_parent.m_theme.progress_bar.filled_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set empty portion color (remaining/background)
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& empty_color(std::string_view color_name) {
+        m_parent.m_theme.progress_bar.empty_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set empty portion color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& empty_color(std::uint32_t hex) {
+        m_parent.m_theme.progress_bar.empty_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set text overlay color
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& text_color(std::string_view color_name) {
+        m_parent.m_theme.progress_bar.text_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set text overlay color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    progress_bar_builder& text_color(std::uint32_t hex) {
+        m_parent.m_theme.progress_bar.text_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set text font
+     * @param args Font arguments (forwarded to backend font constructor)
+     * @return *this (for chaining)
+     */
+    template<typename... Args>
+    progress_bar_builder& text_font(Args&&... args) {
+        m_parent.m_theme.progress_bar.text_font =
+            typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
+// Slider Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::slider_builder {
+public:
+    theme_builder& m_parent;
+
+    explicit slider_builder(theme_builder& parent) : m_parent(parent) {}
+
+    /**
+     * @brief Set filled track color (active portion)
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    slider_builder& track_filled_color(std::string_view color_name) {
+        m_parent.m_theme.slider.track_filled_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set filled track color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    slider_builder& track_filled_color(std::uint32_t hex) {
+        m_parent.m_theme.slider.track_filled_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set empty track color (inactive portion)
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    slider_builder& track_empty_color(std::string_view color_name) {
+        m_parent.m_theme.slider.track_empty_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set empty track color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    slider_builder& track_empty_color(std::uint32_t hex) {
+        m_parent.m_theme.slider.track_empty_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set thumb/handle color
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    slider_builder& thumb_color(std::string_view color_name) {
+        m_parent.m_theme.slider.thumb_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set thumb/handle color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    slider_builder& thumb_color(std::uint32_t hex) {
+        m_parent.m_theme.slider.thumb_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Set tick mark color
+     * @param color_name Color name from palette
+     * @return *this (for chaining)
+     */
+    slider_builder& tick_color(std::string_view color_name) {
+        m_parent.m_theme.slider.tick_color = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    /**
+     * @brief Set tick mark color via hex
+     * @param hex Hex color value (e.g., 0xFF0000 for red)
+     * @return *this (for chaining)
+     */
+    slider_builder& tick_color(std::uint32_t hex) {
+        m_parent.m_theme.slider.tick_color = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
 // Widget Builder Factory Methods (inline implementations)
 // ===========================================================================
 
@@ -1437,6 +1643,16 @@ typename theme_builder<Backend>::scrollbar_builder theme_builder<Backend>::with_
 template<UIBackend Backend>
 typename theme_builder<Backend>::window_builder theme_builder<Backend>::with_window() {
     return window_builder{*this};
+}
+
+template<UIBackend Backend>
+typename theme_builder<Backend>::progress_bar_builder theme_builder<Backend>::with_progress_bar() {
+    return progress_bar_builder{*this};
+}
+
+template<UIBackend Backend>
+typename theme_builder<Backend>::slider_builder theme_builder<Backend>::with_slider() {
+    return slider_builder{*this};
 }
 
 // ===========================================================================

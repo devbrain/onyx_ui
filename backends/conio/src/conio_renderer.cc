@@ -459,6 +459,13 @@ namespace onyxui::conio {
             case icon_style::cursor_insert:    ch = DOS_CURSOR_INSERT; break;
             case icon_style::cursor_overwrite: ch = DOS_CURSOR_OVERWRITE; break;
 
+            // Progress bar / Slider icons
+            case icon_style::progress_filled:  ch = '#'; break;
+            case icon_style::progress_empty:   ch = '.'; break;
+            case icon_style::slider_filled:    ch = '='; break;
+            case icon_style::slider_empty:     ch = '-'; break;
+            case icon_style::slider_thumb:     ch = 'O'; break;
+
             default:                      return;
         }
 

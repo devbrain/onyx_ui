@@ -107,3 +107,17 @@ scrollbar:
     foreground: "0x000000"   # Black
     background: "0xAAAAAA"   # Light gray
     box_style: { draw_border: true }
+
+# Progress bar styling (visual progress indicators)
+progress_bar:
+  filled_color: "0xFFFF00"       # Yellow filled portion
+  empty_color: "0x555555"        # Dark gray empty portion
+  text_color: "0xFFFFFF"         # White text overlay
+  text_font: { bold: false, reverse: false, underline: false }
+
+# Slider styling (interactive value adjustment)
+slider:
+  track_filled_color: "0xFFFF00"  # Yellow filled track
+  track_empty_color: "0x555555"   # Dark gray empty track
+  thumb_color: "0xFFFFFF"         # White thumb/handle
+  tick_color: "0xAAAAAA"          # Light gray tick marks

@@ -131,7 +131,14 @@ namespace onyxui::conio {
 
                 // Radio button icons
                 radio_unchecked,         // ( ) (unchecked radio button)
-                radio_checked            // (*) (checked radio button)
+                radio_checked,           // (*) (checked radio button)
+
+                // Progress bar / Slider icons
+                progress_filled,         // # (filled portion of progress bar)
+                progress_empty,          // . (empty portion of progress bar)
+                slider_filled,           // = (filled portion of slider track)
+                slider_empty,            // - (empty portion of slider track)
+                slider_thumb             // O (slider thumb/handle)
             };
 
             /**

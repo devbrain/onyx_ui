@@ -7,6 +7,8 @@
 
 #pragma once
 #include <algorithm>
+#include <chrono>
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -100,6 +102,37 @@ public:
      */
     typename Backend::renderer_type* get_renderer() const noexcept {
         return m_renderer;
+    }
+
+    /**
+     * @brief Take a screenshot and save to file
+     * @param filename Output filename (default: screenshot_<timestamp>.txt)
+     */
+    void take_screenshot(const std::string& filename = "") {
+        if (!m_renderer) {
+            std::cerr << "Cannot take screenshot: renderer not set\n";
+            return;
+        }
+
+        // Generate filename with timestamp if not provided
+        std::string output_file = filename;
+        if (output_file.empty()) {
+            auto now = std::chrono::system_clock::now();
+            auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                now.time_since_epoch()
+            ).count();
+            output_file = "screenshot_" + std::to_string(timestamp) + ".txt";
+        }
+
+        // Take screenshot
+        std::ofstream file(output_file);
+        if (!file) {
+            std::cerr << "Failed to open file: " << output_file << "\n";
+            return;
+        }
+
+        m_renderer->take_screenshot(file);
+        std::cout << "Screenshot saved to: " << output_file << "\n";
     }
 
     /**

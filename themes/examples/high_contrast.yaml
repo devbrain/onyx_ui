@@ -101,3 +101,17 @@ scrollbar:
     foreground: { r: 255, g: 255, b: 255 }
     background: { r: 160, g: 160, b: 160 }
     box_style: { draw_border: true }
+
+# Progress bar styling (visual progress indicators)
+progress_bar:
+  filled_color: { r: 255, g: 255, b: 255 }   # White filled portion
+  empty_color: { r: 0, g: 0, b: 0 }          # Black empty portion
+  text_color: { r: 0, g: 0, b: 0 }           # Black text overlay (inverted on white)
+  text_font: { bold: true, reverse: false, underline: false }
+
+# Slider styling (interactive value adjustment)
+slider:
+  track_filled_color: { r: 255, g: 255, b: 255 }  # White filled track
+  track_empty_color: { r: 0, g: 0, b: 0 }         # Black empty track
+  thumb_color: { r: 128, g: 128, b: 128 }         # Medium gray thumb/handle
+  tick_color: { r: 192, g: 192, b: 192 }          # Light gray tick marks

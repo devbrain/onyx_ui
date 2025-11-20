@@ -124,3 +124,17 @@ scrollbar:
     foreground: { r: 255, g: 255, b: 255 }
     background: { r: 160, g: 160, b: 160 }
     box_style: { draw_border: true }
+
+# Progress bar styling (visual progress indicators)
+progress_bar:
+  filled_color: { r: 38, g: 139, b: 210 }    # Solarized blue #268bd2
+  empty_color: { r: 7, g: 54, b: 66 }        # Solarized base02 #073642
+  text_color: { r: 131, g: 148, b: 150 }     # Solarized base0 #839496
+  text_font: { bold: false, reverse: false, underline: false }
+
+# Slider styling (interactive value adjustment)
+slider:
+  track_filled_color: { r: 38, g: 139, b: 210 }  # Solarized blue
+  track_empty_color: { r: 7, g: 54, b: 66 }      # Solarized base02
+  thumb_color: { r: 42, g: 161, b: 152 }         # Solarized cyan #2aa198
+  tick_color: { r: 88, g: 110, b: 117 }          # Solarized base01 #586e75

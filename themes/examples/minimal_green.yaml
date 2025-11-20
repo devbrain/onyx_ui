@@ -8,3 +8,16 @@ description: "Green theme with smart defaults - nature inspired!"
 window_bg: 0x004400      # Dark green
 text_fg: 0xDDFFDD        # Light green text
 border_color: 0x00FF00   # Bright green accents
+
+# Progress bar and slider need explicit definitions
+progress_bar:
+  filled_color: 0x00FF00        # Bright green filled portion
+  empty_color: 0x003300         # Darker green empty portion
+  text_color: 0xDDFFDD          # Light green text overlay
+  text_font: { bold: false, reverse: false, underline: false }
+
+slider:
+  track_filled_color: 0x00FF00  # Bright green filled track
+  track_empty_color: 0x003300   # Darker green empty track
+  thumb_color: 0xDDFFDD         # Light green thumb/handle
+  tick_color: 0x00AA00          # Medium green tick marks

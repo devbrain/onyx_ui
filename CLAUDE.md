@@ -287,6 +287,13 @@ See [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) for details.
 
 See [Scrolling Guide](docs/scrolling_guide.md) for comprehensive scrolling documentation.
 
+**Input Widgets:**
+- `line_edit` - Single-line text input with scrolling and cursor support
+- `checkbox` - Boolean toggle with theming
+- `radio_button` - Mutually exclusive options with button_group
+- `slider` - Numeric range input with keyboard and mouse support
+- `progress_bar` - Visual progress indicator (determinate/indeterminate)
+
 **Other:**
 - `status_bar` - Bottom status display
 

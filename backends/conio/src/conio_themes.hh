@@ -429,6 +429,32 @@ namespace onyxui::conio {
             // Vertical padding around menu bar item text (0 pixels, flush with top/bottom)
             theme.menu_bar_item.padding_vertical = 0;
 
+            // ====================================================================
+            // Progress Bar Configuration
+            // ====================================================================
+            // Set progress bar colors and icons
+            color yellow{255, 255, 0};      // Yellow for filled progress
+            color progress_empty{85, 85, 85}; // Dark gray for empty portion
+
+            theme.progress_bar.filled_color = yellow;
+            theme.progress_bar.empty_color = progress_empty;
+            theme.progress_bar.text_color = color{255, 255, 255};  // White text overlay
+            theme.progress_bar.text_font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+            theme.progress_bar.filled_icon = conio_renderer::icon_style::progress_filled;  // #
+            theme.progress_bar.empty_icon = conio_renderer::icon_style::progress_empty;    // .
+
+            // ====================================================================
+            // Slider Configuration
+            // ====================================================================
+            // Set slider colors and icons
+            theme.slider.track_filled_color = yellow;                    // Yellow for filled track
+            theme.slider.track_empty_color = progress_empty;             // Dark gray for empty track
+            theme.slider.thumb_color = color{255, 255, 255};             // White thumb/handle
+            theme.slider.tick_color = light_gray;                        // Light gray tick marks
+            theme.slider.filled_icon = conio_renderer::icon_style::slider_filled;  // =
+            theme.slider.empty_icon = conio_renderer::icon_style::slider_empty;    // -
+            theme.slider.thumb_icon = conio_renderer::icon_style::slider_thumb;    // O
+
             // Return the fully configured base theme
             return theme;
         }

@@ -37,6 +37,8 @@ These widgets allow users to enter and edit data.
 -   **`line_edit`:** Single-line text input with cursor, selection, and horizontal scrolling.
 -   **`checkbox`:** Toggleable boolean/tri-state input with themed icons and mnemonic support.
 -   **`radio_button`:** Mutually exclusive selection control with button group management.
+-   **`slider`:** Numeric range input with keyboard and mouse support, horizontal/vertical orientation.
+-   **`progress_bar`:** Visual progress indicator with customizable range and text overlay.
 
 ### Spacing
 
@@ -72,6 +74,8 @@ For more detailed information on each widget, including its API and usage exampl
 -   **[Line Edit](./widgets/line-edit.md)** - Single-line text input
 -   **[Checkbox](./widgets/checkbox.md)** - Boolean/tri-state toggle input
 -   **[Radio Button](./widgets/radio-button.md)** - Mutually exclusive selection control
+-   **[Slider](./widgets/slider.md)** - Numeric range input with keyboard/mouse support
+-   **[Progress Bar](./widgets/progress-bar.md)** - Visual progress indicator
 
 **Layout Containers:**
 -   **[Panel](./widgets/panel.md)**

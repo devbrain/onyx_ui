@@ -38,6 +38,7 @@ add_executable(ui_unittest
         utils/layout_assertions.hh
         utils/test_safe_math.cc
         utils/test_color_utils.cc
+        utils/test_range_helpers.cc
         widgets/test_widgets.cc
         widgets/widgets.hh
         widgets/test_hbox.cc
@@ -52,6 +53,8 @@ add_executable(ui_unittest
         widgets/test_radio_button.cc
         widgets/test_label.cc
         widgets/test_line_edit.cc
+        widgets/test_progress_bar.cc
+        widgets/test_slider.cc
         widgets/test_panel.cc
         widgets/test_spacer.cc
         utils/warnings.hh

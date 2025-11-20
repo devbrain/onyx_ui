@@ -102,6 +102,17 @@ namespace onyxui::conio {
             case conio_renderer::icon_style::checkbox_unchecked:      return "checkbox_unchecked";
             case conio_renderer::icon_style::checkbox_checked:        return "checkbox_checked";
             case conio_renderer::icon_style::checkbox_indeterminate:  return "checkbox_indeterminate";
+
+            // Radio button icons
+            case conio_renderer::icon_style::radio_unchecked:         return "radio_unchecked";
+            case conio_renderer::icon_style::radio_checked:           return "radio_checked";
+
+            // Progress bar / Slider icons
+            case conio_renderer::icon_style::progress_filled:         return "progress_filled";
+            case conio_renderer::icon_style::progress_empty:          return "progress_empty";
+            case conio_renderer::icon_style::slider_filled:           return "slider_filled";
+            case conio_renderer::icon_style::slider_empty:            return "slider_empty";
+            case conio_renderer::icon_style::slider_thumb:            return "slider_thumb";
         }
         throw std::runtime_error("Unknown icon_style value");
     }
@@ -137,6 +148,17 @@ namespace onyxui::conio {
         if (str == "checkbox_unchecked")      return conio_renderer::icon_style::checkbox_unchecked;
         if (str == "checkbox_checked")        return conio_renderer::icon_style::checkbox_checked;
         if (str == "checkbox_indeterminate")  return conio_renderer::icon_style::checkbox_indeterminate;
+
+        // Radio button icons
+        if (str == "radio_unchecked")         return conio_renderer::icon_style::radio_unchecked;
+        if (str == "radio_checked")           return conio_renderer::icon_style::radio_checked;
+
+        // Progress bar / Slider icons
+        if (str == "progress_filled")         return conio_renderer::icon_style::progress_filled;
+        if (str == "progress_empty")          return conio_renderer::icon_style::progress_empty;
+        if (str == "slider_filled")           return conio_renderer::icon_style::slider_filled;
+        if (str == "slider_empty")            return conio_renderer::icon_style::slider_empty;
+        if (str == "slider_thumb")            return conio_renderer::icon_style::slider_thumb;
 
         throw std::runtime_error("Invalid icon_style string: " + std::string(str));
     }

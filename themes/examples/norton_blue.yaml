@@ -138,6 +138,25 @@ radio_button:
   checked_icon: radio_checked              # (*) checked button
   spacing: 1                               # Space between icon and text
 
+# Progress bar styling (visual progress indicators)
+progress_bar:
+  filled_color: { r: 255, g: 255, b: 0 }   # Yellow filled portion
+  empty_color: { r: 85, g: 85, b: 85 }     # Dark gray empty portion
+  text_color: { r: 255, g: 255, b: 255 }   # White text overlay
+  text_font: { bold: false, reverse: false, underline: false }
+  filled_icon: progress_filled             # # character for filled portion
+  empty_icon: progress_empty               # . character for empty portion
+
+# Slider styling (interactive value adjustment)
+slider:
+  track_filled_color: { r: 255, g: 255, b: 0 }    # Yellow filled track
+  track_empty_color: { r: 85, g: 85, b: 85 }      # Dark gray empty track
+  thumb_color: { r: 255, g: 255, b: 255 }         # White thumb/handle
+  tick_color: { r: 170, g: 170, b: 170 }          # Light gray tick marks
+  filled_icon: slider_filled                       # = character for filled track
+  empty_icon: slider_empty                         # - character for empty track
+  thumb_icon: slider_thumb                         # O character for thumb
+
 # Panel styling
 panel:
   background: { r: 0, g: 0, b: 170 }       # Dark blue

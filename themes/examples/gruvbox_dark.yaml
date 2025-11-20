@@ -127,3 +127,17 @@ scrollbar:
     foreground: { r: 255, g: 255, b: 255 }
     background: { r: 160, g: 160, b: 160 }
     box_style: { draw_border: true }
+
+# Progress bar styling (visual progress indicators)
+progress_bar:
+  filled_color: { r: 250, g: 189, b: 47 }    # Gruvbox yellow #fabd2f
+  empty_color: { r: 60, g: 56, b: 54 }       # Gruvbox bg1 #3c3836
+  text_color: { r: 235, g: 219, b: 178 }     # Gruvbox fg #ebdbb2
+  text_font: { bold: false, reverse: false, underline: false }
+
+# Slider styling (interactive value adjustment)
+slider:
+  track_filled_color: { r: 250, g: 189, b: 47 }  # Gruvbox yellow
+  track_empty_color: { r: 60, g: 56, b: 54 }     # Gruvbox bg1
+  thumb_color: { r: 254, g: 128, b: 25 }         # Gruvbox orange #fe8019
+  tick_color: { r: 189, g: 174, b: 147 }         # Gruvbox fg3 #bdae93

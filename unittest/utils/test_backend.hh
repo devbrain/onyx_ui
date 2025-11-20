@@ -165,7 +165,12 @@ namespace onyxui {
                 checkbox_checked,        // Checkbox checked ([X])
                 checkbox_indeterminate,  // Checkbox indeterminate ([-])
                 radio_unchecked,         // Radio button unchecked (( ))
-                radio_checked            // Radio button checked ((*)
+                radio_checked,           // Radio button checked ((*)
+                progress_filled,         // Progress bar filled portion (#)
+                progress_empty,          // Progress bar empty portion (.)
+                slider_filled,           // Slider filled track (=)
+                slider_empty,            // Slider empty track (-)
+                slider_thumb             // Slider thumb handle (O)
             };
             struct font {
                 bool operator==(const font&) const = default;

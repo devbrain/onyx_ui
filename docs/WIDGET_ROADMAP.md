@@ -37,8 +37,8 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 **Missing Widgets** (Critical):
 - ✅ **checkbox** - Boolean toggle (COMPLETED)
 - ✅ **radio_button** - Mutually exclusive options (COMPLETED)
-- ❌ **slider** - Numeric range input
-- ❌ **progress_bar** - Progress indicator
+- ✅ **slider** - Numeric range input (COMPLETED)
+- ✅ **progress_bar** - Progress indicator (COMPLETED)
 - ❌ **tab_widget** - Multi-page container
 
 **Missing Widgets** (Future):
