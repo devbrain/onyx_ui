@@ -97,6 +97,13 @@ public:
         this->set_focusable(true);
     }
 
+    /// Destructor - removes button from group to prevent dangling pointers
+    ~radio_button() override {
+        if (m_group) {
+            m_group->remove_button(this);
+        }
+    }
+
     // ===== State Management =====
 
     /// Set checked state
