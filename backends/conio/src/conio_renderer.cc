@@ -411,6 +411,27 @@ namespace onyxui::conio {
             return;
         }
 
+        // Handle multi-character radio button icons (3 characters wide)
+        if (style == icon_style::radio_unchecked ||
+            style == icon_style::radio_checked) {
+
+            // Classic DOS-style 3-character radio button rendering
+            const char* radio_str;
+            switch (style) {
+                case icon_style::radio_unchecked: radio_str = "( )"; break;
+                case icon_style::radio_checked:   radio_str = "(*)"; break;
+                default: radio_str = "( )"; break;
+            }
+
+            // Render 3 characters horizontally
+            for (int i = 0; i < 3 && r.x + i < clip.x + clip.w; ++i) {
+                if (r.x + i >= clip.x) {
+                    m_pimpl->m_vram.put(r.x + i, r.y, radio_str[i], fg, bg);
+                }
+            }
+            return;
+        }
+
         // Map single-character icon style to character
         int ch;
         switch (style) {

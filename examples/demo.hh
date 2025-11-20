@@ -144,10 +144,9 @@ private:
             m_open_action,
             m_quit_action,
             m_about_action,
-            m_renderer,
             m_theme_label,
             m_menu_bar,
-            m_text_view
+            m_size_group
         );
     }
 
@@ -158,7 +157,6 @@ private:
 
     onyxui::label<Backend>* m_theme_label = nullptr;
     onyxui::menu_bar<Backend>* m_menu_bar = nullptr;
-    onyxui::text_view<Backend>* m_text_view = nullptr;  // For giving focus
     typename Backend::renderer_type* m_renderer = nullptr;  // For screenshots
 
     // Actions - kept alive as shared_ptrs
@@ -167,4 +165,7 @@ private:
     std::shared_ptr<onyxui::action<Backend>> m_quit_action;
     std::shared_ptr<onyxui::action<Backend>> m_about_action;
     std::vector<std::shared_ptr<onyxui::action<Backend>>> m_theme_actions;  // Keep actions alive!
+
+    // Button groups - kept alive for radio button mutual exclusion
+    std::shared_ptr<onyxui::button_group<Backend>> m_size_group;
 };

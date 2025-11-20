@@ -163,7 +163,9 @@ namespace onyxui {
                 cursor_overwrite, // Text overwrite cursor (█)
                 checkbox_unchecked,      // Checkbox unchecked ([ ])
                 checkbox_checked,        // Checkbox checked ([X])
-                checkbox_indeterminate   // Checkbox indeterminate ([-])
+                checkbox_indeterminate,  // Checkbox indeterminate ([-])
+                radio_unchecked,         // Radio button unchecked (( ))
+                radio_checked            // Radio button checked ((*)
             };
             struct font {
                 bool operator==(const font&) const = default;
@@ -273,11 +275,13 @@ namespace onyxui {
              * @endcode
              */
             [[nodiscard]] static size get_icon_size(const icon_style& icon) noexcept {
-                // Checkbox icons are 3x1 (e.g., "[ ]", "[X]", "[-]")
+                // Checkbox and radio button icons are 3x1 (e.g., "[ ]", "[X]", "[-]", "( )", "(*)")
                 switch (icon) {
                     case icon_style::checkbox_unchecked:
                     case icon_style::checkbox_checked:
                     case icon_style::checkbox_indeterminate:
+                    case icon_style::radio_unchecked:
+                    case icon_style::radio_checked:
                         return size{3, 1};
                     default:
                         return size{1, 1};  // All other icons are 1x1

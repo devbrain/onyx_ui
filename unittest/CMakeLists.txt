@@ -47,7 +47,9 @@ add_executable(ui_unittest
         widgets/test_absolute_panel.cc
         widgets/test_button.cc
         widgets/test_button_mouse_tracking.cc
+        widgets/test_button_group.cc
         widgets/test_checkbox.cc
+        widgets/test_radio_button.cc
         widgets/test_label.cc
         widgets/test_line_edit.cc
         widgets/test_panel.cc

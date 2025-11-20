@@ -334,6 +334,51 @@ namespace onyxui::conio {
             theme.checkbox.spacing = 1;
 
             // ====================================================================
+            // Radio Button Configuration
+            // ====================================================================
+            // Set radio button icons
+            theme.radio_button.unchecked_icon = conio_renderer::icon_style::radio_unchecked;  // ( )
+            theme.radio_button.checked_icon = conio_renderer::icon_style::radio_checked;      // (*)
+
+            // NORMAL state: unchecked radio button at rest
+            theme.radio_button.normal = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_fg"),
+                .background = builder.resolve_color("button_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_fg")
+            };
+
+            // HOVER state: mouse hovering over radio button
+            theme.radio_button.hover = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_hover_fg"),
+                .background = builder.resolve_color("button_hover_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_hover_fg")
+            };
+
+            // CHECKED state: radio button is selected
+            theme.radio_button.checked = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_hover_fg"),  // Highlighted when checked
+                .background = builder.resolve_color("button_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_hover_fg")
+            };
+
+            // DISABLED state: radio button is disabled
+            theme.radio_button.disabled = {
+                .font = conio_renderer::font{.bold = false, .underline = false, .reverse = false},
+                .foreground = builder.resolve_color("button_disabled_fg"),
+                .background = builder.resolve_color("button_disabled_bg"),
+                .mnemonic_foreground = builder.resolve_color("button_disabled_fg")
+            };
+
+            // Mnemonic font: underlined to indicate keyboard shortcut
+            theme.radio_button.mnemonic_font = conio_renderer::font{.bold = false, .underline = true, .reverse = false};
+
+            // Spacing between icon and text label
+            theme.radio_button.spacing = 1;
+
+            // ====================================================================
             // Menu Bar Item Manual Configuration
             // ====================================================================
             // Menu bar items don't have a builder API yet, configure manually

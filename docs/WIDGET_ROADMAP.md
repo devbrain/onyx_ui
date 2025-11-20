@@ -36,7 +36,7 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 
 **Missing Widgets** (Critical):
 - ✅ **checkbox** - Boolean toggle (COMPLETED)
-- ❌ **radio_button** - Mutually exclusive options
+- ✅ **radio_button** - Mutually exclusive options (COMPLETED)
 - ❌ **slider** - Numeric range input
 - ❌ **progress_bar** - Progress indicator
 - ❌ **tab_widget** - Multi-page container
@@ -205,11 +205,11 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 - ✅ **Horizontal scrolling** → Auto-scrolls to keep cursor visible
 - ⏸️ **Copy/paste works** → API ready, needs platform clipboard backend
 
-### Phase 2: checkbox + radio_button (Week 2)
+### Phase 2: checkbox + radio_button (Week 2) - **✅ COMPLETED**
 
 **Goal**: Boolean toggles and mutually exclusive options
 
-**Status**: checkbox ✅ COMPLETED | radio_button ❌ Pending
+**Status**: checkbox ✅ COMPLETED | radio_button ✅ COMPLETED
 
 ---
 
@@ -251,30 +251,49 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 
 ---
 
-#### ❌ radio_button PENDING
+#### ✅ radio_button COMPLETED
 
-**Files to Create**:
-- `include/onyxui/widgets/input/radio_button.hh`
-- `include/onyxui/widgets/input/button_group.hh` (for radio button groups)
-- `unittest/widgets/test_radio_button.cc`
-- `unittest/widgets/test_button_group.cc`
+**Files Created**:
+- ✅ `include/onyxui/widgets/input/radio_button.hh` - Complete widget (357 lines)
+- ✅ `include/onyxui/widgets/input/button_group.hh` - Group manager (439 lines)
+- ✅ `include/onyxui/theming/theme.hh` - Added `radio_button_style` struct
+- ✅ `backends/conio/include/onyxui/conio/conio_renderer.hh` - Radio icons (radio_unchecked, radio_checked)
+- ✅ `backends/conio/src/conio_renderer.cc` - 3-character icon rendering
+- ✅ `backends/conio/src/conio_themes.hh` - Radio button theme configuration
+- ✅ `themes/examples/norton_blue.yaml` - Radio button YAML theme
+- ✅ `unittest/widgets/test_radio_button.cc` - 23 test cases, 47 assertions (all passing)
+- ✅ `unittest/widgets/test_button_group.cc` - 23 test cases, 74 assertions (all passing)
+- ✅ `examples/demo_ui_builder.hh` - Radio button demo (size selection)
 
-**radio_button Features** (Planned):
-- Grouped mutually exclusive selection
-- Keyboard navigation (arrow keys within group)
-- Mouse selection (click)
-- Text label with mnemonic
-- button_group for managing radio groups
+**Implemented Features**:
+- ✅ Mutually exclusive selection via `button_group`
+- ✅ Keyboard navigation (Arrow keys within group)
+- ✅ Mouse selection (click to select, cannot uncheck)
+- ✅ Text label with mnemonic support
+- ✅ Space key selects focused radio button
+- ✅ Themed icons (3-character DOS-style: `( )` and `(*)`)
+- ✅ Focus management integration
+- ✅ Disabled state
+- ✅ Theme integration (normal/hover/checked/disabled visual states)
 
-**Signals** (Planned):
-- radio_button: `toggled(bool checked)`
-- button_group: `button_toggled(int id, bool checked)`
+**Signals**:
+- ✅ radio_button: `toggled(bool checked)` - Emitted on state change
+- ✅ button_group: `button_toggled(int id, bool checked)` - Emitted for group changes
 
-**Success Criteria** (Pending):
-- ❌ Radio buttons in group are mutually exclusive
-- ❌ Arrow keys navigate radio group
-- ❌ Visual states (selected/unselected) themed correctly
-- ❌ Signals emit on state changes
+**Success Criteria Met**:
+- ✅ Radio buttons in group are mutually exclusive
+- ✅ Arrow keys navigate radio group (select_next/select_previous)
+- ✅ Visual states (checked/unchecked) themed correctly
+- ✅ Signals emit on state changes
+- ✅ Click selects radio button
+- ✅ Space key activates radio button
+- ✅ Icons render as 3-character glyphs
+
+**Testing**:
+- ✅ 23 radio_button test cases covering all features
+- ✅ 23 button_group test cases for mutual exclusion and navigation
+- ✅ All tests passing (121 total assertions, zero warnings)
+- ✅ Demo integrated and working correctly
 
 ### Phase 3: progress_bar + slider (Week 3)
 

@@ -107,6 +107,37 @@ checkbox:
   indeterminate_icon: checkbox_indeterminate  # [-] indeterminate box
   spacing: 1                               # Space between box and text
 
+# Radio button styling (mutually exclusive selection)
+radio_button:
+  # Normal state (unchecked)
+  normal:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 255 }  # White text
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  # Hover state
+  hover:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 0 }    # Yellow text
+    background: { r: 0, g: 0, b: 255 }      # Bright blue
+
+  # Checked state
+  checked:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 255, g: 255, b: 0 }    # Yellow text (highlight selected)
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  # Disabled state
+  disabled:
+    font: { bold: false, reverse: false, underline: false }
+    foreground: { r: 85, g: 85, b: 85 }     # Dark gray
+    background: { r: 0, g: 0, b: 170 }      # Dark blue
+
+  mnemonic_font: { bold: false, reverse: false, underline: true }
+  unchecked_icon: radio_unchecked          # ( ) unchecked button
+  checked_icon: radio_checked              # (*) checked button
+  spacing: 1                               # Space between icon and text
+
 # Panel styling
 panel:
   background: { r: 0, g: 0, b: 170 }       # Dark blue

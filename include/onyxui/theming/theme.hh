@@ -226,6 +226,29 @@ namespace onyxui {
         };
 
         /**
+         * @brief Radio button styling - Phase 2
+         * @details Defines the visual appearance of radio buttons in different states
+         */
+        struct radio_button_style {
+            // Visual states
+            visual_state normal;        ///< Normal state (unchecked)
+            visual_state hover;         ///< Mouse hover state
+            visual_state checked;       ///< Checked state
+            visual_state disabled;      ///< Disabled state
+
+            // Radio button-specific styling
+            font_type mnemonic_font{};  ///< Font for mnemonic character (typically underlined)
+
+            // Radio button icons (backend-specific)
+            // These represent the radio button itself (( ), (*))
+            icon_style_type unchecked_icon{};  ///< Icon for unchecked button (e.g., ( ))
+            icon_style_type checked_icon{};    ///< Icon for checked button (e.g., (*))
+
+            // Layout
+            int spacing = 1;  ///< Space between icon and label text (renderer units)
+        };
+
+        /**
          * @brief Scrollbar theme - PLACEHOLDER for Phase 3
          * @details Will be fully implemented in Phase 3 of scrolling system
          */
@@ -320,6 +343,7 @@ namespace onyxui {
         label_style label{};              // Unchanged
         line_edit_style line_edit{};      // NEW: Line edit input widget (Phase 1)
         checkbox_style checkbox{};        // NEW: Checkbox input widget (Phase 2)
+        radio_button_style radio_button{};// NEW: Radio button input widget (Phase 2)
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged

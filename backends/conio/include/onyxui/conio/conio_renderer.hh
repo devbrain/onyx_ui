@@ -127,7 +127,11 @@ namespace onyxui::conio {
                 // Checkbox icons
                 checkbox_unchecked,      // [ ] (unchecked box)
                 checkbox_checked,        // [X] (checked box)
-                checkbox_indeterminate   // [-] (indeterminate box)
+                checkbox_indeterminate,  // [-] (indeterminate box)
+
+                // Radio button icons
+                radio_unchecked,         // ( ) (unchecked radio button)
+                radio_checked            // (*) (checked radio button)
             };
 
             /**
@@ -374,11 +378,13 @@ namespace onyxui::conio {
              * @endcode
              */
             [[nodiscard]] static size get_icon_size(const icon_style& icon) noexcept {
-                // Checkbox icons are 3x1 (e.g., "[ ]", "[X]", "[-]")
+                // Checkbox and radio button icons are 3x1 (e.g., "[ ]", "[X]", "[-]", "( )", "(*)")
                 switch (icon) {
                     case icon_style::checkbox_unchecked:
                     case icon_style::checkbox_checked:
                     case icon_style::checkbox_indeterminate:
+                    case icon_style::radio_unchecked:
+                    case icon_style::radio_checked:
                         return size{3, 1};
                     default:
                         return size{1, 1}; // All other icons are 1x1 characters
