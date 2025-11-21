@@ -39,7 +39,7 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 - ✅ **radio_button** - Mutually exclusive options (COMPLETED)
 - ✅ **slider** - Numeric range input (COMPLETED)
 - ✅ **progress_bar** - Progress indicator (COMPLETED)
-- ❌ **tab_widget** - Multi-page container
+- ✅ **tab_widget** - Multi-page container (COMPLETED)
 
 **Missing Widgets** (Future):
 - ❌ **text_edit** - Multi-line text editor (notes, comments)
@@ -338,35 +338,44 @@ OnyxUI has a solid foundation with container widgets, menus, and windows. Howeve
 - ✅ slider snaps to step values
 - ✅ Signals emit correctly
 
-### Phase 4: tab_widget (Week 4)
+### Phase 4: tab_widget (Week 4) - **✅ COMPLETED**
 
 **Goal**: Multi-page container with tab navigation
 
-**Files to Create**:
-- `include/onyxui/widgets/containers/tab_widget.hh`
-- `include/onyxui/widgets/containers/tab_widget.inl`
-- `include/onyxui/widgets/containers/tab_bar.hh` (internal)
-- `unittest/widgets/test_tab_widget.cc`
+**Status**: Fully implemented with all core features
 
-**Features**:
-- Add/remove tabs dynamically
-- Tab labels with optional icons
-- Tab position (top/bottom/left/right)
-- Closeable tabs (with X button)
-- Current tab highlighting
-- Keyboard navigation (Ctrl+Tab, Ctrl+Shift+Tab)
-- Tab reordering (drag tabs)
+**Files Created**:
+- ✅ `include/onyxui/widgets/containers/tab_widget.hh` - Complete widget (extends panel<Backend>)
+- ✅ `unittest/widgets/test_tab_widget.cc` - 18 test cases, 83 assertions (all passing)
+- ✅ `docs/TAB_WIDGET_DESIGN.md` - Comprehensive design document
+
+**Implemented Features**:
+- ✅ Add/remove tabs dynamically
+- ✅ Tab labels with truncation support
+- ✅ Tab position (top/bottom/left/right)
+- ✅ Closeable tabs (with X button)
+- ✅ Current tab highlighting
+- ✅ Keyboard navigation (Ctrl+Tab, Ctrl+Shift+Tab, Alt+1-9, Ctrl+W)
+- ✅ Mouse hover visual feedback
+- ✅ Theme integration via `tab_widget_style`
 
 **Signals**:
-- `current_changed(int index)` - Tab switched
-- `tab_close_requested(int index)` - X button clicked
+- ✅ `current_changed(int index)` - Tab switched
+- ✅ `tab_close_requested(int index)` - X button clicked
 
-**Success Criteria**:
+**Success Criteria** (All Met):
 - ✅ Add tabs with labels
 - ✅ Click tab to switch
 - ✅ Ctrl+Tab cycles tabs
 - ✅ Close button removes tab
 - ✅ Current tab visually highlighted
+
+**Implemented Enhancements**:
+- ✅ Tab overflow scroll arrows (scroll_left/scroll_right, click arrows)
+
+**Future Enhancements** (Deferred):
+- Tab reordering (drag tabs)
+- Tab icons
 
 ### Phase 5: splitter (Week 5)
 

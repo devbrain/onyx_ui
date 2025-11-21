@@ -276,6 +276,52 @@ namespace onyxui {
         };
 
         /**
+         * @brief Tab widget styling
+         * @details Visual appearance for tabbed containers
+         */
+        struct tab_widget_style {
+            // Tab bar background
+            color_type tab_bar_background;
+
+            // Tab button colors
+            color_type tab_normal_background;      ///< Inactive tab background
+            color_type tab_normal_text;            ///< Inactive tab text
+            color_type tab_active_background;      ///< Active tab background
+            color_type tab_active_text;            ///< Active tab text
+            color_type tab_hover_background;       ///< Hovered tab background
+            color_type tab_hover_text;             ///< Hovered tab text
+
+            // Tab borders
+            color_type tab_border;                 ///< Tab border color
+            color_type tab_active_border;          ///< Active tab border color
+
+            // Close button
+            color_type close_button_normal;        ///< Close button (X) color
+            color_type close_button_hover;         ///< Close button hover color
+            icon_style_type close_button_icon{};   ///< Close button icon (e.g., [X])
+
+            // Fonts
+            font_type tab_font;                    ///< Tab label font
+            font_type tab_active_font;             ///< Active tab label font (may be bold)
+
+            // Scroll arrows (for tab overflow - Phase 2)
+            color_type scroll_arrow_normal;        ///< Scroll arrow normal color
+            color_type scroll_arrow_hover;         ///< Scroll arrow hover color
+            color_type scroll_arrow_pressed;       ///< Scroll arrow pressed color
+            color_type scroll_arrow_disabled;      ///< Scroll arrow disabled color
+            icon_style_type scroll_left_icon{};    ///< Left scroll arrow icon
+            icon_style_type scroll_right_icon{};   ///< Right scroll arrow icon
+
+            // Spacing
+            int tab_padding_horizontal = 4;       ///< Horizontal padding inside tab
+            int tab_padding_vertical = 1;         ///< Vertical padding inside tab
+            int tab_spacing = 1;                  ///< Space between tabs
+            int close_button_spacing = 2;         ///< Space between label and close button
+            int min_tab_width = 10;               ///< Minimum tab width in characters
+            int scroll_arrow_width = 3;           ///< Width of scroll arrow buttons
+        };
+
+        /**
          * @brief Scrollbar theme - PLACEHOLDER for Phase 3
          * @details Will be fully implemented in Phase 3 of scrolling system
          */
@@ -373,6 +419,7 @@ namespace onyxui {
         radio_button_style radio_button{};// NEW: Radio button input widget (Phase 2)
         progress_bar_style progress_bar{};// NEW: Progress bar widget
         slider_style slider{};            // NEW: Slider input widget
+        tab_widget_style tab_widget{};    // NEW: Tab widget container
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged

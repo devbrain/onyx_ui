@@ -455,6 +455,54 @@ namespace onyxui::conio {
             theme.slider.empty_icon = conio_renderer::icon_style::slider_empty;    // -
             theme.slider.thumb_icon = conio_renderer::icon_style::slider_thumb;    // O
 
+            // ====================================================================
+            // Tab Widget Configuration
+            // ====================================================================
+            color dark_blue{0, 0, 170};       // Dark blue for tab bar and normal tabs
+            color bright_blue{0, 85, 170};    // Bright blue for active tab
+            color medium_blue{0, 51, 128};    // Medium blue for hover
+            color white{255, 255, 255};       // White for text
+
+            // Tab bar background
+            theme.tab_widget.tab_bar_background = dark_blue;
+
+            // Tab button colors
+            theme.tab_widget.tab_normal_background = dark_blue;
+            theme.tab_widget.tab_normal_text = light_gray;
+            theme.tab_widget.tab_active_background = bright_blue;
+            theme.tab_widget.tab_active_text = white;
+            theme.tab_widget.tab_hover_background = medium_blue;
+            theme.tab_widget.tab_hover_text = white;
+
+            // Tab borders
+            theme.tab_widget.tab_border = dark_gray;
+            theme.tab_widget.tab_active_border = light_gray;
+
+            // Close button
+            theme.tab_widget.close_button_normal = light_gray;
+            theme.tab_widget.close_button_hover = color{255, 85, 85};  // Red on hover
+            theme.tab_widget.close_button_icon = conio_renderer::icon_style::checkbox_checked;  // [X]
+
+            // Fonts
+            theme.tab_widget.tab_font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+            theme.tab_widget.tab_active_font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+
+            // Scroll arrows (Phase 2 - for tab overflow)
+            theme.tab_widget.scroll_arrow_normal = light_gray;
+            theme.tab_widget.scroll_arrow_hover = white;
+            theme.tab_widget.scroll_arrow_pressed = yellow;
+            theme.tab_widget.scroll_arrow_disabled = dark_gray;
+            theme.tab_widget.scroll_left_icon = conio_renderer::icon_style::arrow_left;
+            theme.tab_widget.scroll_right_icon = conio_renderer::icon_style::arrow_right;
+
+            // Spacing
+            theme.tab_widget.tab_padding_horizontal = 4;
+            theme.tab_widget.tab_padding_vertical = 1;
+            theme.tab_widget.tab_spacing = 1;
+            theme.tab_widget.close_button_spacing = 2;
+            theme.tab_widget.min_tab_width = 10;
+            theme.tab_widget.scroll_arrow_width = 3;
+
             // Return the fully configured base theme
             return theme;
         }

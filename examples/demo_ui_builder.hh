@@ -16,9 +16,12 @@
 #include <onyxui/widgets/input/checkbox.hh>
 #include <onyxui/widgets/input/radio_button.hh>
 #include <onyxui/widgets/input/button_group.hh>
-#include <onyxui/widgets/input/progress_bar.hh>
+#include <onyxui/widgets/progress_bar.hh>
 #include <onyxui/widgets/input/slider.hh>
 #include <onyxui/widgets/containers/panel.hh>
+#include <onyxui/widgets/containers/tab_widget.hh>
+#include <onyxui/widgets/containers/vbox.hh>
+#include <onyxui/widgets/containers/scroll_view.hh>
 #include "demo_menu_builder.hh"
 #include "demo_utils.hh"
 
@@ -196,6 +199,61 @@ void build_ui(
     slider1->value_changed.connect([progress1](int value) {
         progress1->set_value(value);
     });
+
+    // Tab Widget Section
+    add_label(*central, "Tab Widget:");
+    auto tabs = std::make_unique<onyxui::tab_widget<Backend>>();
+    tabs->set_horizontal_align(onyxui::horizontal_alignment::left);
+    tabs->set_tabs_closable(true);
+
+    // Create tab content pages (many tabs to test overflow scrolling)
+    auto page1 = std::make_unique<onyxui::label<Backend>>("Content of Tab 1");
+    auto page2 = std::make_unique<onyxui::label<Backend>>("Content of Tab 2");
+    auto page3 = std::make_unique<onyxui::label<Backend>>("Content of Tab 3");
+    auto page4 = std::make_unique<onyxui::label<Backend>>("Content of Tab 4");
+    auto page5 = std::make_unique<onyxui::label<Backend>>("Content of Tab 5");
+    auto page6 = std::make_unique<onyxui::label<Backend>>("Content of Tab 6");
+    auto page7 = std::make_unique<onyxui::label<Backend>>("Content of Tab 7");
+
+    // Create a scrollable tab with lots of content
+    auto page8 = std::make_unique<onyxui::scroll_view<Backend>>();
+    auto* scroll_content = page8->content();
+    for (int i = 1; i <= 20; ++i) {
+        scroll_content->template emplace_child<onyxui::label>(
+            "Scrollable line " + std::to_string(i)
+        );
+    }
+
+    tabs->add_tab(std::move(page1), "First");
+    tabs->add_tab(std::move(page2), "Second");
+    tabs->add_tab(std::move(page3), "Third");
+    tabs->add_tab(std::move(page4), "Fourth");
+    tabs->add_tab(std::move(page5), "Fifth");
+    tabs->add_tab(std::move(page6), "Sixth");
+    tabs->add_tab(std::move(page7), "Seventh");
+    tabs->add_tab(std::move(page8), "Scroll");
+
+    // Connect close button handler
+    auto* tabs_ptr = tabs.get();
+    tabs->tab_close_requested.connect([tabs_ptr](int index) {
+        tabs_ptr->remove_tab(index);
+    });
+
+    // Set size constraints for the tab widget
+    onyxui::size_constraint tabs_width;
+    tabs_width.policy = onyxui::size_policy::content;
+    tabs_width.preferred_size = 50;
+    tabs_width.min_size = 40;
+    tabs_width.max_size = 60;
+    tabs->set_width_constraint(tabs_width);
+
+    onyxui::size_constraint tabs_height;
+    tabs_height.policy = onyxui::size_policy::content;
+    tabs_height.preferred_size = 10;  // Taller to show scrollable content
+    tabs_height.min_size = 10;
+    tabs->set_height_constraint(tabs_height);
+
+    central->add_child(std::move(tabs));
 
     // Instructions
     add_label(*central, "");
