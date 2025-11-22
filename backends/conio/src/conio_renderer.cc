@@ -277,7 +277,9 @@ namespace onyxui::conio {
     // ======================================================================
 
     void conio_renderer::draw_shadow(const rect& widget_bounds, int offset_x, int offset_y) {
-        constexpr float SHADOW_DARKEN_FACTOR = 0.5f;  // Backend-specific constant
+        // Use a fixed dark gray shadow color (absolute, not relative)
+        // This prevents cumulative darkening when redrawn multiple times
+        constexpr color SHADOW_COLOR{40, 40, 40};  // Dark gray shadow
 
         // Shadow to the right (vertical strip) - stops before corner to avoid double-darkening
         const rect shadow_right{
@@ -295,9 +297,22 @@ namespace onyxui::conio {
             offset_y
         };
 
-        // Darken both shadow regions (they don't overlap now)
-        m_pimpl->m_vram.darken_region(shadow_right, SHADOW_DARKEN_FACTOR);
-        m_pimpl->m_vram.darken_region(shadow_bottom, SHADOW_DARKEN_FACTOR);
+        // Fill shadow regions with absolute color (not darken)
+        // This ensures consistent shadow color regardless of how many times it's drawn
+
+        // Fill right shadow
+        for (int y = shadow_right.y; y < shadow_right.y + shadow_right.h; ++y) {
+            for (int x = shadow_right.x; x < shadow_right.x + shadow_right.w; ++x) {
+                m_pimpl->m_vram.put(x, y, ' ', SHADOW_COLOR, SHADOW_COLOR);
+            }
+        }
+
+        // Fill bottom shadow
+        for (int y = shadow_bottom.y; y < shadow_bottom.y + shadow_bottom.h; ++y) {
+            for (int x = shadow_bottom.x; x < shadow_bottom.x + shadow_bottom.w; ++x) {
+                m_pimpl->m_vram.put(x, y, ' ', SHADOW_COLOR, SHADOW_COLOR);
+            }
+        }
     }
 
     // ======================================================================

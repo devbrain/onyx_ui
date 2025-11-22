@@ -16,19 +16,23 @@ int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
         // Give widget access to renderer for screenshot functionality
         widget_ptr->set_renderer(&ui.renderer());
 
+        // Initial display
+        ui.display();
+        ui.present();
+
         while (!widget_ptr->should_quit()) {
-            ui.display();
-            ui.present();
-
-            // Use non-blocking peek with 16ms timeout (~60fps refresh rate)
-            // This allows periodic redraws for layer changes without explicit flag checking
+            // Use blocking poll for events
+            // This prevents continuous redraws when nothing is happening
             tb_event ev;
-            int poll_result = tb_peek_event(&ev, 16);
+            int poll_result = tb_poll_event(&ev);
 
-            // If timeout or interrupt, continue to next frame (allows layer change redraws)
+            // If error or interrupt, skip
             if (poll_result != TB_OK) {
-                continue;  // Timeout or error - redraw on next iteration
+                continue;  // Error - skip this iteration
             }
+
+            // Always redraw after an event (something might have changed)
+            bool needs_redraw = true;
 
             // Handle Ctrl+C specially (always quit)
             if (ev.type == TB_EVENT_KEY && ev.ch == 'c' && (ev.mod & TB_MOD_CTRL)) {
@@ -43,6 +47,12 @@ int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
             if (ev.type == TB_EVENT_KEY && ev.key == TB_KEY_ESC && !handled) {
                 widget_ptr->quit();
                 continue;
+            }
+
+            // Only redraw if the event caused changes
+            if (needs_redraw) {
+                ui.display();
+                ui.present();
             }
         }
 

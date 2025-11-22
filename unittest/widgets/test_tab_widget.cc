@@ -534,4 +534,66 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "TabWidget - Multi-pa
         CHECK(tabs.scroll_offset() == 0);
         CHECK_FALSE(tabs.has_overflow());
     }
+
+    SUBCASE("Auto-scroll - set_current_index scrolls left to show hidden tab") {
+        tab_widget<test_canvas_backend> tabs;
+
+        // Add 10 tabs
+        for (int i = 0; i < 10; ++i) {
+            tabs.add_tab(
+                std::make_unique<label<test_canvas_backend>>("Content " + std::to_string(i)),
+                "Tab " + std::to_string(i)
+            );
+        }
+
+        // Start at tab 5
+        tabs.set_current_index(5);
+        CHECK(tabs.current_index() == 5);
+        int initial_offset = tabs.scroll_offset();
+
+        // Select a tab before the scroll offset (simulating it's hidden to the left)
+        // First, let's select a later tab to move scroll offset forward
+        tabs.set_current_index(8);
+
+        // Now select tab 0 - should auto-scroll left to show it
+        tabs.set_current_index(0);
+        CHECK(tabs.current_index() == 0);
+        CHECK(tabs.scroll_offset() == 0);  // Should be scrolled to show tab 0
+    }
+
+    SUBCASE("Auto-scroll - next_tab and previous_tab work") {
+        tab_widget<test_canvas_backend> tabs;
+
+        // Add tabs
+        for (int i = 0; i < 5; ++i) {
+            tabs.add_tab(
+                std::make_unique<label<test_canvas_backend>>("Content " + std::to_string(i)),
+                "Tab " + std::to_string(i)
+            );
+        }
+
+        tabs.set_current_index(2);
+        CHECK(tabs.current_index() == 2);
+
+        // Navigate forward
+        tabs.next_tab();  // Now at tab 3
+        CHECK(tabs.current_index() == 3);
+
+        tabs.next_tab();  // Now at tab 4
+        CHECK(tabs.current_index() == 4);
+
+        // Navigate backward
+        tabs.previous_tab();  // Tab 3
+        CHECK(tabs.current_index() == 3);
+
+        tabs.previous_tab();  // Tab 2
+        CHECK(tabs.current_index() == 2);
+
+        tabs.previous_tab();  // Tab 1
+        CHECK(tabs.current_index() == 1);
+
+        tabs.previous_tab();  // Tab 0
+        CHECK(tabs.current_index() == 0);
+        CHECK(tabs.scroll_offset() == 0);  // Auto-scrolled to beginning
+    }
 }

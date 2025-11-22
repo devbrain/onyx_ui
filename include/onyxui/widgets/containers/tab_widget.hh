@@ -224,6 +224,7 @@ namespace onyxui {
             }
 
             m_current_index = index;
+            ensure_tab_visible(index);  // Auto-scroll to make selected tab visible
             update_visibility();
             current_changed.emit(m_current_index);
             this->invalidate_arrange();
@@ -492,12 +493,16 @@ namespace onyxui {
             // Calculate total width needed for all tabs
             int total_tabs_width = 0;
             int const max_label_len = tab_style.min_tab_width - 2;
-            constexpr int close_icon_width = 3;  // Icon width (e.g., "[X]")
+
+            // Measure close icon width from backend
+            auto close_icon_size = Backend::renderer_type::get_icon_size(tab_style.close_button_icon);
+            m_close_icon_width = size_utils::get_width(close_icon_size);
+
             for (const auto& tab : m_tabs) {
                 std::string display_label = truncate_label(tab.label, max_label_len);
                 int tab_width = 2 + static_cast<int>(display_label.length());  // " label "
                 if (m_tabs_closable && tab.closeable) {
-                    tab_width += close_icon_width;
+                    tab_width += m_close_icon_width;
                 }
                 total_tabs_width += tab_width + tab_style.tab_spacing;
             }
@@ -525,7 +530,7 @@ namespace onyxui {
                 int tabs_end_x = x + (m_has_overflow ? total_width - arrow_width : total_width);
 
                 // Draw visible tabs starting from scroll_offset
-                for (std::size_t i = static_cast<std::size_t>(m_scroll_offset); i < m_tabs.size(); ++i) {
+                for (auto i = static_cast<std::size_t>(m_scroll_offset); i < m_tabs.size(); ++i) {
                     auto& tab = m_tabs[i];
                     bool is_active = (static_cast<int>(i) == m_current_index);
                     bool is_hovered = (static_cast<int>(i) == m_hovered_tab_index && !is_active);
@@ -548,7 +553,7 @@ namespace onyxui {
                     }
 
                     // Check if this tab would overflow
-                    int tab_width = static_cast<int>(text.length()) + (close_icon_x >= 0 ? close_icon_width : 0);
+                    int tab_width = static_cast<int>(text.length()) + (close_icon_x >= 0 ? m_close_icon_width : 0);
                     if (tab_x + tab_width > tabs_end_x) {
                         // Mark remaining tabs as not visible
                         tab.x_start = -1;
@@ -567,7 +572,7 @@ namespace onyxui {
                     if (close_icon_x >= 0) {
                         typename Backend::point_type icon_pos{close_icon_x, tab_y};
                         ctx.draw_icon(tab_style.close_button_icon, icon_pos);
-                        tab_x = close_icon_x + close_icon_width + tab_style.tab_spacing;
+                        tab_x = close_icon_x + m_close_icon_width + tab_style.tab_spacing;
                     } else {
                         tab_x = text_end_x + tab_style.tab_spacing;
                     }
@@ -584,7 +589,7 @@ namespace onyxui {
                 if (m_has_overflow) {
                     // Check if there are more tabs to the right
                     bool more_right = false;
-                    for (std::size_t i = static_cast<std::size_t>(m_scroll_offset); i < m_tabs.size(); ++i) {
+                    for (auto i = static_cast<std::size_t>(m_scroll_offset); i < m_tabs.size(); ++i) {
                         if (m_tabs[i].x_start < 0) {
                             more_right = true;
                             break;
@@ -676,7 +681,7 @@ namespace onyxui {
                         if (mouse_x >= tab.x_start && mouse_x < tab.x_end) {
                             // Check if close button was clicked
                             if (tab.close_x >= 0 && mouse_x >= tab.close_x &&
-                                mouse_x < tab.close_x + 3) {  // Close icon width
+                                mouse_x < tab.close_x + m_close_icon_width) {
                                 tab_close_requested.emit(static_cast<int>(i));
                                 return true;
                             }
@@ -760,6 +765,43 @@ namespace onyxui {
         mutable int m_left_arrow_end = 0;     // X position where left arrow ends
         mutable int m_tab_bar_y = 0;          // Y position of tab bar (relative)
         mutable int m_right_arrow_start = 0;  // X position where right arrow starts
+        mutable int m_close_icon_width = 0;   // Close button icon width (measured from backend)
+
+        /**
+         * @brief Ensure a tab is visible by adjusting scroll offset
+         * @param index Tab index to make visible
+         *
+         * @details
+         * Auto-scrolls the tab bar to ensure the specified tab is visible:
+         * - If tab is before scroll offset (hidden to the left), scroll left to show it
+         * - If tab is after scroll offset, ensure it's in the visible range
+         */
+        void ensure_tab_visible(int index) {
+            if (index < 0 || index >= static_cast<int>(m_tabs.size())) {
+                return;
+            }
+
+            // If tab is scrolled out of view to the left, scroll left to show it
+            if (index < m_scroll_offset) {
+                m_scroll_offset = index;
+                return;
+            }
+
+            // If tab is potentially scrolled out of view to the right, scroll right
+            // Note: We can't know for certain without rendering, but we can make a reasonable guess
+            // based on typical tab count. This will be refined during the next render pass.
+            if (m_has_overflow && index > m_scroll_offset) {
+                // Heuristic: If the selected tab is far from scroll offset, move offset closer
+                // This will be corrected by rendering if needed
+                int const estimated_visible_tabs = 3;  // Conservative estimate
+                if (index >= m_scroll_offset + estimated_visible_tabs) {
+                    m_scroll_offset = index - estimated_visible_tabs + 1;
+                    if (m_scroll_offset < 0) {
+                        m_scroll_offset = 0;
+                    }
+                }
+            }
+        }
 
         /**
          * @brief Update visibility of child widgets
