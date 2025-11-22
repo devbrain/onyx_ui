@@ -212,3 +212,29 @@ scrollbar:
     foreground: { r: 0, g: 0, b: 0 }       # Black
     background: { r: 170, g: 170, b: 170 } # Light gray
     box_style: { draw_border: true }
+
+# Tab Widget styling
+tab_widget:
+  tab_bar_background: { r: 0, g: 0, b: 85 }       # Dark blue
+  tab_normal_background: { r: 0, g: 0, b: 85 }    # Dark blue
+  tab_normal_text: { r: 170, g: 170, b: 170 }     # Gray text
+  tab_active_background: { r: 0, g: 85, b: 170 }  # Bright blue
+  tab_active_text: { r: 255, g: 255, b: 255 }     # White
+  tab_hover_background: { r: 0, g: 51, b: 128 }   # Medium blue
+  tab_hover_text: { r: 255, g: 255, b: 255 }      # White
+  tab_border: { r: 85, g: 85, b: 85 }             # Gray
+  tab_active_border: { r: 170, g: 170, b: 170 }   # Light gray
+  close_button_normal: { r: 170, g: 170, b: 170 } # Gray
+  close_button_hover: { r: 255, g: 85, b: 85 }    # Red
+  tab_font: { bold: false, reverse: false, underline: false }
+  tab_active_font: { bold: true, reverse: false, underline: false }
+  scroll_arrow_normal: { r: 170, g: 170, b: 170 }
+  scroll_arrow_hover: { r: 255, g: 255, b: 255 }
+  scroll_arrow_pressed: { r: 255, g: 255, b: 0 }
+  scroll_arrow_disabled: { r: 85, g: 85, b: 85 }
+  tab_padding_horizontal: 4
+  tab_padding_vertical: 1
+  tab_spacing: 1
+  close_button_spacing: 2
+  min_tab_width: 10
+  scroll_arrow_width: 3

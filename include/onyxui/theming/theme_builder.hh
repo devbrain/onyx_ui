@@ -94,6 +94,7 @@ public:
     class window_builder;
     class progress_bar_builder;
     class slider_builder;
+    class tab_widget_builder;
     class state_builder;
 
     // ===================================================================
@@ -363,6 +364,12 @@ public:
      */
     slider_builder with_slider();
 
+    /**
+     * @brief Configure tab_widget container
+     * @return tab_widget_builder (implicit conversion back to theme_builder)
+     */
+    tab_widget_builder with_tab_widget();
+
     // ===================================================================
     // Build
     // ===================================================================
@@ -426,6 +433,7 @@ private:
     friend class window_builder;
     friend class progress_bar_builder;
     friend class slider_builder;
+    friend class tab_widget_builder;
     friend class state_builder;
 };
 
@@ -1587,6 +1595,228 @@ public:
 };
 
 // ===========================================================================
+// Tab Widget Builder
+// ===========================================================================
+
+template<UIBackend Backend>
+class theme_builder<Backend>::tab_widget_builder {
+public:
+    theme_builder& m_parent;
+
+    explicit tab_widget_builder(theme_builder& parent) : m_parent(parent) {}
+
+    // Tab bar background
+    tab_widget_builder& tab_bar_background(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_bar_background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_bar_background(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_bar_background = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Tab normal colors
+    tab_widget_builder& tab_normal_background(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_normal_background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_normal_background(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_normal_background = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& tab_normal_text(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_normal_text = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_normal_text(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_normal_text = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Tab active colors
+    tab_widget_builder& tab_active_background(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_active_background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_active_background(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_active_background = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& tab_active_text(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_active_text = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_active_text(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_active_text = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Tab hover colors
+    tab_widget_builder& tab_hover_background(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_hover_background = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_hover_background(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_hover_background = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& tab_hover_text(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_hover_text = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_hover_text(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_hover_text = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Tab borders
+    tab_widget_builder& tab_border(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_border = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_border(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_border = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& tab_active_border(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.tab_active_border = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& tab_active_border(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.tab_active_border = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Close button colors
+    tab_widget_builder& close_button_normal(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.close_button_normal = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& close_button_normal(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.close_button_normal = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& close_button_hover(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.close_button_hover = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& close_button_hover(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.close_button_hover = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Fonts
+    template<typename... Args>
+    tab_widget_builder& tab_font(Args&&... args) {
+        m_parent.m_theme.tab_widget.tab_font =
+            typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    template<typename... Args>
+    tab_widget_builder& tab_active_font(Args&&... args) {
+        m_parent.m_theme.tab_widget.tab_active_font =
+            typename Backend::renderer_type::font{std::forward<Args>(args)...};
+        return *this;
+    }
+
+    // Scroll arrow colors (for Phase 2)
+    tab_widget_builder& scroll_arrow_normal(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.scroll_arrow_normal = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_normal(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.scroll_arrow_normal = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_hover(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.scroll_arrow_hover = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_hover(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.scroll_arrow_hover = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_pressed(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.scroll_arrow_pressed = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_pressed(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.scroll_arrow_pressed = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_disabled(std::string_view color_name) {
+        m_parent.m_theme.tab_widget.scroll_arrow_disabled = m_parent.resolve_color(color_name);
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_disabled(std::uint32_t hex) {
+        m_parent.m_theme.tab_widget.scroll_arrow_disabled = m_parent.resolve_color(hex);
+        return *this;
+    }
+
+    // Spacing parameters
+    tab_widget_builder& tab_padding_horizontal(int padding) {
+        m_parent.m_theme.tab_widget.tab_padding_horizontal = padding;
+        return *this;
+    }
+
+    tab_widget_builder& tab_padding_vertical(int padding) {
+        m_parent.m_theme.tab_widget.tab_padding_vertical = padding;
+        return *this;
+    }
+
+    tab_widget_builder& tab_spacing(int spacing) {
+        m_parent.m_theme.tab_widget.tab_spacing = spacing;
+        return *this;
+    }
+
+    tab_widget_builder& close_button_spacing(int spacing) {
+        m_parent.m_theme.tab_widget.close_button_spacing = spacing;
+        return *this;
+    }
+
+    tab_widget_builder& min_tab_width(int width) {
+        m_parent.m_theme.tab_widget.min_tab_width = width;
+        return *this;
+    }
+
+    tab_widget_builder& scroll_arrow_width(int width) {
+        m_parent.m_theme.tab_widget.scroll_arrow_width = width;
+        return *this;
+    }
+
+    /**
+     * @brief Implicit conversion back to theme_builder
+     */
+    operator theme_builder&() {
+        return m_parent;
+    }
+};
+
+// ===========================================================================
 // Widget Builder Factory Methods (inline implementations)
 // ===========================================================================
 
@@ -1653,6 +1883,11 @@ typename theme_builder<Backend>::progress_bar_builder theme_builder<Backend>::wi
 template<UIBackend Backend>
 typename theme_builder<Backend>::slider_builder theme_builder<Backend>::with_slider() {
     return slider_builder{*this};
+}
+
+template<UIBackend Backend>
+typename theme_builder<Backend>::tab_widget_builder theme_builder<Backend>::with_tab_widget() {
+    return tab_widget_builder{*this};
 }
 
 // ===========================================================================

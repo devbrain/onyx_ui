@@ -267,6 +267,7 @@ See [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) for details.
 - `anchor_panel` - Anchor-point positioning
 - `absolute_panel` - Fixed positioning
 - `group_box` - Bordered container with title
+- `tab_widget` - Multi-page container with tab navigation
 
 **Controls:**
 - `button` - Clickable button with mnemonics
