@@ -106,9 +106,13 @@ public:
         auto* model = static_cast<const abstract_item_model<Backend>*>(index.model);
 
         // ===============================================================
-        // 1. Draw Background (TODO: implement with styled rendering)
+        // 1. Draw Background
         // ===============================================================
-        (void)is_selected;  // TODO: Use for background color
+        // TODO: Background rendering needs to be handled by the view
+        // The render_context API doesn't provide a way to draw filled rectangles
+        // with explicit colors without going through the style system.
+        // For now, we skip background - the view should handle selection highlight.
+        (void)is_selected;
 
         // ===============================================================
         // 2. Draw Text
@@ -121,18 +125,34 @@ public:
         }
         std::string text = std::get<std::string>(text_data);
 
+        // Determine text color
+        color_type fg_color;
+        if (is_selected) {
+            // Use selection foreground color (white on blue)
+            fg_color = get_selection_foreground();
+        } else {
+            // Check if model provides custom foreground
+            auto fg_data = model->data(index, item_data_role::foreground);
+            if (std::holds_alternative<color_type>(fg_data)) {
+                fg_color = std::get<color_type>(fg_data);
+            } else {
+                fg_color = get_normal_foreground();
+            }
+        }
+
         // Calculate text position (with padding)
         typename Backend::point_type text_pos{rect.x + PADDING_LEFT, rect.y + PADDING_TOP};
 
         // Draw text
         auto font = get_font();
-        auto fg_color = get_normal_foreground();
         ctx.draw_text(text, text_pos, font, fg_color);
 
         // ===============================================================
-        // 3. Draw Focus Rectangle (TODO: implement with styled rendering)
+        // 3. Draw Focus Rectangle
         // ===============================================================
-        (void)has_focus;  // TODO: Draw focus indicator
+        // TODO: Focus rectangle also needs direct renderer access
+        // For now, we skip focus rendering
+        (void)has_focus;
     }
 
     /**

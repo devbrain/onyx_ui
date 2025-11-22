@@ -62,7 +62,7 @@ public:
     using base = widget<Backend>;
     using model_type = abstract_item_model<Backend>;
     using delegate_type = abstract_item_delegate<Backend>;
-    using selection_model_type = item_selection_model;
+    using selection_model_type = item_selection_model<Backend>;
 
     /**
      * @brief Construct view with no model
@@ -70,7 +70,7 @@ public:
     abstract_item_view()
         : m_model(nullptr)
         , m_delegate(std::make_shared<default_item_delegate<Backend>>())
-        , m_selection_model(std::make_unique<item_selection_model>())
+        , m_selection_model(std::make_unique<selection_model_type>())
         , m_owns_selection_model(true) {
 
         // Connect selection signals
@@ -109,9 +109,9 @@ public:
 
         m_model = model;
 
-        // Clear selection (old indices are invalid)
+        // Update selection model (clears selection since old indices are invalid)
         if (m_selection_model) {
-            m_selection_model->clear_selection();
+            m_selection_model->set_model(m_model);
         }
 
         // Connect new model

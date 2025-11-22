@@ -263,28 +263,28 @@ TEST_CASE("list_model<int> - Basic operations") {
 // =========================================================================
 
 TEST_CASE("item_selection_model - Default mode is single_selection") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     CHECK(sel.get_selection_mode() == selection_mode::single_selection);
     CHECK_FALSE(sel.has_selection());
 }
 
 TEST_CASE("item_selection_model - set_selection_mode changes mode") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     CHECK(sel.get_selection_mode() == selection_mode::multi_selection);
 }
 
 TEST_CASE("item_selection_model - current_index initially invalid") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     auto current = sel.current_index();
     CHECK_FALSE(current.is_valid());
 }
 
 TEST_CASE("item_selection_model - set_current_index updates current") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     int dummy_model = 42;
     model_index idx{3, 0, nullptr, &dummy_model};
@@ -295,7 +295,7 @@ TEST_CASE("item_selection_model - set_current_index updates current") {
 }
 
 TEST_CASE("item_selection_model - current_changed signal emitted") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     bool signal_emitted = false;
     model_index emitted_current;
@@ -314,7 +314,7 @@ TEST_CASE("item_selection_model - current_changed signal emitted") {
 }
 
 TEST_CASE("item_selection_model - select adds to selection") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     int dummy = 1;
     model_index idx{2, 0, nullptr, &dummy};
@@ -326,7 +326,7 @@ TEST_CASE("item_selection_model - select adds to selection") {
 }
 
 TEST_CASE("item_selection_model - single_selection mode clears others") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::single_selection);
 
     int dummy = 1;
@@ -341,7 +341,7 @@ TEST_CASE("item_selection_model - single_selection mode clears others") {
 }
 
 TEST_CASE("item_selection_model - multi_selection mode keeps multiple") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     int dummy = 1;
@@ -356,7 +356,7 @@ TEST_CASE("item_selection_model - multi_selection mode keeps multiple") {
 }
 
 TEST_CASE("item_selection_model - deselect removes from selection") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     int dummy = 1;
     model_index idx{2, 0, nullptr, &dummy};
@@ -369,7 +369,7 @@ TEST_CASE("item_selection_model - deselect removes from selection") {
 }
 
 TEST_CASE("item_selection_model - toggle flips selection state") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     int dummy = 1;
@@ -383,7 +383,7 @@ TEST_CASE("item_selection_model - toggle flips selection state") {
 }
 
 TEST_CASE("item_selection_model - clear_selection removes all") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     int dummy = 1;
@@ -401,7 +401,7 @@ TEST_CASE("item_selection_model - clear_selection removes all") {
 }
 
 TEST_CASE("item_selection_model - selected_indices returns all selected") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     int dummy = 1;
@@ -426,7 +426,7 @@ TEST_CASE("item_selection_model - selected_indices returns all selected") {
 }
 
 TEST_CASE("item_selection_model - selection_changed signal emitted") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
 
     bool signal_emitted = false;
 
@@ -444,7 +444,7 @@ TEST_CASE("item_selection_model - selection_changed signal emitted") {
 }
 
 TEST_CASE("item_selection_model - no_selection mode rejects selections") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::no_selection);
 
     int dummy = 1;
@@ -457,7 +457,7 @@ TEST_CASE("item_selection_model - no_selection mode rejects selections") {
 }
 
 TEST_CASE("item_selection_model - select_range selects multiple items") {
-    item_selection_model sel;
+    item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
 
     int dummy = 1;

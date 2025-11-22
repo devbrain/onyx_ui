@@ -13,6 +13,10 @@
 
 namespace onyxui {
 
+// Forward declarations
+template<UIBackend Backend>
+class abstract_item_model;
+
 /**
  * @brief Selection modes for item views
  *
@@ -151,6 +155,7 @@ inline constexpr bool operator&(selection_flags lhs, selection_flag rhs) noexcep
  * selection->select(model->index(3, 0));
  * @endcode
  */
+template<UIBackend Backend>
 class item_selection_model {
 public:
     /**
@@ -159,6 +164,34 @@ public:
      */
     explicit item_selection_model(selection_mode mode = selection_mode::single_selection)
         : m_selection_mode(mode) {}
+
+    // ===================================================================
+    // Model Management
+    // ===================================================================
+
+    /**
+     * @brief Set the model being used for selection
+     * @param model Pointer to the model
+     *
+     * @details
+     * When the model changes, all selections are cleared.
+     * The model pointer is not owned by the selection model.
+     */
+    void set_model(const abstract_item_model<Backend>* model) {
+        if (m_model != model) {
+            clear_selection();
+            m_current_index = {};
+            m_model = model;
+        }
+    }
+
+    /**
+     * @brief Get the current model
+     * @return Pointer to model, or nullptr if not set
+     */
+    [[nodiscard]] const abstract_item_model<Backend>* model() const noexcept {
+        return m_model;
+    }
 
     // ===================================================================
     // Selection Mode
@@ -445,6 +478,7 @@ public:
     signal<const model_index&, const model_index&> current_changed;
 
 private:
+    const abstract_item_model<Backend>* m_model = nullptr;  // Model being selected from
     selection_mode m_selection_mode;
     model_index m_current_index;  // Current (focused) item
     std::unordered_set<model_index> m_selected_indices;  // Selected items
