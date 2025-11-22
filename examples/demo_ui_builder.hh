@@ -18,6 +18,7 @@
 #include <onyxui/widgets/input/button_group.hh>
 #include <onyxui/widgets/progress_bar.hh>
 #include <onyxui/widgets/input/slider.hh>
+#include <onyxui/widgets/input/combo_box.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/containers/tab_widget.hh>
 #include <onyxui/widgets/containers/vbox.hh>
@@ -201,6 +202,27 @@ void build_ui(
     slider1->value_changed.connect([progress1](int value) {
         progress1->set_value(value);
     });
+
+    // Combo Box Section
+    add_label(*central, "Combo Box (MVC):");
+    static auto combo_model = std::make_shared<onyxui::list_model<std::string, Backend>>();
+    static bool combo_model_initialized = false;
+    if (!combo_model_initialized) {
+        combo_model->set_items({"Small", "Medium", "Large", "X-Large"});
+        combo_model_initialized = true;
+    }
+
+    auto* combo1 = central->template emplace_child<onyxui::combo_box>();
+    combo1->set_horizontal_align(onyxui::horizontal_alignment::left);
+    combo1->set_model(combo_model.get());
+    combo1->set_current_index(1);  // Select "Medium" by default
+
+    onyxui::size_constraint combo_width;
+    combo_width.policy = onyxui::size_policy::content;
+    combo_width.preferred_size = 20;
+    combo_width.min_size = 15;
+    combo_width.max_size = 30;
+    combo1->set_width_constraint(combo_width);
 
     // Tab Widget Section
     add_label(*central, "Tab Widget:");

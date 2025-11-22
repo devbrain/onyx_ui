@@ -51,6 +51,7 @@ add_executable(ui_unittest
         widgets/test_button_group.cc
         widgets/test_checkbox.cc
         widgets/test_radio_button.cc
+        widgets/test_combo_box.cc
         widgets/test_label.cc
         widgets/test_line_edit.cc
         widgets/test_progress_bar.cc
