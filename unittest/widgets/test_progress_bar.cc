@@ -3,7 +3,7 @@
 
 #include <doctest/doctest.h>
 
-#include <onyxui/widgets/input/progress_bar.hh>
+#include <onyxui/widgets/progress_bar.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/test_helpers.hh"
 
@@ -107,7 +107,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Indeterminat
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Indeterminate mode invalidates render") {
     progress_bar<test_backend> pb;
-    pb.measure(100, 100);
+    (void)pb.measure(100, 100);
     pb.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
 
     pb.set_indeterminate(true);
@@ -134,7 +134,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Vertical ori
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Orientation change invalidates measure") {
     progress_bar<test_backend> pb;
-    pb.measure(100, 100);
+    (void)pb.measure(100, 100);
     pb.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
 
     pb.set_orientation(progress_bar_orientation::vertical);
@@ -343,7 +343,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Measure vert
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "progress_bar - Arrange") {
     progress_bar<test_backend> pb;
-    pb.measure(100, 100);
+    (void)pb.measure(100, 100);
 
     pb.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
 
