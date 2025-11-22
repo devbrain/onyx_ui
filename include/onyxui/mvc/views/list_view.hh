@@ -175,7 +175,7 @@ public:
         m_item_rects.reserve(static_cast<std::size_t>(row_count));
 
         int current_y = 0;
-        int view_width = this->desired_size().w;
+        int view_width = this->bounds().width();
 
         for (int row = 0; row < row_count; ++row) {
             model_index idx = this->m_model->index(row, 0);
@@ -231,8 +231,8 @@ public:
             bool has_focus = this->m_selection_model && this->m_selection_model->current_index() == idx;
 
             // Translate to absolute coordinates
-            int abs_x = bounds.x + item_rect.x;
-            int abs_y = bounds.y + item_rect.y;
+            int abs_x = bounds.x() + item_rect.x;
+            int abs_y = bounds.y() + item_rect.y;
             int abs_w = item_rect.w;
             int abs_h = item_rect.h;
 
@@ -254,7 +254,7 @@ public:
      * Width: Uses available width (flexible)
      * Height: Sum of all item heights
      */
-    [[nodiscard]] size_type measure(int available_width, int available_height) override {
+    [[nodiscard]] size_type measure(int available_width, int available_height) {
         // Update geometries with available width
         update_geometries();
 
@@ -280,7 +280,7 @@ public:
      * @details
      * Updates item rectangles to use final width.
      */
-    void arrange(const rect_type& final_bounds) override {
+    void arrange(const rect_type& final_bounds) {
         base::arrange(final_bounds);
 
         // Update geometries with final width

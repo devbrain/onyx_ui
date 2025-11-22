@@ -121,7 +121,7 @@ public:
 
         // Update layout
         update_geometries();
-        this->invalidate_layout();
+        this->invalidate_measure();
     }
 
     /**
@@ -350,16 +350,19 @@ protected:
             return base::handle_event(evt, phase);
         }
 
-        if (evt.type == event_type::key_press) {
-            return handle_key_press(evt.key_code, evt.modifiers);
+        // Handle keyboard events
+        if (auto* kbd_evt = std::get_if<keyboard_event>(&evt)) {
+            if (kbd_evt->pressed) {
+                return handle_key_press(static_cast<int>(kbd_evt->key), 0);
+            }
         }
 
-        if (evt.type == event_type::mouse_down) {
-            return handle_mouse_click(evt.mouse_x, evt.mouse_y);
-        }
-
-        if (evt.type == event_type::mouse_double_click) {
-            return handle_mouse_double_click(evt.mouse_x, evt.mouse_y);
+        // Handle mouse events
+        if (auto* mouse_evt = std::get_if<mouse_event>(&evt)) {
+            if (mouse_evt->act == mouse_event::action::press) {
+                return handle_mouse_click(mouse_evt->x, mouse_evt->y);
+            }
+            // TODO: Add double-click handling when event system supports it
         }
 
         return base::handle_event(evt, phase);
@@ -380,25 +383,25 @@ protected:
         model_index next;
 
         // Arrow navigation
-        if (key == key_code::down_arrow) {
+        if (key == static_cast<int>(key_code::arrow_down)) {
             next = move_cursor_down(current);
-        } else if (key == key_code::up_arrow) {
+        } else if (key == static_cast<int>(key_code::arrow_up)) {
             next = move_cursor_up(current);
-        } else if (key == key_code::page_down) {
+        } else if (key == static_cast<int>(key_code::page_down)) {
             next = move_cursor_page_down(current);
-        } else if (key == key_code::page_up) {
+        } else if (key == static_cast<int>(key_code::page_up)) {
             next = move_cursor_page_up(current);
-        } else if (key == key_code::home) {
+        } else if (key == static_cast<int>(key_code::home)) {
             next = move_cursor_home();
-        } else if (key == key_code::end) {
+        } else if (key == static_cast<int>(key_code::end)) {
             next = move_cursor_end();
-        } else if (key == key_code::enter || key == key_code::return_key) {
+        } else if (key == static_cast<int>(key_code::enter)) {
             // Activate current item
             if (current.is_valid()) {
                 activated.emit(current);
             }
             return true;
-        } else if (key == key_code::space) {
+        } else if (key == static_cast<int>(key_code::space)) {
             // Toggle selection in multi-selection mode
             if (current.is_valid() && m_selection_model->get_selection_mode() == selection_mode::multi_selection) {
                 m_selection_model->toggle(current);
@@ -588,7 +591,7 @@ protected:
 
         // Repaint affected region
         // For simplicity, repaint entire view (subclasses can optimize)
-        this->invalidate_paint();
+        this->mark_dirty();
     }
 
     /**
@@ -600,7 +603,7 @@ protected:
         (void)last;
 
         update_geometries();
-        this->invalidate_layout();
+        this->invalidate_measure();
     }
 
     /**
@@ -612,7 +615,7 @@ protected:
         (void)last;
 
         update_geometries();
-        this->invalidate_layout();
+        this->invalidate_measure();
     }
 
     /**
@@ -620,7 +623,7 @@ protected:
      */
     virtual void on_layout_changed() {
         update_geometries();
-        this->invalidate_layout();
+        this->invalidate_measure();
     }
 
     // ===================================================================
@@ -635,7 +638,7 @@ protected:
         (void)deselected;
 
         // Repaint to show new selection state
-        this->invalidate_paint();
+        this->mark_dirty();
     }
 
     /**
@@ -646,7 +649,7 @@ protected:
         (void)previous;
 
         // Repaint to show new focus rectangle
-        this->invalidate_paint();
+        this->mark_dirty();
     }
 
     // ===================================================================
@@ -673,25 +676,29 @@ private:
     void connect_model_signals() {
         if (!m_model) return;
 
-        m_data_changed_conn = m_model->data_changed.connect(
+        m_data_changed_conn = scoped_connection(
+            m_model->data_changed,
             [this](const model_index& tl, const model_index& br) {
                 on_data_changed(tl, br);
             }
         );
 
-        m_rows_inserted_conn = m_model->rows_inserted.connect(
+        m_rows_inserted_conn = scoped_connection(
+            m_model->rows_inserted,
             [this](const model_index& parent, int first, int last) {
                 on_rows_inserted(parent, first, last);
             }
         );
 
-        m_rows_removed_conn = m_model->rows_removed.connect(
+        m_rows_removed_conn = scoped_connection(
+            m_model->rows_removed,
             [this](const model_index& parent, int first, int last) {
                 on_rows_removed(parent, first, last);
             }
         );
 
-        m_layout_changed_conn = m_model->layout_changed.connect(
+        m_layout_changed_conn = scoped_connection(
+            m_model->layout_changed,
             [this]() {
                 on_layout_changed();
             }
@@ -714,33 +721,20 @@ private:
     void connect_selection_signals() {
         if (!m_selection_model) return;
 
-        m_selection_changed_conn = m_selection_model->selection_changed.connect(
+        m_selection_changed_conn = scoped_connection(
+            m_selection_model->selection_changed,
             [this](const std::vector<model_index>& sel, const std::vector<model_index>& desel) {
                 on_selection_changed(sel, desel);
             }
         );
 
-        m_current_changed_conn = m_selection_model->current_changed.connect(
+        m_current_changed_conn = scoped_connection(
+            m_selection_model->current_changed,
             [this](const model_index& cur, const model_index& prev) {
                 on_current_changed(cur, prev);
             }
         );
     }
 };
-
-// Forward declare key codes for navigation (defined in events/ui_event.hh)
-namespace key_code {
-    inline constexpr int up_arrow = 273;
-    inline constexpr int down_arrow = 274;
-    inline constexpr int left_arrow = 276;
-    inline constexpr int right_arrow = 275;
-    inline constexpr int page_up = 280;
-    inline constexpr int page_down = 281;
-    inline constexpr int home = 278;
-    inline constexpr int end = 279;
-    inline constexpr int enter = 13;
-    inline constexpr int return_key = 13;
-    inline constexpr int space = 32;
-}
 
 } // namespace onyxui

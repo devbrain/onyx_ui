@@ -22,6 +22,8 @@
 #include <onyxui/widgets/containers/tab_widget.hh>
 #include <onyxui/widgets/containers/vbox.hh>
 #include <onyxui/widgets/containers/scroll_view.hh>
+#include <onyxui/mvc/models/list_model.hh>
+#include <onyxui/mvc/views/list_view.hh>
 #include "demo_menu_builder.hh"
 #include "demo_utils.hh"
 
@@ -215,9 +217,47 @@ void build_ui(
     auto page6 = std::make_unique<onyxui::label<Backend>>("Content of Tab 6");
     auto page7 = std::make_unique<onyxui::label<Backend>>("Content of Tab 7");
 
+    // Create MVC Demo tab with list_view
+    auto page8 = std::make_unique<onyxui::panel<Backend>>();
+    page8->set_vbox_layout(1);
+
+    // Create model with sample data (static to keep it alive)
+    static auto mvc_model = std::make_shared<onyxui::list_model<std::string, Backend>>();
+    static bool mvc_model_initialized = false;
+    if (!mvc_model_initialized) {
+        mvc_model->set_items({
+            "Apple",
+            "Banana",
+            "Cherry",
+            "Date",
+            "Elderberry",
+            "Fig",
+            "Grape",
+            "Honeydew"
+        });
+        mvc_model_initialized = true;
+    }
+
+    // Create list view
+    auto mvc_list = std::make_unique<onyxui::list_view<Backend>>();
+    mvc_list->set_model(mvc_model.get());
+
+    // Set size constraints for the list view
+    onyxui::size_constraint mvc_height;
+    mvc_height.policy = onyxui::size_policy::content;
+    mvc_height.preferred_size = 6;  // Show 6 items
+    mvc_height.min_size = 4;
+    mvc_height.max_size = 8;
+    mvc_list->set_height_constraint(mvc_height);
+
+    // Add label and list to page
+    page8->template emplace_child<onyxui::label>("MVC List View Demo:");
+    page8->add_child(std::move(mvc_list));
+    page8->template emplace_child<onyxui::label>("Click items to select, use arrow keys to navigate");
+
     // Create a scrollable tab with lots of content
-    auto page8 = std::make_unique<onyxui::scroll_view<Backend>>();
-    auto* scroll_content = page8->content();
+    auto page9 = std::make_unique<onyxui::scroll_view<Backend>>();
+    auto* scroll_content = page9->content();
     for (int i = 1; i <= 20; ++i) {
         scroll_content->template emplace_child<onyxui::label>(
             "Scrollable line " + std::to_string(i)
@@ -231,7 +271,8 @@ void build_ui(
     tabs->add_tab(std::move(page5), "Fifth");
     tabs->add_tab(std::move(page6), "Sixth");
     tabs->add_tab(std::move(page7), "Seventh");
-    tabs->add_tab(std::move(page8), "Scroll");
+    tabs->add_tab(std::move(page8), "MVC Demo");
+    tabs->add_tab(std::move(page9), "Scroll");
 
     // Connect close button handler
     auto* tabs_ptr = tabs.get();
