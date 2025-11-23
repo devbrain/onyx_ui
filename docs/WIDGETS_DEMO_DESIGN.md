@@ -30,27 +30,27 @@
 ### Application Structure
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│ Menu Bar: File | Widgets | Layout | Theme | Debug | Help         │
-├──────────────────────────────────────────────────────────────────┤
-│ Status Bar: Theme: Norton Blue | FPS: 60 | Focus: button_1      │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │ Tab Widget (Main Content)                                  │ │
-│  │ ┌──────────────────────────────────────────────────────────┤ │
-│  │ │ Basic | Containers | Input | MVC | Layout | Advanced    │ │
-│  │ ├──────────────────────────────────────────────────────────┤ │
-│  │ │                                                          │ │
-│  │ │   [Current Tab Content - Scrollable]                    │ │
-│  │ │                                                          │ │
-│  │ │                                                          │ │
-│  │ └──────────────────────────────────────────────────────────┘ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-├──────────────────────────────────────────────────────────────────┤
-│ Debug Panel: Bounds: (10,5,80,25) | Measure: 450ms | Draw: 30ms │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ Menu Bar: File | Widgets | Windows | Layers | Layout | Theme | ... │
+├─────────────────────────────────────────────────────────────────────┤
+│ Status Bar: Theme: Norton Blue | FPS: 60 | Focus: button_1         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ Tab Widget (Main Content Area)                                │ │
+│  │ ┌─────────────────────────────────────────────────────────────┤ │
+│  │ │ Basic | Containers | Input | MVC | Layout | Scrolling | ...│ │
+│  │ ├─────────────────────────────────────────────────────────────┤ │
+│  │ │                                                             │ │
+│  │ │   [Current Tab Content - Scrollable]                       │ │
+│  │ │                                                             │ │
+│  │ │                                                             │ │
+│  │ └─────────────────────────────────────────────────────────────┘ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│ Debug Panel: Bounds: (10,5,80,25) | Measure: 45ms | Draw: 3ms      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Tab Organization
@@ -162,27 +162,7 @@
   - Mnemonic navigation (&File, &Edit)
   - Key sequence display (Ctrl+X Ctrl+C)
 
-#### Tab 11: Layer Management
-- **Purpose**: Layer system demonstration
-- **Features**:
-  - Popup layers (tooltips, dropdowns)
-  - Modal dialogs
-  - Z-order visualization
-  - Click-outside-to-close behavior
-  - Layer transitions
-  - Multiple overlapping layers
-
-#### Tab 12: Window System
-- **Purpose**: Window management (if using window widgets)
-- **Features**:
-  - Multiple windows
-  - Window z-order (bring to front)
-  - Window cycling (Ctrl+F6)
-  - Minimize/maximize/restore
-  - Modal vs modeless windows
-  - Window list dialog
-
-#### Tab 13: Advanced Features
+#### Tab 11: Advanced Features
 - **Purpose**: Complex integrations
 - **Features**:
   - Menu system (menu_bar, menu, menu_item)
@@ -191,8 +171,9 @@
   - RAII guards (scoped_clip, scoped_layer, scoped_tooltip)
   - Service locator pattern
   - Signal/slot pattern examples
+  - Action groups and command pattern
 
-#### Tab 14: Performance Testing
+#### Tab 12: Performance Testing
 - **Purpose**: Stress testing and profiling
 - **Features**:
   - 1000+ button stress test
@@ -202,7 +183,7 @@
   - Render performance metrics
   - Memory usage display
 
-#### Tab 15: Debug Tools
+#### Tab 13: Debug Tools
 - **Purpose**: Framework debugging utilities
 - **Features**:
   - Widget tree inspector (hierarchical view)
@@ -274,11 +255,12 @@
 ## Menu Structure
 
 ### File Menu
-- New Window (Ctrl+N)
+- New Demo Window (Ctrl+N)
+- ---
 - Open Theme... (Ctrl+O)
 - Save Screenshot (Ctrl+S)
 - ---
-- Exit (Alt+F4)
+- Exit (Alt+F4 / Ctrl+Q)
 
 ### Widgets Menu
 - Basic Widgets (Tab 1)
@@ -287,6 +269,29 @@
 - MVC Widgets (Tab 4)
 - ---
 - Show All Widgets
+
+### Windows Menu
+- New Demo Window (Ctrl+N)
+- Show Modal Dialog...
+- Show Modeless Dialog...
+- ---
+- Window List... (Ctrl+W)
+- Next Window (Ctrl+F6)
+- Previous Window (Ctrl+Shift+F6)
+- ---
+- Bring All to Front
+- Close All Windows
+
+### Layers Menu
+- Show Tooltip Example
+- Show Popup Menu Example
+- Show Dropdown Example
+- ---
+- Show Modal Layer
+- Show Popup Layer
+- Show Tooltip Layer
+- ---
+- Layer Stack Inspector
 
 ### Layout Menu
 - Layout System (Tab 5)
@@ -362,11 +367,20 @@ examples/
       tab_event_system.hh        # Tab 8: Event system
       tab_focus_management.hh    # Tab 9: Focus management
       tab_hotkeys_system.hh      # Tab 10: Hotkeys system
-      tab_layer_management.hh    # Tab 11: Layer management
-      tab_window_system.hh       # Tab 12: Window system
-      tab_advanced_features.hh   # Tab 13: Advanced features
-      tab_performance_testing.hh # Tab 14: Performance testing
-      tab_debug_tools.hh         # Tab 15: Debug tools
+      tab_advanced_features.hh   # Tab 11: Advanced features
+      tab_performance_testing.hh # Tab 12: Performance testing
+      tab_debug_tools.hh         # Tab 13: Debug tools
+
+    windows/
+      demo_window.hh             # Additional demo window spawned from menu
+      modal_dialog_example.hh    # Modal dialog example
+      modeless_dialog_example.hh # Modeless dialog example
+
+    layers/
+      tooltip_example.hh         # Tooltip layer demonstration
+      popup_menu_example.hh      # Popup menu demonstration
+      dropdown_example.hh        # Dropdown demonstration
+      layer_visualizer.hh        # Layer stack visualization
 
     utils/
       debug_panel.hh             # Debug visualization utilities
@@ -385,6 +399,8 @@ main_window
 ├── menu_bar
 │   ├── menu (File)
 │   ├── menu (Widgets)
+│   ├── menu (Windows)        // Spawns demo windows
+│   ├── menu (Layers)         // Shows popups/tooltips/modals
 │   ├── menu (Layout)
 │   ├── menu (Theme)
 │   ├── menu (Debug)
@@ -405,11 +421,9 @@ main_window
 │   ├── panel (Tab 8: Event System)
 │   ├── panel (Tab 9: Focus Management)
 │   ├── panel (Tab 10: Hotkeys System)
-│   ├── panel (Tab 11: Layer Management)
-│   ├── panel (Tab 12: Window System)
-│   ├── panel (Tab 13: Advanced Features)
-│   ├── panel (Tab 14: Performance Testing)
-│   └── panel (Tab 15: Debug Tools)
+│   ├── panel (Tab 11: Advanced Features)
+│   ├── panel (Tab 12: Performance Testing)
+│   └── panel (Tab 13: Debug Tools)
 ├── status_bar
 │   ├── label (theme)
 │   ├── label (FPS)
@@ -420,6 +434,75 @@ main_window
     ├── event_logger
     └── performance_monitor
 ```
+
+---
+
+## Windows and Layer Management via Menus
+
+### Windows Menu (Interactive Window Features)
+
+Instead of a tab, window management features are accessed through menu items:
+
+**New Demo Window** - Spawns additional main_window instances to demonstrate:
+- Multiple windows coexisting
+- Window z-order (clicking brings to front)
+- Window cycling (Ctrl+F6 / Ctrl+Shift+F6)
+- Independent window state
+
+**Modal Dialog Example** - Shows modal dialog:
+- Blocks interaction with parent window
+- Focus trap (Tab only cycles within modal)
+- ESC to close
+- Dark overlay on parent window
+- Previous window restored on close
+
+**Modeless Dialog Example** - Shows modeless dialog:
+- Allows interaction with both windows
+- Independent focus management
+- Both windows remain interactive
+
+**Window List Dialog** - Shows all open windows:
+- List of window titles
+- Current window highlighted
+- Click or Enter to activate
+- Demonstrates window_manager integration
+
+### Layers Menu (Interactive Layer Features)
+
+Layer management demonstrated through menu items that trigger popups:
+
+**Show Tooltip Example** - Demonstrates tooltip layer:
+- Tooltip appears near cursor
+- Auto-hide after delay
+- Proper z-order (above all widgets)
+- Click-through behavior
+
+**Show Popup Menu Example** - Context menu demonstration:
+- Right-click or menu item triggers popup
+- Click outside to close
+- Proper layer ordering
+- Menu item selection
+
+**Show Dropdown Example** - Dropdown layer:
+- combo_box popup rendering (when implemented)
+- Click outside to close
+- Scrollable dropdown list
+- Selection feedback
+
+**Layer Stack Inspector** - Visual debugging:
+- Shows all active layers
+- Z-order visualization
+- Layer bounds highlighting
+- Layer lifecycle tracking
+
+### Benefits of Menu-Based Approach
+
+1. **Natural UX** - Windows/layers are spawned, not displayed in tabs
+2. **Real Interaction** - Actual window/layer behavior, not documentation
+3. **Focus Testing** - Modal focus, layer focus, window focus all testable
+4. **Z-Order** - Proper layer stacking, bring-to-front behavior
+5. **Event Routing** - Click-outside-to-close, event bubbling through layers
+6. **Lifecycle** - Window creation, activation, deactivation, closing
 
 ---
 
@@ -556,7 +639,7 @@ std::unique_ptr<panel<Backend>> create_input_widgets_tab() {
 }
 ```
 
-### Tab 15: Debug Tools
+### Tab 13: Debug Tools
 
 ```cpp
 template<UIBackend Backend>
@@ -702,33 +785,38 @@ private:
 
 ### Phase 1: Foundation (Week 1)
 - Main window structure
-- Tab widget with basic tabs
-- Menu bar and status bar
-- Basic widgets tab (Tab 1)
-- Containers tab (Tab 2)
+- Tab widget with 13 tabs
+- Menu bar (File, Widgets, Windows, Layers, Layout, Theme, Debug, Help)
+- Status bar with live metrics
+- Tab 1: Basic widgets
+- Tab 2: Containers
 
 ### Phase 2: Input & MVC (Week 2)
-- Input widgets tab (Tab 3)
-- MVC widgets tab (Tab 4)
+- Tab 3: Input widgets
+- Tab 4: MVC widgets
 - Event logging infrastructure
-- Performance monitoring
+- Performance monitoring basics
 
 ### Phase 3: Systems (Week 3)
-- Layout system tab (Tab 5)
-- Scrolling system tab (Tab 6)
-- Theming system tab (Tab 7)
-- Event system tab (Tab 8)
+- Tab 5: Layout system
+- Tab 6: Scrolling system
+- Tab 7: Theming system
+- Tab 8: Event system
+- Windows menu implementation
 
 ### Phase 4: Management (Week 4)
-- Focus management tab (Tab 9)
-- Hotkeys system tab (Tab 10)
-- Layer management tab (Tab 11)
-- Window system tab (Tab 12)
+- Tab 9: Focus management
+- Tab 10: Hotkeys system
+- Layers menu implementation
+- Modal/modeless dialog examples
+- Tooltip/popup/dropdown examples
 
-### Phase 5: Advanced (Week 5)
-- Advanced features tab (Tab 13)
-- Performance testing tab (Tab 14)
-- Debug tools tab (Tab 15)
+### Phase 5: Advanced & Debug (Week 5)
+- Tab 11: Advanced features
+- Tab 12: Performance testing
+- Tab 13: Debug tools
+- Window list dialog integration
+- Layer stack inspector
 - Polish and optimization
 
 ---
@@ -768,6 +856,8 @@ private:
 add_executable(widgets_demo
     main.cc
     widgets_demo.cc
+
+    # Tabs (13 total)
     tabs/tab_basic_widgets.cc
     tabs/tab_containers.cc
     tabs/tab_input_widgets.cc
@@ -778,11 +868,22 @@ add_executable(widgets_demo
     tabs/tab_event_system.cc
     tabs/tab_focus_management.cc
     tabs/tab_hotkeys_system.cc
-    tabs/tab_layer_management.cc
-    tabs/tab_window_system.cc
     tabs/tab_advanced_features.cc
     tabs/tab_performance_testing.cc
     tabs/tab_debug_tools.cc
+
+    # Window examples (spawned from Windows menu)
+    windows/demo_window.cc
+    windows/modal_dialog_example.cc
+    windows/modeless_dialog_example.cc
+
+    # Layer examples (spawned from Layers menu)
+    layers/tooltip_example.cc
+    layers/popup_menu_example.cc
+    layers/dropdown_example.cc
+    layers/layer_visualizer.cc
+
+    # Utilities
     utils/debug_panel.cc
     utils/event_logger.cc
     utils/performance_monitor.cc
