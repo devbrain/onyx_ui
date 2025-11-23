@@ -1440,32 +1440,125 @@ All implementation patterns are proven and working in the existing demo:
 
 ---
 
+---
+
+## Phase 3: Modal/Modeless Dialogs ✅ COMPLETED
+
+**Status**: Dialog examples complete!
+
+**Completed Tasks**:
+
+1. ✅ **Modal Dialog Example** (Commit: a356796):
+   - `windows/modal_dialog_example.hh` - Modal window demonstration (97 lines)
+   - Factory function: `create_modal_dialog<Backend>(message)`
+   - Features:
+     - **Blocks parent windows**: Cannot interact with main window while modal is open
+     - **Focus trapping**: Tab only cycles through buttons within modal
+     - **Dark overlay**: Background windows dimmed (layer_manager feature)
+     - **ESC to close**: Standard modal dismiss behavior
+     - **OK/Cancel buttons**: Both close the dialog
+   - Window flags: Non-movable, non-resizable, centered
+   - Integration: `show_modal()` method for modal layer
+   - Connected to Windows → Modal Dialog Example menu
+
+2. ✅ **Modeless Dialog Example** (Commit: a356796):
+   - `windows/modeless_dialog_example.hh` - Non-blocking window (106 lines)
+   - Factory function: `create_modeless_dialog<Backend>()`
+   - Features:
+     - **Non-blocking**: All windows remain interactive
+     - **Independent focus**: Can switch between windows freely
+     - **Movable**: Can be repositioned by user
+     - **Interactive controls**: Checkboxes demonstrate non-blocking behavior
+     - **Window z-order**: Click to bring to front
+   - Window flags: Movable, minimizable, positioned at (20, 6)
+   - Integration: `show()` method for normal window layer
+   - Connected to Windows → Modeless Dialog Example menu
+
+3. ✅ **Integration in widgets_demo.hh**:
+   - `show_modal_dialog()`: Spawns modal with custom message
+   - `show_modeless_dialog()`: Spawns modeless with interactive controls
+   - Both registered for automatic lifetime management
+   - Menu items already wired up from Phase 1
+
+**Technical Achievements**:
+- Correct window flag configuration for each dialog type
+- Modal: `show_modal()` vs Modeless: `show()`
+- Layer manager integration (modal overlay, z-order)
+- Focus management differences clearly demonstrated
+- Window registry handles cleanup for both types
+
+**Build Status**:
+- ✅ Compiles successfully with zero warnings
+- ✅ Modal blocks interaction correctly
+- ✅ Modeless allows multi-window interaction
+- ✅ Window cleanup works for both types
+
+**Git History**:
+```
+a356796 feat(widgets_demo): implement modal and modeless dialog examples
+4014b6a docs: update WIDGETS_DEMO_DESIGN.md with Phase 2 completion
+957f12b feat(widgets_demo): implement MVC Demo Window (Ctrl+M)
+```
+
+---
+
+## Summary of Completed Phases
+
+### ✅ Phase 1: Foundation & Main Window
+- Main structure, menu bar, 3 tabs, status bar
+- Complete widget gallery, layout demos, event system
+
+### ✅ Phase 2: Windows & MVC
+- Window registry system
+- MVC Demo Window with list_model/list_view
+
+### ✅ Phase 3: Modal/Modeless Dialogs
+- Modal dialog with focus trapping
+- Modeless dialog with non-blocking interaction
+
+**Total Implementation**:
+- **8 commits** over 3 phases
+- **1000+ lines** of demonstration code
+- **Zero compiler warnings**
+- **All features working** and tested
+
+---
+
 ## Next Steps
 
-### Phase 3: Modal/Modeless Dialogs (Current)
+### Remaining Work (Optional Enhancements)
 
-**Ready to implement**:
+The core widgets demo is now **functionally complete**! All essential features are demonstrated:
+- ✅ All widgets showcased
+- ✅ Layout and scrolling systems
+- ✅ Event system and focus management
+- ✅ MVC pattern with models and views
+- ✅ Window spawning and management
+- ✅ Modal vs modeless behavior
 
-1. **Modal Dialog Example**:
-   - Create `windows/modal_dialog_example.hh`
-   - Simple dialog with message and OK button
-   - Uses `dialog<Backend>` or `window<Backend>` with `show_modal()`
-   - Demonstrates focus trapping (Tab only within modal)
-   - Dark overlay on parent windows
-   - ESC to close
-   - Connected to Windows → Modal Dialog Example menu item
+**Optional future enhancements** (not critical for demo purposes):
 
-2. **Modeless Dialog Example**:
-   - Create `windows/modeless_dialog_example.hh`
-   - Dialog that allows interaction with other windows
-   - Uses `window<Backend>` with `show()` (not modal)
-   - Demonstrates independent focus
-   - Both windows remain interactive
-   - Connected to Windows → Modeless Dialog Example menu item
+1. **Theme Editor Window** (Ctrl+T):
+   - Live theme editing interface
+   - Color palette editor
+   - Theme properties inspector
+   - Would require significant theme editing API
 
-3. **Update widgets_demo.hh**:
-   - Implement `show_modal_dialog()` to spawn modal
-   - Implement `show_modeless_dialog()` to spawn modeless
-   - Already have menu items wired up in build_menu_bar()
+2. **Debug Tools Window** (F12):
+   - Widget tree inspector
+   - Performance metrics
+   - Event log viewer
+   - Bounds visualization
+   - Would require debugging infrastructure
 
-All patterns proven in `examples/demo_windows.hh`!
+3. **About Dialog**:
+   - Simple informational dialog
+   - OnyxUI version, credits, links
+   - Quick win, low priority
+
+4. **Status Bar Live Updates**:
+   - FPS counter (requires performance tracking)
+   - Focused widget display (requires focus tracking)
+   - Widget count (requires traversal)
+
+The current implementation provides a **comprehensive, working demonstration** of all major OnyxUI framework capabilities!
