@@ -26,6 +26,7 @@
 
 // Tab implementations
 #include "tabs/tab_all_widgets.hh"
+#include "tabs/tab_layout_scrolling.hh"
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -391,11 +392,8 @@ private:
         auto tab1 = widgets_demo_tabs::create_tab_all_widgets<Backend>(this);
         m_tab_widget->add_tab(std::move(tab1), "All Widgets");
 
-        // Tab 2: Layout & Scrolling (placeholder)
-        auto tab2 = std::make_unique<onyxui::panel<Backend>>();
-        auto* tab2_label = tab2->template emplace_child<onyxui::label>("Tab 2: Layout & Scrolling - Coming soon!");
-        tab2_label->set_horizontal_align(onyxui::horizontal_alignment::center);
-        tab2_label->set_vertical_align(onyxui::vertical_alignment::center);
+        // Tab 2: Layout & Scrolling (complete implementation)
+        auto tab2 = widgets_demo_tabs::create_tab_layout_scrolling<Backend>();
         m_tab_widget->add_tab(std::move(tab2), "Layout & Scrolling");
 
         // Tab 3: Events & Interaction (placeholder)
