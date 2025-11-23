@@ -24,17 +24,8 @@
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/actions/action.hh>
 
-// Forward declarations for tab builders
-namespace widgets_demo_tabs {
-    template<onyxui::UIBackend Backend>
-    class tab_all_widgets;
-
-    template<onyxui::UIBackend Backend>
-    class tab_layout_scrolling;
-
-    template<onyxui::UIBackend Backend>
-    class tab_events_interaction;
-}
+// Tab implementations
+#include "tabs/tab_all_widgets.hh"
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -164,6 +155,30 @@ public:
         apply_theme_by_name(m_theme_names[index]);
 
         // TODO: Update status bar when theme changes
+    }
+
+    /**
+     * @brief Show MVC Demo window (Ctrl+M)
+     */
+    void show_mvc_demo() {
+        std::cout << "MVC Demo window - Coming soon!\n";
+        // TODO: Implement mvc_demo_window
+    }
+
+    /**
+     * @brief Show Theme Editor window (Ctrl+T)
+     */
+    void show_theme_editor() {
+        std::cout << "Theme Editor window - Coming soon!\n";
+        // TODO: Implement theme_editor_window
+    }
+
+    /**
+     * @brief Show Debug Tools window (F12)
+     */
+    void show_debug_tools() {
+        std::cout << "Debug Tools window - Coming soon!\n";
+        // TODO: Implement debug_tools_window
     }
 
 private:
@@ -372,21 +387,18 @@ private:
         // Create tab widget
         m_tab_widget = central->template emplace_child<onyxui::tab_widget>();
 
-        // Tab 1: All Widgets
-        auto tab1 = std::make_unique<onyxui::panel<Backend>>();
-        auto* tab1_label = tab1->template emplace_child<onyxui::label>("Tab 1: All Widgets - Coming soon!");
-        tab1_label->set_horizontal_align(onyxui::horizontal_alignment::center);
-        tab1_label->set_vertical_align(onyxui::vertical_alignment::center);
+        // Tab 1: All Widgets (complete implementation)
+        auto tab1 = widgets_demo_tabs::create_tab_all_widgets<Backend>(this);
         m_tab_widget->add_tab(std::move(tab1), "All Widgets");
 
-        // Tab 2: Layout & Scrolling
+        // Tab 2: Layout & Scrolling (placeholder)
         auto tab2 = std::make_unique<onyxui::panel<Backend>>();
         auto* tab2_label = tab2->template emplace_child<onyxui::label>("Tab 2: Layout & Scrolling - Coming soon!");
         tab2_label->set_horizontal_align(onyxui::horizontal_alignment::center);
         tab2_label->set_vertical_align(onyxui::vertical_alignment::center);
         m_tab_widget->add_tab(std::move(tab2), "Layout & Scrolling");
 
-        // Tab 3: Events & Interaction
+        // Tab 3: Events & Interaction (placeholder)
         auto tab3 = std::make_unique<onyxui::panel<Backend>>();
         auto* tab3_label = tab3->template emplace_child<onyxui::label>("Tab 3: Events & Interaction - Coming soon!");
         tab3_label->set_horizontal_align(onyxui::horizontal_alignment::center);
@@ -413,30 +425,6 @@ private:
 
         // Set status bar on main_window
         this->set_status_bar(std::move(status_bar_widget));
-    }
-
-    /**
-     * @brief Show MVC Demo window (Ctrl+M)
-     */
-    void show_mvc_demo() {
-        std::cout << "MVC Demo window - Coming soon!\n";
-        // TODO: Implement mvc_demo_window
-    }
-
-    /**
-     * @brief Show Theme Editor window (Ctrl+T)
-     */
-    void show_theme_editor() {
-        std::cout << "Theme Editor window - Coming soon!\n";
-        // TODO: Implement theme_editor_window
-    }
-
-    /**
-     * @brief Show Debug Tools window (F12)
-     */
-    void show_debug_tools() {
-        std::cout << "Debug Tools window - Coming soon!\n";
-        // TODO: Implement debug_tools_window
     }
 
     /**
