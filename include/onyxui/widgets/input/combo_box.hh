@@ -291,6 +291,41 @@ protected:
     }
 
     // ===================================================================
+    // Theme Styling
+    // ===================================================================
+
+    /**
+     * @brief Stateful widget - does NOT inherit colors from parent
+     * @return false - combo boxes manage their own state-based colors
+     */
+    [[nodiscard]] bool should_inherit_colors() const override {
+        return false;  // Stateful widget - use theme colors
+    }
+
+    /**
+     * @brief Get complete widget style from theme
+     * @param theme Theme to extract properties from
+     * @return Resolved style with combo box-specific theme values
+     * @details Uses button theme for state-aware colors (normal/hover/pressed/disabled)
+     */
+    [[nodiscard]] resolved_style<Backend> get_theme_style(const ui_theme<Backend>& theme) const override {
+        return resolved_style<Backend>{
+            .background_color = this->get_state_background(theme.button),
+            .foreground_color = this->get_state_foreground(theme.button),
+            .mnemonic_foreground = this->get_state_mnemonic_foreground(theme.button),
+            .border_color = theme.border_color,
+            .box_style = theme.button.box_style,
+            .font = theme.button.normal.font,
+            .opacity = 1.0f,
+            .icon_style = std::optional<typename Backend::renderer_type::icon_style>{},
+            .padding_horizontal = std::make_optional(theme.button.padding_horizontal),
+            .padding_vertical = std::make_optional(theme.button.padding_vertical),
+            .mnemonic_font = std::optional<typename Backend::renderer_type::font>{},
+            .submenu_icon = std::optional<typename Backend::renderer_type::icon_style>{}
+        };
+    }
+
+    // ===================================================================
     // Rendering
     // ===================================================================
 
@@ -298,13 +333,62 @@ protected:
      * @brief Render the combo box button
      *
      * @details
-     * TODO: Implement full rendering with button background and dropdown arrow.
-     * For now, just renders the current selection text.
+     * Renders a button-like widget showing the current selection text
+     * with a dropdown indicator (▼).
      */
     void do_render(render_context<Backend>& ctx) const override {
-        // TODO: Implement rendering similar to button widget
-        // For now, just render text if we have a selection
-        (void)ctx;
+        auto* theme = ctx.theme();
+        if (!theme) return;
+
+        // Get padding and border from style
+        constexpr int PADDING_HORIZONTAL = 2;
+        constexpr int PADDING_VERTICAL = 0;
+        int const border = renderer_type::get_border_thickness(ctx.style().box_style);
+
+        // Measure text
+        typename renderer_type::font const default_font{};
+        std::string display_text = m_current_text.empty() ? "(select)" : m_current_text;
+        constexpr int ARROW_WIDTH = 2;  // Space for "▼ " indicator
+
+        auto text_size = renderer_type::measure_text(display_text, default_font);
+        int const text_width = size_utils::get_width(text_size);
+        int const text_height = size_utils::get_height(text_size);
+
+        // Calculate natural size (text + arrow indicator + padding + border)
+        int const natural_width = text_width + ARROW_WIDTH + (PADDING_HORIZONTAL * 2) + (border * 2);
+        int const natural_height = text_height + (PADDING_VERTICAL * 2) + (border * 2);
+
+        // Get final dimensions from context
+        auto const [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
+
+        // Get position from context
+        auto const& pos = ctx.position();
+        int const x = point_utils::get_x(pos);
+        int const y = point_utils::get_y(pos);
+
+        // Create combo box rectangle
+        typename Backend::rect_type box_rect;
+        rect_utils::set_bounds(box_rect, x, y, final_width, final_height);
+
+        // Get colors from pre-resolved style
+        auto fg = ctx.style().foreground_color;
+
+        // Draw box/border using resolved style
+        ctx.draw_rect(box_rect, ctx.style().box_style);
+
+        // Calculate text position (left-aligned)
+        int const text_x = x + border + PADDING_HORIZONTAL;
+        int const text_y = y + border + PADDING_VERTICAL;
+
+        // Render selection text
+        typename Backend::point_type const text_pos{text_x, text_y};
+        ctx.draw_text(display_text, text_pos, default_font, fg);
+
+        // Draw dropdown arrow indicator on the right
+        int const arrow_x = x + final_width - border - ARROW_WIDTH;
+        int const arrow_y = y + border + PADDING_VERTICAL;
+        typename Backend::point_type const arrow_pos{arrow_x, arrow_y};
+        ctx.draw_text("▼", arrow_pos, default_font, fg);
     }
 
 private:
