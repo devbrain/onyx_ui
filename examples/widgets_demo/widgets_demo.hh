@@ -297,6 +297,14 @@ private:
     void build_menu_bar() {
         auto menu_bar_widget = std::make_unique<onyxui::menu_bar<Backend>>();
 
+        // Initialize spacing from current theme
+        auto* themes = onyxui::ui_services<Backend>::themes();
+        if (themes) {
+            if (auto* theme = themes->get_current_theme()) {
+                menu_bar_widget->set_spacing(theme->menu_bar.item_spacing);
+            }
+        }
+
         // File menu
         auto file_menu = std::make_unique<onyxui::menu<Backend>>();
 
