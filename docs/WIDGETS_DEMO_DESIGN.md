@@ -1389,35 +1389,83 @@ All implementation patterns are proven and working in the existing demo:
 
 ---
 
+---
+
+## Phase 2: Windows & MVC ✅ COMPLETED
+
+**Status**: MVC Demo Window and window management complete!
+
+**Completed Tasks**:
+
+1. ✅ **Window Registry System** (Commit: 957f12b):
+   - `windows/window_registry.hh` - Global window lifetime management (63 lines)
+   - `register_window()` helper function with auto-cleanup
+   - Storage for active windows with `closed` signal cleanup
+   - Namespace: `widgets_demo_windows::` (avoids conflict with main class)
+
+2. ✅ **MVC Demo Window** (Commit: 957f12b):
+   - `windows/mvc_demo_window.hh` - Full MVC demonstration (173 lines)
+   - Factory function pattern: `create_mvc_demo_window<Backend>()`
+   - Uses `window<Backend>`, not `main_window<Backend>` (correct pattern)
+   - Features:
+     - **list_model**: 8 sample fruit items
+     - **list_view**: Display with selection
+     - **Add/Remove/Clear buttons**: Dynamic model updates
+     - **Selection display**: Shows clicked item details
+     - **Statistics**: Live item count tracking
+     - **Signal/slot**: Model changes update UI automatically
+   - Integration:
+     - Spawned via `widgets_demo::show_mvc_demo()` on Ctrl+M
+     - Registered for automatic lifetime management
+     - Window size: 60x25, positioned at (10, 3)
+
+**Technical Achievements**:
+- Fixed namespace conflict between `widgets_demo` class and window namespace
+- Used `clicked` signal for selection (not non-existent `selection_changed`)
+- Correct model signal signatures with `model_index` parameters
+- Shared_ptr captures in lambdas keep model alive without manual management
+- Factory function pattern for clean window creation
+- Window layer management with z-order and focus
+
+**Build Status**:
+- ✅ Compiles successfully with zero warnings
+- ✅ MVC window spawns and functions correctly
+- ✅ Window cleanup works properly on close
+
+**Git History**:
+```
+957f12b feat(widgets_demo): implement MVC Demo Window (Ctrl+M)
+1080eb3 docs: update WIDGETS_DEMO_DESIGN.md with Phase 1 completion status
+```
+
+---
+
 ## Next Steps
 
-### Phase 2: Windows & MVC (Current)
+### Phase 3: Modal/Modeless Dialogs (Current)
 
 **Ready to implement**:
 
-1. **Window management helper** (from `demo_windows.hh`):
-   - Create `examples/widgets_demo/windows/window_registry.hh`
-   - Implement `register_window()` helper function
-   - Global storage for active windows with auto-cleanup on close
+1. **Modal Dialog Example**:
+   - Create `windows/modal_dialog_example.hh`
+   - Simple dialog with message and OK button
+   - Uses `dialog<Backend>` or `window<Backend>` with `show_modal()`
+   - Demonstrates focus trapping (Tab only within modal)
+   - Dark overlay on parent windows
+   - ESC to close
+   - Connected to Windows → Modal Dialog Example menu item
 
-2. **MVC Demo Window** (Ctrl+M):
-   - `windows/mvc_demo_window.hh` - Inherit from `main_window<Backend>`
-   - Create list_model with sample data
-   - Add list_view (when available) or combo_box demo
-   - Add/Remove buttons for dynamic model updates
-   - Selection display label
-   - Use `register_window()` for lifetime management
-   - Call `win->show()` to display
+2. **Modeless Dialog Example**:
+   - Create `windows/modeless_dialog_example.hh`
+   - Dialog that allows interaction with other windows
+   - Uses `window<Backend>` with `show()` (not modal)
+   - Demonstrates independent focus
+   - Both windows remain interactive
+   - Connected to Windows → Modeless Dialog Example menu item
 
-3. **Modal/Modeless Dialog Examples**:
-   - `windows/modal_dialog_example.hh` - Uses `win->show_modal()`
-   - `windows/modeless_dialog_example.hh` - Uses `win->show()`
-   - Demonstrate focus trapping in modal
-   - Show independent focus in modeless
+3. **Update widgets_demo.hh**:
+   - Implement `show_modal_dialog()` to spawn modal
+   - Implement `show_modeless_dialog()` to spawn modeless
+   - Already have menu items wired up in build_menu_bar()
 
-4. **Update widgets_demo.hh**:
-   - Implement `show_mvc_demo()` to spawn window
-   - Implement `show_modal_dialog()` and `show_modeless_dialog()`
-   - Add window registry integration
-
-All patterns are proven and working in the existing demo!
+All patterns proven in `examples/demo_windows.hh`!
