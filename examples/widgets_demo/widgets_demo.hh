@@ -34,6 +34,7 @@
 #include "windows/mvc_demo_window.hh"
 #include "windows/modal_dialog_example.hh"
 #include "windows/modeless_dialog_example.hh"
+#include "windows/about_dialog.hh"
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -471,9 +472,14 @@ private:
      * @brief Show About Dialog
      */
     void show_about_dialog() {
-        std::cout << "About OnyxUI - Widgets Demo v1.0\n";
-        std::cout << "Comprehensive framework demonstration\n";
-        // TODO: Implement about dialog
+        // Create about dialog
+        auto dialog = widgets_demo_windows::create_about_dialog<Backend>();
+
+        // Register for lifetime management
+        widgets_demo_windows::register_window(dialog);
+
+        // Show as modal
+        dialog->show_modal();
     }
 
 private:
