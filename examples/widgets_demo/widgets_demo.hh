@@ -309,7 +309,7 @@ private:
         auto file_menu = std::make_unique<onyxui::menu<Backend>>();
 
         auto screenshot_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        screenshot_item->set_mnemonic_text("&Save Screenshot\\tCtrl+S");
+        screenshot_item->set_mnemonic_text("&Save Screenshot");
         screenshot_item->clicked.connect([this]() {
             take_screenshot();
         });
@@ -318,7 +318,7 @@ private:
         file_menu->add_separator();
 
         auto exit_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        exit_item->set_mnemonic_text("E&xit\\tAlt+F4");
+        exit_item->set_mnemonic_text("E&xit");
         exit_item->clicked.connect([this]() {
             quit();
         });
@@ -330,21 +330,21 @@ private:
         auto windows_menu = std::make_unique<onyxui::menu<Backend>>();
 
         auto mvc_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        mvc_item->set_mnemonic_text("&MVC Demo...\\tCtrl+M");
+        mvc_item->set_mnemonic_text("&MVC Demo...");
         mvc_item->clicked.connect([this]() {
             show_mvc_demo();
         });
         windows_menu->add_item(std::move(mvc_item));
 
         auto theme_editor_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        theme_editor_item->set_mnemonic_text("&Theme Editor...\\tCtrl+T");
+        theme_editor_item->set_mnemonic_text("&Theme Editor...");
         theme_editor_item->clicked.connect([this]() {
             show_theme_editor();
         });
         windows_menu->add_item(std::move(theme_editor_item));
 
         auto debug_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        debug_item->set_mnemonic_text("&Debug Tools...\\tF12");
+        debug_item->set_mnemonic_text("&Debug Tools...");
         debug_item->clicked.connect([this]() {
             show_debug_tools();
         });
