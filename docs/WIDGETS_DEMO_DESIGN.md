@@ -56,140 +56,99 @@ Optional debug overlay (Ctrl+D to toggle):
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Tab Organization (12 Tabs Total)
+### Main Window Tabs (3 Tabs)
 
-#### Tab 1: Basic Widgets
-- **Purpose**: Core UI elements
-- **Widgets**:
-  - `button` - All states (normal, hover, pressed, disabled, focused)
-  - `label` - Various alignments, colors, styled text
-  - `spacer` - Fixed spacing examples
-  - `spring` - Flexible spacing examples
-  - `status_bar` - Status display
+#### Tab 1: All Widgets
+- **Purpose**: Widget gallery - showcase all available widgets
+- **Sections** (scrollable with group_box containers):
+  - **Basic Widgets**: button (all states), label (alignments), spacer, spring
+  - **Containers**: panel, vbox/hbox, grid, anchor_panel, group_box, tab_widget
+  - **Input Widgets**: line_edit, checkbox, radio_button, slider, progress_bar, combo_box
+  - **Other**: status_bar, menu examples
+- **Organization**: Each widget type in its own group_box with state demonstrations
 
-#### Tab 2: Container Widgets
-- **Purpose**: Layout containers
-- **Widgets**:
-  - `panel` - Generic container
-  - `vbox` / `hbox` - Linear layouts with various spacing
-  - `grid` - Grid layout with different alignments
-  - `anchor_panel` - Anchor positioning examples
-  - `absolute_panel` - Absolute positioning
-  - `group_box` - Bordered container with title
-  - `tab_widget` - Nested tabs demonstration
-
-#### Tab 3: Input Widgets
-- **Purpose**: User input controls
-- **Widgets**:
-  - `line_edit` - Text input, cursor, selection
-  - `checkbox` - Two-state and tri-state
-  - `radio_button` - Button groups, mutual exclusion
-  - `slider` - Horizontal and vertical, different ranges
-  - `progress_bar` - Determinate and indeterminate
-  - `combo_box` - MVC dropdown selection
-
-#### Tab 4: MVC Widgets
-- **Purpose**: Model-View-Controller pattern
-- **Widgets**:
-  - `list_view` - Various selection modes
-  - `combo_box` - Model binding examples
-- **Features**:
-  - Multiple models (string, custom types)
-  - Selection tracking
-  - Custom delegates
-  - Dynamic model updates
-  - Multi-view synchronization
-
-#### Tab 5: Layout System
-- **Purpose**: Layout algorithm demonstration
-- **Features**:
+#### Tab 2: Layout & Scrolling
+- **Purpose**: Core layout and scrolling systems
+- **Layout Section**:
   - Two-pass measure/arrange visualization
   - Size policies (fixed, stretch, percentage)
   - Alignment showcase (left, center, right, top, bottom, stretch)
   - Padding and margin examples
-  - Nested layouts complexity
-  - Layout performance testing
-
-#### Tab 6: Scrolling System
-- **Purpose**: Scrolling architecture showcase
-- **Widgets**:
-  - `scroll_view` - Different presets (modern, classic, compact)
-  - `scrollable` - Core scrolling logic
-  - `scrollbar` - Standalone scrollbar widget
-  - `scroll_controller` - Bidirectional synchronization
-- **Features**:
+  - Nested layouts
+- **Scrolling Section**:
+  - `scroll_view` presets (modern, classic, compact, vertical-only)
   - Large content scrolling (1000+ items)
-  - Keyboard navigation (arrow keys, Page Up/Down, Home/End)
-  - Mouse wheel scrolling
+  - Keyboard navigation (arrows, Page Up/Down, Home/End)
   - Scrollbar visibility modes (always, auto-hide, never)
-  - Nested scrolling containers
 
-#### Tab 7: Theming System
-- **Purpose**: Theme system demonstration
-- **Features**:
-  - All registered themes in dropdown
-  - Live theme switching
-  - CSS-style inheritance visualization
-  - Color palette display
-  - Theme creation wizard
-  - Widget state theming (normal/hover/pressed/disabled)
-  - Custom theme editor
-
-#### Tab 8: Event System
-- **Purpose**: Event handling demonstration
-- **Features**:
-  - Three-phase routing (capture, target, bubble)
+#### Tab 3: Events & Interaction
+- **Purpose**: Event system, focus, and keyboard interaction
+- **Event System Section**:
+  - Three-phase routing visualization (capture, target, bubble)
   - Mouse events (click, double-click, move, wheel)
   - Keyboard events (key press, mnemonics)
-  - Focus events (gain, lose)
-  - Event log viewer (real-time event stream)
-  - Event filtering and search
-
-#### Tab 9: Focus Management
-- **Purpose**: Keyboard focus testing
-- **Features**:
+  - Event log viewer (real-time stream, last 20 events)
+- **Focus Management Section**:
   - Tab order visualization
-  - Focus indicators
-  - Modal focus behavior
-  - Focus restoration
-  - Programmatic focus control
+  - Focus indicators (which widget has focus)
+  - Programmatic focus control buttons
   - Focus chain inspection
+- **Hotkeys Section**:
+  - Current hotkey scheme display
+  - Hotkey scheme selector (Windows, Norton Commander)
+  - Mnemonic navigation demo (&File, &Edit)
 
-#### Tab 10: Hotkeys System
-- **Purpose**: Keyboard shortcuts showcase
+---
+
+### Additional Windows (Spawned from Menus)
+
+These are separate window instances opened via menu items, allowing them to stay open while browsing the main tabs.
+
+#### MVC Demo Window (Windows → MVC Demo)
+- **Purpose**: Model-View-Controller pattern in a real window
 - **Features**:
-  - All hotkey schemes (Windows, Norton Commander, Emacs, Vim)
-  - Global vs widget-specific hotkeys
-  - Hotkey conflict detection
-  - Custom hotkey registration
-  - Mnemonic navigation (&File, &Edit)
-  - Key sequence display (Ctrl+X Ctrl+C)
+  - `list_view` with various selection modes
+  - `combo_box` with model binding
+  - Add/Remove items buttons (dynamic model updates)
+  - Selection display (shows selected items)
+  - Custom delegate example (striped rows)
+  - Two synchronized views on same model
+- **Benefit**: Real window demonstrates window management + MVC together
 
-#### Tab 11: Advanced Features
-- **Purpose**: Complex integrations
+#### Theme Editor Window (Theme → Theme Editor...)
+- **Purpose**: Live theme editing and preview
 - **Features**:
-  - Menu system (menu_bar, menu, menu_item)
-  - Styled text rendering
-  - Background rendering
-  - RAII guards (scoped_clip, scoped_layer, scoped_tooltip)
-  - Service locator pattern
-  - Signal/slot pattern examples
-  - Action groups and command pattern
+  - Theme selector (combo_box with all registered themes)
+  - Color palette editor (edit colors, see live preview)
+  - CSS-style inheritance visualization
+  - Widget state preview panel (normal/hover/pressed/disabled)
+  - Theme properties inspector (view all theme values)
+  - Save/Export theme button
+- **Benefit**: Can keep theme editor open while testing theme on main window
 
-#### Tab 12: Debug Tools
+#### Debug Tools Window (Debug → Debug Tools... or F12)
 - **Purpose**: Framework debugging and performance profiling
-- **Features**:
-  - Widget tree inspector (hierarchical view)
-  - Bounds visualizer (highlight widget rectangles)
-  - Focus chain viewer
+- **Widget Inspector Section**:
+  - Widget tree view (hierarchical, all windows)
+  - Refresh button
+  - Select widget in tree → highlight in UI
+- **Visualization Section**:
+  - Show widget bounds (checkbox)
+  - Show padding (checkbox)
+  - Show focus chain (checkbox)
   - Layer stack inspector
-  - Event trace viewer
-  - Theme property inspector
-  - Layout cache statistics
-  - Render context stats
-  - Performance metrics (FPS, measure/arrange/render times)
-  - Memory usage tracking
-  - Widget count statistics
+- **Performance Section**:
+  - FPS counter (live updates)
+  - Measure/Arrange/Render times
+  - Widget count (all windows)
+  - Memory usage
+  - Layout cache hit ratio
+- **Event Log Section**:
+  - Last 50 events (more space in dedicated window)
+  - Filter by event type
+  - Clear button
+  - Export trace
+- **Benefit**: Can keep debug tools open while interacting with main demo
 
 ---
 
@@ -258,16 +217,9 @@ Optional debug overlay (Ctrl+D to toggle):
 - ---
 - Exit (Alt+F4 / Ctrl+Q)
 
-### Widgets Menu
-- Basic Widgets (Tab 1)
-- Containers (Tab 2)
-- Input Widgets (Tab 3)
-- MVC Widgets (Tab 4)
-- ---
-- Show All Widgets
-
 ### Windows Menu
-- New Demo Window (Ctrl+N)
+- MVC Demo (Ctrl+M)
+- ---
 - Show Modal Dialog...
 - Show Modeless Dialog...
 - ---
@@ -289,30 +241,20 @@ Optional debug overlay (Ctrl+D to toggle):
 - ---
 - Layer Stack Inspector
 
-### Layout Menu
-- Layout System (Tab 5)
-- Scrolling System (Tab 6)
-- ---
-- Show Bounds (Ctrl+B)
-- Show Padding (Ctrl+P)
-- Show Focus (Ctrl+F)
-
 ### Theme Menu
 - Norton Blue
 - Windows 3.x
 - Midnight Commander
 - ---
-- Theme Editor...
+- Theme Editor... (Ctrl+T)
 - Reload Themes (F5)
 
 ### Debug Menu
-- Widget Inspector (F12)
-- Event Log (Ctrl+E)
-- Performance Metrics (Ctrl+M)
+- Debug Tools... (F12)
 - ---
-- Layout Debug Mode
-- Bounds Visualization
-- Focus Chain Viewer
+- Show Bounds (Ctrl+B)
+- Show Padding (Ctrl+P)
+- Show Focus Chain (Ctrl+F)
 - ---
 - Take Screenshot (F9)
 - Dump Widget Tree
@@ -361,21 +303,14 @@ examples/
     widgets_demo.hh              # Main widget class
 
     tabs/
-      tab_basic_widgets.hh       # Tab 1: Basic widgets
-      tab_containers.hh          # Tab 2: Container widgets
-      tab_input_widgets.hh       # Tab 3: Input widgets
-      tab_mvc_widgets.hh         # Tab 4: MVC widgets
-      tab_layout_system.hh       # Tab 5: Layout system
-      tab_scrolling_system.hh    # Tab 6: Scrolling system
-      tab_theming_system.hh      # Tab 7: Theming system
-      tab_event_system.hh        # Tab 8: Event system
-      tab_focus_management.hh    # Tab 9: Focus management
-      tab_hotkeys_system.hh      # Tab 10: Hotkeys system
-      tab_advanced_features.hh   # Tab 11: Advanced features
-      tab_debug_tools.hh         # Tab 12: Debug tools (includes performance)
+      tab_all_widgets.hh         # Tab 1: All widgets gallery
+      tab_layout_scrolling.hh    # Tab 2: Layout & scrolling systems
+      tab_events_interaction.hh  # Tab 3: Events, focus, hotkeys
 
     windows/
-      demo_window.hh             # Additional demo window spawned from menu
+      mvc_demo_window.hh         # MVC demo window (Windows → MVC Demo)
+      theme_editor_window.hh     # Theme editor window (Theme → Theme Editor...)
+      debug_tools_window.hh      # Debug tools window (Debug → Debug Tools... / F12)
       modal_dialog_example.hh    # Modal dialog example
       modeless_dialog_example.hh # Modeless dialog example
 
@@ -409,24 +344,39 @@ main_window
 │   ├── menu (Debug)
 │   └── menu (Help)
 │
-├── tab_widget (central content area)
-│   ├── panel (Tab 1: Basic Widgets)
+├── tab_widget (central content area - 3 tabs)
+│   ├── panel (Tab 1: All Widgets)
 │   │   └── scroll_view
 │   │       └── vbox
-│   │           ├── section: Buttons
-│   │           ├── section: Labels
-│   │           └── section: Spacers/Springs
-│   ├── panel (Tab 2: Containers)
-│   ├── panel (Tab 3: Input Widgets)
-│   ├── panel (Tab 4: MVC Widgets)
-│   ├── panel (Tab 5: Layout System)
-│   ├── panel (Tab 6: Scrolling System)
-│   ├── panel (Tab 7: Theming System)
-│   ├── panel (Tab 8: Event System)
-│   ├── panel (Tab 9: Focus Management)
-│   ├── panel (Tab 10: Hotkeys System)
-│   ├── panel (Tab 11: Advanced Features)
-│   └── panel (Tab 12: Debug Tools)
+│   │           ├── group_box (Basic Widgets)
+│   │           │   ├── button (normal)
+│   │           │   ├── button (disabled)
+│   │           │   ├── label (left/center/right)
+│   │           │   ├── spacer
+│   │           │   └── spring
+│   │           ├── group_box (Containers)
+│   │           │   ├── panel examples
+│   │           │   ├── vbox/hbox examples
+│   │           │   ├── grid example
+│   │           │   └── group_box nested
+│   │           └── group_box (Input Widgets)
+│   │               ├── line_edit
+│   │               ├── checkbox
+│   │               ├── radio_button group
+│   │               ├── slider
+│   │               ├── progress_bar
+│   │               └── combo_box
+│   ├── panel (Tab 2: Layout & Scrolling)
+│   │   └── scroll_view
+│   │       └── vbox
+│   │           ├── group_box (Layout System)
+│   │           └── group_box (Scrolling System)
+│   └── panel (Tab 3: Events & Interaction)
+│       └── scroll_view
+│           └── vbox
+│               ├── group_box (Event System)
+│               ├── group_box (Focus Management)
+│               └── group_box (Hotkeys)
 │
 └── status_bar (bottom)
     ├── label (theme name)
@@ -512,150 +462,144 @@ Layer management demonstrated through menu items that trigger popups:
 
 ---
 
-## Example Tab Implementations
+## Example Implementations
 
-### Tab 1: Basic Widgets
+### Tab 1: All Widgets
 
 ```cpp
 template<UIBackend Backend>
-std::unique_ptr<panel<Backend>> create_basic_widgets_tab() {
+std::unique_ptr<panel<Backend>> create_all_widgets_tab() {
     auto tab = std::make_unique<panel<Backend>>();
-    tab->set_vbox_layout(2);  // 2px spacing
 
-    // Section: Button States
-    auto* section = tab->template emplace_child<group_box>();
-    section->set_title("Button States");
-    section->set_vbox_layout(1);
+    // Make tab content scrollable
+    auto scroll = tab->template emplace_child<scroll_view>();
+    auto* content = scroll->template emplace_child<vbox>(2);  // 2px spacing
 
-    auto* hbox1 = section->template emplace_child<hbox>(2);
-    hbox1->emplace_child<label>("Normal:")->set_width(15);
-    hbox1->emplace_child<button>("Click Me");
+    // Basic Widgets Section
+    auto* basic_section = content->template emplace_child<group_box>();
+    basic_section->set_title("Basic Widgets");
+    basic_section->set_vbox_layout(1);
 
-    auto* hbox2 = section->template emplace_child<hbox>(2);
-    hbox2->emplace_child<label>("Disabled:")->set_width(15);
-    auto* disabled_btn = hbox2->template emplace_child<button>("Disabled");
+    auto* btn_row = basic_section->template emplace_child<hbox>(2);
+    btn_row->emplace_child<label>("Button:")->set_width(15);
+    btn_row->emplace_child<button>("Click Me");
+
+    auto* btn_disabled = basic_section->template emplace_child<hbox>(2);
+    btn_disabled->emplace_child<label>("Disabled:")->set_width(15);
+    auto* disabled_btn = btn_disabled->template emplace_child<button>("Disabled");
     disabled_btn->set_enabled(false);
 
-    auto* hbox3 = section->template emplace_child<hbox>(2);
-    hbox3->emplace_child<label>("With Mnemonic:")->set_width(15);
-    auto* mnemonic_btn = hbox3->template emplace_child<button>("&Save File");
+    basic_section->emplace_child<label>("Left Aligned")->set_horizontal_alignment(alignment::left);
+    basic_section->emplace_child<label>("Center Aligned")->set_horizontal_alignment(alignment::center);
 
-    // Section: Label Variations
-    auto* label_section = tab->template emplace_child<group_box>();
-    label_section->set_title("Label Variations");
-    label_section->set_vbox_layout(1);
+    // Containers Section
+    auto* container_section = content->template emplace_child<group_box>();
+    container_section->set_title("Container Widgets");
+    container_section->set_vbox_layout(1);
 
-    label_section->emplace_child<label>("Left Aligned")->set_horizontal_alignment(alignment::left);
-    label_section->emplace_child<label>("Center Aligned")->set_horizontal_alignment(alignment::center);
-    label_section->emplace_child<label>("Right Aligned")->set_horizontal_alignment(alignment::right);
+    container_section->emplace_child<label>("VBox/HBox examples:");
+    auto* hbox_demo = container_section->template emplace_child<hbox>(2);
+    hbox_demo->emplace_child<button>("Item 1");
+    hbox_demo->emplace_child<button>("Item 2");
+    hbox_demo->emplace_child<button>("Item 3");
 
-    // Section: Spacers and Springs
-    auto* spacing_section = tab->template emplace_child<group_box>();
-    spacing_section->set_title("Spacing Controls");
-    spacing_section->set_hbox_layout(0);
+    // Input Widgets Section (continuation below)
+    auto* input_section = content->template emplace_child<group_box>();
+    input_section->set_title("Input Widgets");
+    input_section->set_vbox_layout(1);
 
-    spacing_section->emplace_child<button>("Left");
-    spacing_section->emplace_child<spacer>(20);  // Fixed 20px space
-    spacing_section->emplace_child<button>("Middle");
-    spacing_section->emplace_child<spring>();    // Flexible space
-    spacing_section->emplace_child<button>("Right");
-
-    return tab;
-}
-```
-
-### Tab 3: Input Widgets
-
-```cpp
-template<UIBackend Backend>
-std::unique_ptr<panel<Backend>> create_input_widgets_tab() {
-    auto tab = std::make_unique<panel<Backend>>();
-    tab->set_vbox_layout(2);
-
-    // Line Edit
-    auto* edit_section = tab->template emplace_child<group_box>();
-    edit_section->set_title("Text Input (line_edit)");
-    edit_section->set_vbox_layout(1);
-
-    auto* edit = edit_section->template emplace_child<line_edit>();
+    auto* edit = input_section->template emplace_child<line_edit>();
     edit->set_text("Type here...");
     edit->set_width(40);
 
-    // Checkboxes
-    auto* checkbox_section = tab->template emplace_child<group_box>();
-    checkbox_section->set_title("Checkboxes");
-    checkbox_section->set_vbox_layout(1);
+    auto* cb = input_section->template emplace_child<checkbox>("Enable feature");
+    cb->set_checked(true);
 
-    auto* cb1 = checkbox_section->template emplace_child<checkbox>("Enable feature A");
-    auto* cb2 = checkbox_section->template emplace_child<checkbox>("Enable feature B");
-    cb2->set_checked(true);
-    auto* cb3 = checkbox_section->template emplace_child<checkbox>("Tri-state checkbox");
-    cb3->set_tri_state(true);
-    cb3->set_check_state(check_state::partially_checked);
-
-    // Radio Buttons
-    auto* radio_section = tab->template emplace_child<group_box>();
-    radio_section->set_title("Radio Buttons");
-    radio_section->set_vbox_layout(1);
-
-    auto group = std::make_shared<button_group<Backend>>();
-    auto* r1 = radio_section->template emplace_child<radio_button>("Option 1", group);
-    auto* r2 = radio_section->template emplace_child<radio_button>("Option 2", group);
-    auto* r3 = radio_section->template emplace_child<radio_button>("Option 3", group);
-    r1->set_checked(true);
-
-    // Slider
-    auto* slider_section = tab->template emplace_child<group_box>();
-    slider_section->set_title("Slider (0-100)");
-    slider_section->set_vbox_layout(1);
-
-    auto* slider = slider_section->template emplace_child<slider>(orientation::horizontal);
+    auto* slider = input_section->template emplace_child<slider>(orientation::horizontal);
     slider->set_range(0, 100);
     slider->set_value(50);
     slider->set_width(40);
 
-    auto* value_label = slider_section->template emplace_child<label>("Value: 50");
-    slider->value_changed.connect([value_label](int val) {
-        value_label->set_text("Value: " + std::to_string(val));
-    });
-
-    // Progress Bar
-    auto* progress_section = tab->template emplace_child<group_box>();
-    progress_section->set_title("Progress Bar");
-    progress_section->set_vbox_layout(1);
-
-    auto* progress = progress_section->template emplace_child<progress_bar>();
-    progress->set_range(0, 100);
-    progress->set_value(75);
-    progress->set_width(40);
-
-    // Combo Box
-    auto* combo_section = tab->template emplace_child<group_box>();
-    combo_section->set_title("Combo Box (MVC)");
-    combo_section->set_vbox_layout(1);
-
-    auto model = std::make_shared<list_model<std::string, Backend>>();
-    model->set_items({"Small", "Medium", "Large", "X-Large"});
-
-    auto* combo = combo_section->template emplace_child<combo_box>();
-    combo->set_model(model.get());
-    combo->set_current_index(1);  // Select "Medium"
-
     return tab;
 }
 ```
 
-### Tab 12: Debug Tools
+### MVC Demo Window
 
 ```cpp
 template<UIBackend Backend>
-class debug_tools_tab : public panel<Backend> {
+class mvc_demo_window : public window<Backend> {
 public:
-    debug_tools_tab() {
-        this->set_vbox_layout(2);
+    mvc_demo_window() : window<Backend>() {
+        this->set_title("MVC System Demo");
+
+        auto* content = this->central_widget();
+        content->set_vbox_layout(2);
+
+        // Title
+        content->emplace_child<label>("Model-View-Controller Demonstration");
+
+        // List View Section
+        auto* list_section = content->template emplace_child<group_box>();
+        list_section->set_title("List View with Model");
+        list_section->set_vbox_layout(1);
+
+        m_model = std::make_shared<list_model<std::string, Backend>>();
+        m_model->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry"});
+
+        m_list_view = list_section->template emplace_child<list_view>();
+        m_list_view->set_model(m_model.get());
+        m_list_view->set_height(10);
+
+        // Controls Section
+        auto* controls = content->template emplace_child<group_box>();
+        controls->set_title("Model Controls");
+        controls->set_hbox_layout(2);
+
+        auto* add_btn = controls->template emplace_child<button>("Add Item");
+        add_btn->clicked.connect([this]() {
+            m_model->append("New Item " + std::to_string(m_item_counter++));
+        });
+
+        auto* remove_btn = controls->template emplace_child<button>("Remove Selected");
+        remove_btn->clicked.connect([this]() {
+            auto index = m_list_view->current_index();
+            if (index.is_valid()) {
+                m_model->remove(index.row);
+            }
+        });
+
+        // Selection Display
+        m_selection_label = content->template emplace_child<label>("No selection");
+        m_list_view->clicked.connect([this](const model_index& index) {
+            auto data = m_model->data(index, item_data_role::display);
+            std::string text = std::get<std::string>(data);
+            m_selection_label->set_text("Selected: " + text);
+        });
+    }
+
+private:
+    std::shared_ptr<list_model<std::string, Backend>> m_model;
+    list_view<Backend>* m_list_view;
+    label<Backend>* m_selection_label;
+    int m_item_counter = 1;
+};
+```
+
+### Debug Tools Window
+
+```cpp
+template<UIBackend Backend>
+class debug_tools_window : public window<Backend> {
+public:
+    debug_tools_window() : window<Backend>() {
+        this->set_title("Debug Tools");
+
+        auto* content = this->central_widget();
+        content->set_vbox_layout(2);
 
         // Widget Inspector
-        auto* inspector_section = this->template emplace_child<group_box>();
+        auto* inspector_section = content->template emplace_child<group_box>();
         inspector_section->set_title("Widget Inspector");
         inspector_section->set_vbox_layout(1);
 
@@ -668,87 +612,48 @@ public:
             m_tree_view->set_text(generate_widget_tree());
         });
 
-        // Bounds Visualizer
-        auto* bounds_section = this->template emplace_child<group_box>();
-        bounds_section->set_title("Bounds Visualization");
-        bounds_section->set_vbox_layout(1);
+        // Bounds Visualization
+        auto* bounds_section = content->template emplace_child<group_box>();
+        bounds_section->set_title("Visualization");
+        bounds_section->set_hbox_layout(2);
 
-        m_show_bounds = bounds_section->template emplace_child<checkbox>("Show Widget Bounds");
-        m_show_bounds->checked_changed.connect([this](bool checked) {
-            enable_bounds_visualization(checked);
-        });
+        m_show_bounds = bounds_section->template emplace_child<checkbox>("Bounds");
+        m_show_padding = bounds_section->template emplace_child<checkbox>("Padding");
+        m_show_focus = bounds_section->template emplace_child<checkbox>("Focus");
 
-        m_show_padding = bounds_section->template emplace_child<checkbox>("Show Padding");
-        m_show_focus = bounds_section->template emplace_child<checkbox>("Show Focus Chain");
-
-        // Performance Monitor (integrated here instead of separate tab)
-        auto* perf_section = this->template emplace_child<group_box>();
-        perf_section->set_title("Performance Metrics");
+        // Performance Metrics
+        auto* perf_section = content->template emplace_child<group_box>();
+        perf_section->set_title("Performance");
         perf_section->set_vbox_layout(1);
 
         m_fps_label = perf_section->template emplace_child<label>("FPS: --");
         m_measure_time = perf_section->template emplace_child<label>("Measure: --ms");
-        m_arrange_time = perf_section->template emplace_child<label>("Arrange: --ms");
         m_render_time = perf_section->template emplace_child<label>("Render: --ms");
         m_widget_count = perf_section->template emplace_child<label>("Widgets: --");
-        m_memory_usage = perf_section->template emplace_child<label>("Memory: --MB");
 
         // Event Log
-        auto* event_section = this->template emplace_child<group_box>();
-        event_section->set_title("Event Log (Last 20)");
+        auto* event_section = content->template emplace_child<group_box>();
+        event_section->set_title("Event Log");
         event_section->set_vbox_layout(1);
 
         m_event_log = event_section->template emplace_child<text_view>();
-        m_event_log->set_height(8);
+        m_event_log->set_height(10);
 
-        auto* clear_btn = event_section->template emplace_child<button>("Clear Log");
+        auto* clear_btn = event_section->template emplace_child<button>("Clear");
         clear_btn->clicked.connect([this]() {
             m_event_log->set_text("");
         });
     }
 
-    void update_performance_metrics(const performance_stats& stats) {
-        m_fps_label->set_text("FPS: " + std::to_string(stats.fps));
-        m_measure_time->set_text("Measure: " + std::to_string(stats.measure_time_ms) + "ms");
-        m_arrange_time->set_text("Arrange: " + std::to_string(stats.arrange_time_ms) + "ms");
-        m_render_time->set_text("Render: " + std::to_string(stats.render_time_ms) + "ms");
-        m_widget_count->set_text("Widgets: " + std::to_string(stats.widget_count));
-    }
-
-    void log_event(const std::string& event_description) {
-        std::string current = m_event_log->text();
-        std::string new_log = event_description + "\n" + current;
-
-        // Keep only last 20 lines
-        size_t line_count = 0;
-        size_t pos = 0;
-        while (line_count < 20 && pos != std::string::npos) {
-            pos = new_log.find('\n', pos + 1);
-            ++line_count;
-        }
-        if (pos != std::string::npos) {
-            new_log = new_log.substr(0, pos);
-        }
-
-        m_event_log->set_text(new_log);
-    }
-
 private:
     std::string generate_widget_tree() {
-        // Walk widget tree and generate hierarchical text representation
-        // This would use the framework's widget tree structure
         return "main_window\n"
                "├── menu_bar\n"
                "├── tab_widget\n"
-               "│   ├── panel (Basic Widgets)\n"
-               "│   ├── panel (Containers)\n"
-               "│   └── ...\n"
+               "│   ├── All Widgets\n"
+               "│   ├── Layout & Scrolling\n"
+               "│   └── Events & Interaction\n"
                "└── status_bar\n";
-    }
-
-    void enable_bounds_visualization(bool enable) {
-        // Enable visual overlay showing widget bounds
-        // This would integrate with the rendering system
     }
 
     text_view<Backend>* m_tree_view;
@@ -757,7 +662,6 @@ private:
     checkbox<Backend>* m_show_focus;
     label<Backend>* m_fps_label;
     label<Backend>* m_measure_time;
-    label<Backend>* m_arrange_time;
     label<Backend>* m_render_time;
     label<Backend>* m_widget_count;
     text_view<Backend>* m_event_log;
@@ -790,39 +694,34 @@ private:
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Week 1)
+### Phase 1: Foundation & Main Window (Week 1)
 - Main window structure
-- Tab widget with 12 tabs
-- Menu bar (File, Widgets, Windows, Layers, Layout, Theme, Debug, Help)
+- Menu bar (File, Windows, Layers, Theme, Debug, Help)
 - Status bar with live metrics
-- Tab 1: Basic widgets
-- Tab 2: Containers
+- Tab 1: All Widgets (basic widgets, containers, input widgets)
+- Tab 2: Layout & Scrolling (layout system, scrolling system)
 
-### Phase 2: Input & MVC (Week 2)
-- Tab 3: Input widgets
-- Tab 4: MVC widgets
-- Event logging infrastructure
-- Basic performance monitoring
-
-### Phase 3: Systems (Week 3)
-- Tab 5: Layout system
-- Tab 6: Scrolling system
-- Tab 7: Theming system
-- Tab 8: Event system
+### Phase 2: Events & Windows (Week 2)
+- Tab 3: Events & Interaction (events, focus, hotkeys)
 - Windows menu implementation
-
-### Phase 4: Management (Week 4)
-- Tab 9: Focus management
-- Tab 10: Hotkeys system
-- Layers menu implementation
+- MVC Demo Window (Ctrl+M)
 - Modal/modeless dialog examples
-- Tooltip/popup/dropdown examples
-
-### Phase 5: Advanced & Debug (Week 5)
-- Tab 11: Advanced features
-- Tab 12: Debug tools (with performance metrics)
 - Window list dialog integration
+
+### Phase 3: Theme & Layers (Week 3)
+- Theme Editor Window (Ctrl+T)
+- Live theme switching
+- Color palette editor
+- Layers menu implementation
+- Tooltip/popup/dropdown examples
 - Layer stack inspector
+
+### Phase 4: Debug Tools & Polish (Week 4)
+- Debug Tools Window (F12)
+- Widget tree inspector
+- Bounds visualization
+- Performance metrics
+- Event log viewer
 - Polish and optimization
 
 ---
@@ -863,22 +762,15 @@ add_executable(widgets_demo
     main.cc
     widgets_demo.cc
 
-    # Tabs (12 total)
-    tabs/tab_basic_widgets.cc
-    tabs/tab_containers.cc
-    tabs/tab_input_widgets.cc
-    tabs/tab_mvc_widgets.cc
-    tabs/tab_layout_system.cc
-    tabs/tab_scrolling_system.cc
-    tabs/tab_theming_system.cc
-    tabs/tab_event_system.cc
-    tabs/tab_focus_management.cc
-    tabs/tab_hotkeys_system.cc
-    tabs/tab_advanced_features.cc
-    tabs/tab_debug_tools.cc
+    # Tabs (3 total - main window content)
+    tabs/tab_all_widgets.cc
+    tabs/tab_layout_scrolling.cc
+    tabs/tab_events_interaction.cc
 
-    # Window examples (spawned from Windows menu)
-    windows/demo_window.cc
+    # Windows (spawned from menus)
+    windows/mvc_demo_window.cc
+    windows/theme_editor_window.cc
+    windows/debug_tools_window.cc
     windows/modal_dialog_example.cc
     windows/modeless_dialog_example.cc
 
