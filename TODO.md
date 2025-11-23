@@ -2,8 +2,8 @@
 
 This document tracks non-implemented features, placeholders, and future enhancements for OnyxUI.
 
-**Last Updated**: 2025-11-09 (Window Management Implementation Complete)
-**Status**: 1292 tests passing, 7782 assertions
+**Last Updated**: 2025-11-23 (MVC Phase 2 Complete - combo_box)
+**Status**: 1552 tests passing, 8828 assertions
 
 ---
 
@@ -43,28 +43,32 @@ This document tracks non-implemented features, placeholders, and future enhancem
 
 These widgets are mentioned in examples/comments but not implemented:
 
-- [ ] **checkbox** - Checkable box with label
-  - Mentioned in: Scrolling guide examples (docs/scrolling_guide.md:187)
-  - Pattern exists: `action` has checkable behavior
-  - Implementation: Widget that uses `action` internally
+- [x] **checkbox** - Checkable box with label ✅ IMPLEMENTED
+  - Status: Implemented with theming support
+  - File: `include/onyxui/widgets/input/checkbox.hh`
+  - Tests: `unittest/widgets/test_checkbox.cc`
 
-- [ ] **slider** - Value selection via dragging
-  - Mentioned in: Scrolling guide examples (docs/scrolling_guide.md:191)
-  - Use case: Volume, brightness, font size controls
-  - Implementation: Track + draggable thumb widget
+- [x] **slider** - Value selection via dragging ✅ IMPLEMENTED
+  - Status: Implemented with keyboard/mouse support
+  - File: `include/onyxui/widgets/input/slider.hh`
+  - Tests: `unittest/widgets/test_slider.cc`
 
-- [ ] **Radio buttons** - Mutually exclusive selection
-  - Behavior exists: `action_group` provides mutual exclusivity
-  - Missing: Visual radio button widget
-  - Implementation: Widget using `action_group` internally
+- [x] **Radio buttons** - Mutually exclusive selection ✅ IMPLEMENTED
+  - Status: Implemented with button_group for mutual exclusion
+  - File: `include/onyxui/widgets/input/radio_button.hh`
+  - Tests: `unittest/widgets/test_radio_button.cc`
 
-- [ ] **combobox** / **dropdown** - Select from list
-  - Use case: Option selection from many choices
-  - Implementation: Button + popup menu hybrid
+- [x] **combo_box** - MVC-based dropdown selection ✅ IMPLEMENTED (Phase 2)
+  - Status: MVC architecture with list_model integration
+  - File: `include/onyxui/widgets/input/combo_box.hh`
+  - Tests: `unittest/widgets/test_combo_box.cc` (7 tests)
+  - Features: Keyboard navigation, signal support
+  - TODO: Full popup rendering (requires layer_manager integration)
 
 - [ ] **listbox** - Scrollable list of selectable items
   - Use case: File lists, setting selections
   - Implementation: scroll_view + selectable list items
+  - Note: MVC foundation now available (list_model, list_view)
 
 ### Hotkey Schemes
 
@@ -228,6 +232,37 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## ✅ Recently Completed
 
+### MVC System Implementation (November 2025)
+
+- [x] **MVC Phase 1: Core Infrastructure** - 2025-11-22
+  - Implemented Qt-inspired Model-View-Controller architecture
+  - Components:
+    - `abstract_item_model<Backend>` - Base model interface
+    - `list_model<T, Backend>` - Concrete list model with signals
+    - `abstract_item_view<Backend>` - Base view class
+    - `list_view<Backend>` - Scrollable list view widget
+    - `item_selection_model<Backend>` - Selection tracking (single/multi/extended/contiguous)
+    - `default_item_delegate<Backend>` - Item rendering delegate
+  - Files: `include/onyxui/mvc/*`, 13 new header files
+  - Tests: 108 test cases in `test_mvc_basic.cc`
+  - Integration: Demo added to widgets_demo application
+  - Documentation: `docs/MVC_DESIGN.md` (comprehensive design specification)
+
+- [x] **MVC Phase 2: combo_box Widget** - 2025-11-23
+  - Implemented MVC-based dropdown combo box widget
+  - Features:
+    - Full MVC integration with `abstract_item_model`
+    - Keyboard navigation (arrow keys, Home/End)
+    - `current_index_changed` signal for selection tracking
+    - Model/selection management with automatic text updates
+  - Files: `include/onyxui/widgets/input/combo_box.hh` (348 lines)
+  - Tests: 7 test cases in `unittest/widgets/test_combo_box.cc`
+  - Integration: Added to widgets_demo with size selection example
+  - Status: Core functionality complete, popup rendering stubbed for future work
+  - Test Results: 1552 total tests (up from 1545), all passing
+
+**Total MVC Impact**: 115 new test cases, 14 new components, complete Qt-style MVC architecture
+
 ### Code Quality Improvements (November 2025)
 
 - [x] **Window control button coordinate bug fix** - 2025-11-10
@@ -387,4 +422,4 @@ Based on `docs/unittest-review.md` recommendations:
 
 ---
 
-**Last verified against codebase: 2025-11-09**
+**Last verified against codebase: 2025-11-23**
