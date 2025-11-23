@@ -207,19 +207,6 @@ Based on `docs/unittest-review.md` recommendations:
 
 ## 🔧 Code Quality Improvements
 
-### Future Refactoring (v2.0)
-
-- [ ] **Strong types for coordinate systems**
-  - Motivation: Bug fix on 2025-11-10 revealed mixing of absolute vs relative coordinates
-  - Current: `int x, y` used for both absolute screen coords and relative widget coords
-  - Proposal: Introduce `absolute_point` and `relative_point` types for compile-time safety
-  - Impact:
-    - Prevents coordinate mixing bugs at compile time
-    - Self-documenting API (clear intent)
-    - Requires touching ~100+ call sites
-  - Status: DEFER to v2.0 - requires breaking API changes
-  - Alternative: Use `get_absolute_bounds()` helper (already implemented) for now
-
 ### Low-Value Improvements (Skip for now)
 
 - [ ] **Refactor layout tests to use fixtures**
@@ -231,6 +218,36 @@ Based on `docs/unittest-review.md` recommendations:
 ---
 
 ## ✅ Recently Completed
+
+### Strong Coordinate Types (November 2025)
+
+- [x] **Strong types for coordinate systems** - 2025-11-11
+  - **Status**: ✅ COMPLETE - Phase 1 & 2 done, all tests passing
+  - **Motivation**: Bug fix on 2025-11-10 revealed mixing of absolute vs relative coordinates
+  - **Implementation**: Phantom type tags wrapping Backend geometry types
+  - **Components**:
+    - `absolute_rect<Backend>`, `relative_rect<Backend>` - Type-safe rectangles
+    - `absolute_point<Backend>`, `relative_point<Backend>` - Type-safe points
+    - `to_absolute()`, `to_relative()` - Explicit conversion functions
+    - Deleted constructors prevent implicit conversions between coordinate systems
+  - **Files**:
+    - `include/onyxui/geometry/coordinates.hh` (245 lines)
+    - `include/onyxui/geometry/coordinates.inl` (implementation)
+    - `docs/STRONG_COORDINATE_TYPES_DESIGN.md` (design document)
+  - **Usage**: 73 occurrences across 13 files
+    - `element.hh`, `layer_manager.hh`, all layout headers
+    - `window.inl`, `scrollbar.hh`, `scrollable.hh`, etc.
+  - **Migration**: Clean break v2.0 release (no deprecated APIs)
+  - **Commits**:
+    - `cf29b4e` - Phase 1 implementation
+    - `86f5d1e` - Phase 2 unit test migration
+    - 10+ follow-up fixes for complete migration
+  - **Impact**:
+    - ✅ Prevents coordinate mixing bugs at compile time
+    - ✅ Self-documenting API (clear coordinate system intent)
+    - ✅ Zero-cost abstraction (optimizes away)
+    - ✅ Better IDE support and error messages
+  - **Tests**: All 1334 tests passing after migration
 
 ### MVC System Implementation (November 2025)
 
