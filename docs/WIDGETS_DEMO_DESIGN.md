@@ -1307,33 +1307,117 @@ All implementation patterns are proven and working in the existing demo:
 
 ---
 
+## Implementation Progress
+
+### Phase 1: Foundation & Main Window ✅ COMPLETED
+
+**Status**: All Phase 1 tasks completed successfully!
+
+**Completed Tasks**:
+
+1. ✅ **Basic structure created** (Commit: 44de5c7):
+   - `examples/widgets_demo/main.cc` - Entry point with event loop (69 lines)
+   - `examples/widgets_demo/widgets_demo.hh` - Main application class (478 lines)
+   - `examples/widgets_demo/CMakeLists.txt` - Build configuration
+   - Menu bar with File, Windows, Theme, Help menus
+   - Status bar with theme name, FPS placeholder, widget count
+   - Tab widget with 3 tab placeholders
+
+2. ✅ **Tab 1: All Widgets** (Commit: 6439fc1):
+   - `tabs/tab_all_widgets.hh` - Complete widget gallery (226 lines)
+   - Demonstrates all widget types in scrollable group_box sections
+   - Basic Widgets: button (normal/disabled/mnemonic), label (alignments), spacer, spring
+   - Containers: panel, vbox/hbox, grid, nested group_box
+   - Input Widgets: line_edit, checkbox, radio_button, slider, progress_bar, combo_box
+   - Actions: screenshot button, theme editor button, MVC demo button
+   - All widgets interactive with working signal connections
+
+3. ✅ **Tab 2: Layout & Scrolling** (Commit: 6680933):
+   - `tabs/tab_layout_scrolling.hh` - Layout and scrolling demonstrations (175 lines)
+   - Layout section: two-pass algorithm, horizontal/vertical alignment, padding, spacer vs spring, nested layouts
+   - Scrolling section: architecture overview, keyboard navigation, large content demo (100 items)
+   - Tips section: practical scrolling advice
+
+4. ✅ **Tab 3: Events & Interaction** (Commit: 963cf85):
+   - `tabs/tab_events_interaction.hh` - Event system and focus management (254 lines)
+   - Event system: three-phase routing, mouse/keyboard events, interactive click counter
+   - Focus management: tab navigation demo, programmatic focus control buttons
+   - Hotkeys: application hotkeys list, mnemonic navigation with Alt+Letter demos
+   - Signal/slot pattern: decoupled communication examples
+   - Tips & best practices: event handling, focus management, hotkey usage
+
+5. ✅ **Screenshot functionality**:
+   - `widgets_demo::set_renderer()` - Stores renderer pointer from ui_handle
+   - `widgets_demo::take_screenshot()` - Generates timestamped screenshots
+   - Registered hotkeys: F9 and Ctrl+S
+   - Screenshot button in Tab 1: All Widgets
+   - Menu item in File menu
+
+6. ✅ **Hotkeys registered**:
+   - F9 / Ctrl+S - Take Screenshot (working)
+   - Ctrl+M - MVC Demo Window (placeholder)
+   - Ctrl+T - Theme Editor Window (placeholder)
+   - F12 - Debug Tools Window (placeholder)
+   - Alt+F4 - Exit Application (working)
+   - Ctrl+Tab / Ctrl+Shift+Tab - Tab navigation (automatic)
+   - All actions stored in `m_actions` vector for lifetime management
+
+7. ✅ **Theme switching**:
+   - Theme menu populated with all registered themes
+   - `switch_to_theme_index()` applies theme globally
+   - Current theme: "NU8" (Norton Blue) as default
+
+**Technical Achievements**:
+- Fixed focus API: Uses `ui_services<Backend>::input()->set_focus()` instead of protected `set_focus(bool)`
+- Proper signal/slot usage: Interactive demos with lambdas capturing widget pointers
+- MVC integration: combo_box with list_model for dynamic dropdown
+- Correct widget APIs: Learned slider_orientation, progress_bar constructor, grid layout
+- Clean code: Each tab in separate header, namespace `widgets_demo_tabs::`
+
+**Build Status**:
+- ✅ Compiles successfully with zero warnings
+- ✅ All 3 tabs functional and scrollable
+- ✅ All interactive features working (buttons, signals, focus, etc.)
+
+**Git History**:
+```
+963cf85 feat(widgets_demo): implement Tab 3 - Events & Interaction
+6680933 feat(widgets_demo): implement Tab 2 - Layout & Scrolling
+6439fc1 feat(widgets_demo): implement Tab 1 - All Widgets
+44de5c7 feat(widgets_demo): implement Phase 1 foundation
+```
+
+---
+
 ## Next Steps
 
-All high-priority implementation questions have been answered with working patterns from the existing codebase. Ready to begin Phase 1 implementation:
+### Phase 2: Windows & MVC (Current)
 
-### Phase 1: Foundation & Main Window
-1. **Create basic structure**:
-   - `examples/widgets_demo/main.cc` (based on `examples/demo.cc`)
-   - `examples/widgets_demo/widgets_demo.hh` (based on `examples/demo.hh`)
-   - `examples/widgets_demo/CMakeLists.txt`
+**Ready to implement**:
 
-2. **Implement 3 tabs**:
-   - `tabs/tab_all_widgets.hh` - Complete widget gallery
-   - `tabs/tab_layout_scrolling.hh` - Layout & scrolling demos
-   - `tabs/tab_events_interaction.hh` - Event system demos
+1. **Window management helper** (from `demo_windows.hh`):
+   - Create `examples/widgets_demo/windows/window_registry.hh`
+   - Implement `register_window()` helper function
+   - Global storage for active windows with auto-cleanup on close
 
-3. **Implement window spawning**:
-   - `windows/mvc_demo_window.hh` - MVC pattern demonstration
-   - Use pattern from `demo_windows.hh` with `register_window()` helper
+2. **MVC Demo Window** (Ctrl+M):
+   - `windows/mvc_demo_window.hh` - Inherit from `main_window<Backend>`
+   - Create list_model with sample data
+   - Add list_view (when available) or combo_box demo
+   - Add/Remove buttons for dynamic model updates
+   - Selection display label
+   - Use `register_window()` for lifetime management
+   - Call `win->show()` to display
 
-4. **Register hotkeys**:
-   - Ctrl+M (MVC Demo), Ctrl+T (Theme Editor), F12 (Debug Tools)
-   - F9 / Ctrl+S (Screenshot)
-   - Use pattern from `demo_actions.hh`
+3. **Modal/Modeless Dialog Examples**:
+   - `windows/modal_dialog_example.hh` - Uses `win->show_modal()`
+   - `windows/modeless_dialog_example.hh` - Uses `win->show()`
+   - Demonstrate focus trapping in modal
+   - Show independent focus in modeless
 
-5. **Add screenshot functionality**:
-   - Set renderer pointer from `ui_handle` in main.cc
-   - Add screenshot button in Tab 1: All Widgets
-   - Implement `take_screenshot()` method
+4. **Update widgets_demo.hh**:
+   - Implement `show_mvc_demo()` to spawn window
+   - Implement `show_modal_dialog()` and `show_modeless_dialog()`
+   - Add window registry integration
 
 All patterns are proven and working in the existing demo!
