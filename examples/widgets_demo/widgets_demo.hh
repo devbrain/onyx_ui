@@ -27,6 +27,11 @@
 // Tab implementations
 #include "tabs/tab_all_widgets.hh"
 #include "tabs/tab_layout_scrolling.hh"
+#include "tabs/tab_events_interaction.hh"
+
+// Window implementations
+#include "windows/window_registry.hh"
+#include "windows/mvc_demo_window.hh"
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -162,8 +167,14 @@ public:
      * @brief Show MVC Demo window (Ctrl+M)
      */
     void show_mvc_demo() {
-        std::cout << "MVC Demo window - Coming soon!\n";
-        // TODO: Implement mvc_demo_window
+        // Create MVC demo window (factory function)
+        auto win = widgets_demo_windows::create_mvc_demo_window<Backend>();
+
+        // Register for lifetime management
+        widgets_demo_windows::register_window(win);
+
+        // Show window
+        win->show();
     }
 
     /**
@@ -396,11 +407,8 @@ private:
         auto tab2 = widgets_demo_tabs::create_tab_layout_scrolling<Backend>();
         m_tab_widget->add_tab(std::move(tab2), "Layout & Scrolling");
 
-        // Tab 3: Events & Interaction (placeholder)
-        auto tab3 = std::make_unique<onyxui::panel<Backend>>();
-        auto* tab3_label = tab3->template emplace_child<onyxui::label>("Tab 3: Events & Interaction - Coming soon!");
-        tab3_label->set_horizontal_align(onyxui::horizontal_alignment::center);
-        tab3_label->set_vertical_align(onyxui::vertical_alignment::center);
+        // Tab 3: Events & Interaction (complete implementation)
+        auto tab3 = widgets_demo_tabs::create_tab_events_interaction<Backend>();
         m_tab_widget->add_tab(std::move(tab3), "Events & Interaction");
 
         // Set default tab
