@@ -275,6 +275,16 @@ private:
         });
         hotkeys->register_action(quit_action);
         m_actions.push_back(quit_action);
+
+        // Quit action (Alt+Q) - Borland/DOS style
+        auto quit_action_alt = std::make_shared<onyxui::action<Backend>>();
+        quit_action_alt->set_text("Quit");
+        quit_action_alt->set_shortcut('q', onyxui::key_modifier::alt);  // Alt+Q
+        quit_action_alt->triggered.connect([this]() {
+            quit();
+        });
+        hotkeys->register_action(quit_action_alt);
+        m_actions.push_back(quit_action_alt);
     }
 
     /**
