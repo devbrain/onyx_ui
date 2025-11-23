@@ -293,6 +293,354 @@ The status bar appears at the **bottom** of the window (traditional placement):
 
 ## Implementation Details
 
+### Critical Implementation Patterns
+
+This section provides concrete implementation patterns discovered from the existing codebase. All patterns are proven and working in the current demo.
+
+#### Window Spawning Pattern
+
+**Found in**: `examples/demo_windows.hh`
+
+**Complete Pattern**:
+```cpp
+// 1. Create window as shared_ptr
+auto win = std::make_shared<window<Backend>>(title, flags, parent);
+
+// 2. Set content
+auto content = std::make_unique<vbox<Backend>>(spacing);
+// ... add widgets to content ...
+win->set_content(std::move(content));
+
+// 3. Set size and position
+win->set_size(width, height);
+win->set_position(x, y);
+
+// 4. Register window to keep it alive
+register_window(win);
+
+// 5. Show window (auto-registers with layer_manager)
+win->show();
+```
+
+**Window Lifetime Management** (`demo_windows.hh:24-44`):
+```cpp
+// Global storage for active windows
+template<UIBackend Backend>
+inline std::vector<std::shared_ptr<window<Backend>>>& get_active_windows() {
+    static std::vector<std::shared_ptr<window<Backend>>> windows;
+    return windows;
+}
+
+// Helper to register a window and auto-cleanup on close
+template<UIBackend Backend>
+void register_window(std::shared_ptr<window<Backend>> win) {
+    auto& windows = get_active_windows<Backend>();
+    windows.push_back(win);
+
+    // Auto-cleanup when window closes
+    win->closed.connect([win]() {
+        auto& windows = get_active_windows<Backend>();
+        auto it = std::find(windows.begin(), windows.end(), win);
+        if (it != windows.end()) {
+            windows.erase(it);
+        }
+    });
+}
+```
+
+**How window::show() works internally** (`window.inl:512-540`):
+```cpp
+void window<Backend>::show() {
+    auto* layers = ui_services<Backend>::layers();
+
+    if (layers) {
+        // Create non-owning shared_ptr with no-op deleter
+        m_layer_handle = std::shared_ptr<ui_element<Backend>>(
+            static_cast<ui_element<Backend>*>(this),
+            [](ui_element<Backend>*) {} // No-op deleter
+        );
+
+        // Show as window layer (z=150)
+        m_layer_id = layers->add_layer(layer_type::window, m_layer_handle);
+
+        // Set layer bounds to window's position/size
+        const auto window_bounds = this->bounds().get();
+        layers->set_layer_bounds(m_layer_id, window_bounds);
+    }
+
+    this->set_visible(true);
+}
+```
+
+**For widgets_demo**:
+```cpp
+// In widgets_demo class:
+void show_mvc_demo() {
+    auto win = std::make_shared<mvc_demo_window<Backend>>();
+    win->set_size(50, 25);
+    win->set_position(10, 5);
+
+    // Register to keep alive
+    demo_windows::register_window(std::static_pointer_cast<window<Backend>>(win));
+
+    // Show (automatically registers with layer_manager)
+    win->show();
+}
+```
+
+**Key Points**:
+- Use `shared_ptr` for window lifetime management
+- Call `win->show()` which auto-registers with `layer_manager`
+- Use `register_window()` helper for auto-cleanup on close
+- `window::closed` signal used for cleanup
+
+#### Screenshot Implementation
+
+**Found in**: `examples/demo.hh:92-136`
+
+**Complete Pattern**:
+```cpp
+class main_widget : public main_window<Backend> {
+public:
+    // Set renderer from main.cc
+    void set_renderer(typename Backend::renderer_type* renderer) {
+        m_renderer = renderer;
+    }
+
+    // Take screenshot
+    void take_screenshot(const std::string& filename = "") {
+        if (!m_renderer) {
+            std::cerr << "Cannot take screenshot: renderer not set\n";
+            return;
+        }
+
+        // Generate filename with timestamp if not provided
+        std::string output_file = filename;
+        if (output_file.empty()) {
+            auto now = std::chrono::system_clock::now();
+            auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
+                now.time_since_epoch()
+            ).count();
+            output_file = "screenshot_" + std::to_string(timestamp) + ".txt";
+        }
+
+        // Take screenshot
+        std::ofstream file(output_file);
+        if (!file) {
+            std::cerr << "Failed to open file: " << output_file << "\n";
+            return;
+        }
+
+        m_renderer->take_screenshot(file);
+        std::cout << "Screenshot saved to: " << output_file << "\n";
+    }
+
+private:
+    typename Backend::renderer_type* m_renderer = nullptr;
+};
+```
+
+**How to set from main.cc** (`examples/demo.cc:14-17`):
+```cpp
+auto widget = std::make_unique<main_widget<conio_backend>>();
+auto* widget_ptr = widget.get();
+ui_handle<conio_backend> ui(std::move(widget));
+
+// Give widget access to renderer for screenshot functionality
+widget_ptr->set_renderer(&ui.renderer());
+```
+
+**Key Points**:
+- Renderer is passed from `ui_handle` to main widget
+- Use `ui.renderer()` to get renderer reference
+- Store as `typename Backend::renderer_type* m_renderer`
+- Screenshot filename: `screenshot_<timestamp>.txt`
+- Multi-window: Screenshots capture entire screen (all windows)
+
+#### Tab Widget API
+
+**Found in**: `include/onyxui/widgets/containers/tab_widget.hh`
+
+**Complete API**:
+```cpp
+auto tabs = std::make_unique<tab_widget<Backend>>();
+
+// Add tabs with content and label
+auto page1 = std::make_unique<label<Backend>>("Page 1 Content");
+auto page2 = std::make_unique<label<Backend>>("Page 2 Content");
+
+tabs->add_tab(std::move(page1), "First");
+tabs->add_tab(std::move(page2), "Second");
+
+// Listen for tab changes
+tabs->current_changed.connect([](int idx) {
+    std::cout << "Switched to tab " << idx << "\n";
+});
+
+// Set current tab
+tabs->set_current_index(0);  // Show first tab
+```
+
+**For widgets_demo**:
+```cpp
+// In build_ui():
+auto tabs = central_widget->emplace_child<tab_widget>();
+
+// Create tab content
+auto tab1 = create_all_widgets_tab();
+auto tab2 = create_layout_scrolling_tab();
+auto tab3 = create_events_interaction_tab();
+
+// Add tabs
+tabs->add_tab(std::move(tab1), "All Widgets");
+tabs->add_tab(std::move(tab2), "Layout & Scrolling");
+tabs->add_tab(std::move(tab3), "Events & Interaction");
+
+// Set default tab
+tabs->set_current_index(0);
+```
+
+**Keyboard Navigation** (built-in):
+- Ctrl+Tab - Next tab
+- Ctrl+Shift+Tab - Previous tab
+- Ctrl+W - Close tab (if close buttons enabled)
+
+**Key Points**:
+- Use `tab_widget<Backend>`
+- Call `add_tab(content, label)` for each tab
+- `current_changed` signal for tab switches
+- `set_current_index(idx)` to programmatically switch tabs
+- Keyboard navigation works automatically
+
+#### Hotkey Registration
+
+**Found in**: `examples/demo_actions.hh`
+
+**Complete Pattern**:
+```cpp
+// 1. Get hotkey manager from service locator
+auto* hotkeys = ui_services<Backend>::hotkeys();
+if (!hotkeys) {
+    return;
+}
+
+// 2. Create action with shortcut
+auto action = std::make_shared<action<Backend>>();
+action->set_text("Action Name");
+action->set_shortcut('m', key_modifier::ctrl);  // Ctrl+M
+
+// 3. Connect to handler
+action->triggered.connect([this]() {
+    show_mvc_demo();
+});
+
+// 4. Register action
+hotkeys->register_action(action);
+
+// 5. IMPORTANT: Keep action alive!
+m_actions.push_back(action);  // Store in member variable
+```
+
+**Function Key Shortcuts** (`demo_actions.hh:79-87`):
+```cpp
+// F12 shortcut
+auto debug_action = std::make_shared<action<Backend>>();
+debug_action->set_text("Debug Tools");
+debug_action->set_shortcut_f(12);  // F12
+debug_action->triggered.connect([this]() {
+    show_debug_tools();
+});
+hotkeys->register_action(debug_action);
+m_actions.push_back(debug_action);
+
+// Alt+F4 shortcut
+auto quit_action = std::make_shared<action<Backend>>();
+quit_action->set_text("Quit");
+quit_action->set_shortcut_f(4, key_modifier::alt);  // Alt+F4
+quit_action->triggered.connect([widget]() {
+    widget->quit();
+});
+hotkeys->register_action(quit_action);
+m_actions.push_back(quit_action);
+```
+
+**For widgets_demo, register these hotkeys**:
+```cpp
+void setup_hotkeys() {
+    auto* hotkeys = ui_services<Backend>::hotkeys();
+    if (!hotkeys) return;
+
+    // Ctrl+M - MVC Demo
+    auto mvc_action = std::make_shared<action<Backend>>();
+    mvc_action->set_text("MVC Demo");
+    mvc_action->set_shortcut('m', key_modifier::ctrl);
+    mvc_action->triggered.connect([this]() {
+        show_mvc_demo();
+    });
+    hotkeys->register_action(mvc_action);
+    m_actions.push_back(mvc_action);
+
+    // Ctrl+T - Theme Editor
+    auto theme_action = std::make_shared<action<Backend>>();
+    theme_action->set_text("Theme Editor");
+    theme_action->set_shortcut('t', key_modifier::ctrl);
+    theme_action->triggered.connect([this]() {
+        show_theme_editor();
+    });
+    hotkeys->register_action(theme_action);
+    m_actions.push_back(theme_action);
+
+    // F12 - Debug Tools
+    auto debug_action = std::make_shared<action<Backend>>();
+    debug_action->set_text("Debug Tools");
+    debug_action->set_shortcut_f(12);  // F12
+    debug_action->triggered.connect([this]() {
+        show_debug_tools();
+    });
+    hotkeys->register_action(debug_action);
+    m_actions.push_back(debug_action);
+
+    // F9 - Screenshot
+    auto screenshot_action = std::make_shared<action<Backend>>();
+    screenshot_action->set_text("Screenshot");
+    screenshot_action->set_shortcut_f(9);  // F9
+    screenshot_action->triggered.connect([this]() {
+        take_screenshot();
+    });
+    hotkeys->register_action(screenshot_action);
+    m_actions.push_back(screenshot_action);
+
+    // Ctrl+S - Screenshot (alternative)
+    auto screenshot_action2 = std::make_shared<action<Backend>>();
+    screenshot_action2->set_text("Save Screenshot");
+    screenshot_action2->set_shortcut('s', key_modifier::ctrl);
+    screenshot_action2->triggered.connect([this]() {
+        take_screenshot();
+    });
+    hotkeys->register_action(screenshot_action2);
+    m_actions.push_back(screenshot_action2);
+}
+```
+
+**Shortcut Methods**:
+- `set_shortcut(char, modifier)` - Character keys (Ctrl+M, Alt+F)
+- `set_shortcut_f(int)` - Function keys (F9, F12)
+- `set_shortcut_f(int, modifier)` - Modified function keys (Alt+F4)
+
+**Key Modifiers**:
+- `key_modifier::none` - No modifier
+- `key_modifier::ctrl` - Ctrl key
+- `key_modifier::alt` - Alt key
+- `key_modifier::shift` - Shift key
+
+**Key Points**:
+- Get hotkey manager from `ui_services<Backend>::hotkeys()`
+- Create `action<Backend>` with `set_shortcut()` or `set_shortcut_f()`
+- Connect `triggered` signal to handler
+- Register with `hotkeys->register_action(action)`
+- **CRITICAL**: Keep action alive in member variable (`std::vector<std::shared_ptr<action<Backend>>>`)
+- Hotkeys are **global** by default (work from any window)
+
 ### File Structure
 
 ```
@@ -901,15 +1249,91 @@ struct demo_config {
 
 ---
 
+## Implementation Checklist
+
+### Window Spawning ✅
+- [x] Use `shared_ptr<window<Backend>>` for window instances
+- [x] Call `win->show()` to display (auto-registers with layer_manager)
+- [x] Use `register_window()` helper for lifetime management
+- [x] Connect to `closed` signal for cleanup
+- [x] Pattern found in `examples/demo_windows.hh`
+
+### Screenshot ✅
+- [x] Store `typename Backend::renderer_type* m_renderer` member
+- [x] Set from `ui_handle::renderer()` in main.cc
+- [x] Use timestamp filename: `screenshot_<timestamp>.txt`
+- [x] Open `std::ofstream` and call `m_renderer->take_screenshot(file)`
+- [x] Pattern found in `examples/demo.hh:92-136`
+
+### Tab Widget ✅
+- [x] Create `tab_widget<Backend>` in central widget
+- [x] Call `add_tab(content, label)` for each tab
+- [x] Use `current_changed` signal for tab switches
+- [x] Ctrl+Tab / Ctrl+Shift+Tab work automatically
+- [x] API found in `include/onyxui/widgets/containers/tab_widget.hh`
+
+### Hotkeys ✅
+- [x] Get `ui_services<Backend>::hotkeys()`
+- [x] Create `action<Backend>` for each hotkey
+- [x] Use `set_shortcut()` or `set_shortcut_f()`
+- [x] Connect `triggered` signal
+- [x] Call `hotkeys->register_action()`
+- [x] Store actions in `std::vector<std::shared_ptr<action<Backend>>> m_actions`
+- [x] Pattern found in `examples/demo_actions.hh`
+
+### Reference Files
+
+All implementation patterns are proven and working in the existing demo:
+
+- **Window spawning**: `examples/demo_windows.hh` (complete pattern with lifetime management)
+- **Screenshot**: `examples/demo.hh:92-136` (renderer access and screenshot method)
+- **Tab widget**: `include/onyxui/widgets/containers/tab_widget.hh` (full API)
+- **Hotkeys**: `examples/demo_actions.hh` (action registration pattern)
+- **Entry point**: `examples/demo.cc` (main.cc pattern)
+- **Window::show()**: `include/onyxui/widgets/window/window.inl:512-540` (internal implementation)
+- **Window::show_modal()**: `include/onyxui/widgets/window/window.inl:543-568` (modal dialog pattern)
+
+---
+
 ## Related Documents
 
 - `docs/CLAUDE/ARCHITECTURE.md` - Framework architecture
 - `docs/CLAUDE/THEMING.md` - Theming system
 - `docs/scrolling_guide.md` - Scrolling system
 - `docs/MVC_DESIGN.md` - MVC system design
-- `examples/demo.cc` - Current basic demo
+- `docs/WIDGETS_DEMO_OPEN_QUESTIONS.md` - Open questions (answered)
+- `examples/demo.cc` - Current basic demo (reference implementation)
 - `CLAUDE.md` - Development guidelines
 
 ---
 
-**Next Steps**: Begin Phase 1 implementation with foundation structure and basic tabs.
+## Next Steps
+
+All high-priority implementation questions have been answered with working patterns from the existing codebase. Ready to begin Phase 1 implementation:
+
+### Phase 1: Foundation & Main Window
+1. **Create basic structure**:
+   - `examples/widgets_demo/main.cc` (based on `examples/demo.cc`)
+   - `examples/widgets_demo/widgets_demo.hh` (based on `examples/demo.hh`)
+   - `examples/widgets_demo/CMakeLists.txt`
+
+2. **Implement 3 tabs**:
+   - `tabs/tab_all_widgets.hh` - Complete widget gallery
+   - `tabs/tab_layout_scrolling.hh` - Layout & scrolling demos
+   - `tabs/tab_events_interaction.hh` - Event system demos
+
+3. **Implement window spawning**:
+   - `windows/mvc_demo_window.hh` - MVC pattern demonstration
+   - Use pattern from `demo_windows.hh` with `register_window()` helper
+
+4. **Register hotkeys**:
+   - Ctrl+M (MVC Demo), Ctrl+T (Theme Editor), F12 (Debug Tools)
+   - F9 / Ctrl+S (Screenshot)
+   - Use pattern from `demo_actions.hh`
+
+5. **Add screenshot functionality**:
+   - Set renderer pointer from `ui_handle` in main.cc
+   - Add screenshot button in Tab 1: All Widgets
+   - Implement `take_screenshot()` method
+
+All patterns are proven and working in the existing demo!
