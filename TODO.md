@@ -35,6 +35,53 @@ This document tracks non-implemented features, placeholders, and future enhancem
   - Current: Title label doesn't expand to fill available space
   - Blocked: Waiting for flex/stretch property in layout system
 
+### Input Widgets
+
+- [ ] **line_edit clipboard integration** - Copy/paste support
+  - Location: `include/onyxui/widgets/input/line_edit.hh:337, 347`
+  - Status: TODO comments (2 occurrences)
+  - Use cases: Ctrl+C, Ctrl+V, Ctrl+X operations
+  - Dependencies: Platform-specific clipboard access
+
+### MVC System Enhancements
+
+- [ ] **MVC delegate background rendering** - Background handled by view
+  - Location: `include/onyxui/mvc/delegates/default_item_delegate.hh:111`
+  - Status: TODO comment
+  - Current: Delegates render backgrounds directly
+  - Improvement: View should handle backgrounds for consistency
+
+- [ ] **MVC delegate focus rectangle** - Direct renderer access needed
+  - Location: `include/onyxui/mvc/delegates/default_item_delegate.hh:153`
+  - Status: TODO comment
+  - Current: Limited focus indicator support
+  - Improvement: Proper focus rectangle rendering
+
+- [ ] **MVC list/table theme styling** - Dedicated theme section
+  - Location: `include/onyxui/mvc/delegates/default_item_delegate.hh:223`
+  - Status: TODO comment
+  - Current: Uses generic selection colors
+  - Improvement: Add `theme.list.selection_background` etc.
+
+- [ ] **MVC virtual scrolling** - Performance optimization
+  - Location: `include/onyxui/mvc/views/list_view.hh:224`
+  - Status: TODO comment
+  - Current: Renders all items
+  - Improvement: Skip items outside visible region
+  - Use case: Large datasets (100k+ items)
+
+- [ ] **MVC double-click handling** - Enhanced mouse interaction
+  - Location: `include/onyxui/mvc/views/abstract_item_view.hh:365`
+  - Status: TODO comment
+  - Current: Single-click only
+  - Dependencies: Event system double-click support
+
+- [ ] **MVC extended selection modifiers** - Advanced selection
+  - Location: `include/onyxui/mvc/views/abstract_item_view.hh:444`
+  - Status: TODO comment
+  - Current: Basic selection only
+  - Improvement: Ctrl/Shift modifiers for range/multi-selection
+
 ---
 
 ## 🟢 Low Priority (Nice to Have)
@@ -202,6 +249,12 @@ Based on `docs/unittest-review.md` recommendations:
   - Location: `unittest/widgets/test_scrollbar_visibility.cc:74`
   - Status: TODO - enhance test_canvas to render basic rectangles
   - Current: Visual testing limited
+
+- [ ] **scroll_view keyboard event tests**
+  - Location: `unittest/widgets/test_scroll_view_keyboard.cc:12`
+  - Status: TODO - add keyboard event tests
+  - Dependencies: text_view properly forwarding events
+  - Current: Keyboard navigation tests missing
 
 ---
 
