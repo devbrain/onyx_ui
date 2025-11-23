@@ -338,14 +338,14 @@ namespace onyxui {
                 });
 
                 // Expand bounds to include potential shadow area
-                // Shadows typically have offset_x=1-2, offset_y=1-2
-                // Expand by 2 pixels in all directions to ensure shadow is cleared
+                // Shadows typically have offset_x=1-2, offset_y=1-2 (in backend-specific units)
+                // Expand by 2 units (characters for conio, pixels for SDL) to ensure shadow is cleared
                 int x = rect_utils::get_x(bounds_to_track);
                 int y = rect_utils::get_y(bounds_to_track);
                 int w = rect_utils::get_width(bounds_to_track);
                 int h = rect_utils::get_height(bounds_to_track);
 
-                // Expand: left/top by 0 (shadow is to right/bottom), right/bottom by 2
+                // Expand: left/top by 0 (shadow is to right/bottom), right/bottom by 2 units
                 rect_utils::set_bounds(bounds_to_track, x, y, w + 2, h + 2);
 
                 m_removed_layer_dirty_regions.push_back(bounds_to_track);
