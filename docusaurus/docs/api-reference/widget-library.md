@@ -39,6 +39,7 @@ These widgets allow users to enter and edit data.
 -   **`radio_button`:** Mutually exclusive selection control with button group management.
 -   **`slider`:** Numeric range input with keyboard and mouse support, horizontal/vertical orientation.
 -   **`progress_bar`:** Visual progress indicator with customizable range and text overlay.
+-   **`combo_box`:** MVC-based dropdown selection widget with keyboard navigation (Phase 2 complete).
 
 ### Spacing
 
@@ -54,6 +55,15 @@ These widgets provide comprehensive scrolling functionality with three levels of
 -   **`scroll_view`:** High-level convenience wrapper combining scrollable, scrollbars, and controller (recommended).
 -   **`scrollable`:** Core scrolling logic and viewport management.
 -   **`scrollbar`:** Visual scrollbar widget with mouse interaction.
+
+### MVC Widgets
+
+These widgets use the Model-View-Controller pattern for data-driven UIs with automatic updates.
+
+-   **`list_view`:** Scrollable list view with model integration, multiple selection modes, and custom delegates.
+-   **`combo_box`:** Dropdown selection widget with model binding and keyboard navigation.
+
+See the **[MVC System Guide](../guides/mvc-system.md)** for complete documentation on models, views, delegates, and selection.
 
 ### Advanced Widgets
 
@@ -76,6 +86,7 @@ For more detailed information on each widget, including its API and usage exampl
 -   **[Radio Button](./widgets/radio-button.md)** - Mutually exclusive selection control
 -   **[Slider](./widgets/slider.md)** - Numeric range input with keyboard/mouse support
 -   **[Progress Bar](./widgets/progress-bar.md)** - Visual progress indicator
+-   **[Combo Box](./widgets/combo-box.md)** - MVC dropdown selection widget
 
 **Layout Containers:**
 -   **[Panel](./widgets/panel.md)**
@@ -86,3 +97,8 @@ For more detailed information on each widget, including its API and usage exampl
 -   **[scroll_view](./widgets/scroll-view.md)**
 -   **[scrollable](./widgets/scrollable.md)**
 -   **[scrollbar](./widgets/scrollbar.md)**
+
+**MVC Widgets:**
+-   **[List View](./widgets/list-view.md)** - Scrollable list with model integration
+-   **[Combo Box](./widgets/combo-box.md)** - Dropdown selection widget
+-   See also: **[MVC System Guide](../guides/mvc-system.md)**
