@@ -32,6 +32,8 @@
 // Window implementations
 #include "windows/window_registry.hh"
 #include "windows/mvc_demo_window.hh"
+#include "windows/modal_dialog_example.hh"
+#include "windows/modeless_dialog_example.hh"
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -437,16 +439,32 @@ private:
      * @brief Show Modal Dialog Example
      */
     void show_modal_dialog() {
-        std::cout << "Modal Dialog Example - Coming soon!\n";
-        // TODO: Implement modal dialog
+        // Create modal dialog
+        auto dialog = widgets_demo_windows::create_modal_dialog<Backend>(
+            "This is a modal dialog!\n\n"
+            "Try clicking the main window - it's blocked.\n"
+            "Focus is trapped within this dialog."
+        );
+
+        // Register for lifetime management
+        widgets_demo_windows::register_window(dialog);
+
+        // Show as modal (blocks other windows)
+        dialog->show_modal();
     }
 
     /**
      * @brief Show Modeless Dialog Example
      */
     void show_modeless_dialog() {
-        std::cout << "Modeless Dialog Example - Coming soon!\n";
-        // TODO: Implement modeless dialog
+        // Create modeless dialog
+        auto dialog = widgets_demo_windows::create_modeless_dialog<Backend>();
+
+        // Register for lifetime management
+        widgets_demo_windows::register_window(dialog);
+
+        // Show normally (non-blocking)
+        dialog->show();
     }
 
     /**
