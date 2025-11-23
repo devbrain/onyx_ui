@@ -229,52 +229,52 @@ private:
         hotkeys->register_action(screenshot_f9);
         m_actions.push_back(screenshot_f9);
 
-        auto screenshot_ctrl_s = std::make_shared<onyxui::action<Backend>>();
-        screenshot_ctrl_s->set_text("Save Screenshot");
-        screenshot_ctrl_s->set_shortcut('s', onyxui::key_modifier::ctrl);  // Ctrl+S
-        screenshot_ctrl_s->triggered.connect([this]() {
+        m_screenshot_action = std::make_shared<onyxui::action<Backend>>();
+        m_screenshot_action->set_text("Save Screenshot");
+        m_screenshot_action->set_shortcut('s', onyxui::key_modifier::ctrl);  // Ctrl+S
+        m_screenshot_action->triggered.connect([this]() {
             take_screenshot();
         });
-        hotkeys->register_action(screenshot_ctrl_s);
-        m_actions.push_back(screenshot_ctrl_s);
+        hotkeys->register_action(m_screenshot_action);
+        m_actions.push_back(m_screenshot_action);
 
         // Window spawning actions
-        auto mvc_action = std::make_shared<onyxui::action<Backend>>();
-        mvc_action->set_text("MVC Demo");
-        mvc_action->set_shortcut('m', onyxui::key_modifier::ctrl);  // Ctrl+M
-        mvc_action->triggered.connect([this]() {
+        m_mvc_action = std::make_shared<onyxui::action<Backend>>();
+        m_mvc_action->set_text("MVC Demo");
+        m_mvc_action->set_shortcut('m', onyxui::key_modifier::ctrl);  // Ctrl+M
+        m_mvc_action->triggered.connect([this]() {
             show_mvc_demo();
         });
-        hotkeys->register_action(mvc_action);
-        m_actions.push_back(mvc_action);
+        hotkeys->register_action(m_mvc_action);
+        m_actions.push_back(m_mvc_action);
 
-        auto theme_editor_action = std::make_shared<onyxui::action<Backend>>();
-        theme_editor_action->set_text("Theme Editor");
-        theme_editor_action->set_shortcut('t', onyxui::key_modifier::ctrl);  // Ctrl+T
-        theme_editor_action->triggered.connect([this]() {
+        m_theme_editor_action = std::make_shared<onyxui::action<Backend>>();
+        m_theme_editor_action->set_text("Theme Editor");
+        m_theme_editor_action->set_shortcut('t', onyxui::key_modifier::ctrl);  // Ctrl+T
+        m_theme_editor_action->triggered.connect([this]() {
             show_theme_editor();
         });
-        hotkeys->register_action(theme_editor_action);
-        m_actions.push_back(theme_editor_action);
+        hotkeys->register_action(m_theme_editor_action);
+        m_actions.push_back(m_theme_editor_action);
 
-        auto debug_tools_action = std::make_shared<onyxui::action<Backend>>();
-        debug_tools_action->set_text("Debug Tools");
-        debug_tools_action->set_shortcut_f(12);  // F12
-        debug_tools_action->triggered.connect([this]() {
+        m_debug_tools_action = std::make_shared<onyxui::action<Backend>>();
+        m_debug_tools_action->set_text("Debug Tools");
+        m_debug_tools_action->set_shortcut_f(12);  // F12
+        m_debug_tools_action->triggered.connect([this]() {
             show_debug_tools();
         });
-        hotkeys->register_action(debug_tools_action);
-        m_actions.push_back(debug_tools_action);
+        hotkeys->register_action(m_debug_tools_action);
+        m_actions.push_back(m_debug_tools_action);
 
         // Quit action (Alt+F4)
-        auto quit_action = std::make_shared<onyxui::action<Backend>>();
-        quit_action->set_text("Quit");
-        quit_action->set_shortcut_f(4, onyxui::key_modifier::alt);  // Alt+F4
-        quit_action->triggered.connect([this]() {
+        m_quit_action = std::make_shared<onyxui::action<Backend>>();
+        m_quit_action->set_text("Quit");
+        m_quit_action->set_shortcut_f(4, onyxui::key_modifier::alt);  // Alt+F4
+        m_quit_action->triggered.connect([this]() {
             quit();
         });
-        hotkeys->register_action(quit_action);
-        m_actions.push_back(quit_action);
+        hotkeys->register_action(m_quit_action);
+        m_actions.push_back(m_quit_action);
 
         // Quit action (Alt+Q) - Borland/DOS style
         auto quit_action_alt = std::make_shared<onyxui::action<Backend>>();
@@ -320,18 +320,14 @@ private:
 
         auto screenshot_item = std::make_unique<onyxui::menu_item<Backend>>("");
         screenshot_item->set_mnemonic_text("&Save Screenshot");
-        screenshot_item->clicked.connect([this]() {
-            take_screenshot();
-        });
+        screenshot_item->set_action(m_screenshot_action);  // Displays "Ctrl+S"
         file_menu->add_item(std::move(screenshot_item));
 
         file_menu->add_separator();
 
         auto exit_item = std::make_unique<onyxui::menu_item<Backend>>("");
         exit_item->set_mnemonic_text("E&xit");
-        exit_item->clicked.connect([this]() {
-            quit();
-        });
+        exit_item->set_action(m_quit_action);  // Displays "Alt+F4"
         file_menu->add_item(std::move(exit_item));
 
         menu_bar_widget->add_menu("&File", std::move(file_menu));
@@ -341,23 +337,17 @@ private:
 
         auto mvc_item = std::make_unique<onyxui::menu_item<Backend>>("");
         mvc_item->set_mnemonic_text("&MVC Demo...");
-        mvc_item->clicked.connect([this]() {
-            show_mvc_demo();
-        });
+        mvc_item->set_action(m_mvc_action);  // Displays "Ctrl+M"
         windows_menu->add_item(std::move(mvc_item));
 
         auto theme_editor_item = std::make_unique<onyxui::menu_item<Backend>>("");
         theme_editor_item->set_mnemonic_text("&Theme Editor...");
-        theme_editor_item->clicked.connect([this]() {
-            show_theme_editor();
-        });
+        theme_editor_item->set_action(m_theme_editor_action);  // Displays "Ctrl+T"
         windows_menu->add_item(std::move(theme_editor_item));
 
         auto debug_item = std::make_unique<onyxui::menu_item<Backend>>("");
         debug_item->set_mnemonic_text("&Debug Tools...");
-        debug_item->clicked.connect([this]() {
-            show_debug_tools();
-        });
+        debug_item->set_action(m_debug_tools_action);  // Displays "F12"
         windows_menu->add_item(std::move(debug_item));
 
         windows_menu->add_separator();
@@ -510,4 +500,11 @@ private:
 
     // Actions - kept alive as shared_ptrs
     std::vector<std::shared_ptr<onyxui::action<Backend>>> m_actions;
+
+    // Specific actions for menu items
+    std::shared_ptr<onyxui::action<Backend>> m_screenshot_action;
+    std::shared_ptr<onyxui::action<Backend>> m_quit_action;
+    std::shared_ptr<onyxui::action<Backend>> m_mvc_action;
+    std::shared_ptr<onyxui::action<Backend>> m_theme_editor_action;
+    std::shared_ptr<onyxui::action<Backend>> m_debug_tools_action;
 };
