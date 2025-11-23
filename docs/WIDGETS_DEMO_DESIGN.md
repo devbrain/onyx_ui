@@ -33,8 +33,6 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Menu Bar: File | Widgets | Windows | Layers | Layout | Theme | ... │
 ├─────────────────────────────────────────────────────────────────────┤
-│ Status Bar: Theme: Norton Blue | FPS: 60 | Focus: button_1         │
-├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │ Tab Widget (Main Content Area)                                │ │
@@ -49,7 +47,12 @@
 │  └───────────────────────────────────────────────────────────────┘ │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
-│ Debug Panel: Bounds: (10,5,80,25) | Measure: 45ms | Draw: 3ms      │
+│ Status: Theme: Norton Blue | FPS: 60 | Focus: btn_ok | Widgets: 247│
+└─────────────────────────────────────────────────────────────────────┘
+
+Optional debug overlay (Ctrl+D to toggle):
+┌─────────────────────────────────────────────────────────────────────┐
+│ Debug: Bounds: (10,5,80,25) | Measure: 45ms | Arrange: 12ms | ...  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -332,6 +335,8 @@
 
 ## Status Bar Layout
 
+The status bar appears at the **bottom** of the window (traditional placement):
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Theme: Norton Blue │ FPS: 60 │ Focus: btn_ok │ Widgets: 247    │
@@ -339,10 +344,16 @@
 ```
 
 **Sections** (left to right):
-1. Current theme name
-2. FPS counter
-3. Currently focused widget ID
-4. Total widget count
+1. **Current theme name** - Shows active theme, updates on theme switch
+2. **FPS counter** - Real-time frame rate (updated every second)
+3. **Currently focused widget** - Widget ID or class name with focus
+4. **Total widget count** - Number of widgets in current window tree
+
+**Live Updates**:
+- Theme name changes when switching themes (Theme menu)
+- FPS updates continuously during rendering
+- Focus widget updates on Tab, mouse click, programmatic focus changes
+- Widget count updates when tabs switch or widgets added/removed
 
 ---
 
@@ -396,7 +407,7 @@ examples/
 
 ```cpp
 main_window
-├── menu_bar
+├── menu_bar (top)
 │   ├── menu (File)
 │   ├── menu (Widgets)
 │   ├── menu (Windows)        // Spawns demo windows
@@ -405,7 +416,8 @@ main_window
 │   ├── menu (Theme)
 │   ├── menu (Debug)
 │   └── menu (Help)
-├── tab_widget (central widget)
+│
+├── tab_widget (central content area)
 │   ├── panel (Tab 1: Basic Widgets)
 │   │   └── scroll_view
 │   │       └── vbox
@@ -424,15 +436,18 @@ main_window
 │   ├── panel (Tab 11: Advanced Features)
 │   ├── panel (Tab 12: Performance Testing)
 │   └── panel (Tab 13: Debug Tools)
-├── status_bar
-│   ├── label (theme)
-│   ├── label (FPS)
-│   ├── label (focus)
-│   └── label (widget count)
-└── debug_panel (optional overlay)
-    ├── bounds_visualizer
-    ├── event_logger
-    └── performance_monitor
+│
+└── status_bar (bottom)
+    ├── label (theme name)
+    ├── label (FPS counter)
+    ├── label (focused widget)
+    └── label (widget count)
+
+// Optional debug overlay (toggle with Ctrl+D)
+debug_panel (floating overlay, top of screen)
+├── bounds_visualizer
+├── event_logger
+└── performance_monitor
 ```
 
 ---
