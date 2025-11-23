@@ -56,7 +56,7 @@ Optional debug overlay (Ctrl+D to toggle):
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Tab Organization
+### Tab Organization (12 Tabs Total)
 
 #### Tab 1: Basic Widgets
 - **Purpose**: Core UI elements
@@ -176,18 +176,8 @@ Optional debug overlay (Ctrl+D to toggle):
   - Signal/slot pattern examples
   - Action groups and command pattern
 
-#### Tab 12: Performance Testing
-- **Purpose**: Stress testing and profiling
-- **Features**:
-  - 1000+ button stress test
-  - Large list rendering (100k items)
-  - Rapid theme switching
-  - Layout thrashing detection
-  - Render performance metrics
-  - Memory usage display
-
-#### Tab 13: Debug Tools
-- **Purpose**: Framework debugging utilities
+#### Tab 12: Debug Tools
+- **Purpose**: Framework debugging and performance profiling
 - **Features**:
   - Widget tree inspector (hierarchical view)
   - Bounds visualizer (highlight widget rectangles)
@@ -197,6 +187,9 @@ Optional debug overlay (Ctrl+D to toggle):
   - Theme property inspector
   - Layout cache statistics
   - Render context stats
+  - Performance metrics (FPS, measure/arrange/render times)
+  - Memory usage tracking
+  - Widget count statistics
 
 ---
 
@@ -379,8 +372,7 @@ examples/
       tab_focus_management.hh    # Tab 9: Focus management
       tab_hotkeys_system.hh      # Tab 10: Hotkeys system
       tab_advanced_features.hh   # Tab 11: Advanced features
-      tab_performance_testing.hh # Tab 12: Performance testing
-      tab_debug_tools.hh         # Tab 13: Debug tools
+      tab_debug_tools.hh         # Tab 12: Debug tools (includes performance)
 
     windows/
       demo_window.hh             # Additional demo window spawned from menu
@@ -434,8 +426,7 @@ main_window
 │   ├── panel (Tab 9: Focus Management)
 │   ├── panel (Tab 10: Hotkeys System)
 │   ├── panel (Tab 11: Advanced Features)
-│   ├── panel (Tab 12: Performance Testing)
-│   └── panel (Tab 13: Debug Tools)
+│   └── panel (Tab 12: Debug Tools)
 │
 └── status_bar (bottom)
     ├── label (theme name)
@@ -654,7 +645,7 @@ std::unique_ptr<panel<Backend>> create_input_widgets_tab() {
 }
 ```
 
-### Tab 13: Debug Tools
+### Tab 12: Debug Tools
 
 ```cpp
 template<UIBackend Backend>
@@ -690,7 +681,7 @@ public:
         m_show_padding = bounds_section->template emplace_child<checkbox>("Show Padding");
         m_show_focus = bounds_section->template emplace_child<checkbox>("Show Focus Chain");
 
-        // Performance Monitor
+        // Performance Monitor (integrated here instead of separate tab)
         auto* perf_section = this->template emplace_child<group_box>();
         perf_section->set_title("Performance Metrics");
         perf_section->set_vbox_layout(1);
@@ -700,6 +691,7 @@ public:
         m_arrange_time = perf_section->template emplace_child<label>("Arrange: --ms");
         m_render_time = perf_section->template emplace_child<label>("Render: --ms");
         m_widget_count = perf_section->template emplace_child<label>("Widgets: --");
+        m_memory_usage = perf_section->template emplace_child<label>("Memory: --MB");
 
         // Event Log
         auto* event_section = this->template emplace_child<group_box>();
@@ -800,7 +792,7 @@ private:
 
 ### Phase 1: Foundation (Week 1)
 - Main window structure
-- Tab widget with 13 tabs
+- Tab widget with 12 tabs
 - Menu bar (File, Widgets, Windows, Layers, Layout, Theme, Debug, Help)
 - Status bar with live metrics
 - Tab 1: Basic widgets
@@ -810,7 +802,7 @@ private:
 - Tab 3: Input widgets
 - Tab 4: MVC widgets
 - Event logging infrastructure
-- Performance monitoring basics
+- Basic performance monitoring
 
 ### Phase 3: Systems (Week 3)
 - Tab 5: Layout system
@@ -828,8 +820,7 @@ private:
 
 ### Phase 5: Advanced & Debug (Week 5)
 - Tab 11: Advanced features
-- Tab 12: Performance testing
-- Tab 13: Debug tools
+- Tab 12: Debug tools (with performance metrics)
 - Window list dialog integration
 - Layer stack inspector
 - Polish and optimization
@@ -872,7 +863,7 @@ add_executable(widgets_demo
     main.cc
     widgets_demo.cc
 
-    # Tabs (13 total)
+    # Tabs (12 total)
     tabs/tab_basic_widgets.cc
     tabs/tab_containers.cc
     tabs/tab_input_widgets.cc
@@ -884,7 +875,6 @@ add_executable(widgets_demo
     tabs/tab_focus_management.cc
     tabs/tab_hotkeys_system.cc
     tabs/tab_advanced_features.cc
-    tabs/tab_performance_testing.cc
     tabs/tab_debug_tools.cc
 
     # Window examples (spawned from Windows menu)
