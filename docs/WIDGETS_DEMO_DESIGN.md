@@ -104,8 +104,9 @@ Optional debug overlay (Ctrl+D to toggle):
 
 These are separate window instances opened via menu items, allowing them to stay open while browsing the main tabs.
 
-#### MVC Demo Window (Windows → MVC Demo)
+#### MVC Demo Window (Windows → MVC Demo... / Ctrl+M)
 - **Purpose**: Model-View-Controller pattern in a real window
+- **Base Class**: `main_window<Backend>` (with menu bar and status bar)
 - **Features**:
   - `list_view` with various selection modes
   - `combo_box` with model binding
@@ -115,8 +116,9 @@ These are separate window instances opened via menu items, allowing them to stay
   - Two synchronized views on same model
 - **Benefit**: Real window demonstrates window management + MVC together
 
-#### Theme Editor Window (Theme → Theme Editor...)
+#### Theme Editor Window (Windows → Theme Editor... / Ctrl+T)
 - **Purpose**: Live theme editing and preview
+- **Base Class**: `main_window<Backend>` (with menu bar and status bar)
 - **Features**:
   - Theme selector (combo_box with all registered themes)
   - Color palette editor (edit colors, see live preview)
@@ -126,8 +128,9 @@ These are separate window instances opened via menu items, allowing them to stay
   - Save/Export theme button
 - **Benefit**: Can keep theme editor open while testing theme on main window
 
-#### Debug Tools Window (Debug → Debug Tools... or F12)
+#### Debug Tools Window (Windows → Debug Tools... / F12)
 - **Purpose**: Framework debugging and performance profiling
+- **Base Class**: `main_window<Backend>` (with menu bar and status bar)
 - **Widget Inspector Section**:
   - Widget tree view (hierarchical, all windows)
   - Refresh button
@@ -210,18 +213,18 @@ These are separate window instances opened via menu items, allowing them to stay
 ## Menu Structure
 
 ### File Menu
-- New Demo Window (Ctrl+N)
-- ---
 - Open Theme... (Ctrl+O)
-- Save Screenshot (Ctrl+S)
+- Save Screenshot (Ctrl+S / F9)
 - ---
 - Exit (Alt+F4 / Ctrl+Q)
 
 ### Windows Menu
-- MVC Demo (Ctrl+M)
+- MVC Demo... (Ctrl+M)
+- Theme Editor... (Ctrl+T)
+- Debug Tools... (F12)
 - ---
-- Show Modal Dialog...
-- Show Modeless Dialog...
+- Modal Dialog Example...
+- Modeless Dialog Example...
 - ---
 - Window List... (Ctrl+W)
 - Next Window (Ctrl+F6)
@@ -246,17 +249,13 @@ These are separate window instances opened via menu items, allowing them to stay
 - Windows 3.x
 - Midnight Commander
 - ---
-- Theme Editor... (Ctrl+T)
 - Reload Themes (F5)
 
 ### Debug Menu
-- Debug Tools... (F12)
-- ---
 - Show Bounds (Ctrl+B)
 - Show Padding (Ctrl+P)
 - Show Focus Chain (Ctrl+F)
 - ---
-- Take Screenshot (F9)
 - Dump Widget Tree
 
 ### Help Menu
@@ -332,8 +331,14 @@ examples/
 
 ### Widget Tree Structure
 
+**Note**: All window classes inherit from `main_window<Backend>` which provides:
+- Automatic menu bar management (top)
+- Central content widget (middle, expands)
+- Status bar management (bottom)
+- Window title and lifecycle
+
 ```cpp
-main_window
+widgets_demo_app : public main_window<Backend>  // Main application window
 ├── menu_bar (top)
 │   ├── menu (File)
 │   ├── menu (Widgets)
@@ -520,6 +525,23 @@ std::unique_ptr<panel<Backend>> create_all_widgets_tab() {
     slider->set_value(50);
     slider->set_width(40);
 
+    // Actions Section
+    auto* actions_section = content->template emplace_child<group_box>();
+    actions_section->set_title("Actions");
+    actions_section->set_hbox_layout(2);
+
+    auto* screenshot_btn = actions_section->template emplace_child<button>("Take Screenshot (F9)");
+    screenshot_btn->clicked.connect([&]() {
+        // Take screenshot using renderer
+        take_screenshot();
+    });
+
+    auto* theme_btn = actions_section->template emplace_child<button>("Theme Editor (Ctrl+T)");
+    theme_btn->clicked.connect([&]() {
+        // Open theme editor window
+        open_theme_editor();
+    });
+
     return tab;
 }
 ```
@@ -528,11 +550,12 @@ std::unique_ptr<panel<Backend>> create_all_widgets_tab() {
 
 ```cpp
 template<UIBackend Backend>
-class mvc_demo_window : public window<Backend> {
+class mvc_demo_window : public main_window<Backend> {
 public:
-    mvc_demo_window() : window<Backend>() {
+    mvc_demo_window() : main_window<Backend>() {
         this->set_title("MVC System Demo");
 
+        // Get central widget from main_window
         auto* content = this->central_widget();
         content->set_vbox_layout(2);
 
@@ -590,11 +613,12 @@ private:
 
 ```cpp
 template<UIBackend Backend>
-class debug_tools_window : public window<Backend> {
+class debug_tools_window : public main_window<Backend> {
 public:
-    debug_tools_window() : window<Backend>() {
+    debug_tools_window() : main_window<Backend>() {
         this->set_title("Debug Tools");
 
+        // Get central widget from main_window
         auto* content = this->central_widget();
         content->set_vbox_layout(2);
 
