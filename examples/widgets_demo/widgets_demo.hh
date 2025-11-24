@@ -148,7 +148,8 @@ public:
         }
 
         m_renderer->take_screenshot(file);
-        std::cout << "Screenshot saved to: " << output_file << "\n";
+        // Note: Don't use std::cout in terminal UI - it interferes with the terminal buffer
+        // Screenshot is silently saved (check working directory for screenshot_*.txt files)
     }
 
     /**
