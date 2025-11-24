@@ -6,9 +6,15 @@ sidebar_position: 4
 
 The `onyxui::radio_button` is a selection widget for mutually exclusive options. When grouped together using `button_group`, only one radio button can be selected at a time - essential for forms, settings, and any UI requiring single-choice selection.
 
+:::info Architecture Update (November 2025)
+`button_group` is now a proper widget container (inherits from `vbox`) that creates and owns its radio buttons. This eliminates lifetime management issues and provides a simpler, safer API. Use `add_option(text, id)` instead of manually creating and registering buttons.
+:::
+
 ## Overview
 
-A radio button widget provides a toggle control with a visual indicator (circle) and optional text label. Unlike checkboxes (which allow multiple independent selections), radio buttons enforce mutual exclusion when placed in a `button_group`.
+A radio button widget provides a toggle control with a visual indicator (circle) and optional text label. Unlike checkboxes (which allow multiple independent selections), radio buttons enforce mutual exclusion when placed in a `button_group` container.
+
+The `button_group` is a widget container that owns and manages its radio button children through the normal widget tree hierarchy, ensuring proper lifetime management and automatic cleanup.
 
 ## Key Features
 
@@ -46,18 +52,14 @@ Here's a simple example of creating radio buttons with a button group:
 #include <onyxui/widgets/input/button_group.hh>
 #include <iostream>
 
-// Create button group to manage mutual exclusion
-auto size_group = std::make_shared<button_group<Backend>>();
+// Create button group as a widget container
+// The group owns and manages its radio buttons
+auto* size_group = container->emplace_child<button_group<Backend>>();
 
-// Create radio buttons
-auto small = std::make_unique<radio_button<Backend>>("Small");
-auto medium = std::make_unique<radio_button<Backend>>("Medium");
-auto large = std::make_unique<radio_button<Backend>>("Large");
-
-// Add buttons to group with unique IDs
-size_group->add_button(small.get(), 0);
-size_group->add_button(medium.get(), 1);
-size_group->add_button(large.get(), 2);
+// Add radio button options with unique IDs
+size_group->add_option("Small", 0);
+size_group->add_option("Medium", 1);
+size_group->add_option("Large", 2);
 
 // Set default selection
 size_group->set_checked_id(1);  // Medium selected
@@ -71,27 +73,32 @@ size_group->button_toggled.connect([](int id, bool checked) {
 });
 ```
 
-:::warning Important: Keep button_group Alive
-The `button_group` must remain alive for the lifetime of the radio buttons! Store it as a member variable or `shared_ptr` to prevent it from being destroyed.
+:::tip Widget Container Architecture
+`button_group` is now a proper widget container (inherits from `vbox`) that owns its radio buttons. The widget tree manages lifetime automatically - no manual cleanup needed!
 :::
 
 ## Radio Button Groups
 
 ### Creating a Button Group
 
+`button_group` is a widget container (inherits from `vbox`) that creates and owns radio buttons as its children.
+
 ```cpp
-// Create group (keep alive as member variable or shared_ptr)
-auto group = std::make_shared<button_group<Backend>>();
+// Create button group as a child of a container
+auto* group = container->emplace_child<button_group<Backend>>();
 
-// Add buttons with auto-assigned IDs
-group->add_button(radio1.get());  // ID = 0
-group->add_button(radio2.get());  // ID = 1
-group->add_button(radio3.get());  // ID = 2
+// Add options with auto-assigned IDs (starting from 0)
+group->add_option("Option 1");  // ID = 0
+group->add_option("Option 2");  // ID = 1
+group->add_option("Option 3");  // ID = 2
 
-// Or add buttons with explicit IDs
-group->add_button(radio1.get(), 10);
-group->add_button(radio2.get(), 20);
-group->add_button(radio3.get(), 30);
+// Or add options with explicit IDs
+group->add_option("Option A", 10);
+group->add_option("Option B", 20);
+group->add_option("Option C", 30);
+
+// Optional: Configure spacing between radio buttons
+auto* spaced_group = container->emplace_child<button_group<Backend>>(1);  // 1px spacing
 ```
 
 ### Managing Selection
@@ -100,15 +107,18 @@ group->add_button(radio3.get(), 30);
 // Set selection by ID
 group->set_checked_id(1);  // Check button with ID 1
 
-// Set selection by pointer
-group->set_checked_button(medium.get());
-
 // Clear selection (no button checked)
 group->set_checked_id(-1);
 
 // Query current selection
 int current_id = group->checked_id();  // Returns -1 if none checked
 auto* current_button = group->checked_button();  // Returns nullptr if none checked
+
+// Access individual radio buttons by ID
+auto* button = group->button(1);  // Get button with ID 1
+if (button) {
+    button->set_enabled(false);  // Customize individual button
+}
 ```
 
 ### Navigation
@@ -169,12 +179,18 @@ char key = rb.mnemonic();  // Returns '\0' if none set
 
 ### Group Management
 
-```cpp
-// Get owning group
-button_group<Backend>* group = rb.group();  // nullptr if not in a group
+Radio buttons automatically detect their parent `button_group` via the widget tree. You don't need to manually manage group membership.
 
-// Note: Use button_group::add_button() to add radio buttons to groups
-// Do NOT call set_group() directly
+```cpp
+// Access individual radio buttons through the group
+auto* group = container->emplace_child<button_group<Backend>>();
+group->add_option("Option 1", 0);
+
+// Get the radio button
+auto* rb = group->button(0);  // Returns pointer to radio_button
+
+// The button knows its parent group automatically
+// No manual set_group() needed!
 ```
 
 ## Signals
@@ -279,28 +295,22 @@ radio_button:
 ### Complete Form with Multiple Groups
 
 ```cpp
-// Size selection group
-auto size_group = std::make_shared<button_group<Backend>>();
-auto* small = container->emplace_child<radio_button<Backend>>("Small");
-auto* medium = container->emplace_child<radio_button<Backend>>("Medium");
-auto* large = container->emplace_child<radio_button<Backend>>("Large");
-size_group->add_button(small, 0);
-size_group->add_button(medium, 1);
-size_group->add_button(large, 2);
+// Size selection group (owned by widget tree)
+auto* size_group = container->emplace_child<button_group<Backend>>();
+size_group->add_option("Small", 0);
+size_group->add_option("Medium", 1);
+size_group->add_option("Large", 2);
 size_group->set_checked_id(1);  // Default: Medium
 
-// Color selection group
-auto color_group = std::make_shared<button_group<Backend>>();
-auto* red = container->emplace_child<radio_button<Backend>>("Red");
-auto* green = container->emplace_child<radio_button<Backend>>("Green");
-auto* blue = container->emplace_child<radio_button<Backend>>("Blue");
-color_group->add_button(red, 0);
-color_group->add_button(green, 1);
-color_group->add_button(blue, 2);
+// Color selection group (owned by widget tree)
+auto* color_group = container->emplace_child<button_group<Backend>>();
+color_group->add_option("Red", 0);
+color_group->add_option("Green", 1);
+color_group->add_option("Blue", 2);
 color_group->set_checked_id(2);  // Default: Blue
 
-// Keep groups alive!
-// Store as member variables: m_size_group, m_color_group
+// No need to manually manage lifetime - the widget tree handles it!
+// Both groups are children of 'container' and will be destroyed with it
 ```
 
 ### Dynamic Selection Changes
@@ -324,37 +334,39 @@ size_group->button_toggled.connect([color_group](int id, bool checked) {
 ### Disabled Radio Buttons
 
 ```cpp
-auto* option1 = container->emplace_child<radio_button<Backend>>("Option 1");
-auto* option2 = container->emplace_child<radio_button<Backend>>("Option 2");
+auto* group = container->emplace_child<button_group<Backend>>();
+group->add_option("Option 1", 0);
+group->add_option("Option 2", 1);
 
 // Disable specific option
+auto* option2 = group->button(1);
 option2->set_enabled(false);
 
 // Disabled buttons:
 // - Cannot be selected via mouse or keyboard
 // - Render with disabled theme colors
 // - Still count as part of the group
-// - Can still be selected programmatically via set_checked()
+// - Can still be selected programmatically via set_checked_id()
 ```
 
 ## Best Practices
 
 ### ✅ Do
 
-- **Keep button_group alive:** Store as member variable or `shared_ptr`
-- **Use groups for mutual exclusion:** Don't rely on radio buttons alone
+- **Use button_group for mutual exclusion:** Always group related radio buttons
 - **Provide clear labels:** Make options self-explanatory
 - **Set default selection:** Always have one option pre-selected
 - **Use mnemonics for accessibility:** Alt+key shortcuts improve usability
 - **Group related options:** Keep radio button groups focused and cohesive
+- **Use add_option() for simplicity:** Let the group create and manage buttons
 
 ### ❌ Don't
 
 - **Don't use radio buttons for on/off toggles:** Use checkbox instead
 - **Don't make groups too large:** Consider using a dropdown/combo box for >7 options
 - **Don't use inconsistent IDs:** Use sequential or meaningful ID schemes
-- **Don't forget to store button_group:** It must outlive the radio buttons
 - **Don't mix checkboxes and radio buttons:** They serve different purposes
+- **Don't manually create radio buttons:** Use `button_group::add_option()` instead
 
 ## Common Patterns
 
@@ -362,11 +374,11 @@ option2->set_enabled(false);
 
 ```cpp
 // Quality settings
-auto quality_group = std::make_shared<button_group<Backend>>();
 panel->emplace_child<label>("Quality:");
-panel->emplace_child<radio_button>("Low")->add_to_group(quality_group, 0);
-panel->emplace_child<radio_button>("Medium")->add_to_group(quality_group, 1);
-panel->emplace_child<radio_button>("High")->add_to_group(quality_group, 2);
+auto* quality_group = panel->emplace_child<button_group<Backend>>();
+quality_group->add_option("Low", 0);
+quality_group->add_option("Medium", 1);
+quality_group->add_option("High", 2);
 quality_group->set_checked_id(1);  // Default: Medium
 ```
 
@@ -374,18 +386,15 @@ quality_group->set_checked_id(1);  // Default: Medium
 
 ```cpp
 // Step indicator (non-interactive)
-auto step_group = std::make_shared<button_group<Backend>>();
-auto* step1 = wizard->emplace_child<radio_button>("1. Account Info");
-auto* step2 = wizard->emplace_child<radio_button>("2. Preferences");
-auto* step3 = wizard->emplace_child<radio_button>("3. Confirm");
-step_group->add_button(step1, 0);
-step_group->add_button(step2, 1);
-step_group->add_button(step3, 2);
+auto* step_group = wizard->emplace_child<button_group<Backend>>();
+step_group->add_option("1. Account Info", 0);
+step_group->add_option("2. Preferences", 1);
+step_group->add_option("3. Confirm", 2);
 
 // Disable all except current step
-step1->set_enabled(false);
-step2->set_enabled(true);  // Current step
-step3->set_enabled(false);
+step_group->button(0)->set_enabled(false);
+step_group->button(1)->set_enabled(true);  // Current step
+step_group->button(2)->set_enabled(false);
 
 // Navigate programmatically
 step_group->set_checked_id(1);  // Show step 2
