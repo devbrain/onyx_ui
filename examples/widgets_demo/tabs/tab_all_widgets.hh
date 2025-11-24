@@ -59,6 +59,10 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* title = layout->template emplace_child<onyxui::label>("All Widgets Gallery");
     title->set_horizontal_align(onyxui::horizontal_alignment::center);
 
+    // Status label to show button click events
+    auto* status_label = layout->template emplace_child<onyxui::label>("[Click buttons to see events here]");
+    status_label->set_horizontal_align(onyxui::horizontal_alignment::center);
+
     layout->template emplace_child<onyxui::label>("");  // Spacer
 
     // Main content container (2-column grid layout)
@@ -81,8 +85,8 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
 
     auto* btn_row = basic_section->template emplace_child<onyxui::hbox>(2);
     auto* normal_btn = btn_row->template emplace_child<onyxui::button>("Normal Button");
-    normal_btn->clicked.connect([]() {
-        std::cout << "Normal button clicked!\n";
+    normal_btn->clicked.connect([status_label]() {
+        status_label->set_text("Normal button clicked!");
     });
 
     auto* disabled_btn = btn_row->template emplace_child<onyxui::button>("Disabled Button");
@@ -90,8 +94,8 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
 
     auto* mnemonic_btn = btn_row->template emplace_child<onyxui::button>("");
     mnemonic_btn->set_mnemonic_text("&Mnemonic (Alt+M)");
-    mnemonic_btn->clicked.connect([]() {
-        std::cout << "Mnemonic button clicked!\n";
+    mnemonic_btn->clicked.connect([status_label]() {
+        status_label->set_text("Mnemonic button clicked! (Alt+M)");
     });
 
     // Labels
@@ -172,18 +176,47 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     input_section->template emplace_child<onyxui::label>("Checkboxes:");
     auto* cb1 = input_section->template emplace_child<onyxui::checkbox>("Enable feature A");
     cb1->set_checked(true);
+    cb1->toggled.connect([status_label](bool checked) {
+        status_label->set_text(checked ? "Feature A enabled" : "Feature A disabled");
+    });
     auto* cb2 = input_section->template emplace_child<onyxui::checkbox>("Enable feature B");
     cb2->set_checked(false);
+    cb2->toggled.connect([status_label](bool checked) {
+        status_label->set_text(checked ? "Feature B enabled" : "Feature B disabled");
+    });
 
-    // Radio Buttons
+    // Radio Buttons (Vertical)
     input_section->template emplace_child<onyxui::label>("");  // Spacer
-    input_section->template emplace_child<onyxui::label>("Radio Buttons (Mutually Exclusive):");
-    // Create button group (widget container that owns radio buttons)
-    auto* button_group = input_section->template emplace_child<onyxui::button_group>();
-    button_group->add_option("Option 1", 1);
-    button_group->add_option("Option 2", 2);
-    button_group->add_option("Option 3", 3);
-    button_group->set_checked_id(1);  // Select first by default
+    input_section->template emplace_child<onyxui::label>("Radio Buttons (Vertical):");
+    // Create vertical button group (default orientation)
+    auto* v_button_group = input_section->template emplace_child<onyxui::button_group>();
+    v_button_group->add_option("Option 1", 1);
+    v_button_group->add_option("Option 2", 2);
+    v_button_group->add_option("Option 3", 3);
+    v_button_group->set_checked_id(1);  // Select first by default
+    v_button_group->button_toggled.connect([status_label](int id, bool checked) {
+        if (checked) {
+            status_label->set_text("Vertical group: Option " + std::to_string(id) + " selected");
+        }
+    });
+
+    // Radio Buttons (Horizontal)
+    input_section->template emplace_child<onyxui::label>("");  // Spacer
+    input_section->template emplace_child<onyxui::label>("Radio Buttons (Horizontal):");
+    // Create horizontal button group with 2px spacing
+    auto* h_button_group = input_section->template emplace_child<onyxui::button_group>(
+        onyxui::button_group_orientation::horizontal, 2
+    );
+    h_button_group->add_option("Red", 10);
+    h_button_group->add_option("Green", 11);
+    h_button_group->add_option("Blue", 12);
+    h_button_group->set_checked_id(11);  // Select Green by default
+    h_button_group->button_toggled.connect([status_label](int id, bool checked) {
+        if (checked) {
+            const char* colors[] = {"Red", "Green", "Blue"};
+            status_label->set_text(std::string("Horizontal group: ") + colors[id - 10] + " selected");
+        }
+    });
 
     // Slider
     input_section->template emplace_child<onyxui::label>("");  // Spacer
@@ -193,8 +226,9 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     slider->set_value(50);
 
     auto* slider_label = input_section->template emplace_child<onyxui::label>("Value: 50");
-    slider->value_changed.connect([slider_label](int value) {
+    slider->value_changed.connect([slider_label, status_label](int value) {
         slider_label->set_text("Value: " + std::to_string(value));
+        status_label->set_text("Slider changed to: " + std::to_string(value));
     });
 
     // Progress Bar
@@ -212,6 +246,15 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* combo = input_section->template emplace_child<onyxui::combo_box>();
     combo->set_model(combo_model.get());
     combo->set_current_index(0);
+    combo->current_index_changed.connect([status_label, combo_model](int index) {
+        if (index >= 0 && index < static_cast<int>(combo_model->row_count())) {
+            auto model_idx = combo_model->index(index, 0);
+            auto data_variant = combo_model->data(model_idx);
+            if (std::holds_alternative<std::string>(data_variant)) {
+                status_label->set_text("Combo box: " + std::get<std::string>(data_variant) + " selected");
+            }
+        }
+    });
 
     // ========== ACTIONS SECTION ==========
     auto* actions_section = content->template emplace_child<onyxui::group_box>();
@@ -220,18 +263,21 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     actions_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     auto* screenshot_btn = actions_section->template emplace_child<onyxui::button>("Take Screenshot (F9)");
-    screenshot_btn->clicked.connect([demo]() {
+    screenshot_btn->clicked.connect([demo, status_label]() {
         demo->take_screenshot();
+        status_label->set_text("Screenshot saved!");
     });
 
     auto* theme_btn = actions_section->template emplace_child<onyxui::button>("Theme Editor (Ctrl+T)");
-    theme_btn->clicked.connect([demo]() {
+    theme_btn->clicked.connect([demo, status_label]() {
         demo->show_theme_editor();
+        status_label->set_text("Opening theme editor...");
     });
 
     auto* mvc_btn = actions_section->template emplace_child<onyxui::button>("MVC Demo (Ctrl+M)");
-    mvc_btn->clicked.connect([demo]() {
+    mvc_btn->clicked.connect([demo, status_label]() {
         demo->show_mvc_demo();
+        status_label->set_text("Opening MVC demo...");
     });
 
     return tab;

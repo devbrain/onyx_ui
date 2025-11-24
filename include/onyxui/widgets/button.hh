@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <iostream>
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/actions/action.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
@@ -68,6 +69,8 @@ namespace onyxui {
             : base(parent), m_text(std::move(text)) {
             this->set_focusable(true);  // Buttons are focusable
             this->set_accept_keys_as_click(true);  // Enter/Space triggers click
+
+            // No need for clicked handler - we'll handle everything in handle_mouse
         }
 
         /**
@@ -147,32 +150,52 @@ namespace onyxui {
         }
 
         /**
-         * @brief Override handle_event to request focus on mouse click
-         * @param event The event to handle
-         * @param phase The event routing phase
-         * @return false (let base class handle the event)
+         * @brief Override handle_mouse to manage focus and work around conio limitations
+         * @param mouse Mouse event
+         * @return Result from base class
          *
          * @details
-         * Buttons need to request focus when clicked so that Enter key works.
-         * Uses capture phase to request focus before event reaches target phase.
+         * - Requests focus on press (for Enter key support)
+         * - Releases focus and clears hover state on release (workaround for conio backend)
          */
-        bool handle_event(const ui_event& event, event_phase phase) override {
-            // Request focus on mouse press (capture phase, before target)
-            if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
-                if (mouse_evt->act == mouse_event::action::press) {
-                    if (phase == event_phase::capture) {
-                        auto* input = ui_services<Backend>::input();
-                        if (input && this->is_focusable()) {
-                            input->set_focus(this);
-                        }
-                        // Don't consume - let event continue to target phase for click handling
-                        return false;
+        bool handle_mouse(const mouse_event& mouse) override {
+            // For release events in conio backend: clear hover state after base class processes it
+            // This prevents stateful_widget from keeping button in hover state
+            if (mouse.act == mouse_event::action::release) {
+                // Save whether we're currently hovered (for click detection)
+                bool was_hovered = this->is_hovered();
+
+                // Process the event normally
+                bool handled = base::handle_mouse(mouse);
+
+                // If this was a successful click (release on hovered button)
+                if (was_hovered) {
+                    // Release focus
+                    auto* input = ui_services<Backend>::input();
+                    if (input && this->has_focus()) {
+                        input->set_focus(nullptr);
                     }
+
+                    // Force state to normal (workaround for conio backend not having mouse move events)
+                    // This must be done AFTER base class processes the event
+                    this->set_interaction_state(base::interaction_state::normal);
+                }
+
+                return handled;
+            }
+
+            // Let base class handle the mouse event first
+            bool handled = base::handle_mouse(mouse);
+
+            // Request focus on mouse press
+            if (mouse.act == mouse_event::action::press && this->is_hovered()) {
+                auto* input = ui_services<Backend>::input();
+                if (input && this->is_focusable()) {
+                    input->set_focus(this);
                 }
             }
 
-            // Let base class handle all other events
-            return base::handle_event(event, phase);
+            return handled;
         }
 
     private:
