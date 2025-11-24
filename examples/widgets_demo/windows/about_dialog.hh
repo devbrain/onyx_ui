@@ -81,11 +81,11 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     auto* hotkeys_section = content->template emplace_child<onyxui::group_box>();
     hotkeys_section->set_title("Quick Reference");
     auto* hotkeys_vbox = hotkeys_section->template emplace_child<onyxui::vbox>(1);
-    hotkeys_vbox->template emplace_child<onyxui::label>("  F9 / Ctrl+S    - Screenshot");
+    hotkeys_vbox->template emplace_child<onyxui::label>("  F2 / F9        - Screenshot");
     hotkeys_vbox->template emplace_child<onyxui::label>("  Ctrl+M         - MVC Demo");
     hotkeys_vbox->template emplace_child<onyxui::label>("  Ctrl+T         - Theme Editor");
     hotkeys_vbox->template emplace_child<onyxui::label>("  F12            - Debug Tools");
-    hotkeys_vbox->template emplace_child<onyxui::label>("  Alt+F4         - Exit");
+    hotkeys_vbox->template emplace_child<onyxui::label>("  Alt+F4 / Alt+Q - Exit");
     hotkeys_vbox->template emplace_child<onyxui::label>("  Ctrl+Tab       - Next Tab");
 
     content->template emplace_child<onyxui::label>("");  // Spacer

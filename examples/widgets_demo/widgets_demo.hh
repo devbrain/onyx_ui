@@ -219,7 +219,9 @@ private:
             return;
         }
 
-        // Screenshot actions (F9 and Ctrl+S)
+        // Screenshot actions (F9 and F2)
+        // NOTE: Ctrl+S cannot be used - it's a terminal control character (XOFF - suspend output)
+        // that gets captured by the terminal before reaching the application
         auto screenshot_f9 = std::make_shared<onyxui::action<Backend>>();
         screenshot_f9->set_text("Screenshot");
         screenshot_f9->set_shortcut_f(9);  // F9
@@ -231,7 +233,7 @@ private:
 
         m_screenshot_action = std::make_shared<onyxui::action<Backend>>();
         m_screenshot_action->set_text("Save Screenshot");
-        m_screenshot_action->set_shortcut('s', onyxui::key_modifier::ctrl);  // Ctrl+S
+        m_screenshot_action->set_shortcut_f(2);  // F2 (common DOS save key, no terminal conflicts)
         m_screenshot_action->triggered.connect([this]() {
             take_screenshot();
         });
