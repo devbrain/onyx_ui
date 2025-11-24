@@ -59,6 +59,10 @@ namespace onyxui {
         }
 
         m_central_widget = central.get();
+
+        // Central widget should expand to fill available space between menu and status bar
+        m_central_widget->set_height_constraint({size_policy::expand});
+
         this->add_child(std::move(central));
         this->invalidate_measure();
     }
