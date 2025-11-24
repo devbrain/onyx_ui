@@ -178,17 +178,36 @@ namespace onyxui {
          * @details
          * Renders left text on the left side and right text on the right side.
          * Background fills the entire width.
-         *
-         * @note Rendering implementation stub - currently empty.
-         * Override in backend-specific subclass if needed.
          */
-        void do_render([[maybe_unused]] render_context<Backend>& ctx) const override {
-            // Rendering implementation would go here
-            //
-            // Pseudocode:
-            // 1. Fill background with status bar color
-            // 2. Draw left text at left edge using ctx.draw_text()
-            // 3. Draw right text at right edge (right-aligned)
+        void do_render(render_context<Backend>& ctx) const override {
+            const auto& bounds = this->bounds();
+            const auto& pos = ctx.position();
+
+            int x = point_utils::get_x(pos);
+            int y = point_utils::get_y(pos);
+            int width = rect_utils::get_width(bounds);
+
+            // Fill background with status bar color
+            typename Backend::rect_type abs_bounds;
+            rect_utils::set_bounds(abs_bounds, x, y, width, 1);
+            ctx.fill_rect(abs_bounds);
+
+            // Draw left text
+            if (!m_left_text.empty()) {
+                typename Backend::point_type const left_pos{x, y};
+                ctx.draw_text(m_left_text, left_pos, ctx.style().font, ctx.style().foreground_color);
+            }
+
+            // Draw right text (right-aligned)
+            if (!m_right_text.empty()) {
+                // Use string length as approximation for text width (backend-specific units)
+                // For terminal backends, this equals character count
+                int text_width = static_cast<int>(m_right_text.length());
+                int right_x = x + width - text_width;
+
+                typename Backend::point_type const right_pos{right_x, y};
+                ctx.draw_text(m_right_text, right_pos, ctx.style().font, ctx.style().foreground_color);
+            }
         }
 
 
