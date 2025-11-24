@@ -6,6 +6,7 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/widgets/containers/vbox.hh>
 
 #include <algorithm>
 #include <unordered_map>
@@ -17,26 +18,22 @@ namespace onyxui {
 template<UIBackend Backend>
 class radio_button;
 
-/// Manages mutually exclusive radio buttons
+/// Manages mutually exclusive radio buttons as a widget container
 ///
-/// The button_group class enforces single selection among a group of radio buttons.
-/// When one radio button is checked, all others in the group are automatically unchecked.
+/// The button_group class is a vertical container (vbox) that owns and manages
+/// radio buttons. It enforces single selection among its radio button children.
+/// When one radio button is checked, all others are automatically unchecked.
 ///
-/// **Important**: button_group is NOT a widget. It's a manager class that coordinates
-/// radio buttons. Radio buttons remain in their normal widget hierarchy.
+/// **Design:** button_group is a widget container that owns its radio buttons.
+/// This ensures proper lifetime management - radio buttons can't outlive their group.
 ///
 /// Usage:
 /// @code
-/// auto group = std::make_shared<button_group<Backend>>();
-///
-/// auto radio1 = std::make_unique<radio_button<Backend>>("Option 1");
-/// auto radio2 = std::make_unique<radio_button<Backend>>("Option 2");
-/// auto radio3 = std::make_unique<radio_button<Backend>>("Option 3");
-///
-/// group->add_button(radio1.get(), 1);
-/// group->add_button(radio2.get(), 2);
-/// group->add_button(radio3.get(), 3);
-/// group->set_checked_id(1);  // Select first option
+/// auto* group = container->emplace_child<button_group<Backend>>();
+/// group->add_option("Small", 1);
+/// group->add_option("Medium", 2);
+/// group->add_option("Large", 3);
+/// group->set_checked_id(2);  // Select medium
 ///
 /// group->button_toggled.connect([](int id, bool checked) {
 ///     if (checked) {
@@ -47,30 +44,43 @@ class radio_button;
 ///
 /// @tparam Backend The backend traits class
 template<UIBackend Backend>
-class button_group {
+class button_group : public vbox<Backend> {
 public:
-    button_group() = default;
+    using base = vbox<Backend>;
+    using horizontal_alignment = onyxui::horizontal_alignment;
+    using vertical_alignment = onyxui::vertical_alignment;
 
-    // ===== Button Management =====
-
-    /// Add radio button to group
+    /// Create button group with vertical layout
     ///
-    /// The radio button's group pointer is automatically set to this group.
+    /// @param spacing Spacing between radio buttons (default: 0)
+    /// @param parent Parent element (optional)
+    explicit button_group(int spacing = 0, ui_element<Backend>* parent = nullptr)
+        : base(spacing, horizontal_alignment::stretch, vertical_alignment::top, parent)
+    {
+    }
+
+    // ===== Option Management =====
+
+    /// Add a radio button option to the group
+    ///
+    /// Creates a radio_button widget as a child and registers it with the given ID.
     /// If id is -1, a unique ID is auto-assigned starting from 0.
     ///
-    /// @param button Pointer to radio button (non-owning - widget is owned by parent)
-    /// @param id Unique ID for this button, or -1 for auto-assignment
-    void add_button(radio_button<Backend>* button, int id = -1);
+    /// @param text Label text for the radio button
+    /// @param id Unique ID for this option, or -1 for auto-assignment
+    /// @return Pointer to the created radio_button (for further customization if needed)
+    radio_button<Backend>* add_option(const std::string& text, int id = -1);
 
-    /// Remove radio button from group
+    /// Get button by ID
     ///
-    /// The radio button's group pointer is automatically cleared.
-    /// If the removed button was checked, no button will be checked afterward.
-    ///
-    /// @param button Pointer to radio button to remove
-    void remove_button(radio_button<Backend>* button);
+    /// @param id Button ID
+    /// @return Pointer to button, or nullptr if not found
+    [[nodiscard]] radio_button<Backend>* button(int id) const {
+        auto it = m_buttons.find(id);
+        return (it != m_buttons.end()) ? it->second : nullptr;
+    }
 
-    /// Get all buttons in group (in no particular order)
+    /// Get all buttons (in no particular order)
     ///
     /// @return Vector of button pointers
     [[nodiscard]] std::vector<radio_button<Backend>*> buttons() const {
@@ -82,18 +92,9 @@ public:
         return result;
     }
 
-    /// Get button by ID
+    /// Get number of options in group
     ///
-    /// @param id Button ID
-    /// @return Pointer to button, or nullptr if not found
-    [[nodiscard]] radio_button<Backend>* button(int id) const {
-        auto it = m_buttons.find(id);
-        return (it != m_buttons.end()) ? it->second : nullptr;
-    }
-
-    /// Get number of buttons in group
-    ///
-    /// @return Button count
+    /// @return Option count
     [[nodiscard]] std::size_t count() const noexcept {
         return m_buttons.size();
     }
@@ -121,14 +122,6 @@ public:
     ///
     /// @param id ID of button to check, or -1 to uncheck all
     void set_checked_id(int id);
-
-    /// Set checked button by pointer
-    ///
-    /// Automatically unchecks all other buttons in the group.
-    /// If button is nullptr, all buttons are unchecked.
-    ///
-    /// @param button Pointer to button to check, or nullptr to uncheck all
-    void set_checked_button(radio_button<Backend>* button);
 
     // ===== Navigation =====
 
@@ -188,11 +181,7 @@ private:
 // ===== Implementation =====
 
 template<UIBackend Backend>
-void button_group<Backend>::add_button(radio_button<Backend>* button, int id) {
-    if (!button) {
-        return;  // Null button
-    }
-
+radio_button<Backend>* button_group<Backend>::add_option(const std::string& text, int id) {
     // Auto-assign ID if needed
     if (id == -1) {
         id = m_next_id++;
@@ -203,49 +192,19 @@ void button_group<Backend>::add_button(radio_button<Backend>* button, int id) {
         }
     }
 
-    // Add button to map
-    m_buttons[id] = button;
-
-    // Set button's group pointer
-    button->set_group(this);
-
-    // If this button is checked, update checked_id and uncheck others
-    if (button->is_checked()) {
-        // Uncheck all other buttons first
-        for (const auto& [other_id, other_button] : m_buttons) {
-            if (other_id != id && other_button->is_checked()) {
-                other_button->m_is_checked = false;  // Direct access (friend)
-                other_button->mark_dirty();
-                other_button->toggled.emit(false);
-                button_toggled.emit(other_id, false);
-            }
-        }
-        m_checked_id = id;
-    }
-}
-
-template<UIBackend Backend>
-void button_group<Backend>::remove_button(radio_button<Backend>* button) {
-    if (!button) {
-        return;
+    // Check for duplicate ID
+    if (m_buttons.find(id) != m_buttons.end()) {
+        // ID already exists - skip (could throw exception instead)
+        return nullptr;
     }
 
-    // Find button ID
-    int button_id = get_button_id(button);
-    if (button_id == -1) {
-        return;  // Button not in this group
-    }
+    // Create radio button as child
+    auto* rb = this->template emplace_child<radio_button>(text);
 
-    // Clear button's group pointer
-    button->set_group(nullptr);
+    // Register in map
+    m_buttons[id] = rb;
 
-    // Remove from map
-    m_buttons.erase(button_id);
-
-    // If this was the checked button, clear checked_id
-    if (m_checked_id == button_id) {
-        m_checked_id = -1;
-    }
+    return rb;
 }
 
 template<UIBackend Backend>
@@ -296,19 +255,6 @@ void button_group<Backend>::set_checked_id(int id) {
     button_toggled.emit(id, true);
 
     m_checked_id = id;
-}
-
-template<UIBackend Backend>
-void button_group<Backend>::set_checked_button(radio_button<Backend>* button) {
-    if (!button) {
-        set_checked_id(-1);  // Uncheck all
-        return;
-    }
-
-    int id = get_button_id(button);
-    if (id != -1) {
-        set_checked_id(id);
-    }
 }
 
 template<UIBackend Backend>

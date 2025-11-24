@@ -297,6 +297,10 @@ private:
         // Build menu bar
         build_menu_bar();
 
+        // Create central widget (panel that will contain tabs)
+        // This must be done before build_tabs() tries to access it
+        this->set_central_widget(std::make_unique<onyxui::panel<Backend>>());
+
         // Build central content (tab widget with 3 tabs)
         build_tabs();
 

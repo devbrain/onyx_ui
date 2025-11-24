@@ -77,11 +77,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         auto dirty_after = layer_mgr->get_removed_layer_dirty_regions();
         REQUIRE(dirty_after.size() == 1);
 
-        // Verify the dirty region matches menu1's bounds
+        // Verify the dirty region matches menu1's bounds + shadow margin (2 units)
         CHECK(rect_utils::get_x(dirty_after[0]) == 10);
         CHECK(rect_utils::get_y(dirty_after[0]) == 15);
-        CHECK(rect_utils::get_width(dirty_after[0]) == 40);
-        CHECK(rect_utils::get_height(dirty_after[0]) == 20);
+        CHECK(rect_utils::get_width(dirty_after[0]) == 42);  // 40 + 2 for shadow
+        CHECK(rect_utils::get_height(dirty_after[0]) == 22);  // 20 + 2 for shadow
 
         // Clear dirty regions should reset the list
         layer_mgr->clear_removed_layer_dirty_regions();
@@ -113,13 +113,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         layer_mgr->remove_layer(menu1_id);
         CHECK(layer_mgr->layer_count() == 1);
 
-        // Check that menu1's area is marked dirty
+        // Check that menu1's area is marked dirty (including shadow margin)
         auto dirty = layer_mgr->get_removed_layer_dirty_regions();
         REQUIRE(dirty.size() == 1);
         CHECK(rect_utils::get_x(dirty[0]) == 10);
         CHECK(rect_utils::get_y(dirty[0]) == 15);
-        CHECK(rect_utils::get_width(dirty[0]) == 40);
-        CHECK(rect_utils::get_height(dirty[0]) == 20);
+        CHECK(rect_utils::get_width(dirty[0]) == 42);  // 40 + 2 for shadow
+        CHECK(rect_utils::get_height(dirty[0]) == 22);  // 20 + 2 for shadow
 
         // menu2 should still be visible
         CHECK(layer_mgr->is_layer_visible(menu2_id));

@@ -23,214 +23,156 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Default cons
     REQUIRE(group.buttons().empty());
 }
 
-// ===== Button Management Tests =====
+// ===== Option Management Tests =====
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_button() adds button to group") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_option() creates and adds button to group") {
     button_group<Backend> group;
-    radio_button<Backend> rb("Option 1");
 
-    group.add_button(&rb, 0);
+    auto* rb = group.add_option("Option 1", 0);
 
+    REQUIRE(rb != nullptr);
     REQUIRE(group.count() == 1);
-    REQUIRE(rb.group() == &group);
-    REQUIRE(group.button(0) == &rb);
+    REQUIRE(group.button(0) == rb);
+    REQUIRE(rb->text() == "Option 1");
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_button() with auto-assigned ID") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_option() with auto-assigned ID") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-    radio_button<Backend> rb3("Option 3");
 
-    group.add_button(&rb1);  // ID = 0
-    group.add_button(&rb2);  // ID = 1
-    group.add_button(&rb3);  // ID = 2
+    auto* rb1 = group.add_option("Option 1");  // ID = 0
+    auto* rb2 = group.add_option("Option 2");  // ID = 1
+    auto* rb3 = group.add_option("Option 3");  // ID = 2
 
     REQUIRE(group.count() == 3);
-    REQUIRE(group.button(0) == &rb1);
-    REQUIRE(group.button(1) == &rb2);
-    REQUIRE(group.button(2) == &rb3);
+    REQUIRE(group.button(0) == rb1);
+    REQUIRE(group.button(1) == rb2);
+    REQUIRE(group.button(2) == rb3);
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_button() with explicit IDs") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_option() with explicit IDs") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 10);
-    group.add_button(&rb2, 20);
+    auto* rb1 = group.add_option("Option 1", 10);
+    auto* rb2 = group.add_option("Option 2", 20);
 
     REQUIRE(group.count() == 2);
-    REQUIRE(group.button(10) == &rb1);
-    REQUIRE(group.button(20) == &rb2);
+    REQUIRE(group.button(10) == rb1);
+    REQUIRE(group.button(20) == rb2);
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - remove_button() removes button from group") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - add_option() with duplicate ID returns nullptr") {
     button_group<Backend> group;
-    radio_button<Backend> rb("Option 1");
 
-    group.add_button(&rb, 0);
-    REQUIRE(group.count() == 1);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 0);  // Duplicate ID
 
-    group.remove_button(&rb);
-
-    REQUIRE(group.count() == 0);
-    REQUIRE(rb.group() == nullptr);
-    REQUIRE(group.button(0) == nullptr);
-}
-
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - remove_button() clears checked_id if checked button removed") {
-    button_group<Backend> group;
-    radio_button<Backend> rb("Option 1");
-
-    group.add_button(&rb, 0);
-    group.set_checked_id(0);
-    REQUIRE(group.checked_id() == 0);
-
-    group.remove_button(&rb);
-
-    REQUIRE(group.checked_id() == -1);
+    REQUIRE(rb1 != nullptr);
+    REQUIRE(rb2 == nullptr);  // Returns nullptr for duplicate
+    REQUIRE(group.count() == 1);  // Only first button added
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - buttons() returns all buttons") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-    radio_button<Backend> rb3("Option 3");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-    group.add_button(&rb3, 2);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+    auto* rb3 = group.add_option("Option 3", 2);
 
     auto button_list = group.buttons();
 
     REQUIRE(button_list.size() == 3);
     // Order is unspecified (unordered_map), but all should be present
-    REQUIRE(std::find(button_list.begin(), button_list.end(), &rb1) != button_list.end());
-    REQUIRE(std::find(button_list.begin(), button_list.end(), &rb2) != button_list.end());
-    REQUIRE(std::find(button_list.begin(), button_list.end(), &rb3) != button_list.end());
+    REQUIRE(std::find(button_list.begin(), button_list.end(), rb1) != button_list.end());
+    REQUIRE(std::find(button_list.begin(), button_list.end(), rb2) != button_list.end());
+    REQUIRE(std::find(button_list.begin(), button_list.end(), rb3) != button_list.end());
 }
 
 // ===== Selection Management Tests =====
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - set_checked_id() checks button") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
 
     group.set_checked_id(1);
 
     REQUIRE(group.checked_id() == 1);
-    REQUIRE(group.checked_button() == &rb2);
-    REQUIRE_FALSE(rb1.is_checked());
-    REQUIRE(rb2.is_checked());
+    REQUIRE(group.checked_button() == rb2);
+    REQUIRE_FALSE(rb1->is_checked());
+    REQUIRE(rb2->is_checked());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - set_checked_id(-1) unchecks all buttons") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+
     group.set_checked_id(0);
-
-    REQUIRE(rb1.is_checked());
+    REQUIRE(rb1->is_checked());
 
     group.set_checked_id(-1);
 
-    REQUIRE_FALSE(rb1.is_checked());
-    REQUIRE_FALSE(rb2.is_checked());
+    REQUIRE_FALSE(rb1->is_checked());
+    REQUIRE_FALSE(rb2->is_checked());
     REQUIRE(group.checked_id() == -1);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - set_checked_id() with invalid ID does nothing") {
     button_group<Backend> group;
-    radio_button<Backend> rb("Option 1");
 
-    group.add_button(&rb, 0);
+    auto* rb = group.add_option("Option 1", 0);
     group.set_checked_id(0);
 
     group.set_checked_id(999);  // Invalid ID
 
     REQUIRE(group.checked_id() == 0);  // Unchanged
-    REQUIRE(rb.is_checked());  // Still checked
-}
-
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - set_checked_button() checks button") {
-    button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-
-    group.set_checked_button(&rb2);
-
-    REQUIRE(group.checked_button() == &rb2);
-    REQUIRE_FALSE(rb1.is_checked());
-    REQUIRE(rb2.is_checked());
-}
-
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - set_checked_button(nullptr) unchecks all") {
-    button_group<Backend> group;
-    radio_button<Backend> rb("Option 1");
-
-    group.add_button(&rb, 0);
-    group.set_checked_id(0);
-
-    group.set_checked_button(nullptr);
-
-    REQUIRE_FALSE(rb.is_checked());
-    REQUIRE(group.checked_id() == -1);
+    REQUIRE(rb->is_checked());  // Still checked
 }
 
 // ===== Mutual Exclusion Tests =====
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Mutual exclusion: checking one unchecks others") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-    radio_button<Backend> rb3("Option 3");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-    group.add_button(&rb3, 2);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+    auto* rb3 = group.add_option("Option 3", 2);
 
     // Check first button
     group.set_checked_id(0);
-    REQUIRE(rb1.is_checked());
-    REQUIRE_FALSE(rb2.is_checked());
-    REQUIRE_FALSE(rb3.is_checked());
+    REQUIRE(rb1->is_checked());
+    REQUIRE_FALSE(rb2->is_checked());
+    REQUIRE_FALSE(rb3->is_checked());
 
     // Check second button - first should uncheck
     group.set_checked_id(1);
-    REQUIRE_FALSE(rb1.is_checked());
-    REQUIRE(rb2.is_checked());
-    REQUIRE_FALSE(rb3.is_checked());
+    REQUIRE_FALSE(rb1->is_checked());
+    REQUIRE(rb2->is_checked());
+    REQUIRE_FALSE(rb3->is_checked());
 
     // Check third button - second should uncheck
     group.set_checked_id(2);
-    REQUIRE_FALSE(rb1.is_checked());
-    REQUIRE_FALSE(rb2.is_checked());
-    REQUIRE(rb3.is_checked());
+    REQUIRE_FALSE(rb1->is_checked());
+    REQUIRE_FALSE(rb2->is_checked());
+    REQUIRE(rb3->is_checked());
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Adding checked button unchecks previous") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Clicking radio button enforces mutual exclusion") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1", true);  // Initially checked
-    radio_button<Backend> rb2("Option 2", true);  // Also initially checked
 
-    group.add_button(&rb1, 0);
-    REQUIRE(rb1.is_checked());
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
 
-    group.add_button(&rb2, 1);  // Adding checked button should uncheck rb1
+    group.set_checked_id(0);
+    REQUIRE(rb1->is_checked());
 
-    REQUIRE_FALSE(rb1.is_checked());  // Unchecked by group
-    REQUIRE(rb2.is_checked());  // Still checked
+    // Click rb2 - should uncheck rb1 via group
+    rb2->set_checked(true);
+
+    REQUIRE_FALSE(rb1->is_checked());  // Unchecked by group
+    REQUIRE(rb2->is_checked());  // Checked
     REQUIRE(group.checked_id() == 1);
 }
 
@@ -238,11 +180,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Adding check
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - button_toggled signal emitted on check") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    group.add_option("Option 1", 0);
+    group.add_option("Option 2", 1);
 
     int last_id = -1;
     bool last_checked = false;
@@ -263,11 +203,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - button_toggl
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - button_toggled signal emitted for both buttons on switch") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    group.add_option("Option 1", 0);
+    group.add_option("Option 2", 1);
+
     group.set_checked_id(0);  // Start with rb1 checked
 
     std::vector<std::pair<int, bool>> signals;
@@ -291,66 +230,60 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - button_toggl
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - select_next() moves to next button") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-    radio_button<Backend> rb3("Option 3");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-    group.add_button(&rb3, 2);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+    group.add_option("Option 3", 2);
+
     group.set_checked_id(0);
 
-    group.select_next(&rb1);
+    group.select_next(rb1);
 
     REQUIRE(group.checked_id() == 1);  // Moved to rb2
-    REQUIRE(rb2.is_checked());
+    REQUIRE(rb2->is_checked());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - select_next() wraps around at end") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+
     group.set_checked_id(1);  // Last button
 
-    group.select_next(&rb2);
+    group.select_next(rb2);
 
     REQUIRE(group.checked_id() == 0);  // Wrapped to first
-    REQUIRE(rb1.is_checked());
+    REQUIRE(rb1->is_checked());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - select_previous() moves to previous button") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
-    radio_button<Backend> rb3("Option 3");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-    group.add_button(&rb3, 2);
+    group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+    auto* rb3 = group.add_option("Option 3", 2);
+
     group.set_checked_id(2);
 
-    group.select_previous(&rb3);
+    group.select_previous(rb3);
 
     REQUIRE(group.checked_id() == 1);  // Moved to rb2
-    REQUIRE(rb2.is_checked());
+    REQUIRE(rb2->is_checked());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - select_previous() wraps around at beginning") {
     button_group<Backend> group;
-    radio_button<Backend> rb1("Option 1");
-    radio_button<Backend> rb2("Option 2");
 
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
+    auto* rb1 = group.add_option("Option 1", 0);
+    auto* rb2 = group.add_option("Option 2", 1);
+
     group.set_checked_id(0);  // First button
 
-    group.select_previous(&rb1);
+    group.select_previous(rb1);
 
     REQUIRE(group.checked_id() == 1);  // Wrapped to last
-    REQUIRE(rb2.is_checked());
+    REQUIRE(rb2->is_checked());
 }
 
 // ===== Edge Case Tests =====
@@ -360,34 +293,43 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Empty group 
 
     group.set_checked_id(0);  // Should do nothing
     REQUIRE(group.checked_id() == -1);
-
-    group.set_checked_button(nullptr);  // Should do nothing
-    REQUIRE(group.checked_id() == -1);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Single button group") {
     button_group<Backend> group;
-    radio_button<Backend> rb("Only option");
 
-    group.add_button(&rb, 0);
+    auto* rb = group.add_option("Only option", 0);
     group.set_checked_id(0);
 
-    REQUIRE(rb.is_checked());
+    REQUIRE(rb->is_checked());
 
     // Navigate next - should wrap to same button
-    group.select_next(&rb);
-    REQUIRE(rb.is_checked());  // Still checked (wrapped to self)
+    group.select_next(rb);
+    REQUIRE(rb->is_checked());  // Still checked (wrapped to self)
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Multiple groups with same buttons (invalid but tested)") {
-    button_group<Backend> group1;
-    button_group<Backend> group2;
-    radio_button<Backend> rb("Option");
+// ===== Layout Tests =====
 
-    group1.add_button(&rb, 0);
-    REQUIRE(rb.group() == &group1);
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Is a vbox container") {
+    button_group<Backend> group;
 
-    // Adding to second group overwrites first
-    group2.add_button(&rb, 0);
-    REQUIRE(rb.group() == &group2);
+    // button_group inherits from vbox, so it should have vbox functionality
+    group.add_option("Option 1", 0);
+    group.add_option("Option 2", 1);
+    group.add_option("Option 3", 2);
+
+    // Should be able to measure and arrange like any container
+    auto size = group.measure(100, 100);
+    REQUIRE(size_utils::get_width(size) > 0);
+    REQUIRE(size_utils::get_height(size) >= 3);  // At least 3 lines (1 per option)
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Children are radio buttons") {
+    button_group<Backend> group;
+
+    group.add_option("Option 1", 0);
+    group.add_option("Option 2", 1);
+
+    // Radio buttons should be children of the group
+    REQUIRE(group.children().size() == 2);
 }

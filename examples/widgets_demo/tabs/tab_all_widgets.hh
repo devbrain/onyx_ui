@@ -52,19 +52,29 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     // Make entire tab scrollable
     auto* scroll = tab->template emplace_child<onyxui::scroll_view>();
 
-    // Main content container (vertical layout)
-    auto* content = scroll->template emplace_child<onyxui::vbox>(1);  // 1px spacing
+    // Use vbox to hold title and grid
+    auto* layout = scroll->template emplace_child<onyxui::vbox>(1);
 
     // Title
-    auto* title = content->template emplace_child<onyxui::label>("All Widgets Gallery");
+    auto* title = layout->template emplace_child<onyxui::label>("All Widgets Gallery");
     title->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    content->template emplace_child<onyxui::label>("");  // Spacer
+    layout->template emplace_child<onyxui::label>("");  // Spacer
+
+    // Main content container (2-column grid layout)
+    auto* content = layout->template emplace_child<onyxui::grid>(
+        2,      // 2 columns
+        -1,     // auto rows
+        2,      // 2px column spacing
+        2,      // 2px row spacing
+        true    // auto-size based on content
+    );
 
     // ========== BASIC WIDGETS SECTION ==========
     auto* basic_section = content->template emplace_child<onyxui::group_box>();
     basic_section->set_title("Basic Widgets");
     basic_section->set_vbox_layout(1);
+    basic_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     // Buttons
     basic_section->template emplace_child<onyxui::label>("Buttons:");
@@ -112,6 +122,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* container_section = content->template emplace_child<onyxui::group_box>();
     container_section->set_title("Container Widgets");
     container_section->set_vbox_layout(1);
+    container_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     // HBox example
     container_section->template emplace_child<onyxui::label>("HBox (Horizontal Layout):");
@@ -149,6 +160,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* input_section = content->template emplace_child<onyxui::group_box>();
     input_section->set_title("Input Widgets");
     input_section->set_vbox_layout(1);
+    input_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     // Line Edit
     input_section->template emplace_child<onyxui::label>("Line Edit (Text Input):");
@@ -166,11 +178,12 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     // Radio Buttons
     input_section->template emplace_child<onyxui::label>("");  // Spacer
     input_section->template emplace_child<onyxui::label>("Radio Buttons (Mutually Exclusive):");
-    auto button_group = std::make_shared<onyxui::button_group<Backend>>();
-    auto* rb1 = input_section->template emplace_child<onyxui::radio_button>("Option 1", button_group.get());
-    auto* rb2 = input_section->template emplace_child<onyxui::radio_button>("Option 2", button_group.get());
-    auto* rb3 = input_section->template emplace_child<onyxui::radio_button>("Option 3", button_group.get());
-    rb1->set_checked(true);  // Select first by default
+    // Create button group (widget container that owns radio buttons)
+    auto* button_group = input_section->template emplace_child<onyxui::button_group>();
+    button_group->add_option("Option 1", 1);
+    button_group->add_option("Option 2", 2);
+    button_group->add_option("Option 3", 3);
+    button_group->set_checked_id(1);  // Select first by default
 
     // Slider
     input_section->template emplace_child<onyxui::label>("");  // Spacer
@@ -204,6 +217,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* actions_section = content->template emplace_child<onyxui::group_box>();
     actions_section->set_title("Actions");
     actions_section->set_hbox_layout(2);
+    actions_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     auto* screenshot_btn = actions_section->template emplace_child<onyxui::button>("Take Screenshot (F9)");
     screenshot_btn->clicked.connect([demo]() {

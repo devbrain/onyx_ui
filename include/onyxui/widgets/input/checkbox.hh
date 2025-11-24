@@ -286,8 +286,8 @@ protected:
         typename Backend::rect_type widget_rect;
         rect_utils::set_bounds(widget_rect, x, y, final_width, final_height);
 
-        // Draw background using resolved style
-        ctx.draw_rect(widget_rect, ctx.style().box_style);
+        // Fill background (no borders for checkbox)
+        ctx.fill_rect(widget_rect);
 
         // If no theme, skip rendering
         if (!theme) return;

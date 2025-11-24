@@ -25,10 +25,14 @@ namespace onyxui {
 ///
 /// **Key Characteristics:**
 /// - Two-state only: checked or unchecked (no indeterminate state)
-/// - Must be in a button_group for mutual exclusion
+/// - Must be child of a button_group for mutual exclusion
 /// - Clicking a checked radio button does NOT uncheck it
 /// - Arrow keys navigate within group and select
 /// - Space key checks the focused button
+///
+/// **Design:** Radio buttons are created by button_group via add_option().
+/// The group owns the radio buttons through the widget tree, ensuring proper
+/// lifetime management and automatic mutual exclusion.
 ///
 /// Visual appearance (using themed icons - 3 characters wide):
 /// @code
@@ -38,24 +42,17 @@ namespace onyxui {
 ///
 /// Usage examples:
 /// @code
-/// // Create button group
-/// auto group = std::make_shared<button_group<Backend>>();
-///
-/// // Create radio buttons
-/// auto small = std::make_unique<radio_button<Backend>>("Small");
-/// auto medium = std::make_unique<radio_button<Backend>>("Medium");
-/// auto large = std::make_unique<radio_button<Backend>>("Large");
-///
-/// // Add to group
-/// group->add_button(small.get(), 0);
-/// group->add_button(medium.get(), 1);
-/// group->add_button(large.get(), 2);
-/// group->set_checked_id(1);  // Default to medium
+/// // Create button group (owns radio buttons)
+/// auto* group = container->emplace_child<button_group<Backend>>();
+/// group->add_option("Small", 1);
+/// group->add_option("Medium", 2);
+/// group->add_option("Large", 3);
+/// group->set_checked_id(2);  // Default to medium
 ///
 /// // Listen for changes
 /// group->button_toggled.connect([](int id, bool checked) {
 ///     if (checked) {
-///         std::cout << "Selected size ID: " << id << "\n";
+///         std::cout << "Selected option: " << id << "\n";
 ///     }
 /// });
 /// @endcode
@@ -97,13 +94,6 @@ public:
         this->set_focusable(true);
     }
 
-    /// Destructor - removes button from group to prevent dangling pointers
-    ~radio_button() override {
-        if (m_group) {
-            m_group->remove_button(this);
-        }
-    }
-
     // ===== State Management =====
 
     /// Set checked state
@@ -123,9 +113,13 @@ public:
         m_is_checked = checked;
         this->mark_dirty();
 
-        // If checking this button and it's in a group, notify group (mutual exclusion)
-        if (checked && m_group) {
-            m_group->notify_button_checked(this);
+        // If checking this button and parent is a button_group, notify group (mutual exclusion)
+        if (checked) {
+            if (auto* parent_elem = this->parent()) {
+                if (auto* group = dynamic_cast<button_group<Backend>*>(parent_elem)) {
+                    group->notify_button_checked(this);
+                }
+            }
         }
 
         // Emit signal
@@ -184,25 +178,6 @@ public:
         return m_mnemonic;
     }
 
-    // ===== Group Management =====
-
-    /// Set button group (internal use - called by button_group)
-    ///
-    /// This establishes the link between radio button and its owning group.
-    /// Do not call this directly - use button_group::add_button() instead.
-    ///
-    /// @param group Pointer to owning button_group, or nullptr to remove from group
-    void set_group(button_group<Backend>* group) {
-        m_group = group;
-    }
-
-    /// Get button group
-    ///
-    /// @return Pointer to owning button_group, or nullptr if not in a group
-    [[nodiscard]] button_group<Backend>* group() const noexcept {
-        return m_group;
-    }
-
     // ===== Signals =====
 
     /// Emitted when checked state changes
@@ -251,8 +226,8 @@ protected:
         typename Backend::rect_type widget_rect;
         rect_utils::set_bounds(widget_rect, x, y, final_width, final_height);
 
-        // Draw background using resolved style
-        ctx.draw_rect(widget_rect, ctx.style().box_style);
+        // Fill background (no borders for radio button)
+        ctx.fill_rect(widget_rect);
 
         // If no theme, skip rendering
         if (!theme) return;
@@ -302,6 +277,12 @@ protected:
 
     /// Handle semantic action (Space key checks, arrow keys navigate group)
     bool handle_semantic_action(hotkey_action action) override {
+        // Find parent button_group if it exists
+        button_group<Backend>* group = nullptr;
+        if (auto* parent_elem = this->parent()) {
+            group = dynamic_cast<button_group<Backend>*>(parent_elem);
+        }
+
         switch (action) {
             case hotkey_action::activate_widget:
                 // Space key checks radio button
@@ -314,8 +295,8 @@ protected:
             case hotkey_action::menu_up:
             case hotkey_action::menu_left:
                 // Navigate to previous radio button in group (reusing menu navigation)
-                if (m_group) {
-                    m_group->select_previous(this);
+                if (group) {
+                    group->select_previous(this);
                     return true;
                 }
                 return false;
@@ -323,8 +304,8 @@ protected:
             case hotkey_action::menu_down:
             case hotkey_action::menu_right:
                 // Navigate to next radio button in group (reusing menu navigation)
-                if (m_group) {
-                    m_group->select_next(this);
+                if (group) {
+                    group->select_next(this);
                     return true;
                 }
                 return false;
@@ -340,7 +321,6 @@ private:
     std::string m_text;                           ///< Label text
     bool m_is_checked = false;                    ///< Current state
     char m_mnemonic = '\0';                       ///< Mnemonic character (or '\0')
-    button_group<Backend>* m_group = nullptr;     ///< Owning group (non-owning ptr)
 
     // ===== Internal Helpers =====
 

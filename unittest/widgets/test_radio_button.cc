@@ -28,7 +28,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Default cons
 
     REQUIRE(rb.text() == "");
     REQUIRE_FALSE(rb.is_checked());
-    REQUIRE(rb.group() == nullptr);
     REQUIRE(rb.mnemonic() == '\0');
     REQUIRE(rb.is_focusable());
 }
@@ -38,7 +37,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Construction
 
     REQUIRE(rb.text() == "Option 1");
     REQUIRE_FALSE(rb.is_checked());
-    REQUIRE(rb.group() == nullptr);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Construction with text and initial state") {
@@ -205,37 +203,31 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Mnemonic can
     REQUIRE(rb.mnemonic() == '\0');
 }
 
-// ===== Group Management Tests =====
+// ===== Group Integration Tests =====
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - set_group() updates group pointer") {
-    test_radio_button<Backend> rb;
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Checking button in group notifies group") {
     button_group<Backend> group;
 
-    rb.set_group(&group);
+    // Create buttons via group
+    group.add_option("Option 1", 0);
+    group.add_option("Option 2", 1);
 
-    REQUIRE(rb.group() == &group);
+    auto* rb1 = group.button(0);
+    auto* rb2 = group.button(1);
 
-    rb.set_group(nullptr);
+    REQUIRE(rb1 != nullptr);
+    REQUIRE(rb2 != nullptr);
 
-    REQUIRE(rb.group() == nullptr);
-}
-
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Checking button notifies group") {
-    test_radio_button<Backend> rb1("Option 1");
-    test_radio_button<Backend> rb2("Option 2", true);  // Initially checked
-
-    button_group<Backend> group;
-    group.add_button(&rb1, 0);
-    group.add_button(&rb2, 1);
-
-    REQUIRE(rb2.is_checked());
-    REQUIRE_FALSE(rb1.is_checked());
+    // Check rb2 initially
+    group.set_checked_id(1);
+    REQUIRE(rb2->is_checked());
+    REQUIRE_FALSE(rb1->is_checked());
 
     // Check rb1 - should uncheck rb2 via group
-    rb1.set_checked(true);
+    rb1->set_checked(true);
 
-    REQUIRE(rb1.is_checked());
-    REQUIRE_FALSE(rb2.is_checked());  // Unchecked by group
+    REQUIRE(rb1->is_checked());
+    REQUIRE_FALSE(rb2->is_checked());  // Unchecked by group
 }
 
 // ===== Layout Tests =====
