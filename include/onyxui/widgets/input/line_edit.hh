@@ -305,7 +305,7 @@ namespace onyxui {
             if (chars < 1) chars = 1;
 
             size_constraint width_constraint;
-            width_constraint.policy = size_policy::preferred;
+            width_constraint.policy = size_policy::content;
             width_constraint.preferred_size = chars;
             this->set_width_constraint(width_constraint);
         }

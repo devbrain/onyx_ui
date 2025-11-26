@@ -230,7 +230,7 @@ namespace onyxui {
             if (lines < 1) lines = 1;
 
             size_constraint height_constraint;
-            height_constraint.policy = size_policy::preferred;
+            height_constraint.policy = size_policy::content;
             height_constraint.preferred_size = lines;  // For now, 1 line = 1 unit (TUI-friendly)
             this->set_height_constraint(height_constraint);
         }
@@ -257,7 +257,7 @@ namespace onyxui {
             if (chars < 1) chars = 1;
 
             size_constraint width_constraint;
-            width_constraint.policy = size_policy::preferred;
+            width_constraint.policy = size_policy::content;
             width_constraint.preferred_size = chars;  // For now, 1 char = 1 unit (TUI-friendly)
             this->set_width_constraint(width_constraint);
         }

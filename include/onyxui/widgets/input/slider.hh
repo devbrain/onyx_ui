@@ -251,6 +251,59 @@ public:
         return m_tick_interval;
     }
 
+    // ===== Semantic Sizing (Backend-Agnostic) =====
+
+    /**
+     * @brief Set preferred track length
+     * @param length Track length in backend-agnostic units
+     *
+     * @details
+     * Sets the preferred track length (width for horizontal slider, height for
+     * vertical slider) based on the number of units. This is a backend-agnostic
+     * way to size sliders that works correctly across different backends:
+     *
+     * - **TUI backend (conio)**: 1 unit = 1 character cell
+     * - **GUI backend (SDL2)**: 1 unit = 1 pixel
+     *
+     * The widget will use this as a preferred size hint during layout, but may
+     * be stretched or shrunk based on parent layout constraints.
+     *
+     * The track length affects the primary dimension:
+     * - **Horizontal slider**: Sets preferred width
+     * - **Vertical slider**: Sets preferred height
+     *
+     * @note The cross-dimension (height for horizontal, width for vertical) is
+     *       determined automatically based on tick marks and thumb size.
+     * @note For TUI backends, this currently maps 1:1 to character cells.
+     * @note For future GUI backends, this represents pixel width/height.
+     *
+     * @example
+     * @code
+     * // Create horizontal slider with 50-unit track
+     * auto volume = std::make_unique<slider<Backend>>();
+     * volume->set_orientation(slider_orientation::horizontal);
+     * volume->set_track_length(50);
+     *
+     * // Create vertical slider with 20-unit track
+     * auto brightness = std::make_unique<slider<Backend>>(slider_orientation::vertical);
+     * brightness->set_track_length(20);
+     * @endcode
+     */
+    void set_track_length(int length) {
+        if (length < 1) length = 1;
+
+        size_constraint constraint;
+        constraint.policy = size_policy::content;
+        constraint.preferred_size = length;
+
+        // Set the appropriate dimension based on orientation
+        if (m_orientation == slider_orientation::horizontal) {
+            this->set_width_constraint(constraint);
+        } else {
+            this->set_height_constraint(constraint);
+        }
+    }
+
     // ===== Signals =====
 
     /// Emitted when value changes

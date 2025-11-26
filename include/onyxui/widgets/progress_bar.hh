@@ -225,6 +225,60 @@ public:
         return format_text_internal();
     }
 
+    // ===== Semantic Sizing (Backend-Agnostic) =====
+
+    /**
+     * @brief Set preferred bar width/length
+     * @param width Bar width in backend-agnostic units
+     *
+     * @details
+     * Sets the preferred bar width (length for horizontal bar, width for vertical
+     * bar) based on the number of units. This is a backend-agnostic way to size
+     * progress bars that works correctly across different backends:
+     *
+     * - **TUI backend (conio)**: 1 unit = 1 character cell
+     * - **GUI backend (SDL2)**: 1 unit = 1 pixel
+     *
+     * The widget will use this as a preferred size hint during layout, but may
+     * be stretched or shrunk based on parent layout constraints.
+     *
+     * The bar width affects the primary dimension:
+     * - **Horizontal progress bar**: Sets preferred width
+     * - **Vertical progress bar**: Sets preferred height
+     *
+     * @note The cross-dimension (height for horizontal, width for vertical) is
+     *       typically 1 unit for simple bars.
+     * @note For TUI backends, this currently maps 1:1 to character cells.
+     * @note For future GUI backends, this represents pixel width/height.
+     *
+     * @example
+     * @code
+     * // Create horizontal progress bar with 40-unit width
+     * auto download = std::make_unique<progress_bar<Backend>>();
+     * download->set_orientation(progress_bar_orientation::horizontal);
+     * download->set_bar_width(40);
+     *
+     * // Create vertical progress bar with 15-unit height
+     * auto upload = std::make_unique<progress_bar<Backend>>();
+     * upload->set_orientation(progress_bar_orientation::vertical);
+     * upload->set_bar_width(15);
+     * @endcode
+     */
+    void set_bar_width(int width) {
+        if (width < 1) width = 1;
+
+        size_constraint constraint;
+        constraint.policy = size_policy::content;
+        constraint.preferred_size = width;
+
+        // Set the appropriate dimension based on orientation
+        if (m_orientation == progress_bar_orientation::horizontal) {
+            this->set_width_constraint(constraint);
+        } else {
+            this->set_height_constraint(constraint);
+        }
+    }
+
     // ===== Signals =====
 
     /// Emitted when value changes
