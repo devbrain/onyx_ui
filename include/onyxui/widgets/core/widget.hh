@@ -616,14 +616,33 @@ namespace onyxui {
          * @return true if handled, false otherwise
          *
          * @details
-         * Widgets handle activate_focused by emitting clicked signal.
-         * This is the proper way to trigger widget activation via keyboard.
+         * Widgets handle:
+         * - activate_focused: Emit clicked signal
+         * - focus_next: Move focus to next focusable widget (Tab)
+         * - focus_previous: Move focus to previous focusable widget (Shift+Tab)
          */
         bool handle_semantic_action(hotkey_action action) override {
             if (action == hotkey_action::activate_focused) {
                 if (this->accepts_keys_as_click()) {
                     clicked.emit();
                     return true;  // Handled
+                }
+            }
+
+            // Handle focus navigation actions
+            if (action == hotkey_action::focus_next || action == hotkey_action::focus_previous) {
+                auto* input = ui_services<Backend>::input();
+                if (input) {
+                    // Find root element by traversing up the parent chain
+                    auto* root = find_root();
+                    if (root) {
+                        if (action == hotkey_action::focus_next) {
+                            input->focus_next_in_tree(root);
+                        } else {
+                            input->focus_previous_in_tree(root);
+                        }
+                        return true;  // Handled
+                    }
                 }
             }
 
@@ -644,6 +663,18 @@ namespace onyxui {
             } else {
                 focus_lost.emit();
             }
+        }
+
+        /**
+         * @brief Find the root element by traversing up the parent chain
+         * @return Pointer to the root element (element with no parent)
+         */
+        [[nodiscard]] ui_element<Backend>* find_root() noexcept {
+            ui_element<Backend>* current = this;
+            while (current->parent() != nullptr) {
+                current = current->parent();
+            }
+            return current;
         }
     };
 }

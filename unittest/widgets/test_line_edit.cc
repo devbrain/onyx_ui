@@ -8,6 +8,7 @@
 #include <doctest/doctest.h>
 
 #include <onyxui/widgets/input/line_edit.hh>
+#include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/geometry/coordinates.hh>
 #include "../utils/test_backend.hh"
 #include "../utils/test_helpers.hh"
@@ -341,3 +342,149 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Cursor renderin
         // reset_cursor_blink() is called internally
     }
 }
+
+
+// ============================================================================
+// Tab Key Focus Navigation
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Tab key should not be consumed") {
+    line_edit<test_backend> edit1("First");
+    line_edit<test_backend> edit2("Second");
+
+    // Set up both line_edits
+    [[maybe_unused]] auto s1 = edit1.measure(200, 30);
+    [[maybe_unused]] auto s2 = edit2.measure(200, 30);
+    edit1.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+    edit2.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 40, 200, 30));
+
+    // Focus the first line_edit
+    ctx.input().set_focus(&edit1);
+    CHECK(edit1.has_focus());
+    CHECK_FALSE(edit2.has_focus());
+
+    SUBCASE("Tab key event should not be consumed by line_edit") {
+        // Create Tab key event
+        keyboard_event tab_evt;
+        tab_evt.key = key_code::tab;
+        tab_evt.pressed = true;
+        tab_evt.modifiers = key_modifier::none;
+
+        // Send Tab key to line_edit - it should NOT consume it (return false)
+        // so focus navigation can happen at the application level
+        ui_event event = tab_evt;
+        bool handled = edit1.handle_event(event, event_phase::target);
+
+        // Tab should NOT be handled by line_edit, allowing focus navigation
+        CHECK_FALSE(handled);
+    }
+
+    SUBCASE("Shift+Tab key event should not be consumed by line_edit") {
+        // Create Shift+Tab key event
+        keyboard_event shift_tab_evt;
+        shift_tab_evt.key = key_code::tab;
+        shift_tab_evt.pressed = true;
+        shift_tab_evt.modifiers = key_modifier::shift;
+
+        // Send Shift+Tab key to line_edit - it should NOT consume it
+        ui_event event = shift_tab_evt;
+        bool handled = edit1.handle_event(event, event_phase::target);
+
+        // Shift+Tab should NOT be handled by line_edit
+        CHECK_FALSE(handled);
+    }
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Tab triggers focus_next semantic action") {
+    line_edit<test_backend> edit1("First");
+    line_edit<test_backend> edit2("Second");
+
+    // Set up both line_edits
+    [[maybe_unused]] auto s1 = edit1.measure(200, 30);
+    [[maybe_unused]] auto s2 = edit2.measure(200, 30);
+    edit1.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+    edit2.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 40, 200, 30));
+
+    // Focus the first line_edit
+    ctx.input().set_focus(&edit1);
+    CHECK(edit1.has_focus());
+    CHECK_FALSE(edit2.has_focus());
+
+    SUBCASE("Tab key matches focus_next semantic action") {
+        // Create Tab key event
+        keyboard_event tab_evt;
+        tab_evt.key = key_code::tab;
+        tab_evt.pressed = true;
+        tab_evt.modifiers = key_modifier::none;
+
+        // Check if Tab matches focus_next semantic action
+        auto& hotkeys = ctx.hotkeys();
+
+        bool matches_focus_next = hotkeys.matches_action(tab_evt, hotkey_action::focus_next);
+        CHECK(matches_focus_next);
+    }
+
+    SUBCASE("Shift+Tab key matches focus_previous semantic action") {
+        // Create Shift+Tab key event
+        keyboard_event shift_tab_evt;
+        shift_tab_evt.key = key_code::tab;
+        shift_tab_evt.pressed = true;
+        shift_tab_evt.modifiers = key_modifier::shift;
+
+        // Check if Shift+Tab matches focus_previous semantic action
+        auto& hotkeys = ctx.hotkeys();
+
+        bool matches_focus_previous = hotkeys.matches_action(shift_tab_evt, hotkey_action::focus_previous);
+        CHECK(matches_focus_previous);
+    }
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - focus_next semantic action moves focus") {
+    // Create a container with multiple focusable widgets
+    onyxui::panel<test_backend> container;
+    container.set_vbox_layout(5);
+
+    auto* edit1 = container.template emplace_child<line_edit>("First");
+    auto* edit2 = container.template emplace_child<line_edit>("Second");
+
+    // Set up layout
+    [[maybe_unused]] auto s = container.measure(200, 100);
+    container.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 100));
+
+    // Focus the first line_edit
+    ctx.input().set_focus(edit1);
+    REQUIRE(edit1->has_focus());
+    REQUIRE_FALSE(edit2->has_focus());
+
+    SUBCASE("focus_next moves focus to next widget") {
+        // Trigger focus_next semantic action on the focused widget
+        bool handled = edit1->handle_semantic_action(hotkey_action::focus_next);
+
+        CHECK(handled);
+        CHECK_FALSE(edit1->has_focus());
+        CHECK(edit2->has_focus());
+    }
+
+    SUBCASE("focus_previous wraps to last widget") {
+        // Trigger focus_previous semantic action (should wrap to edit2)
+        bool handled = edit1->handle_semantic_action(hotkey_action::focus_previous);
+
+        CHECK(handled);
+        CHECK_FALSE(edit1->has_focus());
+        CHECK(edit2->has_focus());
+    }
+
+    SUBCASE("focus_next wraps from last to first") {
+        // Focus the second widget
+        ctx.input().set_focus(edit2);
+        REQUIRE(edit2->has_focus());
+
+        // Trigger focus_next (should wrap to edit1)
+        bool handled = edit2->handle_semantic_action(hotkey_action::focus_next);
+
+        CHECK(handled);
+        CHECK(edit1->has_focus());
+        CHECK_FALSE(edit2->has_focus());
+    }
+}
+
