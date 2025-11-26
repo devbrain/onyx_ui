@@ -23,6 +23,8 @@
 #include <onyxui/widgets/input/slider.hh>
 #include <onyxui/widgets/progress_bar.hh>
 #include <onyxui/widgets/input/combo_box.hh>
+#include <onyxui/widgets/text_view.hh>
+#include <onyxui/widgets/icon.hh>
 #include <onyxui/mvc/models/list_model.hh>
 #include <memory>
 
@@ -36,6 +38,8 @@ namespace widgets_demo_tabs {
  * - Basic widgets (button, label, spacer, spring)
  * - Container widgets (panel, vbox/hbox, grid, group_box)
  * - Input widgets (line_edit, checkbox, radio_button, slider, progress_bar, combo_box)
+ * - Text display (text_view - multi-line scrollable text)
+ * - Icons (icon widget with various icon_style values)
  * - Actions (screenshot, theme editor)
  *
  * All content is scrollable using scroll_view.
@@ -255,6 +259,89 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
             }
         }
     });
+
+    // ========== TEXT VIEW SECTION ==========
+    auto* textview_section = content->template emplace_child<onyxui::group_box>();
+    textview_section->set_title("Text View");
+    textview_section->set_vbox_layout(1);
+    textview_section->set_vertical_align(onyxui::vertical_alignment::top);
+
+    textview_section->template emplace_child<onyxui::label>("Multi-line scrollable text:");
+
+    auto* text_display = textview_section->template emplace_child<onyxui::text_view>();
+    text_display->set_has_border(true);
+    text_display->set_horizontal_align(onyxui::horizontal_alignment::stretch);
+    // Set fixed height so content scrolls (otherwise text_view auto-sizes to fit all content)
+    // For fixed policy, min_size and max_size must be set (clamp() uses these, not preferred_size)
+    onyxui::size_constraint height_constraint;
+    height_constraint.policy = onyxui::size_policy::fixed;
+    height_constraint.preferred_size = 10;  // 10 lines (8 content + 2 border)
+    height_constraint.min_size = 10;
+    height_constraint.max_size = 10;
+    text_display->set_height_constraint(height_constraint);
+    text_display->set_text(
+        "This is a text_view widget.\n"
+        "It supports multiple lines of text.\n"
+        "Content automatically scrolls when\n"
+        "it exceeds the visible area.\n"
+        "\n"
+        "Features:\n"
+        "- Line-based scrolling\n"
+        "- Keyboard navigation\n"
+        "- Page Up/Down support\n"
+        "- Home/End to jump\n"
+        "- Efficient rendering\n"
+        "- Theme integration\n"
+        "\n"
+        "Try scrolling with arrow keys!\n"
+        "Or use Page Up/Down.\n"
+        "Press Home to go to top.\n"
+        "Press End to go to bottom."
+    );
+
+    // ========== ICONS SECTION ==========
+    auto* icons_section = content->template emplace_child<onyxui::group_box>();
+    icons_section->set_title("Icons");
+    icons_section->set_vbox_layout(1);
+    icons_section->set_vertical_align(onyxui::vertical_alignment::top);
+
+    icons_section->template emplace_child<onyxui::label>("Available icon styles:");
+
+    // Use the backend's icon_style type
+    using icon_style = typename Backend::renderer_type::icon_style;
+
+    // General purpose icons row
+    auto* icons_row1 = icons_section->template emplace_child<onyxui::hbox>(1);
+    icons_row1->template emplace_child<onyxui::icon>(icon_style::check);
+    icons_row1->template emplace_child<onyxui::label>("check ");
+    icons_row1->template emplace_child<onyxui::icon>(icon_style::cross);
+    icons_row1->template emplace_child<onyxui::label>("cross ");
+    icons_row1->template emplace_child<onyxui::icon>(icon_style::bullet);
+    icons_row1->template emplace_child<onyxui::label>("bullet ");
+    icons_row1->template emplace_child<onyxui::icon>(icon_style::folder);
+    icons_row1->template emplace_child<onyxui::label>("folder");
+
+    // Navigation icons row
+    auto* icons_row2 = icons_section->template emplace_child<onyxui::hbox>(1);
+    icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_up);
+    icons_row2->template emplace_child<onyxui::label>("up ");
+    icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_down);
+    icons_row2->template emplace_child<onyxui::label>("down ");
+    icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_left);
+    icons_row2->template emplace_child<onyxui::label>("left ");
+    icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_right);
+    icons_row2->template emplace_child<onyxui::label>("right");
+
+    // Window icons row
+    auto* icons_row3 = icons_section->template emplace_child<onyxui::hbox>(1);
+    icons_row3->template emplace_child<onyxui::icon>(icon_style::menu);
+    icons_row3->template emplace_child<onyxui::label>("menu ");
+    icons_row3->template emplace_child<onyxui::icon>(icon_style::minimize);
+    icons_row3->template emplace_child<onyxui::label>("min ");
+    icons_row3->template emplace_child<onyxui::icon>(icon_style::maximize);
+    icons_row3->template emplace_child<onyxui::label>("max ");
+    icons_row3->template emplace_child<onyxui::icon>(icon_style::close_x);
+    icons_row3->template emplace_child<onyxui::label>("close");
 
     // ========== ACTIONS SECTION ==========
     auto* actions_section = content->template emplace_child<onyxui::group_box>();
