@@ -37,7 +37,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     auto dialog = std::make_shared<onyxui::window<Backend>>("About OnyxUI", flags);
 
     // Create content
-    auto content = std::make_unique<onyxui::vbox<Backend>>(1);
+    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
     content->set_padding(onyxui::thickness::all(2));
 
     // Title

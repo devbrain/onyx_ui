@@ -47,7 +47,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     auto win = std::make_shared<onyxui::window<Backend>>("MVC Demo", flags);
 
     // Create content container
-    auto content = std::make_unique<onyxui::vbox<Backend>>(1);
+    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
 
     // Create model with initial data (keep alive with shared_ptr)
     auto model = std::make_shared<onyxui::list_model<std::string, Backend>>();

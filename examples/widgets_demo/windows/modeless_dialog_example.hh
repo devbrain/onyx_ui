@@ -43,7 +43,7 @@ std::shared_ptr<onyxui::window<Backend>> create_modeless_dialog() {
     auto dialog = std::make_shared<onyxui::window<Backend>>("Modeless Dialog", flags);
 
     // Create content
-    auto content = std::make_unique<onyxui::vbox<Backend>>(2);
+    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
     content->set_padding(onyxui::thickness::all(2));
 
     // Title

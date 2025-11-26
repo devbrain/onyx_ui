@@ -86,7 +86,7 @@ void build_ui(
 
     // Create central widget for all content
     auto central = std::make_unique<onyxui::panel<Backend>>();
-    central->set_vbox_layout(1);  // Vertical layout with 1px spacing
+    central->set_vbox_layout(onyxui::spacing::tiny);  // Vertical layout with 1px spacing
     central->set_padding(onyxui::thickness::all(0));  // No padding for compact look
 
     // Title (add to central widget)
@@ -235,7 +235,7 @@ void build_ui(
 
     // Create MVC Demo tab with list_view
     auto page8 = std::make_unique<onyxui::panel<Backend>>();
-    page8->set_vbox_layout(1);
+    page8->set_vbox_layout(onyxui::spacing::tiny);
 
     // Create model with sample data (static to keep it alive)
     static auto mvc_model = std::make_shared<onyxui::list_model<std::string, Backend>>();

@@ -70,7 +70,7 @@ namespace demo_windows {
         auto win = std::make_shared<onyxui::window<Backend>>(title, flags, nullptr);  // No parent - floating layer
 
         // Create content FIRST
-        auto content = std::make_unique<onyxui::vbox<Backend>>(1);
+        auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
         content->template emplace_child<onyxui::label>(content_text);
         win->set_content(std::move(content));
 
@@ -112,7 +112,7 @@ namespace demo_windows {
         auto win = std::make_shared<onyxui::window<Backend>>("Scrollable Content", flags);
 
         // Create content with text view
-        auto content = std::make_unique<onyxui::vbox<Backend>>(0);
+        auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::none);
 
         auto* text_view = content->template emplace_child<onyxui::text_view>();
         text_view->set_has_border(true);
@@ -178,7 +178,7 @@ namespace demo_windows {
         dialog->set_position(15, 8);
 
         // Create content
-        auto content = std::make_unique<onyxui::vbox<Backend>>(2);
+        auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
         content->set_padding(onyxui::thickness::all(2));
 
         auto* msg_label = content->template emplace_child<onyxui::label>(message);
@@ -219,7 +219,7 @@ namespace demo_windows {
 
         auto win = std::make_shared<onyxui::window<Backend>>("Interactive Controls", flags);
 
-        auto content = std::make_unique<onyxui::vbox<Backend>>(1);
+        auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
 
         // Title
         auto* title = content->template emplace_child<onyxui::label>(
