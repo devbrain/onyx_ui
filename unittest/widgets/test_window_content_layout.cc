@@ -38,7 +38,7 @@ TEST_SUITE("window - content layout") {
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Create content with multiple children (like in the demo)
-        auto content = std::make_unique<vbox<Backend>>(1);
+        auto content = std::make_unique<vbox<Backend>>(spacing::tiny);
 
         auto* label1 = content->template emplace_child<label>("First Label");
         auto* label2 = content->template emplace_child<label>("Second Label");
@@ -100,7 +100,7 @@ TEST_SUITE("window - content layout") {
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Create content WITHOUT setting stretch alignment
-        auto content = std::make_unique<vbox<Backend>>(1);
+        auto content = std::make_unique<vbox<Backend>>(spacing::tiny);
         // DO NOT call: content->set_horizontal_align(horizontal_alignment::stretch);
         // DO NOT call: content->set_vertical_align(vertical_alignment::stretch);
 
@@ -135,7 +135,7 @@ TEST_SUITE("window - content layout") {
         win->set_position(8, 4);
 
         // Create content AFTER sizing
-        auto content = std::make_unique<vbox<Backend>>(1);
+        auto content = std::make_unique<vbox<Backend>>(spacing::tiny);
         auto* label1 = content->template emplace_child<label>("First Label");
         auto* button1 = content->template emplace_child<button>("Button 1");
 

@@ -182,7 +182,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - empty container with zero size") {
-        vbox<Backend> vb(0);
+        vbox<Backend> vb(spacing::none);
         apply_default_theme(vb);
 
         // No children
@@ -196,7 +196,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - children with zero spacing and zero size") {
-        vbox<Backend> vb(0);
+        vbox<Backend> vb(spacing::none);
         apply_default_theme(vb);
 
         vb.emplace_child<label>("A");
@@ -277,7 +277,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - many children with zero available space") {
-        vbox<Backend> vb(1);  // With spacing
+        vbox<Backend> vb(spacing::tiny);
         apply_default_theme(vb);
 
         // Add many children

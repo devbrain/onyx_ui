@@ -177,7 +177,7 @@ TEST_SUITE("Separator Widget") {
 
         // Simulate menu with items and separator
         vbox<CanvasBackend> menu;
-        menu.set_spacing(0);
+        menu.set_spacing(spacing::none);
 
         auto item1 = std::make_unique<label<CanvasBackend>>("New");
         auto item2 = std::make_unique<label<CanvasBackend>>("Open");
@@ -216,7 +216,7 @@ TEST_SUITE("Separator Widget") {
 
         // Simulate toolbar with buttons and separator
         hbox<CanvasBackend> toolbar;
-        toolbar.set_spacing(0);
+        toolbar.set_spacing(spacing::none);
 
         auto btn1 = std::make_unique<button<CanvasBackend>>("Cut");
         auto btn2 = std::make_unique<button<CanvasBackend>>("Copy");

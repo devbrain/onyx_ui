@@ -106,7 +106,7 @@ namespace onyxui {
             , m_result(dialog_result::none)
         {
             // Create main layout (vbox: message area + button area)
-            auto layout = std::make_unique<vbox<Backend>>(10);  // 10px spacing
+            auto layout = std::make_unique<vbox<Backend>>(spacing::medium);
             m_layout = layout.get();
 
             // Add message label
@@ -115,7 +115,7 @@ namespace onyxui {
             layout->add_child(std::move(message_label));
 
             // Add button container (hbox)
-            auto button_box = std::make_unique<hbox<Backend>>(5);  // 5px spacing
+            auto button_box = std::make_unique<hbox<Backend>>(spacing::small);
             m_button_box = button_box.get();
             layout->add_child(std::move(button_box));
 

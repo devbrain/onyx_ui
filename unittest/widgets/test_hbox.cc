@@ -17,7 +17,7 @@ using namespace onyxui;
 
 TEST_CASE("HBox - Horizontal layout widget") {
     SUBCASE("Construction") {
-        hbox<test_backend> const box(10);  // 10px spacing
+        hbox<test_backend> const box(spacing::large);
 
         CHECK_FALSE(box.is_focusable());
     }
@@ -35,17 +35,17 @@ TEST_CASE("HBox - Horizontal layout widget") {
     }
 
     SUBCASE("Change spacing") {
-        hbox<test_backend> box(5);
+        hbox<test_backend> box(spacing::small);
 
         // Should not crash
-        box.set_spacing(10);
+        box.set_spacing(spacing::large);
         CHECK_NOTHROW((void)box.measure(100, 100));
     }
 
     SUBCASE("Child alignment configuration") {
-        hbox<test_backend> box(5, horizontal_alignment::center, vertical_alignment::center);
+        hbox<test_backend> box(spacing::small, horizontal_alignment::center, vertical_alignment::center);
 
-        CHECK(box.spacing() == 5);
+        CHECK(box.get_spacing() == spacing::small);
         CHECK(box.child_h_align() == horizontal_alignment::center);
         CHECK(box.child_v_align() == vertical_alignment::center);
 
@@ -59,7 +59,7 @@ TEST_CASE("HBox - Horizontal layout widget") {
 
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<hbox<test_backend>>(
-        [](auto& box) { box.set_spacing(20); },
-        [](const auto& box) { return box.spacing() == 20; }
+        [](auto& box) { box.set_spacing(spacing::xlarge); },
+        [](const auto& box) { return box.get_spacing() == spacing::xlarge; }
     );
 }

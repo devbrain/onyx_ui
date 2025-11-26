@@ -37,7 +37,7 @@ TEST_SUITE("window - scrollbar layout") {
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Create content that overflows (like in the demo)
-        auto content = std::make_unique<vbox<Backend>>(1);
+        auto content = std::make_unique<vbox<Backend>>(spacing::tiny);
         content->template emplace_child<label>("Line 1");
         content->template emplace_child<label>("Line 2");
         content->template emplace_child<label>("Line 3");
@@ -104,7 +104,7 @@ TEST_SUITE("window - scrollbar layout") {
         auto win = std::make_unique<window<Backend>>("Test", flags);
 
         // Create overflowing content
-        auto content = std::make_unique<vbox<Backend>>(0);
+        auto content = std::make_unique<vbox<Backend>>(spacing::none);
         for (int i = 0; i < 30; i++) {  // 30 labels definitely overflow
             content->template emplace_child<label>("Item " + std::to_string(i));
         }

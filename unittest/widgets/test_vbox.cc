@@ -31,7 +31,7 @@ using namespace onyxui::testing;
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layout widget") {
     SUBCASE("Construction") {
-        vbox<test_canvas_backend> const box(10);  // 10px spacing
+        vbox<test_canvas_backend> const box(spacing::large);
 
         CHECK_FALSE(box.is_focusable());
     }
@@ -56,7 +56,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layo
         main_layout.add_child(std::move(title));
 
         // Add button row (hbox inside vbox)
-        auto button_row = std::make_unique<hbox<test_canvas_backend>>(5);
+        auto button_row = std::make_unique<hbox<test_canvas_backend>>(spacing::small);
         button_row->add_child(std::make_unique<button<test_canvas_backend>>("OK"));
         button_row->add_child(std::make_unique<button<test_canvas_backend>>("Cancel"));
         main_layout.add_child(std::move(button_row));
@@ -72,9 +72,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layo
     }
 
     SUBCASE("Child alignment configuration") {
-        vbox<test_canvas_backend> box(8, horizontal_alignment::center, vertical_alignment::center);
+        vbox<test_canvas_backend> box(spacing::medium, horizontal_alignment::center, vertical_alignment::center);
 
-        CHECK(box.spacing() == 8);
+        CHECK(box.get_spacing() == spacing::medium);
         CHECK(box.child_h_align() == horizontal_alignment::center);
         CHECK(box.child_v_align() == vertical_alignment::center);
 
@@ -88,7 +88,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layo
 
     // Rule of Five tests - using generic framework
     onyxui::testing::test_rule_of_five<vbox<test_canvas_backend>>(
-        [](auto& box) { box.set_spacing(25); },
-        [](const auto& box) { return box.spacing() == 25; }
+        [](auto& box) { box.set_spacing(spacing::xlarge); },
+        [](const auto& box) { return box.get_spacing() == spacing::xlarge; }
     );
 }

@@ -30,7 +30,7 @@ TEST_SUITE("Theme - Layout Integration") {
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme application - layout remains valid") {
         panel<Backend> p;
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -48,7 +48,7 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme inheritance - child inherits parent theme") {
         panel<Backend> parent;
-        parent.set_vbox_layout(0);
+        parent.set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* child = parent.emplace_child<label>("Child");
 
@@ -63,7 +63,7 @@ TEST_SUITE("Theme - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme switch - layout updates correctly") {
-        vbox<Backend> container(2);
+        vbox<Backend> container(spacing::tiny);
 
         container.emplace_child<label>("Item 1");
         container.emplace_child<label>("Item 2");
@@ -96,7 +96,7 @@ TEST_SUITE("Theme - Layout Integration") {
         panel<Backend> p;
         p.set_has_border(true);
         p.set_padding(thickness::all(5));
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* child = p.emplace_child<label>("Content");
 
@@ -112,11 +112,11 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Nested themed widgets - inheritance chain") {
         panel<Backend> outer;
-        outer.set_vbox_layout(0);
+        outer.set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* middle = outer.emplace_child<group_box>();
         middle->set_title("Middle");
-        middle->set_vbox_layout(0);
+        middle->set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* inner = middle->emplace_child<label>("Inner");
 
@@ -130,7 +130,7 @@ TEST_SUITE("Theme - Layout Integration") {
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme application - multiple children preserve spacing") {
-        vbox<Backend> vb(3);  // 3px spacing
+        vbox<Backend> vb(spacing::small);  // small spacing
 
         vb.emplace_child<label>("A");
         vb.emplace_child<label>("B");
@@ -147,15 +147,15 @@ TEST_SUITE("Theme - Layout Integration") {
             int const prev_bottom = rect_utils::get_y(prev) + rect_utils::get_height(prev);
             int const curr_top = rect_utils::get_y(curr);
 
-            // Spacing should be preserved
-            CHECK(curr_top - prev_bottom == 3);
+            // Spacing should be preserved (spacing::small = 1 in test theme)
+            CHECK(curr_top - prev_bottom == 1);
         }
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Group box with theme - title doesn't affect content layout") {
         group_box<Backend> gb;
         gb.set_title("Themed Title");
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(static_cast<int>(spacing::none));
 
         auto* child = gb.emplace_child<label>("Content");
 
@@ -171,7 +171,7 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme on already-laid-out tree - invalidation works") {
         panel<Backend> p;
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(static_cast<int>(spacing::none));
         p.emplace_child<label>("Text");
 
         // Layout without theme

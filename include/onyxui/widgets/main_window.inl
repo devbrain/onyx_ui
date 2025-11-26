@@ -11,7 +11,7 @@ namespace onyxui {
 
     template<UIBackend Backend>
     main_window<Backend>::main_window()
-        : base(0)  // vbox with 0 spacing
+        : base(spacing::none)  // vbox with no spacing
     {
         // Don't create central widget yet - will be created lazily
         // This allows menu bar to be added first (child 0), then central (child 1), then status (child 2)

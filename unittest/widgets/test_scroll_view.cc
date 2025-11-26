@@ -387,7 +387,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     scroll_view<Backend> outer;
 
     // Add a vbox inside outer scroll_view
-    auto* content_vbox = outer.emplace_child<vbox>(0);
+    auto* content_vbox = outer.emplace_child<vbox>(spacing::none);
 
     // Add some labels
     content_vbox->template emplace_child<label>("Label before nested scroll");
@@ -396,7 +396,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     auto* inner = content_vbox->template emplace_child<scroll_view>();
 
     // Add content to inner scroll_view
-    auto* inner_vbox = inner->emplace_child<vbox>(0);
+    auto* inner_vbox = inner->emplace_child<vbox>(spacing::none);
     for (int i = 0; i < 5; ++i) {
         inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
     }
@@ -440,7 +440,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     scroll_view<Backend> outer;
 
     // Main content container (vertical layout)
-    auto* content = outer.emplace_child<vbox>(1);
+    auto* content = outer.emplace_child<vbox>(spacing::tiny);
 
     // Add a label before the group_box
     content->template emplace_child<label>("Content before group_box");
@@ -448,7 +448,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     // Group box (like scrolling_section in the layout tab)
     auto* group = content->template emplace_child<group_box>();
     group->set_title("Scrolling Section");
-    group->set_vbox_layout(1);
+    group->set_vbox_layout(static_cast<int>(spacing::tiny));
 
     // Add a label inside group_box
     group->template emplace_child<label>("Label inside group_box");
@@ -457,7 +457,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     auto* inner = group->template emplace_child<scroll_view>();
 
     // Add content to inner scroll_view
-    auto* inner_vbox = inner->emplace_child<vbox>(0);
+    auto* inner_vbox = inner->emplace_child<vbox>(spacing::none);
     for (int i = 0; i < 10; ++i) {
         inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
     }

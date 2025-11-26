@@ -45,7 +45,7 @@ using namespace onyxui::testing;
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Measure Phase") {
     SUBCASE("HBox - Measure with fixed-size children") {
-        hbox<test_canvas_backend> box(0);  // No spacing
+        hbox<test_canvas_backend> box(spacing::none);
 
         // Add three buttons with fixed sizes
         auto btn1 = std::make_unique<button<test_canvas_backend>>("A");
@@ -66,7 +66,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("HBox - Measure with spacing") {
-        hbox<test_canvas_backend> box(10);  // 10px spacing
+        hbox<test_canvas_backend> box(spacing::medium);
 
         auto btn1 = std::make_unique<button<test_canvas_backend>>("A");
         auto btn2 = std::make_unique<button<test_canvas_backend>>("B");
@@ -82,7 +82,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("VBox - Measure stacks children vertically") {
-        vbox<test_canvas_backend> box(0);  // No spacing
+        vbox<test_canvas_backend> box(spacing::none);
 
         auto lbl1 = std::make_unique<label<test_canvas_backend>>("Line 1");
         auto lbl2 = std::make_unique<label<test_canvas_backend>>("Line 2");
@@ -124,7 +124,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Arrange Phase") {
     SUBCASE("HBox - Horizontal positioning without spacing") {
-        hbox<test_canvas_backend> box(0);  // No spacing
+        hbox<test_canvas_backend> box(spacing::none);
 
         // Create fixed-size panels for predictable sizing
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
@@ -168,7 +168,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("HBox - Horizontal positioning with spacing") {
-        hbox<test_canvas_backend> box(20);  // 20px spacing
+        hbox<test_canvas_backend> box(spacing::large);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto panel2 = std::make_unique<panel<test_canvas_backend>>();
@@ -199,11 +199,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
         auto b2 = p2->bounds();
 
         CHECK(rect_utils::get_x(b1) == 0);
-        CHECK(rect_utils::get_x(b2) == 120);  // 100 (panel1 width) + 20 (spacing)
+        CHECK(rect_utils::get_x(b2) == 102);  // 100 (panel1 width) + 2 (spacing::large in test theme)
     }
 
     SUBCASE("VBox - Vertical positioning without spacing") {
-        vbox<test_canvas_backend> box(0);  // No spacing
+        vbox<test_canvas_backend> box(spacing::none);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto panel2 = std::make_unique<panel<test_canvas_backend>>();
@@ -238,7 +238,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("VBox - Vertical positioning with spacing") {
-        vbox<test_canvas_backend> box(15);  // 15px spacing
+        vbox<test_canvas_backend> box(spacing::large);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto panel2 = std::make_unique<panel<test_canvas_backend>>();
@@ -269,7 +269,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
         auto b2 = p2->bounds();
 
         CHECK(rect_utils::get_y(b1) == 0);
-        CHECK(rect_utils::get_y(b2) == 65);  // 50 (panel1 height) + 15 (spacing)
+        CHECK(rect_utils::get_y(b2) == 52);  // 50 (panel1 height) + 2 (spacing::large in test theme)
     }
 }
 
@@ -279,7 +279,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Fixed Spacers") {
     SUBCASE("HBox - Spacer creates exact gap") {
-        hbox<test_canvas_backend> box(0);
+        hbox<test_canvas_backend> box(spacing::none);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto gap = std::make_unique<spacer<test_canvas_backend>>(30, 0);  // 30px horizontal gap
@@ -319,7 +319,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("VBox - Spacer creates exact gap") {
-        vbox<test_canvas_backend> box(0);
+        vbox<test_canvas_backend> box(spacing::none);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto gap = std::make_unique<spacer<test_canvas_backend>>(0, 25);  // 25px vertical gap
@@ -365,7 +365,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Flexible Springs") {
     SUBCASE("HBox - Spring expands to fill space") {
-        hbox<test_canvas_backend> box(0);
+        hbox<test_canvas_backend> box(spacing::none);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto spr = std::make_unique<spring<test_canvas_backend>>(1.0F, true);  // Horizontal spring
@@ -413,7 +413,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("HBox - Two equal springs split space equally") {
-        hbox<test_canvas_backend> box(0);
+        hbox<test_canvas_backend> box(spacing::none);
 
         auto spr1 = std::make_unique<spring<test_canvas_backend>>(1.0F, true);
         auto center_panel = std::make_unique<panel<test_canvas_backend>>();
@@ -459,7 +459,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("HBox - Weighted springs (2:1 ratio)") {
-        hbox<test_canvas_backend> box(0);
+        hbox<test_canvas_backend> box(spacing::none);
 
         auto spr1 = std::make_unique<spring<test_canvas_backend>>(2.0F, true);  // 2x weight
         auto middle_panel = std::make_unique<panel<test_canvas_backend>>();
@@ -496,7 +496,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("VBox - Vertical spring expands") {
-        vbox<test_canvas_backend> box(0);
+        vbox<test_canvas_backend> box(spacing::none);
 
         auto panel1 = std::make_unique<panel<test_canvas_backend>>();
         auto spr = std::make_unique<spring<test_canvas_backend>>(1.0F, false);  // Vertical spring
@@ -551,10 +551,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Nested Layouts") {
     SUBCASE("VBox containing HBox - Dialog button row") {
         // Create a dialog layout: title + button row
-        vbox<test_canvas_backend> dialog(10);  // 10px spacing
+        vbox<test_canvas_backend> dialog(spacing::medium);
 
         auto title = std::make_unique<label<test_canvas_backend>>("Confirm Action");
-        auto button_row = std::make_unique<hbox<test_canvas_backend>>(5);
+        auto button_row = std::make_unique<hbox<test_canvas_backend>>(spacing::small);
 
         // Add buttons to hbox
         auto ok_btn = std::make_unique<button<test_canvas_backend>>("OK");
@@ -585,10 +585,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
     SUBCASE("HBox containing VBox - Toolbar groups") {
         // Create toolbar with vertical button groups
-        hbox<test_canvas_backend> toolbar(20);  // 20px spacing between groups
+        hbox<test_canvas_backend> toolbar(spacing::large);
 
-        auto group1 = std::make_unique<vbox<test_canvas_backend>>(5);
-        auto group2 = std::make_unique<vbox<test_canvas_backend>>(5);
+        auto group1 = std::make_unique<vbox<test_canvas_backend>>(spacing::small);
+        auto group2 = std::make_unique<vbox<test_canvas_backend>>(spacing::small);
 
         group1->add_child(std::make_unique<button<test_canvas_backend>>("New"));
         group1->add_child(std::make_unique<button<test_canvas_backend>>("Open"));
@@ -617,28 +617,28 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
     SUBCASE("Three-level nesting - Complex form layout") {
         // Main vertical layout
-        vbox<test_canvas_backend> form(15);
+        vbox<test_canvas_backend> form(spacing::large);
 
         // Header
         auto header = std::make_unique<label<test_canvas_backend>>("User Registration");
 
         // Form fields (vbox of hboxes)
-        auto fields = std::make_unique<vbox<test_canvas_backend>>(10);
+        auto fields = std::make_unique<vbox<test_canvas_backend>>(spacing::medium);
 
         // Name field row
-        auto name_row = std::make_unique<hbox<test_canvas_backend>>(10);
+        auto name_row = std::make_unique<hbox<test_canvas_backend>>(spacing::medium);
         name_row->add_child(std::make_unique<label<test_canvas_backend>>("Name:"));
         name_row->add_child(std::make_unique<panel<test_canvas_backend>>());  // Input field
         fields->add_child(std::move(name_row));
 
         // Email field row
-        auto email_row = std::make_unique<hbox<test_canvas_backend>>(10);
+        auto email_row = std::make_unique<hbox<test_canvas_backend>>(spacing::medium);
         email_row->add_child(std::make_unique<label<test_canvas_backend>>("Email:"));
         email_row->add_child(std::make_unique<panel<test_canvas_backend>>());  // Input field
         fields->add_child(std::move(email_row));
 
         // Button row
-        auto button_row = std::make_unique<hbox<test_canvas_backend>>(10);
+        auto button_row = std::make_unique<hbox<test_canvas_backend>>(spacing::medium);
         button_row->add_child(std::make_unique<button<test_canvas_backend>>("Submit"));
         button_row->add_child(std::make_unique<button<test_canvas_backend>>("Cancel"));
 
@@ -657,7 +657,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("Toolbar with springs - Push to edges") {
-        hbox<test_canvas_backend> toolbar(0);
+        hbox<test_canvas_backend> toolbar(spacing::none);
 
         auto left_btn = std::make_unique<button<test_canvas_backend>>("Menu");
         auto spr = std::make_unique<spring<test_canvas_backend>>(1.0F, true);
@@ -697,7 +697,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("Centered content with springs") {
-        hbox<test_canvas_backend> container(0);
+        hbox<test_canvas_backend> container(spacing::none);
 
         auto left_spring = std::make_unique<spring<test_canvas_backend>>(1.0F, true);
         auto content = std::make_unique<panel<test_canvas_backend>>();
@@ -737,7 +737,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness - Real-World Scenarios") {
     SUBCASE("Application window - Header/Content/Footer") {
-        vbox<test_canvas_backend> window(0);
+        vbox<test_canvas_backend> window(spacing::none);
 
         // Fixed-size header
         auto header = std::make_unique<panel<test_canvas_backend>>();
@@ -793,7 +793,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("Split view with weighted panels") {
-        hbox<test_canvas_backend> split(0);
+        hbox<test_canvas_backend> split(spacing::none);
 
         // Left panel: 1/3 of space
         auto left = std::make_unique<panel<test_canvas_backend>>();
@@ -831,7 +831,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
     }
 
     SUBCASE("Dashboard with mixed spacers and springs") {
-        vbox<test_canvas_backend> dashboard(10);
+        vbox<test_canvas_backend> dashboard(spacing::medium);
 
         // Title bar
         auto title = std::make_unique<label<test_canvas_backend>>("Dashboard");
@@ -846,7 +846,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Layout Correctness -
         auto spring1 = std::make_unique<spring<test_canvas_backend>>(1.0F, false);
 
         // Bottom buttons
-        auto buttons = std::make_unique<hbox<test_canvas_backend>>(10);
+        auto buttons = std::make_unique<hbox<test_canvas_backend>>(spacing::medium);
         buttons->add_child(std::make_unique<button<test_canvas_backend>>("Refresh"));
         buttons->add_child(std::make_unique<button<test_canvas_backend>>("Settings"));
 

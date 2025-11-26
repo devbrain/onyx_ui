@@ -62,7 +62,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
         window<test_canvas_backend> win("Large Content", flags);
 
         // Create large content that exceeds window size
-        auto content = std::make_unique<vbox<test_canvas_backend>>(2);
+        auto content = std::make_unique<vbox<test_canvas_backend>>(spacing::tiny);
         for (int i = 0; i < 50; ++i) {
             content->emplace_child<label>("Item " + std::to_string(i));
         }
@@ -84,7 +84,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollable 
         window<test_canvas_backend> win("Large Content", flags);
 
         // Create large content
-        auto content = std::make_unique<vbox<test_canvas_backend>>(2);
+        auto content = std::make_unique<vbox<test_canvas_backend>>(spacing::tiny);
         for (int i = 0; i < 50; ++i) {
             content->emplace_child<label>("Item " + std::to_string(i));
         }
@@ -149,7 +149,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Scrollbar v
         window<test_canvas_backend> win("Scrollbars", flags);
 
         // Create content larger than window
-        auto content = std::make_unique<vbox<test_canvas_backend>>(2);
+        auto content = std::make_unique<vbox<test_canvas_backend>>(spacing::tiny);
         for (int i = 0; i < 100; ++i) {
             content->emplace_child<label>("Long item " + std::to_string(i));
         }

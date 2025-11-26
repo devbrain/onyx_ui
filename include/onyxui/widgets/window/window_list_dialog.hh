@@ -84,7 +84,7 @@ namespace onyxui {
             , m_selected_index(0)
         {
             // Create content area with vbox
-            auto content = std::make_unique<vbox<Backend>>(2);  // 2px spacing
+            auto content = std::make_unique<vbox<Backend>>(spacing::tiny);
             m_content_vbox = content.get();
             this->set_content(std::move(content));
 

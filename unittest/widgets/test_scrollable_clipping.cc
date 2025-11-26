@@ -162,8 +162,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
 
     auto info = scroll.get_scroll_info();
 
-    // Content height should be sum of children (50 + 75 + 100 = 225)
-    CHECK(size_utils::get_height(info.content_size) == 225);
+    // Content height = sum of children + spacing gaps
+    // 50 + 75 + 100 = 225, plus 2 gaps of spacing::medium (1 each) = 227
+    CHECK(size_utils::get_height(info.content_size) == 227);
     CHECK(size_utils::get_height(info.viewport_size) == 100);
     CHECK(info.needs_vertical_scroll());
 }
