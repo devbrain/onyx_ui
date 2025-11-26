@@ -462,6 +462,52 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
+    void window<Backend>::fit_content() {
+        // Ensure we have content to measure
+        if (!m_content_area) {
+            return;
+        }
+
+        auto* content = m_content_area->get_content();
+        if (!content) {
+            return;
+        }
+
+        // Measure content at a large available size to get its natural size
+        constexpr int LARGE_SIZE = 10000;
+        const auto content_size = content->measure(LARGE_SIZE, LARGE_SIZE);
+
+        int content_width = size_utils::get_width(content_size);
+        int content_height = size_utils::get_height(content_size);
+
+        // Add space for title bar if present
+        int total_height = content_height;
+        if (m_title_bar) {
+            const auto title_bar_size = m_title_bar->measure(LARGE_SIZE, LARGE_SIZE);
+            total_height += size_utils::get_height(title_bar_size);
+        }
+
+        int total_width = content_width;
+
+        // Apply size constraints from window_flags
+        if (m_flags.min_width > 0) {
+            total_width = std::max(total_width, m_flags.min_width);
+        }
+        if (m_flags.min_height > 0) {
+            total_height = std::max(total_height, m_flags.min_height);
+        }
+        if (m_flags.max_width > 0) {
+            total_width = std::min(total_width, m_flags.max_width);
+        }
+        if (m_flags.max_height > 0) {
+            total_height = std::min(total_height, m_flags.max_height);
+        }
+
+        // Update window size
+        set_size(total_width, total_height);
+    }
+
+    template<UIBackend Backend>
     void window <Backend>::set_content(std::unique_ptr <ui_element <Backend>> content) {
         if (m_content_area) {
             m_content_area->set_content(std::move(content));

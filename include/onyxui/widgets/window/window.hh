@@ -217,6 +217,41 @@ namespace onyxui {
             return m_normal_bounds;
         }
 
+        /**
+         * @brief Auto-size window to fit its content
+         *
+         * @details
+         * Measures the content widget's natural size and resizes the window
+         * to accommodate it. This is useful for dialogs and utility windows
+         * that should be sized based on their content rather than manually.
+         *
+         * The method:
+         * 1. Measures the content widget's natural size
+         * 2. Adds space for window chrome (title bar, borders, scrollbars)
+         * 3. Respects min/max size constraints from window_flags
+         * 4. Updates window size via set_size()
+         *
+         * @note Call this after setting window content and before show()
+         * @note For dynamic content, call whenever content size changes
+         *
+         * @example
+         * @code
+         * // Create window with content
+         * auto win = std::make_unique<window<Backend>>("Dialog");
+         * auto content = std::make_unique<vbox<Backend>>();
+         * content->emplace_child<label>("Message text");
+         * content->emplace_child<button>("OK");
+         * win->set_content(std::move(content));
+         *
+         * // Auto-size to fit content
+         * win->fit_content();
+         *
+         * // Show window
+         * win->show();
+         * @endcode
+         */
+        void fit_content();
+
         // ====================================================================
         // Content Management
         // ====================================================================
