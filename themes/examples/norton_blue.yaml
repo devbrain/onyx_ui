@@ -21,6 +21,16 @@ border_color:
   g: 255
   b: 0  # Yellow
 
+# Spacing values (TUI backend - character cells)
+# Maps semantic spacing enum values to backend-specific integers
+spacing:
+  none: 0
+  tiny: 0      # No spacing in TUI (too small)
+  small: 1     # Single character
+  medium: 1    # Single character (default)
+  large: 2     # Double character
+  xlarge: 3    # Triple character
+
 # Button styling with visual_state bundles
 button:
   # Normal state

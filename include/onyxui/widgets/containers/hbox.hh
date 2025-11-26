@@ -13,6 +13,7 @@
 
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
     /**
@@ -34,7 +35,7 @@ namespace onyxui {
      *
      * @example Simple Horizontal Layout
      * @code
-     * auto row = std::make_unique<hbox<Backend>>(10);  // 10px spacing
+     * auto row = std::make_unique<hbox<Backend>>(spacing::medium);
      * row->add_child(create_button("OK"));
      * row->add_child(create_button("Cancel"));
      * row->add_child(create_button("Help"));
@@ -42,7 +43,7 @@ namespace onyxui {
      *
      * @example Toolbar
      * @code
-     * auto toolbar = std::make_unique<hbox<Backend>>(5);
+     * auto toolbar = std::make_unique<hbox<Backend>>(spacing::small);
      * toolbar->add_child(create_button("New"));
      * toolbar->add_child(create_button("Open"));
      * toolbar->add_child(create_button("Save"));
@@ -57,24 +58,24 @@ namespace onyxui {
 
         /**
          * @brief Construct a horizontal box
-         * @param spacing Space between children in pixels
+         * @param spacing_value Semantic spacing between children (resolved via theme)
          * @param h_align Horizontal alignment (default: left)
          * @param v_align Vertical alignment (default: stretch to fill height)
          * @param parent Parent element (nullptr for none)
          */
         explicit hbox(
-            int spacing = 0,
+            spacing spacing_value = spacing::medium,
             horizontal_alignment h_align = horizontal_alignment::left,
             vertical_alignment v_align = vertical_alignment::stretch,
             ui_element<Backend>* parent = nullptr
         )
             : base(parent)
-            , m_spacing(spacing)
+            , m_spacing(spacing_value)
             , m_h_align(h_align)
             , m_v_align(v_align) {
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(
-                    direction::horizontal, m_spacing, m_h_align, m_v_align));
+                    direction::horizontal, resolve_spacing(), m_h_align, m_v_align));
             this->set_focusable(false);  // Container, not focusable
         }
 
@@ -91,10 +92,10 @@ namespace onyxui {
 
         /**
          * @brief Set the spacing between children
-         * @param spacing New spacing in pixels
+         * @param spacing_value New semantic spacing (resolved via theme)
          */
-        void set_spacing(int spacing) {
-            m_spacing = spacing;
+        void set_spacing(spacing spacing_value) {
+            m_spacing = spacing_value;
             recreate_layout();
         }
 
@@ -117,9 +118,9 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get current spacing
+         * @brief Get current semantic spacing
          */
-        [[nodiscard]] int spacing() const noexcept { return m_spacing; }
+        [[nodiscard]] spacing get_spacing() const noexcept { return m_spacing; }
 
         /**
          * @brief Get current horizontal alignment for children
@@ -133,6 +134,28 @@ namespace onyxui {
 
     private:
         /**
+         * @brief Resolve semantic spacing to backend-specific integer via theme
+         * @return Resolved spacing value (pixels or character cells)
+         */
+        [[nodiscard]] int resolve_spacing() const {
+            // Get current theme from ui_services
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                // No theme available, use default medium spacing (1)
+                return 1;
+            }
+
+            auto* theme = themes->get_current_theme();
+            if (!theme) {
+                // No current theme, use default medium spacing (1)
+                return 1;
+            }
+
+            // Resolve spacing enum via theme
+            return theme->spacing.resolve(m_spacing);
+        }
+
+        /**
          * @brief Recreate the layout strategy with current settings
          *
          * @exception std::bad_alloc If layout allocation fails
@@ -141,13 +164,13 @@ namespace onyxui {
         void recreate_layout() {
             // Create new layout first (may throw)
             auto new_layout = std::make_unique<linear_layout<Backend>>(
-                direction::horizontal, m_spacing, m_h_align, m_v_align);
+                direction::horizontal, resolve_spacing(), m_h_align, m_v_align);
 
             // Only replace if creation succeeded (strong guarantee)
             this->set_layout_strategy(std::move(new_layout));
         }
 
-        int m_spacing;
+        spacing m_spacing;
         horizontal_alignment m_h_align;
         vertical_alignment m_v_align;
     };

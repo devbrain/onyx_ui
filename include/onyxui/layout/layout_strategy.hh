@@ -365,6 +365,67 @@ namespace onyxui {
     };
 
     /**
+     * @enum spacing
+     * @brief Semantic spacing levels for backend-agnostic layouts
+     *
+     * @details
+     * Type-safe spacing values resolved by theme at layout time.
+     * Prevents hardcoded pixel/cell values in application code.
+     * Each backend's theme defines the actual pixel/cell values.
+     *
+     * ## Purpose
+     *
+     * The spacing enum solves the "concept leakage" problem where hardcoded
+     * integer values have different meanings across backends:
+     * - TUI (conio): 1 unit = 1 character cell
+     * - GUI (SDL2): 1 unit = 1 pixel
+     *
+     * Using semantic spacing values allows the same application code to
+     * produce visually consistent layouts across different backends.
+     *
+     * ## Usage
+     *
+     * ### Container Spacing
+     * ```cpp
+     * auto container = std::make_unique<vbox<Backend>>(spacing::medium);
+     * ```
+     *
+     * ### Widget Padding/Margins
+     * ```cpp
+     * widget->set_padding(spacing::small);
+     * widget->set_margin(spacing::large);
+     * ```
+     *
+     * ## Theme Resolution
+     *
+     * At layout time, spacing values are resolved to backend-specific integers:
+     * - TUI: spacing::medium -> 1 character cell
+     * - GUI: spacing::medium -> 8 pixels
+     *
+     * ## Recommended Usage by Context
+     *
+     * - **none**: No spacing, direct adjacency (borders, separators)
+     * - **tiny**: Minimal separation (icon+text, inline elements)
+     * - **small**: Tight spacing (dense forms, toolbars)
+     * - **medium**: Standard spacing (default for most UIs)
+     * - **large**: Loose spacing (visual separation between sections)
+     * - **xlarge**: Very loose (major section boundaries, top-level layout)
+     *
+     * @note The actual pixel/cell values are defined in each theme's YAML file
+     *
+     * @see theme::spacing_values For theme-side resolution
+     * @see vbox, hbox, grid For container constructors accepting spacing
+     */
+    enum class spacing : std::uint8_t {
+        none   = 0,   ///< No spacing (0)
+        tiny   = 1,   ///< Minimal separation
+        small  = 2,   ///< Tight spacing (default for dense UIs)
+        medium = 3,   ///< Standard spacing (default for most cases)
+        large  = 4,   ///< Loose spacing (for visual separation)
+        xlarge = 5    ///< Very loose (for major sections)
+    };
+
+    /**
      * @brief Approximate equality comparison for floating-point values
      *
      * @tparam T Floating-point type (float or double)

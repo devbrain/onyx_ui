@@ -411,6 +411,66 @@ namespace onyxui {
             icon_style_type close_icon{};    ///< Icon for close button (×)
         };
 
+        /**
+         * @brief Backend-specific spacing resolution
+         * @details
+         * Maps semantic spacing enum values to backend-specific integers.
+         * - TUI (conio): Values are character cells
+         * - GUI (SDL2): Values are pixels
+         *
+         * This allows the same application code to produce visually consistent
+         * layouts across different backends.
+         *
+         * ## Recommended Values by Backend
+         *
+         * ### TUI (conio) - Character Cells
+         * ```yaml
+         * spacing_values:
+         *   none: 0
+         *   tiny: 0      # No spacing in TUI (too small)
+         *   small: 1     # Single character
+         *   medium: 1    # Single character (default)
+         *   large: 2     # Double character
+         *   xlarge: 3    # Triple character
+         * ```
+         *
+         * ### GUI (SDL2) - Pixels
+         * ```yaml
+         * spacing_values:
+         *   none: 0
+         *   tiny: 2      # 2px - minimal separation
+         *   small: 4     # 4px - tight spacing
+         *   medium: 8    # 8px - standard (default)
+         *   large: 16    # 16px - loose spacing
+         *   xlarge: 24   # 24px - section boundaries
+         * ```
+         */
+        struct spacing_values {
+            int none = 0;
+            int tiny = 0;
+            int small = 1;
+            int medium = 1;
+            int large = 2;
+            int xlarge = 3;
+
+            /**
+             * @brief Resolve spacing enum to backend-specific integer
+             * @param s The semantic spacing value
+             * @return Backend-specific integer (pixels or character cells)
+             */
+            [[nodiscard]] constexpr int resolve(spacing s) const noexcept {
+                switch (s) {
+                    case spacing::none:   return none;
+                    case spacing::tiny:   return tiny;
+                    case spacing::small:  return small;
+                    case spacing::medium: return medium;
+                    case spacing::large:  return large;
+                    case spacing::xlarge: return xlarge;
+                }
+                return medium;  // Unreachable, but satisfies compiler
+            }
+        };
+
         // Widget-specific styles
         button_style button{};            // BREAKING CHANGE - refactored
         label_style label{};              // Unchanged
@@ -434,6 +494,9 @@ namespace onyxui {
 
         // Window style (Phase 8)
         window_style window{};
+
+        // Spacing resolution (backend-specific)
+        spacing_values spacing{};
 
         // Global palette
         color_type window_bg;
