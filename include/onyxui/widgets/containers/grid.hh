@@ -13,6 +13,7 @@
 
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/layout/grid_layout.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
     /**
@@ -49,7 +50,10 @@ namespace onyxui {
      *
      * @example Grid with Spanning
      * @code
-     * auto container = std::make_unique<grid<Backend>>(4, -1, 5, 5);  // 4 cols, auto rows, 5px spacing
+     * auto container = std::make_unique<grid<Backend>>(
+     *     4, -1,                          // 4 cols, auto rows
+     *     spacing::small, spacing::small  // Small spacing between cells
+     * );
      *
      * // Header spans all 4 columns
      * auto header = std::make_unique<label<Backend>>("Header");
@@ -70,11 +74,11 @@ namespace onyxui {
      * std::vector<int> row_heights = {50, 100, 50};   // 3 rows
      *
      * auto container = std::make_unique<grid<Backend>>(
-     *     3, 3,           // 3x3 grid
-     *     5, 5,           // spacing
-     *     false,          // Use fixed sizing
-     *     col_widths,     // Column widths
-     *     row_heights     // Row heights
+     *     3, 3,                           // 3x3 grid
+     *     spacing::small, spacing::small, // Spacing between cells
+     *     false,                          // Use fixed sizing
+     *     col_widths,                     // Column widths
+     *     row_heights                     // Row heights
      * );
      * @endcode
      */
@@ -88,8 +92,8 @@ namespace onyxui {
          * @brief Construct a grid container
          * @param num_columns Number of columns in grid (minimum 1)
          * @param num_rows Number of rows (-1 for auto-calculate)
-         * @param column_spacing Horizontal gap between cells in pixels
-         * @param row_spacing Vertical gap between cells in pixels
+         * @param column_spacing Semantic horizontal spacing between cells
+         * @param row_spacing Semantic vertical spacing between cells
          * @param auto_size If true, size cells from content; if false, use fixed sizes
          * @param fixed_column_widths Fixed column widths (ignored if auto_size=true)
          * @param fixed_row_heights Fixed row heights (ignored if auto_size=true)
@@ -98,19 +102,21 @@ namespace onyxui {
         explicit grid(
             int num_columns = 1,
             int num_rows = -1,
-            int column_spacing = 0,
-            int row_spacing = 0,
+            spacing column_spacing = spacing::none,
+            spacing row_spacing = spacing::none,
             bool auto_size = true,
             std::vector<int> fixed_column_widths = {},
             std::vector<int> fixed_row_heights = {},
             ui_element<Backend>* parent = nullptr
         )
-            : base(parent) {
+            : base(parent)
+            , m_column_spacing(column_spacing)
+            , m_row_spacing(row_spacing) {
             auto layout = std::make_unique<grid_layout<Backend>>(
                 num_columns,
                 num_rows,
-                column_spacing,
-                row_spacing,
+                resolve_column_spacing(),
+                resolve_row_spacing(),
                 auto_size,
                 std::move(fixed_column_widths),
                 std::move(fixed_row_heights)
@@ -188,7 +194,79 @@ namespace onyxui {
             return m_grid_layout ? m_grid_layout->num_rows() : 0;
         }
 
+        /**
+         * @brief Get column spacing
+         * @return Column spacing enum value
+         */
+        [[nodiscard]] spacing get_column_spacing() const noexcept {
+            return m_column_spacing;
+        }
+
+        /**
+         * @brief Get row spacing
+         * @return Row spacing enum value
+         */
+        [[nodiscard]] spacing get_row_spacing() const noexcept {
+            return m_row_spacing;
+        }
+
+        /**
+         * @brief Set column spacing
+         * @param spacing_value New column spacing value
+         */
+        void set_column_spacing(spacing spacing_value) {
+            if (m_column_spacing != spacing_value) {
+                m_column_spacing = spacing_value;
+                this->invalidate_layout();
+            }
+        }
+
+        /**
+         * @brief Set row spacing
+         * @param spacing_value New row spacing value
+         */
+        void set_row_spacing(spacing spacing_value) {
+            if (m_row_spacing != spacing_value) {
+                m_row_spacing = spacing_value;
+                this->invalidate_layout();
+            }
+        }
+
     private:
+        /**
+         * @brief Resolve column spacing to backend-specific value
+         * @return Column spacing in backend units (pixels for GUI, characters for TUI)
+         */
+        [[nodiscard]] int resolve_column_spacing() const {
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                return 0;  // Default no spacing
+            }
+            auto* theme = themes->get_current_theme();
+            if (!theme) {
+                return 0;
+            }
+            return theme->spacing.resolve(m_column_spacing);
+        }
+
+        /**
+         * @brief Resolve row spacing to backend-specific value
+         * @return Row spacing in backend units (pixels for GUI, characters for TUI)
+         */
+        [[nodiscard]] int resolve_row_spacing() const {
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                return 0;  // Default no spacing
+            }
+            auto* theme = themes->get_current_theme();
+            if (!theme) {
+                return 0;
+            }
+            return theme->spacing.resolve(m_row_spacing);
+        }
+
+        spacing m_column_spacing;                       ///< Column spacing enum value
+        spacing m_row_spacing;                          ///< Row spacing enum value
         grid_layout<Backend>* m_grid_layout = nullptr;  ///< Non-owning pointer to layout
     };
 }

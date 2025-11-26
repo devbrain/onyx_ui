@@ -46,6 +46,13 @@ TEST_SUITE("Layout - Complex Scenarios") {
                 test_theme.panel.box_style.corner = '+';
                 test_theme.panel.box_style.horizontal = '-';
                 test_theme.panel.box_style.vertical = '|';
+                // Add spacing values (TUI-style)
+                test_theme.spacing.none = 0;
+                test_theme.spacing.tiny = 0;
+                test_theme.spacing.small = 1;
+                test_theme.spacing.medium = 1;
+                test_theme.spacing.large = 2;
+                test_theme.spacing.xlarge = 3;
                 ctx.themes().register_theme(test_theme);
             }
             ctx.themes().set_current_theme("Canvas Test Theme");

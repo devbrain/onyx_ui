@@ -68,13 +68,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         std::vector<int> const row_heights = {50, 50};
 
         grid<test_canvas_backend> g(
-            3,              // 3 columns
-            2,              // 2 rows
-            5,              // column spacing
-            5,              // row spacing
-            false,          // Use fixed sizing
-            col_widths,     // Fixed column widths
-            row_heights     // Fixed row heights
+            3,                  // 3 columns
+            2,                  // 2 rows
+            spacing::xlarge,    // column spacing (resolves to 3 in test theme)
+            spacing::xlarge,    // row spacing (resolves to 3 in test theme)
+            false,              // Use fixed sizing
+            col_widths,         // Fixed column widths
+            row_heights         // Fixed row heights
         );
 
         // Add some children
@@ -86,14 +86,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         int const width = size_utils::get_width(size);
         int const height = size_utils::get_height(size);
 
-        // Width = 100 + 150 + 100 + 2*5 (spacing) = 360
-        CHECK(width == 360);
-        // Height = 50 + 50 + 1*5 (spacing) = 105
-        CHECK(height == 105);
+        // Width = 100 + 150 + 100 + 2*3 (spacing::xlarge resolves to 3) = 356
+        CHECK(width == 356);
+        // Height = 50 + 50 + 1*3 (spacing::xlarge resolves to 3) = 103
+        CHECK(height == 103);
     }
 
     SUBCASE("Grid with spacing") {
-        grid<test_canvas_backend> g(2, 2, 10, 10);  // 2x2 grid with 10px spacing
+        grid<test_canvas_backend> g(2, 2, spacing::xlarge, spacing::xlarge);  // 2x2 grid with xlarge spacing
 
         for (int i = 0; i < 4; i++) {
             g.add_child(std::make_unique<button<test_canvas_backend>>(std::to_string(i)));
@@ -152,7 +152,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
     // ===========================================================================
 
     SUBCASE("Visual rendering - layout strategy verification") {
-        grid<test_canvas_backend> g(3, 2, 2, 2);  // 3x2 grid with 2px spacing
+        grid<test_canvas_backend> g(3, 2, spacing::large, spacing::large);  // 3x2 grid with large spacing
 
         // Add children to grid cells
         g.add_child(std::make_unique<label<test_canvas_backend>>("A1"));
