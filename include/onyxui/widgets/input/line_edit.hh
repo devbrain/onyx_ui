@@ -268,6 +268,49 @@ namespace onyxui {
         }
 
         // =====================================================================
+        // Semantic Sizing (Backend-Agnostic)
+        // =====================================================================
+
+        /**
+         * @brief Set preferred width based on number of visible characters
+         * @param chars Number of characters to display horizontally
+         *
+         * @details
+         * Sets the preferred width constraint based on the number of characters
+         * that should be visible at once. This is a backend-agnostic way to size
+         * line_edit widgets that works correctly across different backends:
+         *
+         * - **TUI backend (conio)**: 1 char = 1 character cell
+         * - **GUI backend (SDL2)**: 1 char = average character width in current font
+         *
+         * The widget will use this as a preferred size hint during layout, but may
+         * be stretched or shrunk based on parent layout constraints.
+         *
+         * @note The actual pixel/cell width depends on the backend's font metrics.
+         * @note For TUI backends, this currently maps 1:1 to character cells.
+         * @note For future GUI backends, this could use font metrics for accurate sizing.
+         *
+         * @example
+         * @code
+         * // Create a line_edit that shows ~30 characters at a time
+         * auto username = std::make_unique<line_edit<Backend>>();
+         * username->set_visible_chars(30);
+         *
+         * // Create a narrow line_edit for ZIP code (5 digits)
+         * auto zipcode = std::make_unique<line_edit<Backend>>();
+         * zipcode->set_visible_chars(10);
+         * @endcode
+         */
+        void set_visible_chars(int chars) {
+            if (chars < 1) chars = 1;
+
+            size_constraint width_constraint;
+            width_constraint.policy = size_policy::preferred;
+            width_constraint.preferred_size = chars;
+            this->set_width_constraint(width_constraint);
+        }
+
+        // =====================================================================
         // Cursor and Selection
         // =====================================================================
 

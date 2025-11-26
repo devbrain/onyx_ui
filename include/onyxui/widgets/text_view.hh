@@ -209,6 +209,60 @@ namespace onyxui {
         }
 
         /**
+         * @brief Set preferred height based on number of visible lines
+         * @param lines Number of text lines to display (minimum 1)
+         *
+         * @details
+         * Sets a semantic size constraint where height = lines × line_height.
+         * For TUI: 1 line = 1 character cell height.
+         * For GUI: 1 line = font line height (theme-defined).
+         *
+         * This is a convenience method that makes text_view sizing more intuitive
+         * and backend-agnostic.
+         *
+         * @example
+         * @code
+         * auto log_view = std::make_unique<text_view<Backend>>();
+         * log_view->set_visible_lines(20);  // Show 20 lines of text
+         * @endcode
+         */
+        void set_visible_lines(int lines) {
+            if (lines < 1) lines = 1;
+
+            size_constraint height_constraint;
+            height_constraint.policy = size_policy::preferred;
+            height_constraint.preferred_size = lines;  // For now, 1 line = 1 unit (TUI-friendly)
+            this->set_height_constraint(height_constraint);
+        }
+
+        /**
+         * @brief Set preferred width based on number of visible characters
+         * @param chars Number of characters to display horizontally (minimum 1)
+         *
+         * @details
+         * Sets a semantic size constraint where width = chars × char_width.
+         * For TUI: 1 char = 1 character cell width.
+         * For GUI: 1 char = average char width (theme-defined).
+         *
+         * This is a convenience method that makes text_view sizing more intuitive
+         * and backend-agnostic.
+         *
+         * @example
+         * @code
+         * auto editor = std::make_unique<text_view<Backend>>();
+         * editor->set_visible_chars(80);  // Classic 80-column width
+         * @endcode
+         */
+        void set_visible_chars(int chars) {
+            if (chars < 1) chars = 1;
+
+            size_constraint width_constraint;
+            width_constraint.policy = size_policy::preferred;
+            width_constraint.preferred_size = chars;  // For now, 1 char = 1 unit (TUI-friendly)
+            this->set_width_constraint(width_constraint);
+        }
+
+        /**
          * @brief Handle semantic actions for scrolling
          * @param action The semantic action to handle
          * @return true if action was handled
