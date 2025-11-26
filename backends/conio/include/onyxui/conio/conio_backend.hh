@@ -71,6 +71,10 @@ namespace onyxui::conio {
         // Backend identification
         static constexpr const char* name() { return "Conio"; }
 
+        // Terminal backends don't have continuous mouse tracking
+        // (no mouse move events, only click events)
+        static constexpr bool has_mouse_tracking = false;
+
         /**
          * @brief Convert termbox2 event to framework-level ui_event
          * @param native Termbox2 event from tb_poll_event()

@@ -136,22 +136,16 @@ void build_ui(
     // Radio Button Section
     add_label(*central, "Radio Buttons:");
 
-    // Create button group (kept alive by caller)
-    size_group = std::make_shared<onyxui::button_group<Backend>>();
+    // Create button group as a widget container (owns its radio buttons)
+    auto* group = central->template emplace_child<onyxui::button_group>();
+    group->set_horizontal_align(onyxui::horizontal_alignment::left);
+    group->add_option("Small", 0);
+    group->add_option("Medium", 1);
+    group->add_option("Large", 2);
+    group->set_checked_id(1);  // Medium selected by default
 
-    auto* radio_small = central->template emplace_child<onyxui::radio_button>("Small");
-    radio_small->set_horizontal_align(onyxui::horizontal_alignment::left);
-    size_group->add_button(radio_small, 0);
-
-    auto* radio_medium = central->template emplace_child<onyxui::radio_button>("Medium");
-    radio_medium->set_horizontal_align(onyxui::horizontal_alignment::left);
-    size_group->add_button(radio_medium, 1);
-
-    auto* radio_large = central->template emplace_child<onyxui::radio_button>("Large");
-    radio_large->set_horizontal_align(onyxui::horizontal_alignment::left);
-    size_group->add_button(radio_large, 2);
-
-    size_group->set_checked_id(1);  // Medium selected by default
+    // Keep reference for caller (if needed)
+    size_group = std::shared_ptr<onyxui::button_group<Backend>>(group, [](auto*){});
 
     // Progress Bar Section
     add_label(*central, "Progress Bar:");

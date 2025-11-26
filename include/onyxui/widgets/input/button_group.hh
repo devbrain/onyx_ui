@@ -3,10 +3,12 @@
 
 #pragma once
 
+#include <cstdint>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>
+#include <onyxui/layout/linear_layout.hh>
 #include <onyxui/services/ui_services.hh>
-#include <onyxui/widgets/containers/vbox.hh>
+#include <onyxui/widgets/core/widget.hh>
 
 #include <algorithm>
 #include <unordered_map>
@@ -18,24 +20,43 @@ namespace onyxui {
 template<UIBackend Backend>
 class radio_button;
 
+/// Button group orientation
+///
+/// Specifies whether radio buttons are arranged vertically or horizontally.
+enum class button_group_orientation : std::uint8_t {
+    vertical,    ///< Stack radio buttons vertically (top-to-bottom)
+    horizontal   ///< Arrange radio buttons horizontally (left-to-right)
+};
+
 /// Manages mutually exclusive radio buttons as a widget container
 ///
-/// The button_group class is a vertical container (vbox) that owns and manages
+/// The button_group class is a widget container that owns and manages
 /// radio buttons. It enforces single selection among its radio button children.
 /// When one radio button is checked, all others are automatically unchecked.
 ///
 /// **Design:** button_group is a widget container that owns its radio buttons.
 /// This ensures proper lifetime management - radio buttons can't outlive their group.
 ///
+/// **Layout:** Supports both vertical (default) and horizontal arrangements.
+///
 /// Usage:
 /// @code
-/// auto* group = container->emplace_child<button_group<Backend>>();
-/// group->add_option("Small", 1);
-/// group->add_option("Medium", 2);
-/// group->add_option("Large", 3);
-/// group->set_checked_id(2);  // Select medium
+/// // Vertical group (default)
+/// auto* v_group = container->emplace_child<button_group<Backend>>();
+/// v_group->add_option("Small", 1);
+/// v_group->add_option("Medium", 2);
+/// v_group->add_option("Large", 3);
 ///
-/// group->button_toggled.connect([](int id, bool checked) {
+/// // Horizontal group
+/// auto* h_group = container->emplace_child<button_group<Backend>>(
+///     button_group_orientation::horizontal, 2  // 2px spacing
+/// );
+/// h_group->add_option("Red", 1);
+/// h_group->add_option("Green", 2);
+/// h_group->add_option("Blue", 3);
+/// h_group->set_checked_id(2);  // Select green
+///
+/// h_group->button_toggled.connect([](int id, bool checked) {
 ///     if (checked) {
 ///         std::cout << "Selected option: " << id << "\n";
 ///     }
@@ -44,19 +65,46 @@ class radio_button;
 ///
 /// @tparam Backend The backend traits class
 template<UIBackend Backend>
-class button_group : public vbox<Backend> {
+class button_group : public widget<Backend> {
 public:
-    using base = vbox<Backend>;
+    using base = widget<Backend>;
     using horizontal_alignment = onyxui::horizontal_alignment;
     using vertical_alignment = onyxui::vertical_alignment;
 
-    /// Create button group with vertical layout
+    /// Create button group with configurable layout orientation
     ///
+    /// @param orientation Layout direction (vertical or horizontal)
     /// @param spacing Spacing between radio buttons (default: 0)
     /// @param parent Parent element (optional)
-    explicit button_group(int spacing = 0, ui_element<Backend>* parent = nullptr)
-        : base(spacing, horizontal_alignment::stretch, vertical_alignment::top, parent)
+    explicit button_group(
+        button_group_orientation orientation = button_group_orientation::vertical,
+        int spacing = 0,
+        ui_element<Backend>* parent = nullptr
+    )
+        : base(parent)
+        , m_orientation(orientation)
+        , m_spacing(spacing)
     {
+        // Set up linear layout based on orientation
+        if (m_orientation == button_group_orientation::vertical) {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical, m_spacing,
+                    horizontal_alignment::stretch,
+                    vertical_alignment::top
+                )
+            );
+        } else {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::horizontal, m_spacing,
+                    horizontal_alignment::left,
+                    vertical_alignment::stretch
+                )
+            );
+        }
+
+        this->set_focusable(false);  // Container, not focusable
     }
 
     // ===== Option Management =====
@@ -97,6 +145,13 @@ public:
     /// @return Option count
     [[nodiscard]] std::size_t count() const noexcept {
         return m_buttons.size();
+    }
+
+    /// Get group orientation
+    ///
+    /// @return Current orientation (vertical or horizontal)
+    [[nodiscard]] button_group_orientation orientation() const noexcept {
+        return m_orientation;
     }
 
     // ===== Selection Management =====
@@ -151,6 +206,8 @@ public:
     signal<int, bool> button_toggled;
 
 private:
+    button_group_orientation m_orientation;
+    int m_spacing;
     std::unordered_map<int, radio_button<Backend>*> m_buttons;
     int m_checked_id = -1;
     int m_next_id = 0;

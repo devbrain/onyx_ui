@@ -176,9 +176,14 @@ namespace onyxui {
                         input->set_focus(nullptr);
                     }
 
-                    // Force state to normal (workaround for conio backend not having mouse move events)
-                    // This must be done AFTER base class processes the event
-                    this->set_interaction_state(base::interaction_state::normal);
+                    // For backends without mouse tracking (like terminals), force
+                    // state to normal since we won't receive mouse move events to
+                    // detect when the cursor leaves the button.
+                    // For backends with mouse tracking, stateful_widget::handle_mouse
+                    // already correctly sets the state based on hover position.
+                    if constexpr (!has_mouse_tracking_v<Backend>) {
+                        this->set_interaction_state(base::interaction_state::normal);
+                    }
                 }
 
                 return handled;

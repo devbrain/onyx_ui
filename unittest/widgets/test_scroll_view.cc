@@ -10,6 +10,8 @@
 #include <../../include/onyxui/widgets/containers/scroll_view.hh>
 #include <onyxui/widgets/label.hh>
 #include <../../include/onyxui/widgets/containers/panel.hh>
+#include <onyxui/widgets/containers/vbox.hh>
+#include <onyxui/widgets/containers/group_box.hh>
 #include <onyxui/layout/linear_layout.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
@@ -372,4 +374,159 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - All co
     // Verify they have the correct types/orientations
     CHECK(view.vertical_scrollbar()->get_orientation() == orientation::vertical);
     CHECK(view.horizontal_scrollbar()->get_orientation() == orientation::horizontal);
+}
+
+// =============================================================================
+// 6. Nested Scroll View Tests
+// =============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested scroll_view renders correctly") {
+    using Backend = test_canvas_backend;
+
+    // Outer scroll_view
+    scroll_view<Backend> outer;
+
+    // Add a vbox inside outer scroll_view
+    auto* content_vbox = outer.emplace_child<vbox>(0);
+
+    // Add some labels
+    content_vbox->template emplace_child<label>("Label before nested scroll");
+
+    // Add inner scroll_view (nested)
+    auto* inner = content_vbox->template emplace_child<scroll_view>();
+
+    // Add content to inner scroll_view
+    auto* inner_vbox = inner->emplace_child<vbox>(0);
+    for (int i = 0; i < 5; ++i) {
+        inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
+    }
+
+    content_vbox->template emplace_child<label>("Label after nested scroll");
+
+    // Measure and arrange - this should not crash or hang
+    auto size = outer.measure(80, 25);
+    CHECK(size_utils::get_width(size) > 0);
+    CHECK(size_utils::get_height(size) > 0);
+
+    outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 25}});
+
+    // Verify inner scroll_view has valid bounds
+    auto inner_bounds = inner->bounds();
+    CHECK(rect_utils::get_width(inner_bounds) > 0);
+    CHECK(rect_utils::get_height(inner_bounds) > 0);
+
+    // Render - this should not crash or produce empty output
+    auto canvas = render_to_canvas(outer, 80, 25);
+
+    // Check that something was rendered (canvas should not be empty)
+    bool has_content = false;
+    for (int y = 0; y < 25 && !has_content; ++y) {
+        for (int x = 0; x < 80 && !has_content; ++x) {
+            if (canvas->get_char(x, y) != ' ') {
+                has_content = true;
+            }
+        }
+    }
+    CHECK(has_content);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested scroll_view inside group_box") {
+    using Backend = test_canvas_backend;
+
+    // This replicates the exact structure from tab_layout_scrolling.hh
+    // that was causing the bug: scroll_view > vbox > group_box > scroll_view
+
+    // Outer scroll_view (like the tab's scroll_view)
+    scroll_view<Backend> outer;
+
+    // Main content container (vertical layout)
+    auto* content = outer.emplace_child<vbox>(1);
+
+    // Add a label before the group_box
+    content->template emplace_child<label>("Content before group_box");
+
+    // Group box (like scrolling_section in the layout tab)
+    auto* group = content->template emplace_child<group_box>();
+    group->set_title("Scrolling Section");
+    group->set_vbox_layout(1);
+
+    // Add a label inside group_box
+    group->template emplace_child<label>("Label inside group_box");
+
+    // Inner scroll_view (THIS is the problematic nested scroll_view)
+    auto* inner = group->template emplace_child<scroll_view>();
+
+    // Add content to inner scroll_view
+    auto* inner_vbox = inner->emplace_child<vbox>(0);
+    for (int i = 0; i < 10; ++i) {
+        inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
+    }
+
+    // Add more content after inner scroll_view
+    group->template emplace_child<label>("Label after nested scroll");
+
+    // Add content after the group_box
+    content->template emplace_child<label>("Content after group_box");
+
+    // Measure outer scroll_view (single measurement, no separate measurements that could affect state)
+    auto size = outer.measure(80, 25);
+    INFO("outer measured size: " << size_utils::get_width(size) << "x" << size_utils::get_height(size));
+    CHECK(size_utils::get_width(size) > 0);
+    CHECK(size_utils::get_height(size) > 0);
+
+    outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 25}});
+
+    // Debug: Check all bounds
+    auto outer_bounds = outer.bounds();
+    auto group_bounds = group->bounds();
+    auto inner_bounds = inner->bounds();
+
+    // Get last measured sizes
+    auto inner_measured = inner->last_measured_size();
+    auto group_measured = group->last_measured_size();
+
+    INFO("outer bounds: " << rect_utils::get_x(outer_bounds) << "," << rect_utils::get_y(outer_bounds)
+         << " " << rect_utils::get_width(outer_bounds) << "x" << rect_utils::get_height(outer_bounds));
+    INFO("group measured: " << size_utils::get_width(group_measured) << "x" << size_utils::get_height(group_measured));
+    INFO("group bounds: " << rect_utils::get_x(group_bounds) << "," << rect_utils::get_y(group_bounds)
+         << " " << rect_utils::get_width(group_bounds) << "x" << rect_utils::get_height(group_bounds));
+    INFO("inner measured: " << size_utils::get_width(inner_measured) << "x" << size_utils::get_height(inner_measured));
+    INFO("inner bounds: " << rect_utils::get_x(inner_bounds) << "," << rect_utils::get_y(inner_bounds)
+         << " " << rect_utils::get_width(inner_bounds) << "x" << rect_utils::get_height(inner_bounds));
+
+    // Verify inner scroll_view has valid bounds
+    CHECK(rect_utils::get_width(inner_bounds) > 0);
+    CHECK(rect_utils::get_height(inner_bounds) > 0);
+
+    // Render
+    auto canvas = render_to_canvas(outer, 80, 25);
+
+    // Check that the "Content before" text at the top is rendered
+    bool found_before_text = false;
+    for (int y = 0; y < 25 && !found_before_text; ++y) {
+        std::string line;
+        for (int x = 0; x < 80; ++x) {
+            line += canvas->get_char(x, y);
+        }
+        if (line.find("Content before") != std::string::npos) {
+            found_before_text = true;
+        }
+    }
+    CHECK(found_before_text);
+
+    // Note: "Content after" may not be visible if the group_box is larger than viewport
+    // This is expected behavior - the content is scrollable
+
+    // Check that inner scroll_view content is rendered (this was the bug - it was 0 height before)
+    bool found_inner_item = false;
+    for (int y = 0; y < 25 && !found_inner_item; ++y) {
+        std::string line;
+        for (int x = 0; x < 80; ++x) {
+            line += canvas->get_char(x, y);
+        }
+        if (line.find("Inner item") != std::string::npos) {
+            found_inner_item = true;
+        }
+    }
+    CHECK(found_inner_item);
 }

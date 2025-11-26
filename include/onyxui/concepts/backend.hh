@@ -168,6 +168,34 @@ namespace onyxui {
         using renderer = typename Backend::renderer_type;
     };
 
+    // ======================================================================
+    // Backend Capability Traits
+    // ======================================================================
+
+    /**
+     * @brief Check if backend has continuous mouse tracking
+     *
+     * @details
+     * Returns true if the backend sends mouse move events continuously
+     * (like GUI backends), false if it only sends click events (like terminals).
+     *
+     * Backends can opt-out by defining:
+     * @code
+     * static constexpr bool has_mouse_tracking = false;
+     * @endcode
+     *
+     * Default is true (assumes full mouse tracking support).
+     */
+    template<typename Backend, typename = void>
+    struct has_mouse_tracking : std::true_type {};
+
+    template<typename Backend>
+    struct has_mouse_tracking<Backend, std::void_t<decltype(Backend::has_mouse_tracking)>>
+        : std::bool_constant<Backend::has_mouse_tracking> {};
+
+    template<typename Backend>
+    inline constexpr bool has_mouse_tracking_v = has_mouse_tracking<Backend>::value;
+
     /**
      * @brief Convenience alias for backend types
      */

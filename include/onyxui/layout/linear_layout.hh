@@ -43,6 +43,7 @@
 #include <vector>
 #include <onyxui/layout/layout_strategy.hh>
 #include <onyxui/utils/safe_math.hh>
+#include <onyxui/geometry/coordinates.hh>
 
 namespace onyxui {
     /**

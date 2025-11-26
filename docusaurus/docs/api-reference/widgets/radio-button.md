@@ -7,7 +7,7 @@ sidebar_position: 4
 The `onyxui::radio_button` is a selection widget for mutually exclusive options. When grouped together using `button_group`, only one radio button can be selected at a time - essential for forms, settings, and any UI requiring single-choice selection.
 
 :::info Architecture Update (November 2025)
-`button_group` is now a proper widget container (inherits from `vbox`) that creates and owns its radio buttons. This eliminates lifetime management issues and provides a simpler, safer API. Use `add_option(text, id)` instead of manually creating and registering buttons.
+`button_group` is now a proper widget container that creates and owns its radio buttons. It supports both **vertical** and **horizontal** layouts via an orientation parameter. This eliminates lifetime management issues and provides a simpler, safer API. Use `add_option(text, id)` instead of manually creating and registering buttons.
 :::
 
 ## Overview
@@ -19,6 +19,7 @@ The `button_group` is a widget container that owns and manages its radio button 
 ## Key Features
 
 - **Mutual Exclusion:** Only one radio button in a group can be checked at a time
+- **Flexible Layouts:** Arrange radio buttons vertically or horizontally with configurable spacing
 - **Keyboard Navigation:** Arrow keys navigate between options, Space selects
 - **Mouse Interaction:** Click to select (cannot uncheck by clicking again)
 - **Themed Icons:** Backend-specific rendering (3-character DOS-style or Unicode glyphs)
@@ -74,31 +75,53 @@ size_group->button_toggled.connect([](int id, bool checked) {
 ```
 
 :::tip Widget Container Architecture
-`button_group` is now a proper widget container (inherits from `vbox`) that owns its radio buttons. The widget tree manages lifetime automatically - no manual cleanup needed!
+`button_group` is a proper widget container that owns its radio buttons. It uses a `linear_layout` strategy internally to support both vertical and horizontal arrangements. The widget tree manages lifetime automatically - no manual cleanup needed!
 :::
 
 ## Radio Button Groups
 
 ### Creating a Button Group
 
-`button_group` is a widget container (inherits from `vbox`) that creates and owns radio buttons as its children.
+`button_group` is a widget container that creates and owns radio buttons as its children. It supports both vertical (default) and horizontal layouts.
 
 ```cpp
-// Create button group as a child of a container
-auto* group = container->emplace_child<button_group<Backend>>();
+// Vertical button group (default)
+auto* v_group = container->emplace_child<button_group<Backend>>();
 
 // Add options with auto-assigned IDs (starting from 0)
-group->add_option("Option 1");  // ID = 0
-group->add_option("Option 2");  // ID = 1
-group->add_option("Option 3");  // ID = 2
+v_group->add_option("Option 1");  // ID = 0
+v_group->add_option("Option 2");  // ID = 1
+v_group->add_option("Option 3");  // ID = 2
 
 // Or add options with explicit IDs
-group->add_option("Option A", 10);
-group->add_option("Option B", 20);
-group->add_option("Option C", 30);
+v_group->add_option("Option A", 10);
+v_group->add_option("Option B", 20);
+v_group->add_option("Option C", 30);
+```
 
-// Optional: Configure spacing between radio buttons
-auto* spaced_group = container->emplace_child<button_group<Backend>>(1);  // 1px spacing
+### Layout Orientation
+
+Button groups can arrange radio buttons vertically (default) or horizontally:
+
+```cpp
+// Vertical layout (default)
+auto* v_group = container->emplace_child<button_group<Backend>>(
+    button_group_orientation::vertical,
+    0  // spacing between buttons
+);
+
+// Horizontal layout with 2px spacing
+auto* h_group = container->emplace_child<button_group<Backend>>(
+    button_group_orientation::horizontal,
+    2  // 2px spacing between buttons
+);
+h_group->add_option("Small", 0);
+h_group->add_option("Medium", 1);
+h_group->add_option("Large", 2);
+
+// Query current orientation
+auto orientation = h_group->orientation();
+// Returns button_group_orientation::horizontal or ::vertical
 ```
 
 ### Managing Selection
@@ -295,15 +318,18 @@ radio_button:
 ### Complete Form with Multiple Groups
 
 ```cpp
-// Size selection group (owned by widget tree)
+// Size selection group - vertical layout (default)
 auto* size_group = container->emplace_child<button_group<Backend>>();
 size_group->add_option("Small", 0);
 size_group->add_option("Medium", 1);
 size_group->add_option("Large", 2);
 size_group->set_checked_id(1);  // Default: Medium
 
-// Color selection group (owned by widget tree)
-auto* color_group = container->emplace_child<button_group<Backend>>();
+// Color selection group - horizontal layout with spacing
+auto* color_group = container->emplace_child<button_group<Backend>>(
+    button_group_orientation::horizontal,
+    2  // 2px spacing between buttons
+);
 color_group->add_option("Red", 0);
 color_group->add_option("Green", 1);
 color_group->add_option("Blue", 2);
@@ -354,6 +380,7 @@ option2->set_enabled(false);
 ### ✅ Do
 
 - **Use button_group for mutual exclusion:** Always group related radio buttons
+- **Choose appropriate layout:** Use vertical for long labels or many options (3+), horizontal for short labels or few options (2-3)
 - **Provide clear labels:** Make options self-explanatory
 - **Set default selection:** Always have one option pre-selected
 - **Use mnemonics for accessibility:** Alt+key shortcuts improve usability
@@ -385,8 +412,11 @@ quality_group->set_checked_id(1);  // Default: Medium
 ### Multi-Step Wizard
 
 ```cpp
-// Step indicator (non-interactive)
-auto* step_group = wizard->emplace_child<button_group<Backend>>();
+// Step indicator with horizontal layout (great for progress visualization)
+auto* step_group = wizard->emplace_child<button_group<Backend>>(
+    button_group_orientation::horizontal,
+    3  // 3px spacing between steps
+);
 step_group->add_option("1. Account Info", 0);
 step_group->add_option("2. Preferences", 1);
 step_group->add_option("3. Confirm", 2);
@@ -398,6 +428,20 @@ step_group->button(2)->set_enabled(false);
 
 // Navigate programmatically
 step_group->set_checked_id(1);  // Show step 2
+```
+
+### Toolbar/Filter Options
+
+```cpp
+// Horizontal layout works great for toolbar-style options
+auto* view_mode = toolbar->emplace_child<button_group<Backend>>(
+    button_group_orientation::horizontal,
+    2
+);
+view_mode->add_option("List", 0);
+view_mode->add_option("Grid", 1);
+view_mode->add_option("Details", 2);
+view_mode->set_checked_id(0);  // Default: List
 ```
 
 ## Comparison with Checkbox

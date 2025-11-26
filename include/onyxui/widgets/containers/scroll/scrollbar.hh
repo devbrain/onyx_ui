@@ -228,13 +228,21 @@ namespace onyxui {
             // IMPORTANT: min_render_size is the minimum LENGTH (height for vertical, width for horizontal)
             // NOT the minimum thickness! Do NOT override thickness with min_size.
 
+            // CRITICAL FIX: Don't use UNCONSTRAINED available space directly.
+            // When measured with UNCONSTRAINED space (e.g., inside a scrollable that measures
+            // children with infinite space), we should return min_size instead of INT_MAX.
+            // This prevents scroll_view from measuring to INT_MAX which breaks nested scroll_views.
+            constexpr int UNCONSTRAINED_THRESHOLD = std::numeric_limits<int>::max() / 2;
+
             size_type result;
             if (m_orientation == orientation::horizontal) {
-                // Horizontal: request full width (at least min_render_size), fixed thickness
-                result = size_type{std::max(available_width, min_size), thickness};
+                // Horizontal: request width (capped if unconstrained), fixed thickness
+                int const request_width = (available_width > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(available_width, min_size);
+                result = size_type{request_width, thickness};
             } else {
-                // Vertical: fixed thickness, request full height (at least min_render_size)
-                result = size_type{thickness, std::max(available_height, min_size)};
+                // Vertical: fixed thickness, request height (capped if unconstrained)
+                int const request_height = (available_height > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(available_height, min_size);
+                result = size_type{thickness, request_height};
             }
 
             return result;

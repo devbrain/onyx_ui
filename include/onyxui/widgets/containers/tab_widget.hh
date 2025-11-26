@@ -513,8 +513,8 @@ namespace onyxui {
 
             // Draw tab bar based on position
             auto draw_tabs_horizontal = [&](int tab_y) {
-                // Store relative Y for hit testing
-                m_tab_bar_y = tab_y - rect_utils::get_y(content_bounds);
+                // Store relative Y for hit testing (tab_y and y are both absolute)
+                m_tab_bar_y = tab_y - y;
                 int tab_x = x;
 
                 // Draw left scroll arrow if overflow
@@ -627,14 +627,17 @@ namespace onyxui {
          * @brief Handle keyboard and mouse events
          */
         bool handle_event(const ui_event& event, event_phase phase) override {
-            // Handle mouse events on tabs in CAPTURE phase (before children)
+            // Handle mouse events on tabs
             if (auto* mouse_evt = std::get_if<mouse_event>(&event)) {
+                // First check if the click is inside our widget at all
+                if (!this->is_inside(mouse_evt->x, mouse_evt->y)) {
+                    return base::handle_event(event, phase);
+                }
+
                 // Convert mouse coords to relative (widget-local)
-                auto content_bounds = this->bounds();
-                int bounds_x = rect_utils::get_x(content_bounds);
-                int bounds_y = rect_utils::get_y(content_bounds);
-                int mouse_x = mouse_evt->x - bounds_x;  // Make relative
-                int mouse_y = mouse_evt->y - bounds_y;  // Make relative
+                auto abs_bounds = this->get_absolute_bounds();
+                int mouse_x = mouse_evt->x - abs_bounds.x();
+                int mouse_y = mouse_evt->y - abs_bounds.y();
 
                 // Use stored tab bar Y from rendering (m_tab_bar_y is set during do_render)
                 bool in_tab_bar = (mouse_y == m_tab_bar_y);

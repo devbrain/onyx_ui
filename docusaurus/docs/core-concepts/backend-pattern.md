@@ -142,3 +142,61 @@ If you want to integrate OnyxUI with your own rendering engine, you'll need to c
     Make sure that your `MyRect`, `MySize`, etc., types satisfy the corresponding `...Like` concepts. This usually involves providing the necessary member variables (e.g., `x`, `y`, `width`, `height`).
 
 By following these steps, you can create a custom backend that seamlessly integrates with the OnyxUI ecosystem.
+
+## Optional Backend Capabilities
+
+Beyond the required types, backends can declare optional capabilities that affect how certain widgets behave. These are detected at compile-time using SFINAE and allow the framework to adapt its behavior to different backend limitations.
+
+### `has_mouse_tracking`
+
+Indicates whether the backend provides continuous mouse move events.
+
+```cpp
+struct MyCustomBackend {
+    // ... required types ...
+
+    // Optional: Set to false if backend doesn't send mouse move events
+    // Default is true if not specified
+    static constexpr bool has_mouse_tracking = false;
+};
+```
+
+**When to set this to `false`:**
+- Terminal/console backends that only report mouse clicks, not movement
+- Backends where mouse position tracking is not available
+
+**Effect:**
+- When `true` (default): Buttons remain in hover state after a click if the mouse cursor is still over them
+- When `false`: Buttons return to normal state immediately after a click, since there's no way to detect when the cursor leaves
+
+**Usage in code:**
+
+```cpp
+#include <onyxui/concepts/backend.hh>
+
+// Check at compile time
+if constexpr (onyxui::has_mouse_tracking_v<Backend>) {
+    // Backend has continuous mouse tracking
+} else {
+    // Backend only reports clicks, no movement
+}
+```
+
+### Adding New Capability Traits
+
+If you need to add a new optional capability, follow this pattern in `backend.hh`:
+
+```cpp
+// Primary template: default value (usually true or false)
+template<typename Backend, typename = void>
+struct has_my_capability : std::true_type {};
+
+// Specialization: detect if Backend defines the trait
+template<typename Backend>
+struct has_my_capability<Backend, std::void_t<decltype(Backend::has_my_capability)>>
+    : std::bool_constant<Backend::has_my_capability> {};
+
+// Convenience variable template
+template<typename Backend>
+inline constexpr bool has_my_capability_v = has_my_capability<Backend>::value;
+```
