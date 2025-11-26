@@ -69,7 +69,7 @@ std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& 
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // Buttons
-    auto* button_row = content->template emplace_child<onyxui::hbox>(2);
+    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* ok_btn = button_row->template emplace_child<onyxui::button>("OK");

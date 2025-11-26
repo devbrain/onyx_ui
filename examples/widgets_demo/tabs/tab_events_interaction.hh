@@ -41,7 +41,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     auto* scroll = tab->template emplace_child<onyxui::scroll_view>();
 
     // Main content container (vertical layout)
-    auto* content = scroll->template emplace_child<onyxui::vbox>(1);  // 1px spacing
+    auto* content = scroll->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);  // 1px spacing
 
     // Title
     auto* title = content->template emplace_child<onyxui::label>("Events & Interaction");
@@ -50,12 +50,12 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // ========== ROW 1: Event System | Focus Management ==========
-    auto* row1 = content->template emplace_child<onyxui::hbox>(2);
+    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     // ========== EVENT SYSTEM SECTION ==========
     auto* event_section = row1->template emplace_child<onyxui::group_box>();
     event_section->set_title("Event System");
-    event_section->set_vbox_layout(1);
+    event_section->set_vbox_layout(onyxui::spacing::tiny);
 
     // Three-Phase Routing
     event_section->template emplace_child<onyxui::label>("Three-Phase Event Routing:");
@@ -91,7 +91,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     event_section->template emplace_child<onyxui::label>("");  // Spacer
     event_section->template emplace_child<onyxui::label>("Interactive Demo:");
 
-    auto* event_demo_row = event_section->template emplace_child<onyxui::hbox>(2);
+    auto* event_demo_row = event_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
     auto* event_btn = event_demo_row->template emplace_child<onyxui::button>("Click Me!");
     auto* event_label = event_demo_row->template emplace_child<onyxui::label>("Not clicked yet");
 
@@ -104,7 +104,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     // ========== FOCUS MANAGEMENT SECTION ==========
     auto* focus_section = row1->template emplace_child<onyxui::group_box>();
     focus_section->set_title("Focus Management");
-    focus_section->set_vbox_layout(1);
+    focus_section->set_vbox_layout(onyxui::spacing::tiny);
 
     focus_section->template emplace_child<onyxui::label>("Focus System:");
     focus_section->template emplace_child<onyxui::label>("  - Tab order: Sequential navigation through focusable widgets");
@@ -124,7 +124,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     focus_section->template emplace_child<onyxui::label>("");  // Spacer
     focus_section->template emplace_child<onyxui::label>("Focus Navigation Demo (press Tab to cycle):");
 
-    auto* focus_demo = focus_section->template emplace_child<onyxui::vbox>(1);
+    auto* focus_demo = focus_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
     auto* focus_edit1 = focus_demo->template emplace_child<onyxui::line_edit>();
     focus_edit1->set_text("First input (Tab to next)");
 
@@ -140,7 +140,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     focus_section->template emplace_child<onyxui::label>("");  // Spacer
     focus_section->template emplace_child<onyxui::label>("Programmatic Focus Control:");
 
-    auto* focus_controls = focus_section->template emplace_child<onyxui::hbox>(2);
+    auto* focus_controls = focus_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
     auto* focus_first_btn = focus_controls->template emplace_child<onyxui::button>("Focus First Input");
     focus_first_btn->clicked.connect([focus_edit1]() {
         auto* input_mgr = onyxui::ui_services<Backend>::input();
@@ -158,12 +158,12 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     });
 
     // ========== ROW 2: Hotkeys | Signal/Slot ==========
-    auto* row2 = content->template emplace_child<onyxui::hbox>(2);
+    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     // ========== HOTKEYS SECTION ==========
     auto* hotkeys_section = row2->template emplace_child<onyxui::group_box>();
     hotkeys_section->set_title("Hotkeys & Shortcuts");
-    hotkeys_section->set_vbox_layout(1);
+    hotkeys_section->set_vbox_layout(onyxui::spacing::tiny);
 
     hotkeys_section->template emplace_child<onyxui::label>("Hotkey System:");
     hotkeys_section->template emplace_child<onyxui::label>("  - Global shortcuts: Work anywhere in the application");
@@ -194,7 +194,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     hotkeys_section->template emplace_child<onyxui::label>("");  // Spacer
     hotkeys_section->template emplace_child<onyxui::label>("Mnemonic Demo:");
 
-    auto* mnemonic_row = hotkeys_section->template emplace_child<onyxui::hbox>(2);
+    auto* mnemonic_row = hotkeys_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     auto* mnemonic_btn1 = mnemonic_row->template emplace_child<onyxui::button>("");
     mnemonic_btn1->set_mnemonic_text("&Save (Alt+S)");
@@ -213,7 +213,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     // ========== SIGNAL/SLOT PATTERN SECTION ==========
     auto* signal_section = row2->template emplace_child<onyxui::group_box>();
     signal_section->set_title("Signal/Slot Pattern");
-    signal_section->set_vbox_layout(1);
+    signal_section->set_vbox_layout(onyxui::spacing::tiny);
 
     signal_section->template emplace_child<onyxui::label>("Decoupled Communication:");
     signal_section->template emplace_child<onyxui::label>("  - Signals: Event notifications (clicked, value_changed)");
@@ -234,7 +234,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     content->template emplace_child<onyxui::label>("");  // Spacer
     auto* tips_section = content->template emplace_child<onyxui::group_box>();
     tips_section->set_title("Tips & Best Practices");
-    tips_section->set_vbox_layout(1);
+    tips_section->set_vbox_layout(onyxui::spacing::tiny);
 
     tips_section->template emplace_child<onyxui::label>("Event Handling:");
     tips_section->template emplace_child<onyxui::label>("  - Return true from handle_event() to stop propagation");

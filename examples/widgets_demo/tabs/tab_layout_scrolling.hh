@@ -42,7 +42,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     auto* scroll = tab->template emplace_child<onyxui::scroll_view>();
 
     // Main content container (vertical layout)
-    auto* content = scroll->template emplace_child<onyxui::vbox>(1);  // 1px spacing
+    auto* content = scroll->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);  // 1px spacing
 
     // Title
     auto* title = content->template emplace_child<onyxui::label>("Layout & Scrolling System");
@@ -51,12 +51,12 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // ========== ROW 1: Layout System | Scrolling System ==========
-    auto* row1 = content->template emplace_child<onyxui::hbox>(2);
+    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     // ========== LAYOUT SECTION (left column) ==========
     auto* layout_section = row1->template emplace_child<onyxui::group_box>();
     layout_section->set_title("Layout System");
-    layout_section->set_vbox_layout(1);
+    layout_section->set_vbox_layout(onyxui::spacing::tiny);
 
     // Two-Pass Algorithm
     layout_section->template emplace_child<onyxui::label>("Two-Pass Layout Algorithm:");
@@ -80,7 +80,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     layout_section->template emplace_child<onyxui::label>("");  // Spacer
     layout_section->template emplace_child<onyxui::label>("Vertical Alignment:");
 
-    auto* valign_container = layout_section->template emplace_child<onyxui::hbox>(1);
+    auto* valign_container = layout_section->template emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
     auto* top_btn = valign_container->template emplace_child<onyxui::button>("[Top]");
     top_btn->set_vertical_align(onyxui::vertical_alignment::top);
     auto* vcenter_btn = valign_container->template emplace_child<onyxui::button>("[Ctr]");
@@ -92,7 +92,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     layout_section->template emplace_child<onyxui::label>("");  // Spacer
     layout_section->template emplace_child<onyxui::label>("Spacer vs Spring:");
 
-    auto* spacer_demo = layout_section->template emplace_child<onyxui::hbox>(0);
+    auto* spacer_demo = layout_section->template emplace_child<onyxui::hbox>(onyxui::spacing::none);
     spacer_demo->template emplace_child<onyxui::label>("[L]");
     spacer_demo->template emplace_child<onyxui::spacer>(5);
     spacer_demo->template emplace_child<onyxui::label>("[5]");
@@ -102,7 +102,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     // ========== SCROLLING SECTION (right column) ==========
     auto* scrolling_section = row1->template emplace_child<onyxui::group_box>();
     scrolling_section->set_title("Scrolling System");
-    scrolling_section->set_vbox_layout(1);
+    scrolling_section->set_vbox_layout(onyxui::spacing::tiny);
 
     scrolling_section->template emplace_child<onyxui::label>("Scrolling Architecture:");
     scrolling_section->template emplace_child<onyxui::label>("  - scroll_view: Container");
@@ -119,16 +119,16 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     scrolling_section->template emplace_child<onyxui::label>("  - Mouse Wheel: Vertical");
 
     // ========== ROW 2: Demos ==========
-    auto* row2 = content->template emplace_child<onyxui::hbox>(2);
+    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     // ========== NESTED LAYOUTS DEMO (left column) ==========
     auto* nested_section = row2->template emplace_child<onyxui::group_box>();
     nested_section->set_title("Nested Layouts Demo");
-    nested_section->set_vbox_layout(1);
+    nested_section->set_vbox_layout(onyxui::spacing::tiny);
 
     nested_section->template emplace_child<onyxui::label>("Outer VBox:");
 
-    auto* nested_inner = nested_section->template emplace_child<onyxui::hbox>(1);
+    auto* nested_inner = nested_section->template emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
     nested_inner->template emplace_child<onyxui::button>("HBox 1");
     nested_inner->template emplace_child<onyxui::button>("HBox 2");
     nested_inner->template emplace_child<onyxui::button>("HBox 3");
@@ -140,20 +140,20 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     nested_section->template emplace_child<onyxui::label>("Padding Demo:");
 
     auto* padding_demo = nested_section->template emplace_child<onyxui::panel>();
-    padding_demo->set_vbox_layout(1);
+    padding_demo->set_vbox_layout(onyxui::spacing::tiny);
     padding_demo->set_padding(onyxui::thickness::all(2));
     padding_demo->template emplace_child<onyxui::label>("2px padding all sides");
 
     // ========== LARGE CONTENT DEMO (right column) ==========
     auto* large_section = row2->template emplace_child<onyxui::group_box>();
     large_section->set_title("Nested Scroll Demo");
-    large_section->set_vbox_layout(1);
+    large_section->set_vbox_layout(onyxui::spacing::tiny);
 
     large_section->template emplace_child<onyxui::label>("100 items in scroll_view:");
 
     // Inner scroll_view demonstrates nested scrolling
     auto* nested_scroll = large_section->template emplace_child<onyxui::scroll_view>();
-    auto* large_content = nested_scroll->template emplace_child<onyxui::vbox>(0);
+    auto* large_content = nested_scroll->template emplace_child<onyxui::vbox>(onyxui::spacing::none);
 
     // Add 100 items to demonstrate scrolling
     for (int i = 1; i <= 100; ++i) {

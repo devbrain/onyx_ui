@@ -65,7 +65,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Title section
     auto* title_section = content->template emplace_child<onyxui::group_box>();
     title_section->set_title("MVC System Demo");
-    auto* title_vbox = title_section->template emplace_child<onyxui::vbox>(1);
+    auto* title_vbox = title_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
 
     title_vbox->template emplace_child<onyxui::label>("Model-View-Controller Pattern");
     title_vbox->template emplace_child<onyxui::label>("  - list_model: Data storage");
@@ -75,7 +75,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // List View section
     auto* list_section = content->template emplace_child<onyxui::group_box>();
     list_section->set_title("Dynamic List View");
-    auto* list_vbox = list_section->template emplace_child<onyxui::vbox>(1);
+    auto* list_vbox = list_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
 
     auto* list_view = list_vbox->template emplace_child<onyxui::list_view>();
     list_view->set_model(model.get());
@@ -83,7 +83,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Controls section
     auto* controls_section = content->template emplace_child<onyxui::group_box>();
     controls_section->set_title("Model Controls");
-    auto* controls_hbox = controls_section->template emplace_child<onyxui::hbox>(2);
+    auto* controls_hbox = controls_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
 
     // Item counter for unique names (captured in lambdas)
     auto item_counter = std::make_shared<int>(1);
@@ -109,7 +109,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Selection display section
     auto* selection_section = content->template emplace_child<onyxui::group_box>();
     selection_section->set_title("Selection Info");
-    auto* selection_vbox = selection_section->template emplace_child<onyxui::vbox>(1);
+    auto* selection_vbox = selection_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
 
     auto* selection_label = selection_vbox->template emplace_child<onyxui::label>("Selection: (none)");
 
@@ -129,7 +129,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Statistics section
     auto* stats_section = content->template emplace_child<onyxui::group_box>();
     stats_section->set_title("Statistics");
-    auto* stats_vbox = stats_section->template emplace_child<onyxui::vbox>(1);
+    auto* stats_vbox = stats_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
 
     auto* stats_label = stats_vbox->template emplace_child<onyxui::label>(
         "Items: " + std::to_string(model->row_count())
@@ -149,7 +149,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Tips section
     auto* tips_section = content->template emplace_child<onyxui::group_box>();
     tips_section->set_title("Tips");
-    auto* tips_vbox = tips_section->template emplace_child<onyxui::vbox>(1);
+    auto* tips_vbox = tips_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
 
     tips_vbox->template emplace_child<onyxui::label>("  - Arrow keys: Navigate list");
     tips_vbox->template emplace_child<onyxui::label>("  - Enter: Activate item");

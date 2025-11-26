@@ -49,7 +49,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     // Version info
     auto* version_section = content->template emplace_child<onyxui::group_box>();
     version_section->set_title("Version");
-    auto* version_vbox = version_section->template emplace_child<onyxui::vbox>(1);
+    auto* version_vbox = version_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
     version_vbox->template emplace_child<onyxui::label>("  Version: 1.0");
     version_vbox->template emplace_child<onyxui::label>("  Build Date: 2025-11-23");
     version_vbox->template emplace_child<onyxui::label>("  Framework: OnyxUI");
@@ -57,7 +57,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     // Description
     auto* desc_section = content->template emplace_child<onyxui::group_box>();
     desc_section->set_title("Description");
-    auto* desc_vbox = desc_section->template emplace_child<onyxui::vbox>(1);
+    auto* desc_vbox = desc_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
     desc_vbox->template emplace_child<onyxui::label>("Comprehensive demonstration of OnyxUI");
     desc_vbox->template emplace_child<onyxui::label>("framework features:");
     desc_vbox->template emplace_child<onyxui::label>("");
@@ -72,7 +72,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     // Credits
     auto* credits_section = content->template emplace_child<onyxui::group_box>();
     credits_section->set_title("Credits");
-    auto* credits_vbox = credits_section->template emplace_child<onyxui::vbox>(1);
+    auto* credits_vbox = credits_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
     credits_vbox->template emplace_child<onyxui::label>("  Created by: Claude Code");
     credits_vbox->template emplace_child<onyxui::label>("  Framework: OnyxUI");
     credits_vbox->template emplace_child<onyxui::label>("  Backend: ConIO (Terminal UI)");
@@ -80,7 +80,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     // Hotkeys
     auto* hotkeys_section = content->template emplace_child<onyxui::group_box>();
     hotkeys_section->set_title("Quick Reference");
-    auto* hotkeys_vbox = hotkeys_section->template emplace_child<onyxui::vbox>(1);
+    auto* hotkeys_vbox = hotkeys_section->template emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
     hotkeys_vbox->template emplace_child<onyxui::label>("  F2 / F9        - Screenshot");
     hotkeys_vbox->template emplace_child<onyxui::label>("  Ctrl+M         - MVC Demo");
     hotkeys_vbox->template emplace_child<onyxui::label>("  Ctrl+T         - Theme Editor");
@@ -91,7 +91,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // Close button
-    auto* button_row = content->template emplace_child<onyxui::hbox>(2);
+    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* close_btn = button_row->template emplace_child<onyxui::button>("OK");
