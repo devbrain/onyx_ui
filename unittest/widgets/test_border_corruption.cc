@@ -198,7 +198,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
     SUBCASE("EXACT reproduction of demo.hh UI structure") {
         // Create root panel with exact same layout as demo.hh
         panel<test_canvas_backend> root;
-        root.set_vbox_layout(0);  // Vertical layout with no spacing
+        root.set_vbox_layout(spacing::none);  // Vertical layout with no spacing
         root.set_padding(thickness::all(0));  // No internal padding
 
         // Build UI structure EXACTLY as in demo.hh (lines 98-231)
@@ -216,7 +216,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         auto* demo_panel = add_panel(root);
         demo_panel->set_has_border(true);
         demo_panel->set_padding(thickness::all(1));
-        demo_panel->set_vbox_layout(1);
+        demo_panel->set_vbox_layout(spacing::tiny);
 
         add_label(*demo_panel, "Panel with Border");
         add_label(*demo_panel, "Themes via service locator");

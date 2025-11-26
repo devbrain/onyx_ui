@@ -73,7 +73,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         apply_default_theme(outer);
         outer.set_has_border(true);      // +1 per side
         outer.set_padding(thickness::all(2));  // +2 per side
-        outer.set_vbox_layout(static_cast<int>(spacing::none));
+        outer.set_vbox_layout(spacing::none);
 
         auto* gb = outer.emplace_child<group_box>();
         gb->set_title("Options");
@@ -124,13 +124,13 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* panel1 = container.emplace_child<panel>();
         apply_default_theme(*panel1);
         panel1->set_has_border(true);
-        panel1->set_vbox_layout(static_cast<int>(spacing::none));
+        panel1->set_vbox_layout(spacing::none);
         panel1->emplace_child<label>("Left");
 
         auto* panel2 = container.emplace_child<panel>();
         apply_default_theme(*panel2);
         panel2->set_has_border(true);
-        panel2->set_vbox_layout(static_cast<int>(spacing::none));
+        panel2->set_vbox_layout(spacing::none);
         panel2->emplace_child<label>("Right");
 
         (void)container.measure(200, 100);
@@ -199,13 +199,13 @@ TEST_SUITE("Layout - Complex Scenarios") {
         apply_default_theme(outer);
         outer.set_has_border(true);
         outer.set_padding({10, 5, 10, 5});  // L, T, R, B
-        outer.set_vbox_layout(static_cast<int>(spacing::none));
+        outer.set_vbox_layout(spacing::none);
 
         auto* inner = outer.emplace_child<panel>();
         apply_default_theme(*inner);
         inner->set_has_border(true);
         inner->set_padding({3, 7, 3, 7});  // Different asymmetry
-        inner->set_vbox_layout(static_cast<int>(spacing::none));
+        inner->set_vbox_layout(spacing::none);
 
         auto* text_label = inner->emplace_child<label>("Text");
 
@@ -236,24 +236,24 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* top_row = main_container.emplace_child<hbox>(spacing::small);
         auto* gb1 = top_row->emplace_child<group_box>();
         gb1->set_title("Box 1");
-        gb1->set_vbox_layout(static_cast<int>(spacing::none));
+        gb1->set_vbox_layout(spacing::none);
         gb1->emplace_child<label>("Content 1");
 
         auto* gb2 = top_row->emplace_child<group_box>();
         gb2->set_title("Box 2");
-        gb2->set_vbox_layout(static_cast<int>(spacing::none));
+        gb2->set_vbox_layout(spacing::none);
         gb2->emplace_child<label>("Content 2");
 
         // Bottom row
         auto* bottom_row = main_container.emplace_child<hbox>(spacing::small);
         auto* gb3 = bottom_row->emplace_child<group_box>();
         gb3->set_title("Box 3");
-        gb3->set_vbox_layout(static_cast<int>(spacing::none));
+        gb3->set_vbox_layout(spacing::none);
         gb3->emplace_child<label>("Content 3");
 
         auto* gb4 = bottom_row->emplace_child<group_box>();
         gb4->set_title("Box 4");
-        gb4->set_vbox_layout(static_cast<int>(spacing::none));
+        gb4->set_vbox_layout(spacing::none);
         gb4->emplace_child<label>("Content 4");
 
         (void)main_container.measure(300, 200);
@@ -296,22 +296,22 @@ TEST_SUITE("Layout - Complex Scenarios") {
         panel<Backend> l1;
         apply_default_theme(l1);
         l1.set_has_border(true);
-        l1.set_vbox_layout(static_cast<int>(spacing::none));
+        l1.set_vbox_layout(spacing::none);
 
         auto* l2 = l1.emplace_child<panel>();
         apply_default_theme(*l2);
         l2->set_has_border(false);  // No border
         l2->set_padding(thickness::all(1));
-        l2->set_vbox_layout(static_cast<int>(spacing::none));
+        l2->set_vbox_layout(spacing::none);
 
         auto* l3 = l2->emplace_child<group_box>();
         l3->set_title("Level 3");
-        l3->set_vbox_layout(static_cast<int>(spacing::none));
+        l3->set_vbox_layout(spacing::none);
 
         auto* l4 = l3->emplace_child<panel>();
         apply_default_theme(*l4);
         l4->set_has_border(true);
-        l4->set_vbox_layout(static_cast<int>(spacing::none));
+        l4->set_vbox_layout(spacing::none);
 
         auto* l5_label = l4->emplace_child<label>("Deep");
 
@@ -347,12 +347,12 @@ TEST_SUITE("Layout - Complex Scenarios") {
         panel<Backend> outer;
         apply_default_theme(outer);
         outer.set_has_border(true);
-        outer.set_vbox_layout(static_cast<int>(spacing::none));
+        outer.set_vbox_layout(spacing::none);
 
         auto* inner = outer.emplace_child<panel>();
         apply_default_theme(*inner);
         inner->set_has_border(true);
-        inner->set_vbox_layout(static_cast<int>(spacing::none));
+        inner->set_vbox_layout(spacing::none);
 
         auto* text_label = inner->emplace_child<label>("Text");
 
@@ -407,12 +407,12 @@ TEST_SUITE("Layout - Complex Scenarios") {
         panel<Backend> l1;
         apply_default_theme(l1);
         l1.set_padding({10, 20, 30, 40});  // L, T, R, B
-        l1.set_vbox_layout(static_cast<int>(spacing::none));
+        l1.set_vbox_layout(spacing::none);
 
         auto* l2 = l1.emplace_child<panel>();
         apply_default_theme(*l2);
         l2->set_padding({5, 15, 25, 35});  // Different on all sides
-        l2->set_vbox_layout(static_cast<int>(spacing::none));
+        l2->set_vbox_layout(spacing::none);
 
         auto* text_label = l2->emplace_child<label>("Text");
 
@@ -443,13 +443,13 @@ TEST_SUITE("Layout - Complex Scenarios") {
         auto* p1 = container.emplace_child<panel>();
         apply_default_theme(*p1);
         p1->set_padding(thickness::all(2));
-        p1->set_vbox_layout(static_cast<int>(spacing::none));
+        p1->set_vbox_layout(spacing::none);
         p1->emplace_child<label>("First");
 
         auto* p2 = container.emplace_child<panel>();
         apply_default_theme(*p2);
         p2->set_padding(thickness::all(4));
-        p2->set_vbox_layout(static_cast<int>(spacing::none));
+        p2->set_vbox_layout(spacing::none);
         p2->emplace_child<label>("Second");
 
         (void)container.measure(200, 200);
@@ -475,7 +475,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
         apply_default_theme(gb);
         gb.set_title("Container");
         gb.set_padding(thickness::all(2));
-        gb.set_vbox_layout(static_cast<int>(spacing::small));  // small spacing
+        gb.set_vbox_layout(spacing::small);  // small spacing
 
         // Each child is a VBox with its own spacing
         auto* vb1 = gb.emplace_child<vbox>(spacing::tiny);
@@ -496,10 +496,10 @@ TEST_SUITE("Layout - Complex Scenarios") {
         CHECK(rect_utils::get_y(vb1_bounds) == 0);
 
         // vb2 should be vb1 + height + spacing
-        // Note: set_vbox_layout(static_cast<int>(spacing::small)) passes enum value 2
+        // Note: set_vbox_layout(spacing::small) resolves to 1 in test theme
         auto vb2_bounds = vb2->bounds();
         int expected_vb2_y = rect_utils::get_y(vb1_bounds) +
-                             rect_utils::get_height(vb1_bounds) + 2;  // spacing::small enum = 2
+                             rect_utils::get_height(vb1_bounds) + 1;  // spacing::small resolves to 1
         CHECK(rect_utils::get_y(vb2_bounds) == expected_vb2_y);
     }
 
@@ -510,18 +510,18 @@ TEST_SUITE("Layout - Complex Scenarios") {
         // Empty panel
         auto* empty1 = outer.emplace_child<panel>();
         apply_default_theme(*empty1);
-        empty1->set_vbox_layout(static_cast<int>(spacing::none));
+        empty1->set_vbox_layout(spacing::none);
 
         // Panel with label
         auto* filled = outer.emplace_child<panel>();
         apply_default_theme(*filled);
-        filled->set_vbox_layout(static_cast<int>(spacing::none));
+        filled->set_vbox_layout(spacing::none);
         filled->emplace_child<label>("Content");
 
         // Another empty panel
         auto* empty2 = outer.emplace_child<panel>();
         apply_default_theme(*empty2);
-        empty2->set_vbox_layout(static_cast<int>(spacing::none));
+        empty2->set_vbox_layout(spacing::none);
 
         (void)outer.measure(100, 100);
         outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});

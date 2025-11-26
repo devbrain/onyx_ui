@@ -193,7 +193,7 @@ namespace onyxui {
      * auto root = std::make_unique<panel<Backend>>();
      * auto* group = add_panel(*root);
      * group->set_has_border(true);
-     * group->set_vbox_layout(5);
+     * group->set_vbox_layout(spacing::medium);
      * @endcode
      */
     template<typename Parent, typename... Args>

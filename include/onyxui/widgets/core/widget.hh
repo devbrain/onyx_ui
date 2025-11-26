@@ -176,41 +176,45 @@ namespace onyxui {
 
         /**
          * @brief Set vertical box layout strategy
-         * @param spacing Spacing between children in pixels
+         * @param spacing_value Semantic spacing between children
          *
          * @details
          * Convenience method that sets a vertical linear layout strategy.
          * Children will be stacked vertically with the specified spacing.
+         * Spacing is resolved from the current theme.
          *
          * @example
          * @code
          * auto panel = std::make_unique<panel<Backend>>();
-         * panel->set_vbox_layout(5);  // 5px spacing between children
+         * panel->set_vbox_layout(spacing::medium);  // Medium spacing between children
          * @endcode
          */
-        void set_vbox_layout(int spacing = 0) {
+        void set_vbox_layout(spacing spacing_value = spacing::none) {
+            int const resolved = resolve_spacing(spacing_value);
             this->set_layout_strategy(
-                std::make_unique<linear_layout<Backend>>(direction::vertical, spacing)
+                std::make_unique<linear_layout<Backend>>(direction::vertical, resolved)
             );
         }
 
         /**
          * @brief Set horizontal box layout strategy
-         * @param spacing Spacing between children in pixels
+         * @param spacing_value Semantic spacing between children
          *
          * @details
          * Convenience method that sets a horizontal linear layout strategy.
          * Children will be laid out horizontally with the specified spacing.
+         * Spacing is resolved from the current theme.
          *
          * @example
          * @code
          * auto toolbar = std::make_unique<panel<Backend>>();
-         * toolbar->set_hbox_layout(2);  // 2px spacing between buttons
+         * toolbar->set_hbox_layout(spacing::small);  // Small spacing between buttons
          * @endcode
          */
-        void set_hbox_layout(int spacing = 0) {
+        void set_hbox_layout(spacing spacing_value = spacing::none) {
+            int const resolved = resolve_spacing(spacing_value);
             this->set_layout_strategy(
-                std::make_unique<linear_layout<Backend>>(direction::horizontal, spacing)
+                std::make_unique<linear_layout<Backend>>(direction::horizontal, resolved)
             );
         }
 
@@ -675,6 +679,23 @@ namespace onyxui {
                 current = current->parent();
             }
             return current;
+        }
+
+        /**
+         * @brief Resolve spacing enum to backend-specific value
+         * @param spacing_value Semantic spacing enum
+         * @return Spacing in backend units (pixels for GUI, characters for TUI)
+         */
+        [[nodiscard]] static int resolve_spacing(spacing spacing_value) {
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) {
+                return 0;  // Default to no spacing
+            }
+            auto* theme = themes->get_current_theme();
+            if (!theme) {
+                return 0;
+            }
+            return theme->spacing.resolve(spacing_value);
         }
     };
 }

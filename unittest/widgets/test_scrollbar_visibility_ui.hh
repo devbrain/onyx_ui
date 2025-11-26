@@ -53,7 +53,7 @@ public:
         }
 
         // Set up layout
-        this->set_vbox_layout(1);  // Vertical layout with 1px spacing to allow button shadows to be visible
+        this->set_vbox_layout(spacing::tiny);  // Vertical layout with 1px spacing to allow button shadows to be visible
         this->set_padding(onyxui::thickness::all(0));  // No internal padding for compact DOS look
 
         // Set up actions and hotkeys (must come before build_menu_bar)
@@ -108,7 +108,7 @@ private:
         auto* demo_panel = add_panel(*this);
         demo_panel->set_has_border(true);
         demo_panel->set_padding(onyxui::thickness::all(1));
-        demo_panel->set_vbox_layout(1);
+        demo_panel->set_vbox_layout(spacing::tiny);
 
         add_label(*demo_panel, "Panel with Border");
         add_label(*demo_panel, "Themes via service locator");

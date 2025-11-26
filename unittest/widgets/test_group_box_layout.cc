@@ -39,7 +39,7 @@ TEST_SUITE("Group Box - Layout Integration") {
 
         group_box<Backend> gb;
         apply_default_theme(gb);
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -71,7 +71,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_title("Settings");
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Option 1");
 
@@ -104,7 +104,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding(thickness::all(3));
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -136,7 +136,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding({5, 3, 7, 9});  // L, T, R, B
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -162,7 +162,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         apply_default_theme(gb);
         gb.set_title("Options");
         gb.set_padding(thickness::all(2));
-        gb.set_vbox_layout(1);  // 1px spacing
+        gb.set_vbox_layout(spacing::small);  // 1px spacing (small resolves to 1 in test theme)
 
         auto* child1 = gb.emplace_child<label>("Option 1");
         auto* child2 = gb.emplace_child<label>("Option 2");
@@ -212,13 +212,13 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb1;
         apply_default_theme(gb1);
         gb1.set_title("");  // Empty string
-        gb1.set_vbox_layout(0);
+        gb1.set_vbox_layout(spacing::none);
         auto* child1 = gb1.emplace_child<label>("A");
 
         group_box<Backend> gb2;
         apply_default_theme(gb2);
         // No title set (default)
-        gb2.set_vbox_layout(0);
+        gb2.set_vbox_layout(spacing::none);
         auto* child2 = gb2.emplace_child<label>("B");
 
         (void)gb1.measure(100, 100);
@@ -239,7 +239,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding({5, 3, 7, 9});
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -269,8 +269,8 @@ TEST_SUITE("Group Box - Layout Integration") {
         gb1.set_border(group_box_border::single);
         gb2.set_border(group_box_border::double_);
 
-        gb1.set_vbox_layout(0);
-        gb2.set_vbox_layout(0);
+        gb1.set_vbox_layout(spacing::none);
+        gb2.set_vbox_layout(spacing::none);
 
         auto* child1 = gb1.emplace_child<label>("A");
         auto* child2 = gb2.emplace_child<label>("B");
@@ -294,7 +294,7 @@ TEST_SUITE("Group Box - Layout Integration") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_title("This is a very long title that might wrap or truncate");
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Child");
 
@@ -315,11 +315,11 @@ TEST_SUITE("Group Box - Layout Integration") {
         apply_default_theme(outer);
         outer.set_has_border(true);
         outer.set_padding(thickness::all(2));
-        outer.set_vbox_layout(0);
+        outer.set_vbox_layout(spacing::none);
 
         auto* gb = outer.emplace_child<group_box>();
         gb->set_title("Inner Group");
-        gb->set_vbox_layout(0);
+        gb->set_vbox_layout(spacing::none);
 
         auto* child = gb->emplace_child<label>("Nested");
 

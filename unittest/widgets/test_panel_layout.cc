@@ -39,7 +39,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -61,7 +61,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         p.emplace_child<label>("Hello");
 
@@ -81,7 +81,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_padding(thickness::all(3));
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -104,7 +104,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         apply_default_theme(p);
         p.set_has_border(true);           // +1 on each side
         p.set_padding(thickness::all(2)); // +2 on each side
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -139,14 +139,14 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
 
         panel<Backend> main_panel;
         apply_default_theme(main_panel);
-        main_panel.set_vbox_layout(0);
+        main_panel.set_vbox_layout(spacing::none);
         main_panel.set_padding(thickness::all(0));
 
         // Create demo panel with border (the problematic one)
         auto* demo_panel = main_panel.emplace_child<panel>();
         demo_panel->set_has_border(true);
         demo_panel->set_padding(thickness::all(1));
-        demo_panel->set_vbox_layout(1);
+        demo_panel->set_vbox_layout(spacing::tiny);
 
         // Add the "Panel with Border" label
         auto* label_ptr = demo_panel->emplace_child<label>("Panel with Border");
@@ -186,7 +186,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(false);  // Explicitly no border
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 

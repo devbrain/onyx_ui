@@ -29,7 +29,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Children have relative bounds, not absolute") {
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         auto* child = root.emplace_child<label>("Child");
 
@@ -45,10 +45,10 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Nested containers - children always at relative (0,0)") {
         // Create 3-level hierarchy: root -> middle_panel -> inner_label
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         auto* middle_panel = root.emplace_child<panel>();
-        middle_panel->set_vbox_layout(0);
+        middle_panel->set_vbox_layout(spacing::none);
         middle_panel->set_padding(thickness::all(10));  // Offset inner child
 
         auto* inner_label = middle_panel->emplace_child<label>("Inner");
@@ -70,11 +70,11 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Hit testing with nested layouts - absolute coordinates") {
         // Create nested layout with padding to offset child
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
         root.set_padding(thickness::all(2));  // Add padding to root so (1,1) hits root's padding area
 
         auto* parent_panel = root.emplace_child<panel>();
-        parent_panel->set_vbox_layout(0);
+        parent_panel->set_vbox_layout(spacing::none);
         parent_panel->set_padding(thickness::all(10));  // Child at absolute (12,12) = root padding 2 + parent padding 10
 
         auto* child_button = parent_panel->emplace_child<button>("Click");
@@ -111,15 +111,15 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Hit testing with multiple nested levels") {
         // Create deep hierarchy with offsets at each level
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
         root.set_padding(thickness{1, 1, 0, 0});  // Add padding to root for hit testing gaps
 
         auto* level1 = root.emplace_child<panel>();
-        level1->set_vbox_layout(0);
+        level1->set_vbox_layout(spacing::none);
         level1->set_padding(thickness{5, 5, 0, 0});  // Offset by (5,5) from level1's content area
 
         auto* level2 = level1->emplace_child<panel>();
-        level2->set_vbox_layout(0);
+        level2->set_vbox_layout(spacing::none);
         level2->set_padding(thickness{10, 10, 0, 0});  // Offset by (10,10) from level2's content area
 
         auto* level3_label = level2->emplace_child<label>("Deep");
@@ -152,10 +152,10 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Dirty regions use absolute coordinates") {
         // Create nested layout
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         auto* parent_panel = root.emplace_child<panel>();
-        parent_panel->set_vbox_layout(0);
+        parent_panel->set_vbox_layout(spacing::none);
         parent_panel->set_padding(thickness::all(10));  // Child at absolute (10,10)
 
         auto* child_label = parent_panel->emplace_child<label>("Child");
@@ -197,14 +197,14 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Dirty regions with deeply nested elements") {
         // Create 3-level hierarchy with padding at each level
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         auto* level1 = root.emplace_child<panel>();
-        level1->set_vbox_layout(0);
+        level1->set_vbox_layout(spacing::none);
         level1->set_padding(thickness{5, 7, 0, 0});  // Offset by (5,7)
 
         auto* level2 = level1->emplace_child<panel>();
-        level2->set_vbox_layout(0);
+        level2->set_vbox_layout(spacing::none);
         level2->set_padding(thickness{10, 15, 0, 0});  // Offset by (10,15)
 
         auto* deep_label = level2->emplace_child<label>("Deep");
@@ -243,11 +243,11 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Rendering produces correct visual output") {
         // Verify that widgets render at correct screen positions despite relative bounds
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         auto* top_label = root.emplace_child<label>("Top");
         auto* middle_panel = root.emplace_child<panel>();
-        middle_panel->set_vbox_layout(0);
+        middle_panel->set_vbox_layout(spacing::none);
         middle_panel->set_padding(thickness{2, 0, 0, 0});
         auto* nested_label = middle_panel->emplace_child<label>("Nested");
 
@@ -273,13 +273,13 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Borders and padding offset children correctly") {
         panel<Backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
         root.set_padding(thickness::all(1));  // Add padding to root for hit testing gaps
 
         auto* bordered_panel = root.emplace_child<panel>();
         bordered_panel->set_has_border(true);           // +1 pixel border
         bordered_panel->set_padding(thickness::all(2)); // +2 pixel padding
-        bordered_panel->set_vbox_layout(0);
+        bordered_panel->set_vbox_layout(spacing::none);
 
         auto* child = bordered_panel->emplace_child<label>("Child");
 
@@ -304,7 +304,7 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Multiple children in linear layout") {
         // Test that multiple children in a vbox are positioned correctly
         panel<Backend> root;
-        root.set_vbox_layout(5);  // 5 pixel spacing
+        root.set_vbox_layout(spacing::medium);  // medium spacing (resolves to 1 in test theme)
 
         auto* child1 = root.emplace_child<label>("Child1");
         auto* child2 = root.emplace_child<label>("Child2");
@@ -326,8 +326,8 @@ TEST_SUITE("Relative Coordinates - Core System") {
         CHECK(y1 == 0);                      // First at top
         CHECK(y2 > y1);                      // Second below first
         CHECK(y3 > y2);                      // Third below second
-        CHECK(y2 - y1 >= 5);                 // Spacing included
-        CHECK(y3 - y2 >= 5);                 // Spacing included
+        CHECK(y2 - y1 >= 1);                 // Spacing included (medium = 1)
+        CHECK(y3 - y2 >= 1);                 // Spacing included (medium = 1)
 
         // Hit testing should work at all positions
         CHECK(root.hit_test(5, y1) == child1);

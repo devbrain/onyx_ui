@@ -448,7 +448,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     // Group box (like scrolling_section in the layout tab)
     auto* group = content->template emplace_child<group_box>();
     group->set_title("Scrolling Section");
-    group->set_vbox_layout(static_cast<int>(spacing::tiny));
+    group->set_vbox_layout(spacing::tiny);
 
     // Add a label inside group_box
     group->template emplace_child<label>("Label inside group_box");

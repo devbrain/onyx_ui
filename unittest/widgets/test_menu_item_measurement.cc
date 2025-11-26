@@ -338,7 +338,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
 
         // Create a panel as the parent (simulating main_widget)
         panel<CanvasBackend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         // Create menu bar and add menus (BEFORE applying theme, like widget_demo)
         auto menu_bar_ptr = std::make_unique<menu_bar<CanvasBackend>>(&root);
@@ -394,7 +394,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
 
         // Create main panel (like main_widget in demo.hh)
         auto root = std::make_unique<panel<CanvasBackend>>();
-        root->set_vbox_layout(0);
+        root->set_vbox_layout(spacing::none);
         root->set_padding(thickness::all(0));
 
         // Create menu bar as child (BEFORE applying theme, line 181 of demo.hh)

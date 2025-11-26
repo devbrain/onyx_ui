@@ -40,7 +40,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     TEST_CASE_FIXTURE(test_fixture, "Panel - zero width available") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -56,7 +56,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     TEST_CASE_FIXTURE(test_fixture, "Panel - zero height available") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -72,7 +72,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     TEST_CASE_FIXTURE(test_fixture, "Panel - both dimensions zero") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -90,7 +90,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -108,7 +108,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_padding(thickness::all(100));  // Huge padding
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -126,7 +126,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         group_box<Backend> gb;
         apply_default_theme(gb);
         gb.set_padding({50, 50, 50, 50});  // Large padding
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -145,7 +145,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
     TEST_CASE_FIXTURE(test_fixture, "Panel - very large dimensions") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -167,7 +167,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Use very large padding that could cause overflow
         const int large_padding = std::numeric_limits<int>::max() / 2;
         p.set_padding(thickness::all(large_padding));
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -220,7 +220,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Extreme asymmetric padding
         p.set_padding({10000, 1, 1, 1});  // Huge left padding, minimal others
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -243,7 +243,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Border is always 1px per side
         // Add extreme padding on top
         gb.set_padding({5000, 3, 5000, 3});
-        gb.set_vbox_layout(0);
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
@@ -262,7 +262,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -304,7 +304,7 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Padding that would overflow if added directly
         const int large = std::numeric_limits<int>::max() / 3;
         p.set_padding({large, large, large, large});
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 

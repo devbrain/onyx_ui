@@ -402,7 +402,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo lay
     SUBCASE("text_view should not overlap with menu bar") {
         // Simulate the demo layout: vbox with menu bar, labels, and text_view
         panel<test_canvas_backend> root;
-        root.set_vbox_layout(0);
+        root.set_vbox_layout(spacing::none);
 
         // Add a simple menu bar (using label as placeholder)
         auto menu_bar = std::make_unique<label<test_canvas_backend>>("[File] [Edit] [Help]");

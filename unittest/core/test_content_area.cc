@@ -119,7 +119,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
     TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Panel - get_content_area() accounts for border") {
         panel<test_canvas_backend> p;
         p.set_has_border(true);
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -138,7 +138,7 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
         panel<test_canvas_backend> p;
         p.set_has_border(true);      // +1
         p.set_padding({2, 3, 2, 3});  // L,T,R,B
-        p.set_vbox_layout(0);
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 

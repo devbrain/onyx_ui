@@ -30,7 +30,7 @@ TEST_SUITE("Theme - Layout Integration") {
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme application - layout remains valid") {
         panel<Backend> p;
         p.set_has_border(true);
-        p.set_vbox_layout(static_cast<int>(spacing::none));
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
@@ -48,7 +48,7 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme inheritance - child inherits parent theme") {
         panel<Backend> parent;
-        parent.set_vbox_layout(static_cast<int>(spacing::none));
+        parent.set_vbox_layout(spacing::none);
 
         auto* child = parent.emplace_child<label>("Child");
 
@@ -96,7 +96,7 @@ TEST_SUITE("Theme - Layout Integration") {
         panel<Backend> p;
         p.set_has_border(true);
         p.set_padding(thickness::all(5));
-        p.set_vbox_layout(static_cast<int>(spacing::none));
+        p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Content");
 
@@ -112,11 +112,11 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Nested themed widgets - inheritance chain") {
         panel<Backend> outer;
-        outer.set_vbox_layout(static_cast<int>(spacing::none));
+        outer.set_vbox_layout(spacing::none);
 
         auto* middle = outer.emplace_child<group_box>();
         middle->set_title("Middle");
-        middle->set_vbox_layout(static_cast<int>(spacing::none));
+        middle->set_vbox_layout(spacing::none);
 
         auto* inner = middle->emplace_child<label>("Inner");
 
@@ -155,7 +155,7 @@ TEST_SUITE("Theme - Layout Integration") {
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Group box with theme - title doesn't affect content layout") {
         group_box<Backend> gb;
         gb.set_title("Themed Title");
-        gb.set_vbox_layout(static_cast<int>(spacing::none));
+        gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Content");
 
@@ -171,7 +171,7 @@ TEST_SUITE("Theme - Layout Integration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Theme on already-laid-out tree - invalidation works") {
         panel<Backend> p;
-        p.set_vbox_layout(static_cast<int>(spacing::none));
+        p.set_vbox_layout(spacing::none);
         p.emplace_child<label>("Text");
 
         // Layout without theme

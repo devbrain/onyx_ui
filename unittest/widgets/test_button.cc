@@ -139,7 +139,7 @@ TEST_CASE("Button - Keyboard activation") {
 
         // Create a container with two buttons
         auto root = std::make_unique<panel<test_backend>>();
-        root->set_vbox_layout(1);
+        root->set_vbox_layout(spacing::tiny);
 
         auto* btn1 = root->template emplace_child<button>(std::string("Button 1"));
         auto* btn2 = root->template emplace_child<button>(std::string("Button 2"));

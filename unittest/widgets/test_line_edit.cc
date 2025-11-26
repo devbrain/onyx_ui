@@ -442,7 +442,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Tab triggers fo
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - focus_next semantic action moves focus") {
     // Create a container with multiple focusable widgets
     onyxui::panel<test_backend> container;
-    container.set_vbox_layout(5);
+    container.set_vbox_layout(spacing::medium);
 
     auto* edit1 = container.template emplace_child<line_edit>("First");
     auto* edit2 = container.template emplace_child<line_edit>("Second");
