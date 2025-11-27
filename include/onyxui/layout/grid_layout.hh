@@ -97,7 +97,7 @@ namespace onyxui {
      *   their size requirements across spanned columns/rows.
      * - **Fixed-size**: Use predefined `fixed_column_widths` and `fixed_row_heights`
      *   arrays passed to constructor. If arrays are shorter than needed,
-     *   remaining columns/rows default to 100 pixels.
+     *   remaining columns/rows default to 100 logical units.
      *
      * ## Edge Cases and Error Handling
      *

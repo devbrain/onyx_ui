@@ -1245,7 +1245,7 @@ public:
 
     /**
      * @brief Set scrollbar width (thickness)
-     * @param width Width in pixels/chars
+     * @param width Width in logical units
      * @return *this (for chaining)
      */
     scrollbar_builder& width(int width) {
@@ -1255,7 +1255,7 @@ public:
 
     /**
      * @brief Set minimum thumb size
-     * @param size Minimum thumb size in pixels/chars
+     * @param size Minimum thumb size in logical units
      * @return *this (for chaining)
      */
     scrollbar_builder& min_thumb_size(int size) {

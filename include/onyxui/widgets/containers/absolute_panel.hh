@@ -23,11 +23,11 @@ namespace onyxui {
      *
      * @details
      * absolute_panel is a convenience widget that automatically uses absolute_layout
-     * to position children at explicit pixel coordinates, with optional size overrides.
+     * to position children at explicit coordinates, with optional size overrides.
      *
      * ## Features
      *
-     * - Pixel-perfect positioning with explicit (x, y) coordinates
+     * - Precise positioning with explicit (x, y) coordinates
      * - Optional size overrides for each child
      * - Free-form overlapping support
      * - Coordinates relative to panel's content area

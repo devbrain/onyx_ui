@@ -86,8 +86,8 @@ namespace onyxui {
          */
         struct shadow_config {
             bool enabled = false;      ///< Enable/disable shadow rendering
-            int offset_x = 1;          ///< Horizontal shadow offset (pixels/cells to the right)
-            int offset_y = 1;          ///< Vertical shadow offset (pixels/cells down)
+            int offset_x = 1;          ///< Horizontal shadow offset (logical units to the right)
+            int offset_y = 1;          ///< Vertical shadow offset (logical units down)
         };
 
         /**
@@ -347,8 +347,8 @@ namespace onyxui {
 
             // Geometry
             int width = 16;                     ///< Width for vertical (swapped for horizontal)
-            int min_thumb_size = 20;            ///< Minimum thumb size in pixels
-            int line_increment = 20;            ///< Scroll amount per arrow click (pixels)
+            int min_thumb_size = 20;            ///< Minimum thumb size in logical units
+            int line_increment = 20;            ///< Scroll amount per arrow click (logical units)
             int arrow_size = 1;                 ///< Size of arrow buttons (1 for text UI, can be larger for graphical UI)
             int min_render_size = 8;            ///< Minimum size to render without visual corruption (borders + content)
 
@@ -412,12 +412,9 @@ namespace onyxui {
         };
 
         /**
-         * @brief Backend-specific spacing resolution
+         * @brief Spacing resolution for logical units
          * @details
-         * Maps semantic spacing enum values to backend-specific integers.
-         * - TUI (conio): Values are character cells
-         * - GUI (SDL2): Values are pixels
-         *
+         * Maps semantic spacing enum values to logical unit integers.
          * This allows the same application code to produce visually consistent
          * layouts across different backends.
          *
@@ -454,9 +451,9 @@ namespace onyxui {
             int xlarge = 3;
 
             /**
-             * @brief Resolve spacing enum to backend-specific integer
+             * @brief Resolve spacing enum to logical unit integer
              * @param s The semantic spacing value
-             * @return Backend-specific integer (pixels or character cells)
+             * @return Logical unit integer value
              */
             [[nodiscard]] constexpr int resolve(spacing s) const noexcept {
                 switch (s) {

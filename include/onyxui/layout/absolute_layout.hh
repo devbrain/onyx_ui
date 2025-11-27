@@ -11,7 +11,7 @@
  * or when precise control is needed.
  *
  * ## Features
- * - Pixel-perfect positioning with explicit coordinates
+ * - Precise positioning with explicit coordinates
  * - Optional size overrides for each child
  * - Free-form overlapping support
  * - Coordinates relative to parent's content area
@@ -34,7 +34,7 @@
  * - Prototyping and mockup implementations
  *
  * ## Comparison with Other Layouts
- * - vs anchor_layout: Absolute uses exact pixels, anchor uses relative positions
+ * - vs anchor_layout: Absolute uses exact coordinates, anchor uses relative positions
  * - vs grid_layout: Absolute allows overlapping, grid enforces cell structure
  * - vs linear_layout: Absolute has no automatic flow, linear stacks children
  *
@@ -57,7 +57,7 @@ namespace onyxui {
      * Absolute layout gives complete control over child positioning. Each child
      * can be assigned a specific (x, y) position and optionally a fixed size.
      * Children without explicit positions default to (0, 0). This layout is ideal
-     * when you need precise, pixel-perfect control over element placement.
+     * when you need precise, precise control over element placement.
      *
      * ## Key Features
      *

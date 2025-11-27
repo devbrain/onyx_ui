@@ -125,8 +125,8 @@ namespace onyxui {
             /**
              * @brief Construct a spacer with specified dimensions
              *
-             * @param width Fixed width in pixels (default: 0)
-             * @param height Fixed height in pixels (default: 0)
+             * @param width Fixed width in logical units (default: 0)
+             * @param height Fixed height in logical units (default: 0)
              *
              * @throws std::bad_alloc If memory allocation fails during construction
              * @throws Any exception thrown by widget<Backend> constructor
@@ -144,12 +144,12 @@ namespace onyxui {
              * **Exception Safety:** Basic guarantee - object may be partially constructed
              * if an exception occurs during size constraint setup.
              *
-             * @example Horizontal 10px gap
+             * @example Horizontal 10-unit gap
              * @code
              * auto gap = std::make_unique<spacer<Backend>>(10, 0);
              * @endcode
              *
-             * @example Vertical 20px gap
+             * @example Vertical 20-unit gap
              * @code
              * auto gap = std::make_unique<spacer<Backend>>(0, 20);
              * @endcode
@@ -189,7 +189,7 @@ namespace onyxui {
             /**
              * @brief Set spacer width
              *
-             * @param width New width in pixels
+             * @param width New width in logical units
              *
              * @throws Any exception thrown by set_width_constraint()
              *
@@ -223,7 +223,7 @@ namespace onyxui {
             /**
              * @brief Set spacer height
              *
-             * @param height New height in pixels
+             * @param height New height in logical units
              *
              * @throws Any exception thrown by set_height_constraint()
              *
@@ -257,7 +257,7 @@ namespace onyxui {
             /**
              * @brief Get spacer width
              *
-             * @return Current width in pixels
+             * @return Current width in logical units
              *
              * @note noexcept - guaranteed not to throw exceptions
              * @note Thread-safe for reading (const operation)
@@ -267,7 +267,7 @@ namespace onyxui {
             /**
              * @brief Get spacer height
              *
-             * @return Current height in pixels
+             * @return Current height in logical units
              *
              * @note noexcept - guaranteed not to throw exceptions
              * @note Thread-safe for reading (const operation)
@@ -313,8 +313,8 @@ namespace onyxui {
             }
 
         private:
-            int m_width;  ///< Fixed width in pixels
-            int m_height; ///< Fixed height in pixels
+            int m_width;  ///< Fixed width in logical units
+            int m_height; ///< Fixed height in logical units
     };
 
     // ============================================================================
@@ -324,7 +324,7 @@ namespace onyxui {
     /**
      * @brief Create a horizontal gap spacer
      * @tparam Backend The backend traits type
-     * @param size Width of the gap in pixels
+     * @param size Width of the gap in logical units
      * @return Unique pointer to horizontal spacer
      *
      * @details
@@ -347,7 +347,7 @@ namespace onyxui {
     /**
      * @brief Create a vertical gap spacer
      * @tparam Backend The backend traits type
-     * @param size Height of the gap in pixels
+     * @param size Height of the gap in logical units
      * @return Unique pointer to vertical spacer
      *
      * @details
@@ -370,7 +370,7 @@ namespace onyxui {
     /**
      * @brief Create a fixed-size gap spacer
      * @tparam Backend The backend traits type
-     * @param size Width and height of the gap in pixels
+     * @param size Width and height of the gap in logical units
      * @return Unique pointer to square spacer
      *
      * @details

@@ -49,7 +49,7 @@ namespace onyxui::ui_constants {
     // Scrollbar Defaults
     // =========================================================================
 
-    /// Default scrollbar width/height in characters/pixels
+    /// Default scrollbar width/height in logical units
     inline constexpr int DEFAULT_SCROLLBAR_THICKNESS = 1;
 
     /// Default size of scrollbar arrow buttons (1 character for text UI)

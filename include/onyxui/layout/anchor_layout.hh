@@ -39,7 +39,7 @@
  * - Compatible with animations and transitions
  *
  * @see layout_strategy Base class for layout strategies
- * @see absolute_layout For pixel-perfect absolute positioning
+ * @see absolute_layout For precise absolute positioning
  * @see linear_layout For sequential arrangements
  */
 
@@ -83,7 +83,7 @@ namespace onyxui {
      * @details
      * Anchor layout provides a simple way to position children at standard
      * locations within the parent. Each child can be anchored to one of nine
-     * predefined points, with optional pixel offsets. Children maintain their
+     * predefined points, with optional offsets. Children maintain their
      * relative positions when the parent resizes.
      *
      * ## Key Features
@@ -98,7 +98,7 @@ namespace onyxui {
      *
      * 1. Calculate anchor point position based on parent dimensions
      * 2. Adjust for child dimensions (ensures child fits within bounds)
-     * 3. Apply user-specified pixel offsets
+     * 3. Apply user-specified offsets
      * 4. Position child at final calculated coordinates
      *
      * ## Edge Cases
@@ -249,7 +249,7 @@ namespace onyxui {
              * Override of layout_strategy::arrange_children. For each visible child:
              * 1. Retrieves anchor configuration (defaults to top_left if not set)
              * 2. Calculates position based on anchor point and child size
-             * 3. Applies pixel offsets
+             * 3. Applies offsets
              * 4. Positions child at final coordinates
              *
              * @note Children may overlap or extend outside content_area depending
@@ -288,13 +288,13 @@ namespace onyxui {
              *
              * @details
              * Stores the complete positioning information for a child element,
-             * including the anchor point and pixel offsets. Used internally by
+             * including the anchor point and offsets. Used internally by
              * the layout to remember each child's positioning preferences.
              */
             struct anchor_info {
                 anchor_point point = anchor_point::top_left; ///< Base anchor point for positioning
-                int offset_x = 0; ///< Horizontal pixel offset from anchor
-                int offset_y = 0; ///< Vertical pixel offset from anchor
+                int offset_x = 0; ///< Horizontal offset from anchor
+                int offset_y = 0; ///< Vertical offset from anchor
             };
 
             /// Maps each child to its anchor configuration (mutable for lazy updates)
@@ -314,7 +314,7 @@ namespace onyxui {
              * The calculation:
              * 1. Determines base position from anchor point
              * 2. Adjusts for child dimensions (e.g., centering)
-             * 3. Applies pixel offsets
+             * 3. Applies offsets
              *
              * @note This is a static helper function with no side effects.
              *       The child may be positioned outside content_area bounds.

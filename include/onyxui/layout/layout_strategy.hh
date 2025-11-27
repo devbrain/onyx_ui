@@ -372,15 +372,13 @@ namespace onyxui {
      *
      * @details
      * Type-safe spacing values resolved by theme at layout time.
-     * Prevents hardcoded pixel/cell values in application code.
-     * Each backend's theme defines the actual pixel/cell values.
+     * Prevents hardcoded values in application code.
+     * Each backend's theme defines the actual logical unit values.
      *
      * ## Purpose
      *
-     * The spacing enum solves the "concept leakage" problem where hardcoded
-     * integer values have different meanings across backends:
-     * - TUI (conio): 1 unit = 1 character cell
-     * - GUI (SDL2): 1 unit = 1 pixel
+     * The spacing enum allows semantic spacing that scales appropriately
+     * across different backends while maintaining visual consistency.
      *
      * Using semantic spacing values allows the same application code to
      * produce visually consistent layouts across different backends.
@@ -400,9 +398,8 @@ namespace onyxui {
      *
      * ## Theme Resolution
      *
-     * At layout time, spacing values are resolved to backend-specific integers:
-     * - TUI: spacing::medium -> 1 character cell
-     * - GUI: spacing::medium -> 8 pixels
+     * At layout time, spacing values are resolved to logical unit values
+     * defined in the current theme (e.g., spacing::medium -> theme-defined value).
      *
      * ## Recommended Usage by Context
      *
@@ -413,7 +410,7 @@ namespace onyxui {
      * - **large**: Loose spacing (visual separation between sections)
      * - **xlarge**: Very loose (major section boundaries, top-level layout)
      *
-     * @note The actual pixel/cell values are defined in each theme's YAML file
+     * @note The actual logical unit values are defined in each theme's YAML file
      *
      * @see theme::spacing_values For theme-side resolution
      * @see vbox, hbox, grid For container constructors accepting spacing
@@ -571,8 +568,8 @@ namespace onyxui {
         /**
          * @brief Set min and max size with auto-correction
          *
-         * @param min The minimum size (pixels)
-         * @param max The maximum size (pixels)
+         * @param min The minimum size (logical units)
+         * @param max The maximum size (logical units)
          *
          * @details
          * Sets both min_size and max_size atomically. If min > max, the values
@@ -727,7 +724,7 @@ namespace onyxui {
      * - **linear_layout**: Sequential arrangement (row/column)
      * - **grid_layout**: Tabular arrangement with rows and columns
      * - **anchor_layout**: Position at predefined anchor points
-     * - **absolute_layout**: Explicit pixel positioning
+     * - **absolute_layout**: Explicit coordinate positioning
      * - **stack_layout**: Overlapping children (z-ordered)
      * - **wrap_layout**: Flow layout with automatic wrapping
      *
@@ -832,8 +829,8 @@ namespace onyxui {
              * every frame if nothing has changed.
              *
              * @param parent The parent element whose children to measure
-             * @param available_width Maximum width available (pixels)
-             * @param available_height Maximum height available (pixels)
+             * @param available_width Maximum width available (logical units)
+             * @param available_height Maximum height available (logical units)
              * @return The total size needed to accommodate all children
              *
              * @exception Any exception thrown by child->measure()

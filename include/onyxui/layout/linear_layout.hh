@@ -15,7 +15,7 @@
  * - Per-child alignment in cross axis
  * - Multiple size policies: fixed, content, expand, weighted, percentage, fill_parent
  * - Min/max constraint enforcement
- * - Remainder pixel distribution for integer division
+ * - Remainder distribution for integer division
  * - Visibility-aware layout (hidden children don't occupy space)
  * - Overflow-safe dimension calculations
  *
@@ -289,7 +289,7 @@ namespace onyxui {
              * - Weighted children sharing space proportionally
              * - Fill_parent children taking full height
              * - Horizontal alignment within content width
-             * - Remainder pixel distribution to first expand children
+             * - Remainder distribution to first expand children
              */
             void arrange_vertical(elt_t* parent,
                                   const logical_rect& content_area);
@@ -307,7 +307,7 @@ namespace onyxui {
              * - Weighted children sharing space proportionally
              * - Fill_parent children taking full width
              * - Vertical alignment within content height
-             * - Remainder pixel distribution to first expand children
+             * - Remainder distribution to first expand children
              */
             void arrange_horizontal(elt_t* parent,
                                     const logical_rect& content_area);

@@ -245,8 +245,8 @@ namespace onyxui {
         /**
          * @brief Draw shadow for popup elements (menus, dialogs, tooltips)
          * @param widget_bounds Bounds of widget casting shadow
-         * @param offset_x Horizontal shadow offset (cells/pixels to the right)
-         * @param offset_y Vertical shadow offset (cells/pixels down)
+         * @param offset_x Horizontal shadow offset (logical units to the right)
+         * @param offset_y Vertical shadow offset (logical units down)
          *
          * @details
          * Creates classic DOS-style drop shadow effect by darkening background

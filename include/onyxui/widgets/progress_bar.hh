@@ -233,11 +233,8 @@ public:
      *
      * @details
      * Sets the preferred bar width (length for horizontal bar, width for vertical
-     * bar) based on the number of units. This is a backend-agnostic way to size
-     * progress bars that works correctly across different backends:
-     *
-     * - **TUI backend (conio)**: 1 unit = 1 character cell
-     * - **GUI backend (SDL2)**: 1 unit = 1 pixel
+     * bar) in logical units. This is a backend-agnostic way to size progress bars
+     * that works correctly across different backends.
      *
      * The widget will use this as a preferred size hint during layout, but may
      * be stretched or shrunk based on parent layout constraints.
@@ -247,9 +244,7 @@ public:
      * - **Vertical progress bar**: Sets preferred height
      *
      * @note The cross-dimension (height for horizontal, width for vertical) is
-     *       typically 1 unit for simple bars.
-     * @note For TUI backends, this currently maps 1:1 to character cells.
-     * @note For future GUI backends, this represents pixel width/height.
+     *       typically 1 logical unit for simple bars.
      *
      * @example
      * @code

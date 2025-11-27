@@ -140,7 +140,7 @@ namespace onyxui {
     private:
         /**
          * @brief Resolve semantic spacing to backend-specific integer via theme
-         * @return Resolved spacing value (pixels or character cells)
+         * @return Resolved spacing value in logical units
          */
         [[nodiscard]] int resolve_spacing() const {
             // Get current theme from ui_services

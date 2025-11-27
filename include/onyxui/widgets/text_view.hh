@@ -213,10 +213,7 @@ namespace onyxui {
          * @param lines Number of text lines to display (minimum 1)
          *
          * @details
-         * Sets a semantic size constraint where height = lines × line_height.
-         * For TUI: 1 line = 1 character cell height.
-         * For GUI: 1 line = font line height (theme-defined).
-         *
+         * Sets a semantic size constraint where height = lines in logical units.
          * This is a convenience method that makes text_view sizing more intuitive
          * and backend-agnostic.
          *
@@ -240,10 +237,7 @@ namespace onyxui {
          * @param chars Number of characters to display horizontally (minimum 1)
          *
          * @details
-         * Sets a semantic size constraint where width = chars × char_width.
-         * For TUI: 1 char = 1 character cell width.
-         * For GUI: 1 char = average char width (theme-defined).
-         *
+         * Sets a semantic size constraint where width = chars in logical units.
          * This is a convenience method that makes text_view sizing more intuitive
          * and backend-agnostic.
          *

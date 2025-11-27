@@ -277,18 +277,14 @@ namespace onyxui {
          *
          * @details
          * Sets the preferred width constraint based on the number of characters
-         * that should be visible at once. This is a backend-agnostic way to size
-         * line_edit widgets that works correctly across different backends:
-         *
-         * - **TUI backend (conio)**: 1 char = 1 character cell
-         * - **GUI backend (SDL2)**: 1 char = average character width in current font
+         * that should be visible at once, measured in logical units. This is a
+         * backend-agnostic way to size line_edit widgets that works correctly
+         * across different backends.
          *
          * The widget will use this as a preferred size hint during layout, but may
          * be stretched or shrunk based on parent layout constraints.
          *
-         * @note The actual pixel/cell width depends on the backend's font metrics.
-         * @note For TUI backends, this currently maps 1:1 to character cells.
-         * @note For future GUI backends, this could use font metrics for accurate sizing.
+         * @note The actual physical width depends on the backend's font metrics.
          *
          * @example
          * @code

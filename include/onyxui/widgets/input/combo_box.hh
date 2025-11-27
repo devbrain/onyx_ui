@@ -408,7 +408,7 @@ private:
 
     /**
      * @brief Calculate popup height based on number of items
-     * @return Preferred popup height in pixels
+     * @return Preferred popup height in logical units
      */
     [[nodiscard]] int calculate_popup_height() const {
         if (!m_model) {

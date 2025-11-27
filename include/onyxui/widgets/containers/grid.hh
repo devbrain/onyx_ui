@@ -235,7 +235,7 @@ namespace onyxui {
     private:
         /**
          * @brief Resolve column spacing to backend-specific value
-         * @return Column spacing in backend units (pixels for GUI, characters for TUI)
+         * @return Column spacing in logical units
          */
         [[nodiscard]] int resolve_column_spacing() const {
             auto* themes = ui_services<Backend>::themes();
@@ -251,7 +251,7 @@ namespace onyxui {
 
         /**
          * @brief Resolve row spacing to backend-specific value
-         * @return Row spacing in backend units (pixels for GUI, characters for TUI)
+         * @return Row spacing in logical units
          */
         [[nodiscard]] int resolve_row_spacing() const {
             auto* themes = ui_services<Backend>::themes();

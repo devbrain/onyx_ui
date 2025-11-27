@@ -259,11 +259,8 @@ public:
      *
      * @details
      * Sets the preferred track length (width for horizontal slider, height for
-     * vertical slider) based on the number of units. This is a backend-agnostic
-     * way to size sliders that works correctly across different backends:
-     *
-     * - **TUI backend (conio)**: 1 unit = 1 character cell
-     * - **GUI backend (SDL2)**: 1 unit = 1 pixel
+     * vertical slider) in logical units. This is a backend-agnostic way to size
+     * sliders that works correctly across different backends.
      *
      * The widget will use this as a preferred size hint during layout, but may
      * be stretched or shrunk based on parent layout constraints.
@@ -274,8 +271,6 @@ public:
      *
      * @note The cross-dimension (height for horizontal, width for vertical) is
      *       determined automatically based on tick marks and thumb size.
-     * @note For TUI backends, this currently maps 1:1 to character cells.
-     * @note For future GUI backends, this represents pixel width/height.
      *
      * @example
      * @code

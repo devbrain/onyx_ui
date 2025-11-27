@@ -433,7 +433,7 @@ namespace onyxui {
 
         /**
          * @brief Get the tab bar height based on theme
-         * @return Tab bar height in rows/pixels
+         * @return Tab bar height in logical units
          */
         [[nodiscard]] int get_tab_bar_height() const {
             // Tab bar is 1 row for text + vertical padding

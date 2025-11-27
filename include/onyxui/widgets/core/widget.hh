@@ -690,7 +690,7 @@ namespace onyxui {
         /**
          * @brief Resolve spacing enum to backend-specific value
          * @param spacing_value Semantic spacing enum
-         * @return Spacing in backend units (pixels for GUI, characters for TUI)
+         * @return Spacing in logical units
          */
         [[nodiscard]] static int resolve_spacing(spacing spacing_value) {
             auto* themes = ui_services<Backend>::themes();

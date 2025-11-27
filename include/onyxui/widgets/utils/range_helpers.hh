@@ -10,13 +10,13 @@ namespace onyxui::range_helpers {
 
 /// Map position (in backend units) to value within range
 ///
-/// @param position Position along track (in backend units: chars for conio, pixels for SDL)
+/// @param position Position along track (in logical units)
 /// @param track_length Length of track (in backend units)
 /// @param min_value Minimum value in range
 /// @param max_value Maximum value in range
 /// @return Value corresponding to position (clamped to range)
 ///
-/// @note Backend units: characters for conio, pixels for SDL/GUI backends
+/// @note Logical units
 template<typename T = int>
 [[nodiscard]] inline T position_to_value(
     int position,
@@ -47,7 +47,7 @@ template<typename T = int>
 /// @param track_length Length of track (in backend units)
 /// @return Position along track (in backend units: 0 = start, track_length = end)
 ///
-/// @note Backend units: characters for conio, pixels for SDL/GUI backends
+/// @note Logical units
 template<typename T = int>
 [[nodiscard]] inline int value_to_position(
     T value,
@@ -98,7 +98,7 @@ template<typename T = int>
 /// @param track_length Track length (in backend units)
 /// @return Fill length (in backend units: 0 to track_length)
 ///
-/// @note Backend units: characters for conio, pixels for SDL/GUI backends
+/// @note Logical units
 template<typename T = int>
 [[nodiscard]] inline int calculate_fill_length(
     T value,
@@ -123,7 +123,7 @@ template<typename T = int>
 /// @param min_thumb_size Minimum thumb size (prevents thumb from becoming too small)
 /// @return Thumb size (in backend units, clamped to [min_thumb_size, track_length])
 ///
-/// @note Backend units: characters for conio, pixels for SDL/GUI backends
+/// @note Logical units
 [[nodiscard]] inline int calculate_proportional_thumb_size(
     int track_length,
     int content_size,
@@ -150,7 +150,7 @@ template<typename T = int>
 /// @param thumb_size Thumb size (in backend units)
 /// @return Thumb position (in backend units: 0 = start of track)
 ///
-/// @note Backend units: characters for conio, pixels for SDL/GUI backends
+/// @note Logical units
 [[nodiscard]] inline int calculate_proportional_thumb_position(
     int scroll_offset,
     int max_scroll,
