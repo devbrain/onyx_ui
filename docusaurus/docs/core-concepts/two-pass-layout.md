@@ -27,7 +27,10 @@ Here's how it works:
 
 ```cpp
 // During the measure pass, this is what's happening conceptually:
-size_type desired_size = parent_element->measure(available_width, available_height);
+logical_size desired_size = parent_element->measure(available_width, available_height);
+
+// Example with actual values:
+logical_size size = widget->measure(80_lu, 25_lu);
 ```
 
 The result of the measure pass is that every element in the tree has determined its ideal size, but no final positions have been assigned yet.
@@ -45,7 +48,10 @@ Here's how it works:
 
 ```cpp
 // During the arrange pass, this is what's happening conceptually:
-root_element->arrange({x, y, width, height});
+root_element->arrange(logical_rect{x, y, width, height});
+
+// Example with actual values:
+widget->arrange(logical_rect{10_lu, 5_lu, 80_lu, 25_lu});
 ```
 
 ## Smart Caching and Invalidation
