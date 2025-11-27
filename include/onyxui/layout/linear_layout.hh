@@ -251,15 +251,15 @@ namespace onyxui {
              *
              * @note Uses safe_math to prevent integer overflow in dimension calculations
              */
-            size_type measure_children(const elt_t* parent,
-                                   int available_width,
-                                   int available_height) const override;
+            logical_size measure_children(const elt_t* parent,
+                                   logical_unit available_width,
+                                   logical_unit available_height) const override;
 
             /**
              * @brief Arrange all children within the content area
              *
              * @param parent Parent element whose children to arrange
-             * @param content_area Rectangle defining the area for arrangement
+             * @param content_area Rectangle defining the area for arrangement (logical units)
              *
              * @details
              * Override of layout_strategy::arrange_children. Delegates to
@@ -267,7 +267,7 @@ namespace onyxui {
              * Skips arrangement if no visible children exist.
              */
             void arrange_children(elt_t* parent,
-                                  const rect_type& content_area) override;
+                                  const logical_rect& content_area) override;
 
         private:
             // Immutable configuration
@@ -292,7 +292,7 @@ namespace onyxui {
              * - Remainder pixel distribution to first expand children
              */
             void arrange_vertical(elt_t* parent,
-                                  const rect_type& content_area);
+                                  const logical_rect& content_area);
 
             /**
              * @brief Arrange children in horizontal row
@@ -310,7 +310,7 @@ namespace onyxui {
              * - Remainder pixel distribution to first expand children
              */
             void arrange_horizontal(elt_t* parent,
-                                    const rect_type& content_area);
+                                    const logical_rect& content_area);
 
             /**
              * @brief Distribute space among weighted children with constraints
@@ -326,9 +326,9 @@ namespace onyxui {
              * @param is_vertical True for vertical distribution, false for horizontal
              * @return Vector of calculated sizes for each weighted child
              */
-            std::vector <int> distribute_weighted_space(
+            std::vector <logical_unit> distribute_weighted_space(
                 const std::vector <elt_t*>& weighted_children,
-                int available_space,
+                logical_unit available_space,
                 bool is_vertical) const;
     };
 
@@ -336,13 +336,11 @@ namespace onyxui {
     // Implementation
     // ==========================================================================================
     template<UIBackend Backend>
-    typename Backend::size_type linear_layout<Backend>::measure_children(const elt_t* parent, int available_width,
-                                                         int available_height) const {
+    logical_size linear_layout<Backend>::measure_children(const elt_t* parent, logical_unit available_width,
+                                                         logical_unit available_height) const {
         const auto& children = this->get_children(parent);
         if (children.empty()) {
-            size_type result = {};
-            size_utils::set_size(result, 0, 0);
-            return result;
+            return logical_size{logical_unit(0.0), logical_unit(0.0)};
         }
 
         // First, count visible children to calculate correct spacing
@@ -355,65 +353,53 @@ namespace onyxui {
 
         // If no visible children, return zero size
         if (visible_count == 0) {
-            size_type result = {};
-            size_utils::set_size(result, 0, 0);
-            return result;
+            return logical_size{logical_unit(0.0), logical_unit(0.0)};
         }
 
-        int total_width = 0;
-        int total_height = 0;
-        int total_spacing = 0;
+        logical_unit total_width = logical_unit(0.0);
+        logical_unit total_height = logical_unit(0.0);
+        logical_unit total_spacing = logical_unit(0.0);
         if (visible_count > 1) {
-            total_spacing = safe_math::multiply_clamped(m_spacing, visible_count - 1);
+            total_spacing = logical_unit(static_cast<double>(m_spacing * (visible_count - 1)));
         }
 
         if (m_layout_direction == direction::vertical) {
             // Vertical layout: stack children vertically
-            int child_num = 0;
             for (auto& child : children) {
                 if (!child->is_visible()) continue;
 
-                child_num++;
                 // Measure child with full width, remaining height
-                int const remaining_height = std::max(0, available_height - total_height);
+                logical_unit remaining_height = max(logical_unit(0.0), available_height - total_height);
 
-                size_type const child_size = child->measure(available_width, remaining_height);
+                logical_size const child_size = child->measure(available_width, remaining_height);
 
-                int const child_w = size_utils::get_width(child_size);
-                int const child_h = size_utils::get_height(child_size);
-
-                total_width = std::max(total_width, child_w);
-                safe_math::accumulate_safe(total_height, child_h);
+                total_width = max(total_width, child_size.width);
+                total_height = total_height + child_size.height;
             }
 
-            safe_math::accumulate_safe(total_height, total_spacing);
+            total_height = total_height + total_spacing;
         } else {
             // Horizontal layout: stack children horizontally
             for (auto& child : children) {
                 if (!child->is_visible()) continue;
 
                 // Measure child with remaining width, full height
-                int const remaining_width = std::max(0, available_width - total_width);
-                size_type const child_size = child->measure(remaining_width, available_height);
+                logical_unit remaining_width = max(logical_unit(0.0), available_width - total_width);
+                logical_size const child_size = child->measure(remaining_width, available_height);
 
-                int const child_w = size_utils::get_width(child_size);
-                int const child_h = size_utils::get_height(child_size);
-
-                safe_math::accumulate_safe(total_width, child_w);
-                total_height = std::max(total_height, child_h);
+                total_width = total_width + child_size.width;
+                total_height = max(total_height, child_size.height);
             }
 
-            safe_math::accumulate_safe(total_width, total_spacing);
+            total_width = total_width + total_spacing;
         }
 
-        size_type result = {};
-        size_utils::set_size(result, total_width, total_height);
-        return result;
+        return logical_size{total_width, total_height};
     }
 
     // ------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void linear_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
+    void linear_layout<Backend>::arrange_children(elt_t* parent, const logical_rect& content_area) {
         const auto& children = this->get_mutable_children(parent);
         if (children.empty()) return;
 
@@ -437,12 +423,12 @@ namespace onyxui {
 
     // ---------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void linear_layout<Backend>::arrange_vertical(elt_t* parent, const rect_type& content_area) {
+    void linear_layout<Backend>::arrange_vertical(elt_t* parent, const logical_rect& content_area) {
         const auto& children = this->get_mutable_children(parent);
-        const int content_h = rect_utils::get_height(content_area);
+        const logical_unit content_h = content_area.height;
 
         // Calculate total desired height and identify expanding/weighted children
-        int total_fixed_height = 0;
+        logical_unit total_fixed_height = logical_unit(0.0);
         int num_expanding = 0;
         int visible_count = 0;
         std::vector <elt_t*> weighted_children;
@@ -451,8 +437,8 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             visible_count++;
-            const size_type& measured = this->get_last_measured_size(child.get());
-            int const meas_h = size_utils::get_height(measured);
+            const logical_size& measured = this->get_last_measured_size(child.get());
+            logical_unit const meas_h = measured.height;
 
             if (child->h_constraint().policy == size_policy::expand) {
                 num_expanding++;
@@ -462,61 +448,63 @@ namespace onyxui {
                 // Don't add to total_fixed_height - weighted children use available space
             } else if (child->h_constraint().policy == size_policy::percentage) {
                 // Calculate percentage of parent height
-                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
-                int const clamped_h = child->h_constraint().clamp(percentage_h);
-                total_fixed_height += clamped_h;
+                logical_unit const percentage_h = logical_unit(content_h.value * static_cast<double>(child->h_constraint().percentage));
+                logical_unit const clamped_h = child->h_constraint().clamp(percentage_h);
+                total_fixed_height = total_fixed_height + clamped_h;
             } else {
                 // Only fixed-size children contribute to total_fixed_height
-                total_fixed_height += meas_h;
+                total_fixed_height = total_fixed_height + meas_h;
             }
         }
 
         // Calculate spacing
-        const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
-        int const available_height = content_h - total_fixed_height - total_spacing;
+        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(static_cast<double>(m_spacing * (visible_count - 1))) : logical_unit(0.0);
+        logical_unit const available_height = content_h - total_fixed_height - total_spacing;
 
         // Distribute space for expanding children
-        const int expand_height = (num_expanding > 0 && available_height > 0)
-                                ? available_height / num_expanding
-                                : 0;
+        // Use floor() to get integer-aligned base size, then distribute fractional remainder
+        const logical_unit expand_height_raw = (num_expanding > 0 && available_height > logical_unit(0.0))
+                                ? logical_unit(available_height.value / static_cast<double>(num_expanding))
+                                : logical_unit(0.0);
+        const logical_unit expand_height = expand_height_raw.floor();
 
         // Distribute space for weighted children with constraints
-        std::vector <int> weighted_sizes;
+        std::vector <logical_unit> weighted_sizes;
         if (!weighted_children.empty()) {
-            int weighted_available = available_height;
+            logical_unit weighted_available = available_height;
             if (num_expanding > 0) {
                 // Weighted children share space with expanding children
-                weighted_available = available_height - (expand_height * num_expanding);
+                weighted_available = available_height - logical_unit(expand_height.value * static_cast<double>(num_expanding));
             }
             weighted_sizes = distribute_weighted_space(weighted_children, weighted_available, true);
         }
 
-        // Handle remainder from integer division
-        const int expand_remainder = (num_expanding > 0 && available_height > 0)
-                                   ? available_height - (expand_height * num_expanding)
-                                   : 0;
+        // Handle remainder from integer division (after flooring)
+        const logical_unit expand_remainder = (num_expanding > 0 && available_height > logical_unit(0.0))
+                                   ? available_height - logical_unit(expand_height.value * static_cast<double>(num_expanding))
+                                   : logical_unit(0.0);
 
         // Position children (RELATIVE coordinates - 0,0 = top-left of content area)
-        int current_y = 0;  // Relative to content area, not absolute screen position
-        int const content_x = 0;  // Relative to content area
-        int const content_w = rect_utils::get_width(content_area);
+        logical_unit current_y = logical_unit(0.0);  // Relative to content area, not absolute screen position
+        logical_unit const content_x = logical_unit(0.0);  // Relative to content area
+        logical_unit const content_w = content_area.width;
         size_t weighted_index = 0;
         int expand_child_count = 0;
 
         for (const auto& child : children) {
             if (!child->is_visible()) continue;
 
-            const size_type& measured = this->get_last_measured_size(child.get());
-            int const meas_w = size_utils::get_width(measured);
-            int const meas_h = size_utils::get_height(measured);
+            const logical_size& measured = this->get_last_measured_size(child.get());
+            logical_unit const meas_w = measured.width;
+            logical_unit const meas_h = measured.height;
 
             // Determine child height
-            int child_height = meas_h;
+            logical_unit child_height = meas_h;
             if (child->h_constraint().policy == size_policy::expand) {
                 child_height = expand_height;
-                // Give remainder pixels to first children
-                if (expand_child_count < expand_remainder) {
-                    child_height++;
+                // Give remainder to first children
+                if (expand_child_count == 0) {
+                    child_height = child_height + expand_remainder;
                 }
                 expand_child_count++;
             } else if (child->h_constraint().policy == size_policy::weighted) {
@@ -527,12 +515,12 @@ namespace onyxui {
                 child_height = content_h;
             } else if (child->h_constraint().policy == size_policy::percentage) {
                 // Calculate percentage of parent height
-                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
+                logical_unit const percentage_h = logical_unit(content_h.value * static_cast<double>(child->h_constraint().percentage));
                 child_height = percentage_h;
             } else if (child->h_constraint().policy == size_policy::content) {
                 // CRITICAL FIX: Constrain content-policy children to available space
                 // Without this, they can overflow (e.g., 116px child in 6px container)
-                child_height = std::min(meas_h, content_h);
+                child_height = min(meas_h, content_h);
             }
 
             // Apply height constraints (already applied for weighted, but needed for others)
@@ -541,39 +529,37 @@ namespace onyxui {
             }
 
             // Determine child width based on horizontal alignment
-            int child_width = meas_w;
-            int child_x = content_x;
+            logical_unit child_width = meas_w;
+            logical_unit child_x = content_x;
 
             if (this->get_h_align(child.get()) == horizontal_alignment::stretch) {
                 child_width = content_w;
             } else {
-                child_width = std::min(meas_w, content_w);
+                child_width = min(meas_w, content_w);
 
                 if (this->get_h_align(child.get()) == horizontal_alignment::center) {
-                    child_x = content_x + (content_w - child_width) / 2;
+                    child_x = content_x + (content_w - child_width) / 2.0;
                 } else if (this->get_h_align(child.get()) == horizontal_alignment::right) {
                     child_x = content_x + content_w - child_width;
                 }
             }
 
             // Arrange child
-            rect_type child_bounds;
-            rect_utils::set_bounds(child_bounds, child_x, current_y,
-                                   child_width, child_height);
-            child->arrange(geometry::relative_rect<Backend>{child_bounds});
+            logical_rect child_bounds{child_x, current_y, child_width, child_height};
+            child->arrange(child_bounds);
 
-            current_y += child_height + m_spacing;
+            current_y = current_y + child_height + logical_unit(static_cast<double>(m_spacing));
         }
     }
 
     // ----------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void linear_layout<Backend>::arrange_horizontal(elt_t* parent, const rect_type& content_area) {
+    void linear_layout<Backend>::arrange_horizontal(elt_t* parent, const logical_rect& content_area) {
         const auto& children = this->get_mutable_children(parent);
-        const int content_w = rect_utils::get_width(content_area);
+        const logical_unit content_w = content_area.width;
 
         // Calculate total desired width and identify expanding/weighted children
-        int total_fixed_width = 0;
+        logical_unit total_fixed_width = logical_unit(0.0);
         int num_expanding = 0;
         int visible_count = 0;
         std::vector <elt_t*> weighted_children;
@@ -582,8 +568,8 @@ namespace onyxui {
             if (!child->is_visible()) continue;
 
             visible_count++;
-            const size_type& measured = this->get_last_measured_size(child.get());
-            int const meas_w = size_utils::get_width(measured);
+            const logical_size& measured = this->get_last_measured_size(child.get());
+            logical_unit const meas_w = measured.width;
 
             if (child->w_constraint().policy == size_policy::expand) {
                 num_expanding++;
@@ -593,61 +579,63 @@ namespace onyxui {
                 // Don't add to total_fixed_width - weighted children use available space
             } else if (child->w_constraint().policy == size_policy::percentage) {
                 // Calculate percentage of parent width
-                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
-                int const clamped_w = child->w_constraint().clamp(percentage_w);
-                total_fixed_width += clamped_w;
+                logical_unit const percentage_w = logical_unit(content_w.value * static_cast<double>(child->w_constraint().percentage));
+                logical_unit const clamped_w = child->w_constraint().clamp(percentage_w);
+                total_fixed_width = total_fixed_width + clamped_w;
             } else {
                 // Only fixed-size children contribute to total_fixed_width
-                total_fixed_width += meas_w;
+                total_fixed_width = total_fixed_width + meas_w;
             }
         }
 
         // Calculate spacing
-        const int total_spacing = (visible_count > 1) ? m_spacing * (visible_count - 1) : 0;
-        int const available_width = content_w - total_fixed_width - total_spacing;
+        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(static_cast<double>(m_spacing * (visible_count - 1))) : logical_unit(0.0);
+        logical_unit const available_width = content_w - total_fixed_width - total_spacing;
 
         // Distribute space for expanding children
-        const int expand_width = (num_expanding > 0 && available_width > 0)
-                               ? available_width / num_expanding
-                               : 0;
+        // Use floor() to get integer-aligned base size, then distribute fractional remainder
+        const logical_unit expand_width_raw = (num_expanding > 0 && available_width > logical_unit(0.0))
+                               ? logical_unit(available_width.value / static_cast<double>(num_expanding))
+                               : logical_unit(0.0);
+        const logical_unit expand_width = expand_width_raw.floor();
 
         // Distribute space for weighted children with constraints
-        std::vector <int> weighted_sizes;
+        std::vector <logical_unit> weighted_sizes;
         if (!weighted_children.empty()) {
-            int weighted_available = available_width;
+            logical_unit weighted_available = available_width;
             if (num_expanding > 0) {
                 // Weighted children share space with expanding children
-                weighted_available = available_width - (expand_width * num_expanding);
+                weighted_available = available_width - logical_unit(expand_width.value * static_cast<double>(num_expanding));
             }
             weighted_sizes = distribute_weighted_space(weighted_children, weighted_available, false);
         }
 
-        // Handle remainder from integer division
-        const int expand_remainder = (num_expanding > 0 && available_width > 0)
-                                   ? available_width - (expand_width * num_expanding)
-                                   : 0;
+        // Handle remainder from integer division (after flooring)
+        const logical_unit expand_remainder = (num_expanding > 0 && available_width > logical_unit(0.0))
+                                   ? available_width - logical_unit(expand_width.value * static_cast<double>(num_expanding))
+                                   : logical_unit(0.0);
 
         // Position children (RELATIVE coordinates - 0,0 = top-left of content area)
-        int current_x = 0;  // Relative to content area, not absolute screen position
-        int const content_y = 0;  // Relative to content area
-        int const content_h = rect_utils::get_height(content_area);
+        logical_unit current_x = logical_unit(0.0);  // Relative to content area, not absolute screen position
+        logical_unit const content_y = logical_unit(0.0);  // Relative to content area
+        logical_unit const content_h = content_area.height;
         size_t weighted_index = 0;
         int expand_child_count = 0;
 
         for (const auto& child : children) {
             if (!child->is_visible()) continue;
 
-            const size_type& measured = this->get_last_measured_size(child.get());
-            int const meas_w = size_utils::get_width(measured);
-            int const meas_h = size_utils::get_height(measured);
+            const logical_size& measured = this->get_last_measured_size(child.get());
+            logical_unit const meas_w = measured.width;
+            logical_unit const meas_h = measured.height;
 
             // Determine child width
-            int child_width = meas_w;
+            logical_unit child_width = meas_w;
             if (child->w_constraint().policy == size_policy::expand) {
                 child_width = expand_width;
-                // Give remainder pixels to first children
-                if (expand_child_count < expand_remainder) {
-                    child_width++;
+                // Give remainder to first child
+                if (expand_child_count == 0) {
+                    child_width = child_width + expand_remainder;
                 }
                 expand_child_count++;
             } else if (child->w_constraint().policy == size_policy::weighted) {
@@ -658,12 +646,12 @@ namespace onyxui {
                 child_width = content_w;
             } else if (child->w_constraint().policy == size_policy::percentage) {
                 // Calculate percentage of parent width
-                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
+                logical_unit const percentage_w = logical_unit(content_w.value * static_cast<double>(child->w_constraint().percentage));
                 child_width = percentage_w;
             } else if (child->w_constraint().policy == size_policy::content) {
                 // CRITICAL FIX: Constrain content-policy children to available space
                 // Without this, they can overflow the container
-                child_width = std::min(meas_w, content_w);
+                child_width = min(meas_w, content_w);
             }
 
             // Apply width constraints (already applied for weighted, but needed for others)
@@ -672,47 +660,45 @@ namespace onyxui {
             }
 
             // Determine child height based on vertical alignment
-            int child_height = meas_h;
-            int child_y = content_y;
+            logical_unit child_height = meas_h;
+            logical_unit child_y = content_y;
 
             if (this->get_v_align(child.get()) == vertical_alignment::stretch) {
                 child_height = content_h;
             } else {
-                child_height = std::min(meas_h, content_h);
+                child_height = min(meas_h, content_h);
 
                 if (this->get_v_align(child.get()) == vertical_alignment::center) {
-                    child_y = content_y + (content_h - child_height) / 2;
+                    child_y = content_y + (content_h - child_height) / 2.0;
                 } else if (this->get_v_align(child.get()) == vertical_alignment::bottom) {
                     child_y = content_y + content_h - child_height;
                 }
             }
 
             // Arrange child
-            rect_type child_bounds;
-            rect_utils::set_bounds(child_bounds, current_x, child_y,
-                                   child_width, child_height);
-            child->arrange(geometry::relative_rect<Backend>{child_bounds});
+            logical_rect child_bounds{current_x, child_y, child_width, child_height};
+            child->arrange(child_bounds);
 
-            current_x += child_width + m_spacing;
+            current_x = current_x + child_width + logical_unit(static_cast<double>(m_spacing));
         }
     }
 
     // ----------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    std::vector <int> linear_layout<Backend>::distribute_weighted_space(
+    std::vector <logical_unit> linear_layout<Backend>::distribute_weighted_space(
         const std::vector <elt_t*>& weighted_children,
-        int available_space,
+        logical_unit available_space,
         bool is_vertical) const {
-        if (weighted_children.empty() || available_space <= 0) {
-            return std::vector <int>(weighted_children.size(), 0);
+        if (weighted_children.empty() || available_space <= logical_unit(0.0)) {
+            return std::vector <logical_unit>(weighted_children.size(), logical_unit(0.0));
         }
 
         struct ChildInfo {
             elt_t* child;
             float weight;
-            int min_size;
-            int max_size;
-            int assigned_size;
+            logical_unit min_size;
+            logical_unit max_size;
+            logical_unit assigned_size;
             bool satisfied;
         };
 
@@ -730,7 +716,7 @@ namespace onyxui {
                 constraint.weight,
                 constraint.min_size,
                 constraint.max_size,
-                0,      // assigned_size
+                logical_unit(0.0),      // assigned_size
                 false   // satisfied
             };
 
@@ -739,10 +725,10 @@ namespace onyxui {
         }
 
         // Iterative distribution algorithm
-        int remaining_space = available_space;
+        logical_unit remaining_space = available_space;
         bool changed = true;
 
-        while (changed && remaining_space > 0) {
+        while (changed && remaining_space > logical_unit(0.0)) {
             changed = false;
 
             // Calculate active weight (only unsatisfied children)
@@ -762,20 +748,20 @@ namespace onyxui {
                 if (info.satisfied) continue;
 
                 // Calculate ideal size based on weight
-                int const ideal_size = static_cast <int>(
-                    static_cast<float>(remaining_space) * (info.weight / active_weight)
+                logical_unit const ideal_size = logical_unit(
+                    remaining_space.value * static_cast<double>(info.weight / active_weight)
                 );
 
                 // Apply constraints
-                int const constrained_size = std::max(info.min_size,
-                                                std::min(ideal_size, info.max_size));
+                logical_unit const constrained_size = max(info.min_size,
+                                                min(ideal_size, info.max_size));
 
                 // Check if child hit a constraint
                 if (constrained_size != ideal_size) {
                     // Child is satisfied (hit min or max)
                     info.assigned_size = constrained_size;
                     info.satisfied = true;
-                    remaining_space -= constrained_size;
+                    remaining_space = remaining_space - constrained_size;
                     changed = true;
                     break; // Restart distribution
                 }
@@ -785,8 +771,8 @@ namespace onyxui {
             if (!changed) {
                 for (auto& info : children_info) {
                     if (!info.satisfied) {
-                        info.assigned_size = static_cast <int>(
-                            static_cast<float>(remaining_space) * (info.weight / active_weight)
+                        info.assigned_size = logical_unit(
+                            remaining_space.value * static_cast<double>(info.weight / active_weight)
                         );
                         info.satisfied = true;
                     }
@@ -797,26 +783,26 @@ namespace onyxui {
 
         // Handle any remaining space due to rounding
         if (!children_info.empty()) {
-            int total_assigned = 0;
+            logical_unit total_assigned = logical_unit(0.0);
             for (const auto& info : children_info) {
-                total_assigned += info.assigned_size;
+                total_assigned = total_assigned + info.assigned_size;
             }
 
-            int remainder = available_space - total_assigned;
-            if (remainder > 0) {
+            logical_unit remainder = available_space - total_assigned;
+            if (remainder > logical_unit(0.0)) {
                 // Distribute remainder to children that haven't hit max
                 for (auto& info : children_info) {
-                    if (remainder > 0 && info.assigned_size < info.max_size) {
-                        int const extra = std::min(remainder, info.max_size - info.assigned_size);
-                        info.assigned_size += extra;
-                        remainder -= extra;
+                    if (remainder > logical_unit(0.0) && info.assigned_size < info.max_size) {
+                        logical_unit const extra = min(remainder, info.max_size - info.assigned_size);
+                        info.assigned_size = info.assigned_size + extra;
+                        remainder = remainder - extra;
                     }
                 }
             }
         }
 
         // Extract final sizes
-        std::vector <int> result;
+        std::vector <logical_unit> result;
         for (const auto& info : children_info) {
             result.push_back(info.assigned_size);
         }

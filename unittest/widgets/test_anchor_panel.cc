@@ -39,11 +39,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         CHECK(panel.children().size() == 2);
 
         // Should not crash
-        CHECK_NOTHROW((void)panel.measure(400, 400));
+        CHECK_NOTHROW((void)panel.measure(400_lu, 400_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 400_lu, 400_lu}));
     }
 
     SUBCASE("Anchor at corners") {
@@ -74,11 +72,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.set_anchor(br_ptr, anchor_point::bottom_right);
 
         CHECK(panel.children().size() == 4);
-        CHECK_NOTHROW((void)panel.measure(300, 300));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 300_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 300_lu, 300_lu}));
     }
 
     SUBCASE("Anchor at edges") {
@@ -109,7 +105,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.set_anchor(bc_ptr, anchor_point::bottom_center);
 
         CHECK(panel.children().size() == 4);
-        CHECK_NOTHROW((void)panel.measure(300, 300));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 300_lu));
     }
 
     SUBCASE("Center anchor") {
@@ -121,11 +117,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.add_child(std::move(centered));
         panel.set_anchor(centered_ptr, anchor_point::center);
 
-        CHECK_NOTHROW((void)panel.measure(400, 400));
+        CHECK_NOTHROW((void)panel.measure(400_lu, 400_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 400_lu, 400_lu}));
     }
 
     SUBCASE("Anchor with positive offsets") {
@@ -137,11 +131,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.add_child(std::move(btn));
         panel.set_anchor(btn_ptr, anchor_point::top_left, 10, 10);
 
-        CHECK_NOTHROW((void)panel.measure(300, 300));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 300_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 300_lu, 300_lu}));
     }
 
     SUBCASE("Anchor with negative offsets") {
@@ -153,11 +145,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.add_child(std::move(btn));
         panel.set_anchor(btn_ptr, anchor_point::bottom_right, -16, -16);
 
-        CHECK_NOTHROW((void)panel.measure(300, 300));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 300_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 300_lu, 300_lu}));
     }
 
     SUBCASE("Title bar layout") {
@@ -182,11 +172,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.set_anchor(close_ptr, anchor_point::center_right, -10, 0);
 
         CHECK(panel.children().size() == 3);
-        CHECK_NOTHROW((void)panel.measure(400, 50));
+        CHECK_NOTHROW((void)panel.measure(400_lu, 50_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 50);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 400_lu, 50_lu}));
     }
 
     SUBCASE("Game HUD layout") {
@@ -217,11 +205,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         hud.set_anchor(inventory_ptr, anchor_point::bottom_center, 0, -100);
 
         CHECK(hud.children().size() == 4);
-        CHECK_NOTHROW((void)hud.measure(800, 600));
+        CHECK_NOTHROW((void)hud.measure(800_lu, 600_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 800, 600);
-        CHECK_NOTHROW(hud.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(hud.arrange(logical_rect{0_lu, 0_lu, 800_lu, 600_lu}));
     }
 
     SUBCASE("Overlapping children") {
@@ -240,7 +226,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         overlay.set_anchor(dialog_ptr, anchor_point::center);
 
         CHECK(overlay.children().size() == 2);
-        CHECK_NOTHROW((void)overlay.measure(500, 500));
+        CHECK_NOTHROW((void)overlay.measure(500_lu, 500_lu));
     }
 
     // ===========================================================================
@@ -272,15 +258,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         panel.set_anchor(center_ptr, anchor_point::center);
 
         // Measure
-        auto size = panel.measure(80, 25);
-        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
-        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size_utils::get_height(size) > 0);
+        auto size = panel.measure(80_lu, 25_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 80, 25);
-        panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
+                panel.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Render
         auto canvas = render_to_canvas(panel, 80, 25);
@@ -322,11 +306,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AnchorPanel - Anchor
         anchor_panel<test_canvas_backend> panel2(std::move(panel1));
 
         // panel2's layout pointer should be valid, not dangling
-        CHECK_NOTHROW((void)panel2.measure(100, 100));
+        CHECK_NOTHROW((void)panel2.measure(100_lu, 100_lu));
 
         // Arranging should work without crashes
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 100, 100);
-        CHECK_NOTHROW(panel2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel2.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu}));
     }
 }

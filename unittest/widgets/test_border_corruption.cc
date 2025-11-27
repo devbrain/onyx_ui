@@ -92,14 +92,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // CRITICAL: Set the exact height constraint from demo.hh
         size_constraint height_constraint;
         height_constraint.policy = size_policy::content;
-        height_constraint.preferred_size = 8;
-        height_constraint.min_size = 5;
-        height_constraint.max_size = 8;
+        height_constraint.preferred_size = logical_unit(static_cast<double>(8));
+        height_constraint.min_size = logical_unit(static_cast<double>(5));
+        height_constraint.max_size = logical_unit(static_cast<double>(8));
         text_view_widget->set_height_constraint(height_constraint);
 
         // Measure and arrange
-        [[maybe_unused]] auto measured_size = text_view_widget->measure(200, 50);
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 10}});  // Constrained to 10 rows
+        [[maybe_unused]] auto measured_size = text_view_widget->measure(200_lu, 50_lu);
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 200_lu, 10_lu});  // Constrained to 10 rows
 
         // Render to canvas
         auto canvas = render_to_canvas(*text_view_widget, 200, 10);
@@ -199,7 +199,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // Create root panel with exact same layout as demo.hh
         panel<test_canvas_backend> root;
         root.set_vbox_layout(spacing::none);  // Vertical layout with no spacing
-        root.set_padding(thickness::all(0));  // No internal padding
+        root.set_padding(logical_thickness(0_lu));  // No internal padding
 
         // Build UI structure EXACTLY as in demo.hh (lines 98-231)
 
@@ -215,7 +215,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // Demo panel with border
         auto* demo_panel = add_panel(root);
         demo_panel->set_has_border(true);
-        demo_panel->set_padding(thickness::all(1));
+        demo_panel->set_padding(logical_thickness(1_lu));
         demo_panel->set_vbox_layout(spacing::tiny);
 
         add_label(*demo_panel, "Panel with Border");
@@ -288,9 +288,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // EXACT constraints from demo.hh (lines 216-221)
         size_constraint height_constraint;
         height_constraint.policy = size_policy::content;
-        height_constraint.preferred_size = 8;  // Preferred height of 8 lines
-        height_constraint.min_size = 5;        // Minimum 5 lines
-        height_constraint.max_size = 8;        // Maximum 8 lines
+        height_constraint.preferred_size = logical_unit(static_cast<double>(8));  // Preferred height of 8 lines
+        height_constraint.min_size = logical_unit(static_cast<double>(5));        // Minimum 5 lines
+        height_constraint.max_size = logical_unit(static_cast<double>(8));        // Maximum 8 lines
         text_view_widget->set_height_constraint(height_constraint);
 
         root.add_child(std::move(text_view_widget));
@@ -303,8 +303,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - Borde
         // Measure and arrange with sufficient space for all content
         // Need much more height than original 32 to accommodate all widgets without compression
         // Complex layout with multiple buttons, labels, panel, and text_view requires ~80 lines
-        [[maybe_unused]] auto root_size = root.measure(240, 80);
-        root.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 240, 80}});
+        [[maybe_unused]] auto root_size = root.measure(240_lu, 80_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 240_lu, 80_lu});
 
         // Render to canvas with sufficient height
         auto canvas = render_to_canvas(root, 240, 80);

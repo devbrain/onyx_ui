@@ -282,8 +282,14 @@ namespace onyxui {
                 rect_type new_bounds;
                 rect_utils::set_bounds(new_bounds, 0, 0, new_width, new_height);
 
-                [[maybe_unused]] auto measured_size = m_root->measure(new_width, new_height);
-                m_root->arrange(geometry::relative_rect<Backend>{new_bounds});
+                [[maybe_unused]] auto measured_size = m_root->measure(
+                    logical_unit(static_cast<double>(new_width)),
+                    logical_unit(static_cast<double>(new_height)));
+                m_root->arrange(logical_rect{
+                    logical_unit(0.0),
+                    logical_unit(0.0),
+                    logical_unit(static_cast<double>(new_width)),
+                    logical_unit(static_cast<double>(new_height))});
 
                 return true;  // Resize handled
             }
@@ -564,9 +570,14 @@ namespace onyxui {
             }
 
             // Two-pass layout for root widget
-            [[maybe_unused]] auto measured_size = m_root->measure(rect_utils::get_width(bounds),
-                          rect_utils::get_height(bounds));
-            m_root->arrange(geometry::relative_rect<Backend>{bounds});
+            [[maybe_unused]] auto measured_size = m_root->measure(
+                logical_unit(static_cast<double>(rect_utils::get_width(bounds))),
+                logical_unit(static_cast<double>(rect_utils::get_height(bounds))));
+            m_root->arrange(logical_rect{
+                logical_unit(0.0),
+                logical_unit(0.0),
+                logical_unit(static_cast<double>(rect_utils::get_width(bounds))),
+                logical_unit(static_cast<double>(rect_utils::get_height(bounds)))});
 
             // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
             auto* themes = ui_services<Backend>::themes();

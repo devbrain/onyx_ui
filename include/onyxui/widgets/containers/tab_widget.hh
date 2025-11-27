@@ -487,8 +487,8 @@ namespace onyxui {
 
             // Calculate available width for tabs
             auto content_bounds = this->bounds();
-            int total_width = rect_utils::get_width(content_bounds);
-            int content_height = rect_utils::get_height(content_bounds);
+            int total_width = content_bounds.width.to_int();
+            int content_height = content_bounds.height.to_int();
 
             // Calculate total width needed for all tabs
             int total_tabs_width = 0;

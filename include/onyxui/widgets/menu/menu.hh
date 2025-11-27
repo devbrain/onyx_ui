@@ -436,9 +436,12 @@ namespace onyxui {
             if (auto* theme = ctx.theme()) {
                 if (theme->menu.shadow.enabled) {
                     // RELATIVE COORDINATES: Reconstruct absolute bounds from context position
-                    // bounds() returns RELATIVE coordinates after coordinate system refactoring
+                    // bounds() returns logical_rect, need to convert to physical for rendering
                     typename Backend::rect_type absolute_bounds;
-                    rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
+                    auto logical_bounds = this->bounds();
+                    rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(),
+                        typename Backend::rect_type{logical_bounds.x.to_int(), logical_bounds.y.to_int(),
+                                                    logical_bounds.width.to_int(), logical_bounds.height.to_int()});
 
                     ctx.draw_shadow(
                         absolute_bounds,

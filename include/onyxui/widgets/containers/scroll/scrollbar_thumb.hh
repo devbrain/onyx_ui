@@ -107,8 +107,8 @@ namespace onyxui {
             // Simple solid fill - no border for 1-char thumb in text UI
             // ctx.style() contains our resolved foreground/background colors
             auto const bounds = this->bounds();
-            int const width = rect_utils::get_width(bounds);
-            int const height = rect_utils::get_height(bounds);
+            int const width = bounds.width.to_int();
+            int const height = bounds.height.to_int();
 
             // Don't render if thumb has no size
             if (width <= 0 || height <= 0) {

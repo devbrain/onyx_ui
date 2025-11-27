@@ -78,9 +78,15 @@ namespace onyxui::testing {
             scoped_ui_context<Backend> ctx;
 
             // Measure and arrange widget to fill canvas
-            [[maybe_unused]] auto size = widget->measure(m_width, m_height);
-            rect_type bounds{0, 0, m_width, m_height};
-            widget->arrange(geometry::relative_rect<Backend>{bounds});
+            [[maybe_unused]] auto size = widget->measure(
+                logical_unit(static_cast<double>(m_width)),
+                logical_unit(static_cast<double>(m_height)));
+            logical_rect bounds{
+                logical_unit(0.0),
+                logical_unit(0.0),
+                logical_unit(static_cast<double>(m_width)),
+                logical_unit(static_cast<double>(m_height))};
+            widget->arrange(bounds);
 
             // Render widget to canvas with theme
             typename Backend::renderer_type renderer(m_canvas);

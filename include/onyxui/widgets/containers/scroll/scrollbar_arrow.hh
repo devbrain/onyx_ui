@@ -138,8 +138,8 @@ namespace onyxui {
             auto const bounds = this->bounds();
             auto const* theme = ctx.theme();
 
-            int const width = rect_utils::get_width(bounds);
-            int const height = rect_utils::get_height(bounds);
+            int const width = bounds.width.to_int();
+            int const height = bounds.height.to_int();
 
             // Don't render if arrow has no size
             if (width <= 0 || height <= 0 || !theme) {

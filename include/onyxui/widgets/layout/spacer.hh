@@ -170,18 +170,18 @@ namespace onyxui {
                 if (width > 0) {
                     size_constraint width_constraint;
                     width_constraint.policy = size_policy::fixed;
-                    width_constraint.preferred_size = width;
-                    width_constraint.min_size = width;
-                    width_constraint.max_size = width;
+                    width_constraint.preferred_size = logical_unit(static_cast<double>(width));
+                    width_constraint.min_size = logical_unit(static_cast<double>(width));
+                    width_constraint.max_size = logical_unit(static_cast<double>(width));
                     this->set_width_constraint(width_constraint);
                 }
 
                 if (height > 0) {
                     size_constraint height_constraint;
                     height_constraint.policy = size_policy::fixed;
-                    height_constraint.preferred_size = height;
-                    height_constraint.min_size = height;
-                    height_constraint.max_size = height;
+                    height_constraint.preferred_size = logical_unit(static_cast<double>(height));
+                    height_constraint.min_size = logical_unit(static_cast<double>(height));
+                    height_constraint.max_size = logical_unit(static_cast<double>(height));
                     this->set_height_constraint(height_constraint);
                 }
             }
@@ -210,9 +210,9 @@ namespace onyxui {
                     size_constraint width_constraint;
                     if (width > 0) {
                         width_constraint.policy = size_policy::fixed;
-                        width_constraint.preferred_size = width;
-                        width_constraint.min_size = width;
-                        width_constraint.max_size = width;
+                        width_constraint.preferred_size = logical_unit(static_cast<double>(width));
+                        width_constraint.min_size = logical_unit(static_cast<double>(width));
+                        width_constraint.max_size = logical_unit(static_cast<double>(width));
                     } else {
                         width_constraint.policy = size_policy::content;
                     }
@@ -244,9 +244,9 @@ namespace onyxui {
                     size_constraint height_constraint;
                     if (height > 0) {
                         height_constraint.policy = size_policy::fixed;
-                        height_constraint.preferred_size = height;
-                        height_constraint.min_size = height;
-                        height_constraint.max_size = height;
+                        height_constraint.preferred_size = logical_unit(static_cast<double>(height));
+                        height_constraint.min_size = logical_unit(static_cast<double>(height));
+                        height_constraint.max_size = logical_unit(static_cast<double>(height));
                     } else {
                         height_constraint.policy = size_policy::content;
                     }
@@ -288,10 +288,8 @@ namespace onyxui {
              *
              * @note Override of widget::get_content_size()
              */
-            typename Backend::size_type get_content_size() const override {
-                typename Backend::size_type size;
-                size_utils::set_size(size, m_width, m_height);
-                return size;
+            [[nodiscard]] logical_size get_content_size() const override {
+                return logical_size{logical_unit(static_cast<double>(m_width)), logical_unit(static_cast<double>(m_height))};
             }
 
             /**

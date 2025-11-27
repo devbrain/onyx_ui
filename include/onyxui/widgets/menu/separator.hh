@@ -86,9 +86,9 @@ namespace onyxui {
             if (m_orientation == orientation::horizontal) {
                 size_constraint height_constraint;
                 height_constraint.policy = size_policy::fixed;
-                height_constraint.preferred_size = 1;
-                height_constraint.min_size = 1;
-                height_constraint.max_size = 1;
+                height_constraint.preferred_size = 1_lu;
+                height_constraint.min_size = 1_lu;
+                height_constraint.max_size = 1_lu;
                 this->set_height_constraint(height_constraint);
 
                 size_constraint width_constraint;
@@ -97,9 +97,9 @@ namespace onyxui {
             } else {
                 size_constraint width_constraint;
                 width_constraint.policy = size_policy::fixed;
-                width_constraint.preferred_size = 1;
-                width_constraint.min_size = 1;
-                width_constraint.max_size = 1;
+                width_constraint.preferred_size = 1_lu;
+                width_constraint.min_size = 1_lu;
+                width_constraint.max_size = 1_lu;
                 this->set_width_constraint(width_constraint);
 
                 size_constraint height_constraint;
@@ -130,9 +130,9 @@ namespace onyxui {
                 if (m_orientation == orientation::horizontal) {
                     size_constraint height_constraint;
                     height_constraint.policy = size_policy::fixed;
-                    height_constraint.preferred_size = 1;
-                    height_constraint.min_size = 1;
-                    height_constraint.max_size = 1;
+                    height_constraint.preferred_size = logical_unit(1.0);
+                    height_constraint.min_size = logical_unit(1.0);
+                    height_constraint.max_size = logical_unit(1.0);
                     this->set_height_constraint(height_constraint);
 
                     size_constraint width_constraint;
@@ -141,9 +141,9 @@ namespace onyxui {
                 } else {
                     size_constraint width_constraint;
                     width_constraint.policy = size_policy::fixed;
-                    width_constraint.preferred_size = 1;
-                    width_constraint.min_size = 1;
-                    width_constraint.max_size = 1;
+                    width_constraint.preferred_size = logical_unit(1.0);
+                    width_constraint.min_size = logical_unit(1.0);
+                    width_constraint.max_size = logical_unit(1.0);
                     this->set_width_constraint(width_constraint);
 
                     size_constraint height_constraint;
@@ -202,8 +202,8 @@ namespace onyxui {
             int const y = point_utils::get_y(pos);
 
             auto bounds = this->bounds();
-            int const width = rect_utils::get_width(bounds);
-            int const height = rect_utils::get_height(bounds);
+            int const width = bounds.width.to_int();
+            int const height = bounds.height.to_int();
 
             typename Backend::rect_type line_rect;
             rect_utils::set_bounds(line_rect, x, y, width, height);

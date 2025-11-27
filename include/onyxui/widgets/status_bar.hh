@@ -165,11 +165,9 @@ namespace onyxui {
          * - Width: Fill available width (expands)
          * - Height: 1 (single line)
          */
-        size_type get_content_size() const override {
-            size_type size{};
+        [[nodiscard]] logical_size get_content_size() const override {
             // Status bar fills width, single line height
-            size_utils::set_size(size, 0, 1);  // 0 width = expand to fill
-            return size;
+            return logical_size{0_lu, 1_lu};  // 0 width = expand to fill
         }
 
         /**
@@ -185,7 +183,7 @@ namespace onyxui {
 
             int x = point_utils::get_x(pos);
             int y = point_utils::get_y(pos);
-            int width = rect_utils::get_width(bounds);
+            int width = bounds.width.to_int();
 
             // Fill background with status bar color
             typename Backend::rect_type abs_bounds;

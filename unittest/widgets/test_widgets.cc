@@ -57,8 +57,7 @@ TEST_CASE("Widget - Base widget functionality") {
     SUBCASE("Mouse enter/exit signals") {
         test_widget<test_backend> w;
         // Set bounds for hit testing
-        typename test_backend::rect r{0, 0, 100, 50};
-        w.arrange(geometry::relative_rect<test_backend>{r});
+        w.arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
 
         int enter_count = 0;
         int exit_count = 0;

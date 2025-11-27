@@ -41,13 +41,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu renders with bo
     test_menu->add_item(std::move(item3));
 
     // Measure (render_to_canvas will arrange at 0,0)
-    auto measured_size = test_menu->measure(100, 100);
+    auto measured_size = test_menu->measure(100_lu, 100_lu);
 
     // Render to canvas (arranges at 0,0 internally)
     auto canvas = render_to_canvas(*test_menu, 40, 20);
 
     INFO("Menu rendered at (0, 0) with size ",
-         size_utils::get_width(measured_size), "x", size_utils::get_height(measured_size));
+         measured_size.width.to_int(), "x", measured_size.height.to_int());
 
     SUBCASE("First item renders at expected position") {
         // NOTE: test_canvas doesn't render visible borders, only tracks bounds

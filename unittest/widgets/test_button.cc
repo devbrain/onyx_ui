@@ -151,9 +151,8 @@ TEST_CASE("Button - Keyboard activation") {
         btn2->clicked.connect([&]() { btn2_clicks++; });
 
         // Layout the UI
-        [[maybe_unused]] auto measured_size = root->measure(80, 25);
-        typename test_backend::rect r{0, 0, 80, 25};
-        root->arrange(geometry::relative_rect<test_backend>{r});
+        [[maybe_unused]] auto measured_size = root->measure(80_lu, 25_lu);
+        root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Get input manager
         auto* input = ui_services<test_backend>::input();

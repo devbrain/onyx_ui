@@ -325,21 +325,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Mnemonic can be 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Measure returns correct size for empty text") {
     test_checkbox<Backend> cb;
 
-    const auto size = cb.measure(100, 100);
+    const auto size = cb.measure(100_lu, 100_lu);
 
     // Minimum size: icon (3 chars), no spacing when no text
-    REQUIRE(size_utils::get_width(size) == 3);
-    REQUIRE(size_utils::get_height(size) == 1);
+    REQUIRE(size.width.to_int() == 3);
+    REQUIRE(size.height.to_int() == 1);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Measure returns correct size with text") {
     test_checkbox<Backend> cb("Enable notifications");
 
-    const auto size = cb.measure(100, 100);
+    const auto size = cb.measure(100_lu, 100_lu);
 
     // Size: icon (3) + spacing (1) + text width
-    REQUIRE(size_utils::get_width(size) > 4);  // More than just the icon
-    REQUIRE(size_utils::get_height(size) == 1);
+    REQUIRE(size.width.to_int() > 4);  // More than just the icon
+    REQUIRE(size.height.to_int() == 1);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Height is always 1 line") {
@@ -347,13 +347,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Height is always
     test_checkbox<Backend> cb2("Short");
     test_checkbox<Backend> cb3("Very long label text that spans many characters");
 
-    const auto size1 = cb1.measure(100, 100);
-    const auto size2 = cb2.measure(100, 100);
-    const auto size3 = cb3.measure(100, 100);
+    const auto size1 = cb1.measure(100_lu, 100_lu);
+    const auto size2 = cb2.measure(100_lu, 100_lu);
+    const auto size3 = cb3.measure(100_lu, 100_lu);
 
-    REQUIRE(size_utils::get_height(size1) == 1);
-    REQUIRE(size_utils::get_height(size2) == 1);
-    REQUIRE(size_utils::get_height(size3) == 1);
+    REQUIRE(size1.height.to_int() == 1);
+    REQUIRE(size2.height.to_int() == 1);
+    REQUIRE(size3.height.to_int() == 1);
 }
 
 // ===== Integration Tests =====

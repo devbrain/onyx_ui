@@ -294,9 +294,9 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            auto bounds = this->bounds().get();
-            int x = rect_utils::get_x(bounds);
-            int y = rect_utils::get_y(bounds) + rect_utils::get_height(bounds);
+            auto const logical = this->bounds();
+            int x = logical.x.to_int();
+            int y = logical.y.to_int() + logical.height.to_int();
 
             return layers->show_tooltip(content, x, y);
         }
@@ -320,7 +320,10 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            return layers->show_popup(content, this->bounds().get(), placement, std::move(outside_click_callback));
+            auto const logical = this->bounds();
+            typename Backend::rect_type physical;
+            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
+            return layers->show_popup(content, physical, placement, std::move(outside_click_callback));
         }
 
         /**
@@ -341,8 +344,11 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
+            auto const logical = this->bounds();
+            typename Backend::rect_type physical;
+            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
             // Phase 1.3: Pass callback to emit menu's closing signal on outside click
-            return layers->show_popup(menu_content, this->bounds().get(), popup_placement::auto_best,
+            return layers->show_popup(menu_content, physical, popup_placement::auto_best,
                 [menu_content]() {
                     if (menu_content) {
                         menu_content->closing.emit();
@@ -516,7 +522,7 @@ namespace onyxui {
          *
          * @throws std::runtime_error if theme is not initialized or no theme is set
          */
-        [[nodiscard]] typename base::size_type get_content_size() const override {
+        [[nodiscard]] logical_size get_content_size() const override {
             // Get current theme from ui_services (same as rendering does)
             auto* theme = ui_services<Backend>::themes()
                 ? ui_services<Backend>::themes()->get_current_theme()

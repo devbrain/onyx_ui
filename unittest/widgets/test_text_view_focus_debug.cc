@@ -38,8 +38,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "DEBUG - text_view fo
 
     // Add to root
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto size = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto size = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Hit test
     hit_test_path<test_canvas_backend> path;

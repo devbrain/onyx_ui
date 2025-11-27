@@ -362,11 +362,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "TabWidget - Multi-pa
     SUBCASE("Measure - Empty widget") {
         tab_widget<test_canvas_backend> tabs;
 
-        auto size = tabs.measure(800, 600);
+        auto size = tabs.measure(800_lu, 600_lu);
 
         // Empty widget should have minimal size
-        CHECK(size_utils::get_width(size) > 0);
-        CHECK(size_utils::get_height(size) > 0);
+        CHECK(size.width.to_int() > 0);
+        CHECK(size.height.to_int() > 0);
     }
 
     SUBCASE("Measure - With tabs") {
@@ -375,10 +375,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "TabWidget - Multi-pa
         tabs.add_tab(std::make_unique<label<test_canvas_backend>>("Page 1"), "Tab 1");
         tabs.add_tab(std::make_unique<label<test_canvas_backend>>("Page 2"), "Tab 2");
 
-        auto size = tabs.measure(800, 600);
+        auto size = tabs.measure(800_lu, 600_lu);
 
-        CHECK(size_utils::get_width(size) > 0);
-        CHECK(size_utils::get_height(size) > 0);
+        CHECK(size.width.to_int() > 0);
+        CHECK(size.height.to_int() > 0);
     }
 
     SUBCASE("Arrange - Positions tab bar and content area (top position)") {
@@ -387,12 +387,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "TabWidget - Multi-pa
         tabs.add_tab(std::make_unique<label<test_canvas_backend>>("Page 1"), "Tab 1");
         tabs.add_tab(std::make_unique<label<test_canvas_backend>>("Page 2"), "Tab 2");
 
-        (void)tabs.measure(800, 600);
+        (void)tabs.measure(800_lu, 600_lu);
 
         test_canvas_backend::rect_type bounds;
         rect_utils::set_bounds(bounds, 0, 0, 800, 600);
 
-        CHECK_NOTHROW(tabs.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(tabs.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu}));
     }
 
     SUBCASE("Arrange - Different tab positions") {
@@ -406,8 +406,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "TabWidget - Multi-pa
         // Test all four positions
         for (auto pos : {tab_position::top, tab_position::bottom, tab_position::left, tab_position::right}) {
             tabs.set_tab_position(pos);
-            (void)tabs.measure(800, 600);
-            CHECK_NOTHROW(tabs.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+            (void)tabs.measure(800_lu, 600_lu);
+            CHECK_NOTHROW(tabs.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu}));
         }
     }
 

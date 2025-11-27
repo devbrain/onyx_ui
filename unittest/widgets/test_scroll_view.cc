@@ -26,16 +26,16 @@ std::unique_ptr<panel<Backend>> make_fixed_panel(int w, int h) {
 
     size_constraint width_constraint;
     width_constraint.policy = size_policy::fixed;
-    width_constraint.preferred_size = w;
-    width_constraint.min_size = w;
-    width_constraint.max_size = w;
+    width_constraint.preferred_size = logical_unit(static_cast<double>(w));
+    width_constraint.min_size = logical_unit(static_cast<double>(w));
+    width_constraint.max_size = logical_unit(static_cast<double>(w));
     p->set_width_constraint(width_constraint);
 
     size_constraint height_constraint;
     height_constraint.policy = size_policy::fixed;
-    height_constraint.preferred_size = h;
-    height_constraint.min_size = h;
-    height_constraint.max_size = h;
+    height_constraint.preferred_size = logical_unit(static_cast<double>(h));
+    height_constraint.min_size = logical_unit(static_cast<double>(h));
+    height_constraint.max_size = logical_unit(static_cast<double>(h));
     p->set_height_constraint(height_constraint);
 
     return p;
@@ -82,8 +82,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Scroll
     // Add content and verify sync works
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     // Scroll via view
     view.scroll_to(0, 50);
@@ -155,8 +155,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
     scroll_view<test_canvas_backend> view;
 
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     view.scroll_to(0, 50);
 
@@ -168,8 +168,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
     scroll_view<test_canvas_backend> view;
 
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     view.scroll_by(0, 25);
     view.scroll_by(0, 25);
@@ -185,8 +185,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
     auto* child_ptr = child.get();
     view.add_child(std::move(child));
 
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     // Child fits, should remain at 0,0
     view.scroll_into_view(child_ptr);
@@ -266,8 +266,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Config
     view.set_scrollbar_policy(scrollbar_visibility::always);
     view.add_child(make_fixed_panel<test_canvas_backend>(50, 50));
 
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     // Policy should still be set
     auto policy = view.content()->get_scrollbar_visibility_policy();
@@ -342,8 +342,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Comple
     view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     // Measure and arrange
-    [[maybe_unused]] auto size = view.measure(100, 100);
-    view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 100, 100}});
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     // Scroll via view
     view.scroll_to(0, 50);
@@ -404,16 +404,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     content_vbox->template emplace_child<label>("Label after nested scroll");
 
     // Measure and arrange - this should not crash or hang
-    auto size = outer.measure(80, 25);
-    CHECK(size_utils::get_width(size) > 0);
-    CHECK(size_utils::get_height(size) > 0);
+    auto size = outer.measure(80_lu, 25_lu);
+    CHECK(size.width.to_int() > 0);
+    CHECK(size.height.to_int() > 0);
 
-    outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 25}});
+    outer.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Verify inner scroll_view has valid bounds
     auto inner_bounds = inner->bounds();
-    CHECK(rect_utils::get_width(inner_bounds) > 0);
-    CHECK(rect_utils::get_height(inner_bounds) > 0);
+    CHECK(inner_bounds.width.to_int() > 0);
+    CHECK(inner_bounds.height.to_int() > 0);
 
     // Render - this should not crash or produce empty output
     auto canvas = render_to_canvas(outer, 80, 25);
@@ -469,12 +469,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     content->template emplace_child<label>("Content after group_box");
 
     // Measure outer scroll_view (single measurement, no separate measurements that could affect state)
-    auto size = outer.measure(80, 25);
-    INFO("outer measured size: " << size_utils::get_width(size) << "x" << size_utils::get_height(size));
-    CHECK(size_utils::get_width(size) > 0);
-    CHECK(size_utils::get_height(size) > 0);
+    auto size = outer.measure(80_lu, 25_lu);
+    INFO("outer measured size: " << size.width.to_int() << "x" << size.height.to_int());
+    CHECK(size.width.to_int() > 0);
+    CHECK(size.height.to_int() > 0);
 
-    outer.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 25}});
+    outer.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Debug: Check all bounds
     auto outer_bounds = outer.bounds();
@@ -485,18 +485,18 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     auto inner_measured = inner->last_measured_size();
     auto group_measured = group->last_measured_size();
 
-    INFO("outer bounds: " << rect_utils::get_x(outer_bounds) << "," << rect_utils::get_y(outer_bounds)
-         << " " << rect_utils::get_width(outer_bounds) << "x" << rect_utils::get_height(outer_bounds));
-    INFO("group measured: " << size_utils::get_width(group_measured) << "x" << size_utils::get_height(group_measured));
-    INFO("group bounds: " << rect_utils::get_x(group_bounds) << "," << rect_utils::get_y(group_bounds)
-         << " " << rect_utils::get_width(group_bounds) << "x" << rect_utils::get_height(group_bounds));
-    INFO("inner measured: " << size_utils::get_width(inner_measured) << "x" << size_utils::get_height(inner_measured));
-    INFO("inner bounds: " << rect_utils::get_x(inner_bounds) << "," << rect_utils::get_y(inner_bounds)
-         << " " << rect_utils::get_width(inner_bounds) << "x" << rect_utils::get_height(inner_bounds));
+    INFO("outer bounds: " << outer_bounds.x.to_int() << "," << outer_bounds.y.to_int()
+         << " " << outer_bounds.width.to_int() << "x" << outer_bounds.height.to_int());
+    INFO("group measured: " << group_measured.width.to_int() << "x" << group_measured.height.to_int());
+    INFO("group bounds: " << group_bounds.x.to_int() << "," << group_bounds.y.to_int()
+         << " " << group_bounds.width.to_int() << "x" << group_bounds.height.to_int());
+    INFO("inner measured: " << inner_measured.width.to_int() << "x" << inner_measured.height.to_int());
+    INFO("inner bounds: " << inner_bounds.x.to_int() << "," << inner_bounds.y.to_int()
+         << " " << inner_bounds.width.to_int() << "x" << inner_bounds.height.to_int());
 
     // Verify inner scroll_view has valid bounds
-    CHECK(rect_utils::get_width(inner_bounds) > 0);
-    CHECK(rect_utils::get_height(inner_bounds) > 0);
+    CHECK(inner_bounds.width.to_int() > 0);
+    CHECK(inner_bounds.height.to_int() > 0);
 
     // Render
     auto canvas = render_to_canvas(outer, 80, 25);

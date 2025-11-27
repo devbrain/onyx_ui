@@ -21,16 +21,16 @@ static std::unique_ptr<panel<test_canvas_backend>> make_fixed_panel(int width, i
 
     size_constraint width_constraint;
     width_constraint.policy = size_policy::fixed;
-    width_constraint.preferred_size = width;
-    width_constraint.min_size = width;
-    width_constraint.max_size = width;
+    width_constraint.preferred_size = logical_unit(static_cast<double>(width));
+    width_constraint.min_size = logical_unit(static_cast<double>(width));
+    width_constraint.max_size = logical_unit(static_cast<double>(width));
     p->set_width_constraint(width_constraint);
 
     size_constraint height_constraint;
     height_constraint.policy = size_policy::fixed;
-    height_constraint.preferred_size = height;
-    height_constraint.min_size = height;
-    height_constraint.max_size = height;
+    height_constraint.preferred_size = logical_unit(static_cast<double>(height));
+    height_constraint.min_size = logical_unit(static_cast<double>(height));
+    height_constraint.max_size = logical_unit(static_cast<double>(height));
     p->set_height_constraint(height_constraint);
 
     return p;
@@ -43,8 +43,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Viewpor
     scroll.add_child(make_fixed_panel(200, 1000));
 
     // Measure with viewport height of 100px
-    [[maybe_unused]] auto size = scroll.measure(200, 100);
-    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = scroll.measure(200_lu, 100_lu);
+    scroll.arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Verify content extends beyond viewport
     auto info = scroll.get_scroll_info();
@@ -66,8 +66,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Nested 
     outer.add_child(std::move(inner));
 
     // Measure and arrange
-    [[maybe_unused]] auto size = outer.measure(300, 200);
-    outer.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 300, 200}});
+    [[maybe_unused]] auto size = outer.measure(300_lu, 200_lu);
+    outer.arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
     // Both scrollables should exist
     CHECK_FALSE(outer.children().empty());
@@ -85,8 +85,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
     scrollable<test_canvas_backend> scroll;
 
     // No children added
-    [[maybe_unused]] auto size = scroll.measure(200, 100);
-    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = scroll.measure(200_lu, 100_lu);
+    scroll.arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     CHECK(scroll.children().empty());
     auto info = scroll.get_scroll_info();
@@ -101,8 +101,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
     scroll.add_child(make_fixed_panel(200, 5000));  // 5000px tall
 
     // Measure with small viewport
-    [[maybe_unused]] auto size = scroll.measure(200, 100);  // Viewport: 100px
-    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = scroll.measure(200_lu, 100_lu);  // Viewport: 100px
+    scroll.arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Item exists even though most is clipped
     CHECK(scroll.children().size() == 1);
@@ -119,8 +119,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Scroll 
     // Add large content (3000px tall)
     scroll.add_child(make_fixed_panel(200, 3000));
 
-    [[maybe_unused]] auto size = scroll.measure(200, 100);  // Viewport: 100px tall
-    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = scroll.measure(200_lu, 100_lu);  // Viewport: 100px tall
+    scroll.arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     SUBCASE("Initial scroll position (top)") {
         scroll.scroll_to(0, 0);
@@ -157,8 +157,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
 
     scroll.add_child(std::move(content));
 
-    [[maybe_unused]] auto size = scroll.measure(300, 100);
-    scroll.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 300, 100}});
+    [[maybe_unused]] auto size = scroll.measure(300_lu, 100_lu);
+    scroll.arrange(logical_rect{0_lu, 0_lu, 300_lu, 100_lu});
 
     auto info = scroll.get_scroll_info();
 

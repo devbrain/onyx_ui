@@ -72,27 +72,27 @@ TEST_SUITE("window - scrollbar layout") {
 
         // Scrollbar should have proper bounds
         auto vsb_bounds = vscrollbar->bounds();
-        INFO("Scrollbar bounds: (" << vsb_bounds.x() << ", " << vsb_bounds.y()
-             << ", " << vsb_bounds.width() << ", " << vsb_bounds.height() << ")");
+        INFO("Scrollbar bounds: (" << vsb_bounds.x.to_int() << ", " << vsb_bounds.y.to_int()
+             << ", " << vsb_bounds.width.to_int() << ", " << vsb_bounds.height.to_int() << ")");
 
         // Scrollbar should span the full height of the scroll_view
         auto sv_bounds = scroll_view->bounds();
-        INFO("Scroll_view bounds: (" << sv_bounds.x() << ", " << sv_bounds.y()
-             << ", " << sv_bounds.width() << ", " << sv_bounds.height() << ")");
+        INFO("Scroll_view bounds: (" << sv_bounds.x.to_int() << ", " << sv_bounds.y.to_int()
+             << ", " << sv_bounds.width.to_int() << ", " << sv_bounds.height.to_int() << ")");
 
         // CORE FIX VERIFICATION: Scrollbar must be visible and have non-zero bounds
         // Before the fix, scrollbar had bounds (0,0,0,0) until window was maximized
-        CHECK(vsb_bounds.width() > 0);  // Has width
-        CHECK(vsb_bounds.height() > 0); // Has height
+        CHECK(vsb_bounds.width.to_int() > 0);  // Has width
+        CHECK(vsb_bounds.height.to_int() > 0); // Has height
 
         // Scrollbar should be near the right edge (grid auto-sizing may leave small gap)
-        CHECK(vsb_bounds.x() + vsb_bounds.width() >= sv_bounds.width() - 2);
+        CHECK(vsb_bounds.x.to_int() + vsb_bounds.width.to_int() >= sv_bounds.width.to_int() - 2);
 
         // Scrollbar should have reasonable height (may not fill full height with auto-sized grid)
-        CHECK(vsb_bounds.height() >= sv_bounds.height() / 2);
+        CHECK(vsb_bounds.height.to_int() >= sv_bounds.height.to_int() / 2);
 
         // Scrollbar should start at top (y=0 or y=1 for borders)
-        CHECK(vsb_bounds.y() <= 1);
+        CHECK(vsb_bounds.y.to_int() <= 1);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Scrollbar has correct bounds after window layout") {
@@ -123,7 +123,7 @@ TEST_SUITE("window - scrollbar layout") {
         // Scrollbar must be visible and have non-zero bounds
         CHECK(vscrollbar->is_visible());
         auto bounds = vscrollbar->bounds();
-        CHECK(bounds.width() > 0);
-        CHECK(bounds.height() > 0);
+        CHECK(bounds.width.to_int() > 0);
+        CHECK(bounds.height.to_int() > 0);
     }
 }

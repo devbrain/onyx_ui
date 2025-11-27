@@ -23,8 +23,8 @@ TEST_SUITE("anchor_layout") {
         std::vector<TestElement*> children;
         for (int i = 0; i < 9; i++) {
             auto child = std::make_unique<TestElement>();
-            child->set_width_constraint({size_policy::fixed, 20, 20});
-            child->set_height_constraint({size_policy::fixed, 10, 10});
+            child->set_width_constraint({size_policy::fixed, 20_lu, 20_lu});
+            child->set_height_constraint({size_policy::fixed, 10_lu, 10_lu});
             children.push_back(child.get());
             parent->add_test_child(std::move(child));
         }
@@ -41,42 +41,42 @@ TEST_SUITE("anchor_layout") {
         layout_ptr->set_anchor(children[8], anchor_point::bottom_right);
 
         // Measure: anchor layout reports max extent needed
-        auto measured = parent->measure(200, 100);
-        CHECK(measured.w > 0);
-        CHECK(measured.h > 0);
+        auto measured = parent->measure(200_lu, 100_lu);
+        CHECK(measured.width > 0_lu);
+        CHECK(measured.height > 0_lu);
 
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 100));
+        parent->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
         // Verify positions
         // Top row
-        CHECK(children[0]->bounds().get().x == 0);
-        CHECK(children[0]->bounds().get().y == 0);
+        CHECK(children[0]->bounds().x.to_int() == 0);
+        CHECK(children[0]->bounds().y.to_int() == 0);
 
-        CHECK(children[1]->bounds().get().x == 90);  // (200-20)/2
-        CHECK(children[1]->bounds().get().y == 0);
+        CHECK(children[1]->bounds().x.to_int() == 90);  // (200-20)/2
+        CHECK(children[1]->bounds().y.to_int() == 0);
 
-        CHECK(children[2]->bounds().get().x == 180); // 200-20
-        CHECK(children[2]->bounds().get().y == 0);
+        CHECK(children[2]->bounds().x.to_int() == 180); // 200-20
+        CHECK(children[2]->bounds().y.to_int() == 0);
 
         // Middle row
-        CHECK(children[3]->bounds().get().x == 0);
-        CHECK(children[3]->bounds().get().y == 45);  // (100-10)/2
+        CHECK(children[3]->bounds().x.to_int() == 0);
+        CHECK(children[3]->bounds().y.to_int() == 45);  // (100-10)/2
 
-        CHECK(children[4]->bounds().get().x == 90);  // (200-20)/2
-        CHECK(children[4]->bounds().get().y == 45);  // (100-10)/2
+        CHECK(children[4]->bounds().x.to_int() == 90);  // (200-20)/2
+        CHECK(children[4]->bounds().y.to_int() == 45);  // (100-10)/2
 
-        CHECK(children[5]->bounds().get().x == 180); // 200-20
-        CHECK(children[5]->bounds().get().y == 45);  // (100-10)/2
+        CHECK(children[5]->bounds().x.to_int() == 180); // 200-20
+        CHECK(children[5]->bounds().y.to_int() == 45);  // (100-10)/2
 
         // Bottom row
-        CHECK(children[6]->bounds().get().x == 0);
-        CHECK(children[6]->bounds().get().y == 90);  // 100-10
+        CHECK(children[6]->bounds().x.to_int() == 0);
+        CHECK(children[6]->bounds().y.to_int() == 90);  // 100-10
 
-        CHECK(children[7]->bounds().get().x == 90);  // (200-20)/2
-        CHECK(children[7]->bounds().get().y == 90);  // 100-10
+        CHECK(children[7]->bounds().x.to_int() == 90);  // (200-20)/2
+        CHECK(children[7]->bounds().y.to_int() == 90);  // 100-10
 
-        CHECK(children[8]->bounds().get().x == 180); // 200-20
-        CHECK(children[8]->bounds().get().y == 90);  // 100-10
+        CHECK(children[8]->bounds().x.to_int() == 180); // 200-20
+        CHECK(children[8]->bounds().y.to_int() == 90);  // 100-10
     }
 
     TEST_CASE("Anchor with offsets") {
@@ -86,8 +86,8 @@ TEST_SUITE("anchor_layout") {
         parent->set_layout_strategy(std::move(layout));
 
         auto child = std::make_unique<TestElement>();
-        child->set_width_constraint({size_policy::fixed, 50, 50});
-        child->set_height_constraint({size_policy::fixed, 30, 30});
+        child->set_width_constraint({size_policy::fixed, 50_lu, 50_lu});
+        child->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
         auto child_ptr = child.get();
         parent->add_test_child(std::move(child));
 
@@ -95,14 +95,14 @@ TEST_SUITE("anchor_layout") {
         layout_ptr->set_anchor(child_ptr, anchor_point::top_right, -10, 15);
 
         // Measure with offsets
-        auto measured = parent->measure(300, 200);
-        CHECK(measured.w <= 300);
-        CHECK(measured.h <= 200);
+        auto measured = parent->measure(300_lu, 200_lu);
+        CHECK(measured.width <= 300_lu);
+        CHECK(measured.height <= 200_lu);
 
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
+        parent->arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
         // Should be at top-right minus offsets
-        CHECK(child_ptr->bounds().get().x == 240);  // 300-50-10
-        CHECK(child_ptr->bounds().get().y == 15);   // 0+15
+        CHECK(child_ptr->bounds().x.to_int() == 240);  // 300-50-10
+        CHECK(child_ptr->bounds().y.to_int() == 15);   // 0+15
     }
 }

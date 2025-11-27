@@ -177,8 +177,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Vertical orientati
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Orientation change invalidates measure") {
     slider<test_backend> s;
-    [[maybe_unused]] auto size = s.measure(100, 100);
-    s.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
+    [[maybe_unused]] auto size = s.measure(100_lu, 100_lu);
+    s.arrange(logical_rect{0_lu, 0_lu, 100_lu, 10_lu});
 
     s.set_orientation(slider_orientation::vertical);
     // Measure should be invalidated
@@ -225,8 +225,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Set tick interval"
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Tick position change invalidates render") {
     slider<test_backend> s;
-    [[maybe_unused]] auto size = s.measure(100, 100);
-    s.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
+    [[maybe_unused]] auto size = s.measure(100_lu, 100_lu);
+    s.arrange(logical_rect{0_lu, 0_lu, 100_lu, 10_lu});
 
     s.set_tick_position(tick_position::below);
     // Render should be invalidated
@@ -234,8 +234,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Tick position chan
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Tick interval change invalidates render") {
     slider<test_backend> s;
-    [[maybe_unused]] auto size = s.measure(100, 100);
-    s.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
+    [[maybe_unused]] auto size = s.measure(100_lu, 100_lu);
+    s.arrange(logical_rect{0_lu, 0_lu, 100_lu, 10_lu});
 
     s.set_tick_interval(10);
     // Render should be invalidated
@@ -310,9 +310,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Measure horizontal
     slider<test_backend> s;
     s.set_orientation(slider_orientation::horizontal);
 
-    auto size = s.measure(100, 100);
-    int const width = size_utils::get_width(size);
-    int const height = size_utils::get_height(size);
+    auto size = s.measure(100_lu, 100_lu);
+    int const width = size.width.to_int();
+    int const height = size.height.to_int();
 
     // Horizontal slider should request wide width, small height
     CHECK(width > 0);
@@ -323,9 +323,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Measure vertical")
     slider<test_backend> s;
     s.set_orientation(slider_orientation::vertical);
 
-    auto size = s.measure(100, 100);
-    int const width = size_utils::get_width(size);
-    int const height = size_utils::get_height(size);
+    auto size = s.measure(100_lu, 100_lu);
+    int const width = size.width.to_int();
+    int const height = size.height.to_int();
 
     // Vertical slider should request small width, tall height
     CHECK(width > 0);
@@ -334,13 +334,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Measure vertical")
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "slider - Arrange") {
     slider<test_backend> s;
-    [[maybe_unused]] auto size = s.measure(100, 100);
+    [[maybe_unused]] auto size = s.measure(100_lu, 100_lu);
 
-    s.arrange(geometry::relative_rect<test_backend>{test_backend::rect_type{0, 0, 100, 10}});
+    s.arrange(logical_rect{0_lu, 0_lu, 100_lu, 10_lu});
 
     auto const& bounds = s.bounds();
-    CHECK(rect_utils::get_width(bounds) == 100);
-    CHECK(rect_utils::get_height(bounds) == 10);
+    CHECK(bounds.width == 100_lu);
+    CHECK(bounds.height == 10_lu);
 }
 
 // ===== Edge Cases =====

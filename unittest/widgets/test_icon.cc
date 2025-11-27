@@ -44,7 +44,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Construction 
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::arrow_up);
 
         // Measure once
-        auto size1 = icon_widget->measure(100, 100);
+        auto size1 = icon_widget->measure(100_lu, 100_lu);
 
         // Set to same icon
         icon_widget->set_icon(icon_style::arrow_up);
@@ -62,7 +62,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Measure and a
     SUBCASE("Icon has minimum size") {
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::bullet);
 
-        auto size = icon_widget->measure(100, 100);
+        auto size = icon_widget->measure(100_lu, 100_lu);
 
         // Icon should have minimum size of 1x1
         CHECK(size.w >= 1);
@@ -73,8 +73,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Measure and a
         auto icon_check = std::make_unique<icon<test_canvas_backend>>(icon_style::check);
         auto icon_cross = std::make_unique<icon<test_canvas_backend>>(icon_style::cross);
 
-        auto size_check = icon_check->measure(100, 100);
-        auto size_cross = icon_cross->measure(100, 100);
+        auto size_check = icon_check->measure(100_lu, 100_lu);
+        auto size_cross = icon_cross->measure(100_lu, 100_lu);
 
         // Most icons are same size (1x1 character cells)
         CHECK(size_check.w == size_cross.w);
@@ -84,7 +84,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Measure and a
     SUBCASE("Arrange updates bounds") {
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::folder);
 
-        icon_widget->measure(100, 100);
+        icon_widget->measure(100_lu, 100_lu);
         icon_widget->arrange({10, 20, 5, 5});
 
         CHECK(icon_widget->x() == 10);
@@ -100,7 +100,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Rendering") {
     SUBCASE("Render check icon") {
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::check);
 
-        icon_widget->measure(100, 100);
+        icon_widget->measure(100_lu, 100_lu);
         icon_widget->arrange({0, 0, 10, 10});
 
         test_canvas canvas;
@@ -125,7 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Rendering") {
 
         for (auto style : styles) {
             auto icon_widget = std::make_unique<icon<test_canvas_backend>>(style);
-            icon_widget->measure(100, 100);
+            icon_widget->measure(100_lu, 100_lu);
             icon_widget->arrange({0, 0, 10, 10});
             icon_widget->render(*ctx);
 
@@ -137,7 +137,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Rendering") {
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::check);
         icon_widget->set_visible(false);
 
-        icon_widget->measure(100, 100);
+        icon_widget->measure(100_lu, 100_lu);
         icon_widget->arrange({0, 0, 10, 10});
 
         test_canvas canvas;
@@ -235,13 +235,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Layout invali
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::check);
 
         // Measure once
-        icon_widget->measure(100, 100);
+        icon_widget->measure(100_lu, 100_lu);
 
         // Change icon - should invalidate
         icon_widget->set_icon(icon_style::cross);
 
         // Measure again should recalculate
-        auto size = icon_widget->measure(100, 100);
+        auto size = icon_widget->measure(100_lu, 100_lu);
 
         // Icon size typically 1x1 for TUI backends
         CHECK(size.w >= 1);
@@ -251,7 +251,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Layout invali
     SUBCASE("Setting same icon doesn't invalidate") {
         auto icon_widget = std::make_unique<icon<test_canvas_backend>>(icon_style::bullet);
 
-        icon_widget->measure(100, 100);
+        icon_widget->measure(100_lu, 100_lu);
         auto size1 = icon_widget->get_desired_size();
 
         // Set same icon
@@ -286,7 +286,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Icon - Theme integra
         container->add_child(std::move(icon_widget));
 
         // Icon should inherit theme from parent
-        container->measure(100, 100);
+        container->measure(100_lu, 100_lu);
         container->arrange({0, 0, 100, 100});
 
         test_canvas canvas;

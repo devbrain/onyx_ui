@@ -61,14 +61,14 @@ TEST_SUITE("Separator Widget") {
         separator<CanvasBackend> sep(orientation::horizontal);
 
         // Horizontal separator should have height=1 and expand width
-        auto measured = sep.measure(100, 100);
+        auto measured = sep.measure(100_lu, 100_lu);
 
         // Height should be fixed at 1
-        CHECK(size_utils::get_height(measured) == 1);
+        CHECK(measured.height.to_int() == 1);
 
         // Width with expand policy returns natural content size (0) during measure
         // Actual width is determined during arrange by the layout
-        CHECK(size_utils::get_width(measured) == 0);
+        CHECK(measured.width.to_int() == 0);
     }
 
     TEST_CASE("Separator - Measurement (vertical)") {
@@ -76,14 +76,14 @@ TEST_SUITE("Separator Widget") {
         separator<CanvasBackend> sep(orientation::vertical);
 
         // Vertical separator should have width=1 and expand height
-        auto measured = sep.measure(100, 100);
+        auto measured = sep.measure(100_lu, 100_lu);
 
         // Width should be fixed at 1
-        CHECK(size_utils::get_width(measured) == 1);
+        CHECK(measured.width.to_int() == 1);
 
         // Height with expand policy returns natural content size (0) during measure
         // Actual height is determined during arrange by the layout
-        CHECK(size_utils::get_height(measured) == 0);
+        CHECK(measured.height.to_int() == 0);
     }
 
     TEST_CASE("Separator - Arrangement") {
@@ -92,27 +92,27 @@ TEST_SUITE("Separator Widget") {
         SUBCASE("Horizontal separator arrangement") {
             separator<CanvasBackend> sep(orientation::horizontal);
 
-            [[maybe_unused]] auto size = sep.measure(50, 10);
-            sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 5, 50, 1}});
+            [[maybe_unused]] auto size = sep.measure(50_lu, 10_lu);
+            sep.arrange(logical_rect{0_lu, 5_lu, 50_lu, 1_lu});
 
             auto bounds = sep.bounds();
-            CHECK(rect_utils::get_x(bounds) == 0);
-            CHECK(rect_utils::get_y(bounds) == 5);
-            CHECK(rect_utils::get_width(bounds) == 50);
-            CHECK(rect_utils::get_height(bounds) == 1);
+            CHECK(bounds.x.to_int() == 0);
+            CHECK(bounds.y.to_int() == 5);
+            CHECK(bounds.width.to_int() == 50);
+            CHECK(bounds.height.to_int() == 1);
         }
 
         SUBCASE("Vertical separator arrangement") {
             separator<CanvasBackend> sep(orientation::vertical);
 
-            [[maybe_unused]] auto size = sep.measure(10, 50);
-            sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{5, 0, 1, 50}});
+            [[maybe_unused]] auto size = sep.measure(10_lu, 50_lu);
+            sep.arrange(logical_rect{5_lu, 0_lu, 1_lu, 50_lu});
 
             auto bounds = sep.bounds();
-            CHECK(rect_utils::get_x(bounds) == 5);
-            CHECK(rect_utils::get_y(bounds) == 0);
-            CHECK(rect_utils::get_width(bounds) == 1);
-            CHECK(rect_utils::get_height(bounds) == 50);
+            CHECK(bounds.x.to_int() == 5);
+            CHECK(bounds.y.to_int() == 0);
+            CHECK(bounds.width.to_int() == 1);
+            CHECK(bounds.height.to_int() == 50);
         }
     }
 
@@ -190,8 +190,8 @@ TEST_SUITE("Separator Widget") {
         menu.add_child(std::move(item3));
 
         // Measure and arrange
-        [[maybe_unused]] auto menu_size = menu.measure(20, 50);
-        menu.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 20, 50}});
+        [[maybe_unused]] auto menu_size = menu.measure(20_lu, 50_lu);
+        menu.arrange(logical_rect{0_lu, 0_lu, 20_lu, 50_lu});
 
         // Verify separator has height=1
         auto& children = menu.children();
@@ -201,8 +201,8 @@ TEST_SUITE("Separator Widget") {
         REQUIRE(separator_widget != nullptr);
 
         auto sep_bounds = separator_widget->bounds();
-        CHECK(rect_utils::get_height(sep_bounds) == 1);
-        CHECK(rect_utils::get_width(sep_bounds) == 20);
+        CHECK(sep_bounds.height.to_int() == 1);
+        CHECK(sep_bounds.width.to_int() == 20);
     }
 
     TEST_CASE("Separator - In toolbar context (vertical divider)") {
@@ -229,8 +229,8 @@ TEST_SUITE("Separator Widget") {
         toolbar.add_child(std::move(btn3));
 
         // Measure and arrange
-        [[maybe_unused]] auto toolbar_size = toolbar.measure(50, 3);
-        toolbar.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 50, 3}});
+        [[maybe_unused]] auto toolbar_size = toolbar.measure(50_lu, 3_lu);
+        toolbar.arrange(logical_rect{0_lu, 0_lu, 50_lu, 3_lu});
 
         // Verify separator has width=1
         auto& children = toolbar.children();
@@ -240,8 +240,8 @@ TEST_SUITE("Separator Widget") {
         REQUIRE(separator_widget != nullptr);
 
         auto sep_bounds = separator_widget->bounds();
-        CHECK(rect_utils::get_width(sep_bounds) == 1);
-        CHECK(rect_utils::get_height(sep_bounds) == 3);
+        CHECK(sep_bounds.width.to_int() == 1);
+        CHECK(sep_bounds.height.to_int() == 3);
     }
 
     TEST_CASE("Separator - Theme application") {
@@ -257,8 +257,8 @@ TEST_SUITE("Separator Widget") {
         separator<CanvasBackend> sep(orientation::horizontal);
 
         // Render with first theme
-        [[maybe_unused]] auto size = sep.measure(10, 1);
-        sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 10, 1}});
+        [[maybe_unused]] auto size = sep.measure(10_lu, 1_lu);
+        sep.arrange(logical_rect{0_lu, 0_lu, 10_lu, 1_lu});
         auto canvas1 = render_to_canvas(sep, 10, 1);
 
         // Register second theme
@@ -269,8 +269,8 @@ TEST_SUITE("Separator Widget") {
         ctx.themes().set_current_theme("Theme 2");
 
         // Render with second theme
-        [[maybe_unused]] auto size2 = sep.measure(10, 1);
-        sep.arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 10, 1}});
+        [[maybe_unused]] auto size2 = sep.measure(10_lu, 1_lu);
+        sep.arrange(logical_rect{0_lu, 0_lu, 10_lu, 1_lu});
         auto canvas2 = render_to_canvas(sep, 10, 1);
 
         // Verify different line characters were used
@@ -285,22 +285,22 @@ TEST_SUITE("Separator Widget") {
             separator<CanvasBackend> sep(orientation::horizontal);
 
             // Should have fixed height=1, expand width
-            auto measured = sep.measure(100, 50);
+            auto measured = sep.measure(100_lu, 50_lu);
 
-            CHECK(size_utils::get_height(measured) == 1);
+            CHECK(measured.height.to_int() == 1);
             // Width with expand policy reports natural size (0) during measure
-            CHECK(size_utils::get_width(measured) == 0);
+            CHECK(measured.width.to_int() == 0);
         }
 
         SUBCASE("Vertical separator size constraints") {
             separator<CanvasBackend> sep(orientation::vertical);
 
             // Should have fixed width=1, expand height
-            auto measured = sep.measure(50, 100);
+            auto measured = sep.measure(50_lu, 100_lu);
 
-            CHECK(size_utils::get_width(measured) == 1);
+            CHECK(measured.width.to_int() == 1);
             // Height with expand policy reports natural size (0) during measure
-            CHECK(size_utils::get_height(measured) == 0);
+            CHECK(measured.height.to_int() == 0);
         }
     }
 
@@ -310,17 +310,17 @@ TEST_SUITE("Separator Widget") {
         separator<CanvasBackend> sep(orientation::horizontal);
 
         // Measure as horizontal
-        auto size1 = sep.measure(100, 100);
-        CHECK(size_utils::get_height(size1) == 1);
+        auto size1 = sep.measure(100_lu, 100_lu);
+        CHECK(size1.height.to_int() == 1);
 
         // Change to vertical
         sep.set_orientation(orientation::vertical);
 
         // Re-measure should give different result
-        auto size2 = sep.measure(100, 100);
-        CHECK(size_utils::get_width(size2) == 1);
+        auto size2 = sep.measure(100_lu, 100_lu);
+        CHECK(size2.width.to_int() == 1);
 
         // Heights should be different
-        CHECK(size_utils::get_height(size1) != size_utils::get_height(size2));
+        CHECK(size1.height.to_int() != size2.height.to_int());
     }
 }

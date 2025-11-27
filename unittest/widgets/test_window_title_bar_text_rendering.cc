@@ -27,9 +27,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     SUBCASE("Standalone label renders text correctly") {
         label<test_canvas_backend> lbl("Test Text");
 
-        [[maybe_unused]] auto size = lbl.measure(80, 25);
-        CHECK(size.w > 0);
-        lbl.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+        [[maybe_unused]] auto size = lbl.measure(80_lu, 25_lu);
+        CHECK(size.width.to_int() > 0);
+        lbl.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         auto canvas = render_to_canvas(lbl, 80, 25);
         std::string rendered = canvas->render_ascii();
@@ -51,9 +51,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
         // Check visibility
 
-        (void)win.measure(80, 25);
+        (void)win.measure(80_lu, 25_lu);
 
-        win.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+        win.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();

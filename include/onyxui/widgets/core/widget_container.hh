@@ -136,15 +136,14 @@ namespace onyxui {
          * Lets base class (widget/ui_element) measure children via layout strategy,
          * then adds border size to the result.
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // Let base class measure children via layout strategy
             auto measured = base::do_measure(available_width, available_height);
 
             // Add border frame size (1px on each side = +2 total)
             if (m_has_border) {
-                int const w = size_utils::get_width(measured) + 2;
-                int const h = size_utils::get_height(measured) + 2;
-                size_utils::set_size(measured, w, h);
+                measured.width = measured.width + logical_unit(2.0);
+                measured.height = measured.height + logical_unit(2.0);
             }
 
             return measured;
@@ -157,17 +156,16 @@ namespace onyxui {
          * Border is drawn around the edge, so content area is shrunk
          * by 1px on each side when border is enabled.
          */
-        rect_type get_content_area() const noexcept override {
+        logical_rect get_content_area() const noexcept override {
             // Start with base implementation (handles margin and padding)
             auto content_area = base::get_content_area();
 
             // Shrink for border (1px on each side, inside padding)
             if (m_has_border) {
-                int const x = rect_utils::get_x(content_area) + 1;
-                int const y = rect_utils::get_y(content_area) + 1;
-                int const w = std::max(0, rect_utils::get_width(content_area) - 2);
-                int const h = std::max(0, rect_utils::get_height(content_area) - 2);
-                rect_utils::set_bounds(content_area, x, y, w, h);
+                content_area.x = content_area.x + logical_unit(1.0);
+                content_area.y = content_area.y + logical_unit(1.0);
+                content_area.width = max(logical_unit(0.0), content_area.width - logical_unit(2.0));
+                content_area.height = max(logical_unit(0.0), content_area.height - logical_unit(2.0));
             }
 
             return content_area;
@@ -183,9 +181,12 @@ namespace onyxui {
         void do_render(render_context_type& ctx) const override {
             if (m_has_border) {
                 // RELATIVE COORDINATES: Reconstruct absolute bounds from context position
-                // bounds() returns RELATIVE coordinates after coordinate system refactoring
+                // bounds() returns logical_rect, need to convert to physical for rendering
                 typename Backend::rect_type absolute_bounds;
-                rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
+                auto logical_bounds = this->bounds();
+                rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(),
+                    typename Backend::rect_type{logical_bounds.x.to_int(), logical_bounds.y.to_int(),
+                                                logical_bounds.width.to_int(), logical_bounds.height.to_int()});
 
                 // Create box_style with border enabled
                 // Extract value from wrapper (make copy), modify, then use

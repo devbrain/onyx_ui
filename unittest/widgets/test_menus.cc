@@ -756,10 +756,8 @@ TEST_SUITE("menu_integration") {
         bar->add_menu("Theme", std::move(theme_menu));
 
         // Measure and arrange so buttons have bounds
-        using size_type = Backend::size_type;
-        using rect_type = Backend::rect_type;
-        size_type const size = bar->measure(800, 600);
-        bar->arrange(geometry::relative_rect<Backend>{rect_type{0, 0, size.w, size.h}});
+        auto const size = bar->measure(800_lu, 600_lu);
+        bar->arrange(logical_rect{0_lu, 0_lu, size.width, size.height});
 
         // Open File menu
         bar->open_menu(0);

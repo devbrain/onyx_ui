@@ -141,7 +141,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
 
     auto* padding_demo = nested_section->template emplace_child<onyxui::panel>();
     padding_demo->set_vbox_layout(onyxui::spacing::tiny);
-    padding_demo->set_padding(onyxui::thickness::all(2));
+    padding_demo->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
     padding_demo->template emplace_child<onyxui::label>("2px padding all sides");
 
     // ========== LARGE CONTENT DEMO (right column) ==========

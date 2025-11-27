@@ -254,21 +254,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Measure and arr
     line_edit<test_backend> edit("Test");
 
     SUBCASE("Measure returns reasonable size") {
-        auto size = edit.measure(1000, 1000);
+        auto size = edit.measure(1000_lu, 1000_lu);
 
-        CHECK(size_utils::get_width(size) > 0);
-        CHECK(size_utils::get_height(size) > 0);
+        CHECK(size.width.to_int() > 0);
+        CHECK(size.height.to_int() > 0);
     }
 
     SUBCASE("Arrange sets bounds") {
-        [[maybe_unused]] auto _ = edit.measure(200, 100);
-        edit.arrange(onyxui::testing::make_relative_rect<test_backend>(10, 20, 200, 30));
+        [[maybe_unused]] auto _ = edit.measure(200_lu, 100_lu);
+        edit.arrange(onyxui::logical_rect{10_lu, 20_lu, 200_lu, 30_lu});
 
         auto bounds = edit.bounds();
-        CHECK(rect_utils::get_x(bounds) == 10);
-        CHECK(rect_utils::get_y(bounds) == 20);
-        CHECK(rect_utils::get_width(bounds) == 200);
-        CHECK(rect_utils::get_height(bounds) == 30);
+        CHECK(bounds.x.to_int() == 10);
+        CHECK(bounds.y.to_int() == 20);
+        CHECK(bounds.width.to_int() == 200);
+        CHECK(bounds.height.to_int() == 30);
     }
 }
 
@@ -284,8 +284,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Focus managemen
     }
 
     SUBCASE("Can receive focus") {
-        [[maybe_unused]] auto _ = edit.measure(200, 30);
-        edit.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+        [[maybe_unused]] auto _ = edit.measure(200_lu, 30_lu);
+        edit.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
 
         ctx.input().set_focus(&edit);
         CHECK(edit.has_focus());
@@ -300,8 +300,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Cursor renderin
     line_edit<test_backend> edit("Test");
 
     SUBCASE("Cursor visible when focused") {
-        [[maybe_unused]] auto _ = edit.measure(200, 30);
-        edit.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+        [[maybe_unused]] auto _ = edit.measure(200_lu, 30_lu);
+        edit.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
 
         ctx.input().set_focus(&edit);
         CHECK(edit.has_focus());
@@ -319,8 +319,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Cursor renderin
     }
 
     SUBCASE("Cursor resets on character insertion") {
-        [[maybe_unused]] auto _ = edit.measure(200, 30);
-        edit.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+        [[maybe_unused]] auto _ = edit.measure(200_lu, 30_lu);
+        edit.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
         ctx.input().set_focus(&edit);
 
         // Simulate typing - cursor should reset to visible
@@ -331,8 +331,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Cursor renderin
 
     SUBCASE("Cursor resets on cursor movement") {
         edit.set_text("Hello World");
-        [[maybe_unused]] auto _ = edit.measure(200, 30);
-        edit.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
+        [[maybe_unused]] auto _ = edit.measure(200_lu, 30_lu);
+        edit.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
         ctx.input().set_focus(&edit);
 
         const int initial_pos = edit.cursor_position();
@@ -353,10 +353,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Tab key should 
     line_edit<test_backend> edit2("Second");
 
     // Set up both line_edits
-    [[maybe_unused]] auto s1 = edit1.measure(200, 30);
-    [[maybe_unused]] auto s2 = edit2.measure(200, 30);
-    edit1.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
-    edit2.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 40, 200, 30));
+    [[maybe_unused]] auto s1 = edit1.measure(200_lu, 30_lu);
+    [[maybe_unused]] auto s2 = edit2.measure(200_lu, 30_lu);
+    edit1.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
+    edit2.arrange(onyxui::logical_rect{0_lu, 40_lu, 200_lu, 30_lu});
 
     // Focus the first line_edit
     ctx.input().set_focus(&edit1);
@@ -400,10 +400,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - Tab triggers fo
     line_edit<test_backend> edit2("Second");
 
     // Set up both line_edits
-    [[maybe_unused]] auto s1 = edit1.measure(200, 30);
-    [[maybe_unused]] auto s2 = edit2.measure(200, 30);
-    edit1.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 30));
-    edit2.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 40, 200, 30));
+    [[maybe_unused]] auto s1 = edit1.measure(200_lu, 30_lu);
+    [[maybe_unused]] auto s2 = edit2.measure(200_lu, 30_lu);
+    edit1.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 30_lu});
+    edit2.arrange(onyxui::logical_rect{0_lu, 40_lu, 200_lu, 30_lu});
 
     // Focus the first line_edit
     ctx.input().set_focus(&edit1);
@@ -448,8 +448,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "line_edit - focus_next sema
     auto* edit2 = container.template emplace_child<line_edit>("Second");
 
     // Set up layout
-    [[maybe_unused]] auto s = container.measure(200, 100);
-    container.arrange(onyxui::testing::make_relative_rect<test_backend>(0, 0, 200, 100));
+    [[maybe_unused]] auto s = container.measure(200_lu, 100_lu);
+    container.arrange(onyxui::logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Focus the first line_edit
     ctx.input().set_focus(edit1);

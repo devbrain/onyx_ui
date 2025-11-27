@@ -30,9 +30,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         CHECK(gap->width() == 20);
         CHECK(gap->height() == 0);
 
-        auto size = gap->measure(1000, 1000);
-        CHECK(size_utils::get_width(size) == 20);
-        CHECK(size_utils::get_height(size) == 0);
+        auto size = gap->measure(1000_lu, 1000_lu);
+        CHECK(size.width.to_int() == 20);
+        CHECK(size.height.to_int() == 0);
     }
 
     SUBCASE("create_vgap - Creates vertical gap") {
@@ -42,9 +42,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         CHECK(gap->width() == 0);
         CHECK(gap->height() == 30);
 
-        auto size = gap->measure(1000, 1000);
-        CHECK(size_utils::get_width(size) == 0);
-        CHECK(size_utils::get_height(size) == 30);
+        auto size = gap->measure(1000_lu, 1000_lu);
+        CHECK(size.width.to_int() == 0);
+        CHECK(size.height.to_int() == 30);
     }
 
     SUBCASE("create_gap - Creates square gap") {
@@ -54,9 +54,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         CHECK(gap->width() == 50);
         CHECK(gap->height() == 50);
 
-        auto size = gap->measure(1000, 1000);
-        CHECK(size_utils::get_width(size) == 50);
-        CHECK(size_utils::get_height(size) == 50);
+        auto size = gap->measure(1000_lu, 1000_lu);
+        CHECK(size.width.to_int() == 50);
+        CHECK(size.height.to_int() == 50);
     }
 
     SUBCASE("create_hgap - Usage in hbox") {
@@ -67,7 +67,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         toolbar.add_child(std::make_unique<button<test_canvas_backend>>("Open"));
 
         CHECK(toolbar.children().size() == 3);
-        CHECK_NOTHROW((void)toolbar.measure(400, 50));
+        CHECK_NOTHROW((void)toolbar.measure(400_lu, 50_lu));
     }
 
     SUBCASE("create_vgap - Usage in vbox") {
@@ -78,7 +78,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         menu.add_child(std::make_unique<label<test_canvas_backend>>("Content"));
 
         CHECK(menu.children().size() == 3);
-        CHECK_NOTHROW((void)menu.measure(200, 400));
+        CHECK_NOTHROW((void)menu.measure(200_lu, 400_lu));
     }
 }
 
@@ -123,7 +123,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         toolbar.add_child(std::make_unique<button<test_canvas_backend>>("Help"));
 
         CHECK(toolbar.children().size() == 3);
-        CHECK_NOTHROW((void)toolbar.measure(400, 50));
+        CHECK_NOTHROW((void)toolbar.measure(400_lu, 50_lu));
     }
 
     SUBCASE("create_hspring - Center content") {
@@ -134,7 +134,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         container.add_child(create_hspring<test_canvas_backend>());
 
         CHECK(container.children().size() == 3);
-        CHECK_NOTHROW((void)container.measure(600, 100));
+        CHECK_NOTHROW((void)container.measure(600_lu, 100_lu));
     }
 
     SUBCASE("create_vspring - Vertical spacing") {
@@ -145,7 +145,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         layout.add_child(std::make_unique<label<test_canvas_backend>>("Footer"));
 
         CHECK(layout.children().size() == 3);
-        CHECK_NOTHROW((void)layout.measure(300, 600));
+        CHECK_NOTHROW((void)layout.measure(300_lu, 600_lu));
     }
 
     SUBCASE("Weighted springs - 2:1 horizontal ratio") {
@@ -156,7 +156,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         box.add_child(create_hspring<test_canvas_backend>(1.0F));
 
         CHECK(box.children().size() == 3);
-        CHECK_NOTHROW((void)box.measure(400, 100));
+        CHECK_NOTHROW((void)box.measure(400_lu, 100_lu));
     }
 
     SUBCASE("Weighted springs - 3:1 vertical ratio") {
@@ -169,7 +169,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         box.add_child(std::make_unique<panel<test_canvas_backend>>());
 
         CHECK(box.children().size() == 5);
-        CHECK_NOTHROW((void)box.measure(300, 600));
+        CHECK_NOTHROW((void)box.measure(300_lu, 600_lu));
     }
 }
 
@@ -191,11 +191,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         toolbar.add_child(std::make_unique<button<test_canvas_backend>>("Help"));
 
         CHECK(toolbar.children().size() == 7);
-        CHECK_NOTHROW((void)toolbar.measure(800, 50));
+        CHECK_NOTHROW((void)toolbar.measure(800_lu, 50_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 800, 50);
-        CHECK_NOTHROW(toolbar.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(toolbar.arrange(logical_rect{0_lu, 0_lu, 800_lu, 50_lu}));
     }
 
     SUBCASE("Form with vertical gaps and springs") {
@@ -220,10 +218,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Factory Functions - 
         form.add_child(std::make_unique<button<test_canvas_backend>>("Submit"));
 
         CHECK(form.children().size() == 9);
-        CHECK_NOTHROW((void)form.measure(400, 600));
+        CHECK_NOTHROW((void)form.measure(400_lu, 600_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 600);
-        CHECK_NOTHROW(form.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(form.arrange(logical_rect{0_lu, 0_lu, 400_lu, 600_lu}));
     }
 }

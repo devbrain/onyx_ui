@@ -33,13 +33,13 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* child = root.emplace_child<label>("Child");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // Child should be at (0,0) relative to root's content area
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(child_bounds.x.to_int() == 0);
+        CHECK(child_bounds.y.to_int() == 0);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Nested containers - children always at relative (0,0)") {
@@ -49,47 +49,47 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* middle_panel = root.emplace_child<panel>();
         middle_panel->set_vbox_layout(spacing::none);
-        middle_panel->set_padding(thickness::all(10));  // Offset inner child
+        middle_panel->set_padding(logical_thickness(10_lu));  // Offset inner child
 
         auto* inner_label = middle_panel->emplace_child<label>("Inner");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // Middle panel at (0,0) relative to root
         auto middle_bounds = middle_panel->bounds();
-        CHECK(rect_utils::get_x(middle_bounds) == 0);
-        CHECK(rect_utils::get_y(middle_bounds) == 0);
+        CHECK(middle_bounds.x.to_int() == 0);
+        CHECK(middle_bounds.y.to_int() == 0);
 
         // Inner label at (0,0) relative to middle panel's content area
         auto inner_bounds = inner_label->bounds();
-        CHECK(rect_utils::get_x(inner_bounds) == 0);
-        CHECK(rect_utils::get_y(inner_bounds) == 0);
+        CHECK(inner_bounds.x.to_int() == 0);
+        CHECK(inner_bounds.y.to_int() == 0);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Hit testing with nested layouts - absolute coordinates") {
         // Create nested layout with padding to offset child
         panel<Backend> root;
         root.set_vbox_layout(spacing::none);
-        root.set_padding(thickness::all(2));  // Add padding to root so (1,1) hits root's padding area
+        root.set_padding(logical_thickness(2_lu));  // Add padding to root so (1,1) hits root's padding area
 
         auto* parent_panel = root.emplace_child<panel>();
         parent_panel->set_vbox_layout(spacing::none);
-        parent_panel->set_padding(thickness::all(10));  // Child at absolute (12,12) = root padding 2 + parent padding 10
+        parent_panel->set_padding(logical_thickness(10_lu));  // Child at absolute (12,12) = root padding 2 + parent padding 10
 
         auto* child_button = parent_panel->emplace_child<button>("Click");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // Child button is at relative (0,0) but absolute (12,12) on screen
         auto child_bounds = child_button->bounds();
         INFO("Child bounds (relative): (",
-             rect_utils::get_x(child_bounds), ",",
-             rect_utils::get_y(child_bounds), ")");
+             child_bounds.x.to_int(), ",",
+             child_bounds.y.to_int(), ")");
 
-        CHECK(rect_utils::get_x(child_bounds) == 0);  // Relative
-        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(child_bounds.x.to_int() == 0);  // Relative
+        CHECK(child_bounds.y.to_int() == 0);
 
         // Hit test at absolute position (15, 15) should hit child (at absolute 12,12)
         auto* hit_at_child = root.hit_test(15, 15);
@@ -112,27 +112,27 @@ TEST_SUITE("Relative Coordinates - Core System") {
         // Create deep hierarchy with offsets at each level
         panel<Backend> root;
         root.set_vbox_layout(spacing::none);
-        root.set_padding(thickness{1, 1, 0, 0});  // Add padding to root for hit testing gaps
+        root.set_padding(logical_thickness{1_lu, 1_lu, 0_lu, 0_lu});  // Add padding to root for hit testing gaps
 
         auto* level1 = root.emplace_child<panel>();
         level1->set_vbox_layout(spacing::none);
-        level1->set_padding(thickness{5, 5, 0, 0});  // Offset by (5,5) from level1's content area
+        level1->set_padding(logical_thickness{5_lu, 5_lu, 0_lu, 0_lu});  // Offset by (5,5) from level1's content area
 
         auto* level2 = level1->emplace_child<panel>();
         level2->set_vbox_layout(spacing::none);
-        level2->set_padding(thickness{10, 10, 0, 0});  // Offset by (10,10) from level2's content area
+        level2->set_padding(logical_thickness{10_lu, 10_lu, 0_lu, 0_lu});  // Offset by (10,10) from level2's content area
 
         auto* level3_label = level2->emplace_child<label>("Deep");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // level3_label should be at absolute (17, 17) = root(1) + level1(5) + level1_content + level2(10) + level2_content
         // Actually: root padding 1, level1 at (1,1), level1 padding 5, level2 at (6,6), level2 padding 10, label at (16,16)
         // But stored as relative (0, 0)
         auto label_bounds = level3_label->bounds();
-        CHECK(rect_utils::get_x(label_bounds) == 0);
-        CHECK(rect_utils::get_y(label_bounds) == 0);
+        CHECK(label_bounds.x.to_int() == 0);
+        CHECK(label_bounds.y.to_int() == 0);
 
         // Hit test at absolute (17, 16) should hit the deep label (at absolute 16,16 from 1+5+10)
         // Note: Using y=16 because label height is only 1 pixel, so y=17 would be out of bounds
@@ -156,12 +156,12 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* parent_panel = root.emplace_child<panel>();
         parent_panel->set_vbox_layout(spacing::none);
-        parent_panel->set_padding(thickness::all(10));  // Child at absolute (10,10)
+        parent_panel->set_padding(logical_thickness(10_lu));  // Child at absolute (10,10)
 
         auto* child_label = parent_panel->emplace_child<label>("Child");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // Clear any initial dirty regions
         (void)root.get_and_clear_dirty_regions();
@@ -178,11 +178,11 @@ TEST_SUITE("Relative Coordinates - Core System") {
         bool found_child_region = false;
         for (const auto& region : dirty_regions) {
             // Child is at absolute (10, 10), so dirty region should reflect that
-            int region_x = rect_utils::get_x(region);
-            int region_y = rect_utils::get_y(region);
+            int region_x = region.x;
+            int region_y = region.y;
 
             INFO("Dirty region: (", region_x, ",", region_y, ") ",
-                 rect_utils::get_width(region), "x", rect_utils::get_height(region));
+                 region.w, "x", region.h);
 
             // Check if this region is at the child's absolute position
             if (region_x == 10 && region_y == 10) {
@@ -201,16 +201,16 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         auto* level1 = root.emplace_child<panel>();
         level1->set_vbox_layout(spacing::none);
-        level1->set_padding(thickness{5, 7, 0, 0});  // Offset by (5,7)
+        level1->set_padding(logical_thickness{5_lu, 7_lu, 0_lu, 0_lu});  // Offset by (5,7)
 
         auto* level2 = level1->emplace_child<panel>();
         level2->set_vbox_layout(spacing::none);
-        level2->set_padding(thickness{10, 15, 0, 0});  // Offset by (10,15)
+        level2->set_padding(logical_thickness{10_lu, 15_lu, 0_lu, 0_lu});  // Offset by (10,15)
 
         auto* deep_label = level2->emplace_child<label>("Deep");
 
-        [[maybe_unused]] auto _ = root.measure(200, 200);
-        root.arrange(make_relative_rect<Backend>(0, 0, 200, 200));
+        [[maybe_unused]] auto _ = root.measure(200_lu, 200_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         // Clear initial dirty regions
         (void)root.get_and_clear_dirty_regions();
@@ -226,8 +226,8 @@ TEST_SUITE("Relative Coordinates - Core System") {
         // Deep label should be at absolute (15, 22) = (5+10, 7+15)
         bool found_at_correct_position = false;
         for (const auto& region : dirty_regions) {
-            int region_x = rect_utils::get_x(region);
-            int region_y = rect_utils::get_y(region);
+            int region_x = region.x;
+            int region_y = region.y;
 
             INFO("Checking dirty region: (", region_x, ",", region_y, ")");
 
@@ -248,16 +248,16 @@ TEST_SUITE("Relative Coordinates - Core System") {
         auto* top_label = root.emplace_child<label>("Top");
         auto* middle_panel = root.emplace_child<panel>();
         middle_panel->set_vbox_layout(spacing::none);
-        middle_panel->set_padding(thickness{2, 0, 0, 0});
+        middle_panel->set_padding(logical_thickness{2_lu, 0_lu, 0_lu, 0_lu});
         auto* nested_label = middle_panel->emplace_child<label>("Nested");
 
-        [[maybe_unused]] auto _ = root.measure(40, 10);
-        root.arrange(make_relative_rect<Backend>(0, 0, 40, 10));
+        [[maybe_unused]] auto _ = root.measure(40_lu, 10_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Verify relative bounds
-        CHECK(rect_utils::get_y(top_label->bounds()) == 0);
-        CHECK(rect_utils::get_y(middle_panel->bounds()) == 1);  // After top_label
-        CHECK(rect_utils::get_y(nested_label->bounds()) == 0);   // Relative to middle_panel
+        CHECK(top_label->bounds().y.to_int() == 0);
+        CHECK(middle_panel->bounds().y.to_int() == 1);  // After top_label
+        CHECK(nested_label->bounds().y.to_int() == 0);   // Relative to middle_panel
 
         // Render and verify visual output
         auto canvas = render_to_canvas(root, 40, 10);
@@ -274,22 +274,22 @@ TEST_SUITE("Relative Coordinates - Core System") {
     TEST_CASE_FIXTURE(ui_context_fixture_type, "Borders and padding offset children correctly") {
         panel<Backend> root;
         root.set_vbox_layout(spacing::none);
-        root.set_padding(thickness::all(1));  // Add padding to root for hit testing gaps
+        root.set_padding(logical_thickness(1_lu));  // Add padding to root for hit testing gaps
 
         auto* bordered_panel = root.emplace_child<panel>();
         bordered_panel->set_has_border(true);           // +1 pixel border
-        bordered_panel->set_padding(thickness::all(2)); // +2 pixel padding
+        bordered_panel->set_padding(logical_thickness(2_lu)); // +2 pixel padding
         bordered_panel->set_vbox_layout(spacing::none);
 
         auto* child = bordered_panel->emplace_child<label>("Child");
 
-        [[maybe_unused]] auto _ = root.measure(100, 100);
-        root.arrange(make_relative_rect<Backend>(0, 0, 100, 100));
+        [[maybe_unused]] auto _ = root.measure(100_lu, 100_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // Child should be at relative (0,0)
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(child_bounds.x.to_int() == 0);
+        CHECK(child_bounds.y.to_int() == 0);
 
         // Hit testing should account for: root padding (1) + border (1) + padding (2) = 4 pixel offset
         // Child is at absolute (4, 4), label height is 1 pixel, so y goes from 4 to 4
@@ -310,18 +310,18 @@ TEST_SUITE("Relative Coordinates - Core System") {
         auto* child2 = root.emplace_child<label>("Child2");
         auto* child3 = root.emplace_child<label>("Child3");
 
-        [[maybe_unused]] auto _ = root.measure(100, 100);
-        root.arrange(make_relative_rect<Backend>(0, 0, 100, 100));
+        [[maybe_unused]] auto _ = root.measure(100_lu, 100_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // All children should have x=0 (relative to root)
-        CHECK(rect_utils::get_x(child1->bounds()) == 0);
-        CHECK(rect_utils::get_x(child2->bounds()) == 0);
-        CHECK(rect_utils::get_x(child3->bounds()) == 0);
+        CHECK(child1->bounds().x.to_int() == 0);
+        CHECK(child2->bounds().x.to_int() == 0);
+        CHECK(child3->bounds().x.to_int() == 0);
 
         // Y positions should account for spacing (relative coordinates)
-        int y1 = rect_utils::get_y(child1->bounds());
-        int y2 = rect_utils::get_y(child2->bounds());
-        int y3 = rect_utils::get_y(child3->bounds());
+        int y1 = child1->bounds().y.to_int();
+        int y2 = child2->bounds().y.to_int();
+        int y3 = child3->bounds().y.to_int();
 
         CHECK(y1 == 0);                      // First at top
         CHECK(y2 > y1);                      // Second below first

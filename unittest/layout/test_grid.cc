@@ -21,26 +21,26 @@ TEST_SUITE("grid_layout") {
         // Add four children
         for (int i = 0; i < 4; i++) {
             auto child = std::make_unique<TestElement>();
-            child->set_width_constraint({size_policy::fixed, 100, 100});
-            child->set_height_constraint({size_policy::fixed, 50, 50});
+            child->set_width_constraint({size_policy::fixed, 100_lu, 100_lu});
+            child->set_height_constraint({size_policy::fixed, 50_lu, 50_lu});
             parent->add_test_child(std::move(child));
         }
 
-        TestSize const measured = parent->measure(1000, 1000);
-        CHECK(measured.w == 210);  // 2*100 + 1*10
-        CHECK(measured.h == 105); // 2*50 + 1*5
+        auto measured = parent->measure(1000_lu, 1000_lu);
+        CHECK(measured.width == 210_lu);  // 2*100 + 1*10
+        CHECK(measured.height == 105_lu); // 2*50 + 1*5
 
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 210, 105));
+        parent->arrange(logical_rect{0_lu, 0_lu, 210_lu, 105_lu});
 
         // Verify positions
-        CHECK(parent->child_at(0)->bounds().get().x == 0);
-        CHECK(parent->child_at(0)->bounds().get().y == 0);
-        CHECK(parent->child_at(1)->bounds().get().x == 110);
-        CHECK(parent->child_at(1)->bounds().get().y == 0);
-        CHECK(parent->child_at(2)->bounds().get().x == 0);
-        CHECK(parent->child_at(2)->bounds().get().y == 55);
-        CHECK(parent->child_at(3)->bounds().get().x == 110);
-        CHECK(parent->child_at(3)->bounds().get().y == 55);
+        CHECK(parent->child_at(0)->bounds().x.to_int() == 0);
+        CHECK(parent->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(parent->child_at(1)->bounds().x.to_int() == 110);
+        CHECK(parent->child_at(1)->bounds().y.to_int() == 0);
+        CHECK(parent->child_at(2)->bounds().x.to_int() == 0);
+        CHECK(parent->child_at(2)->bounds().y.to_int() == 55);
+        CHECK(parent->child_at(3)->bounds().x.to_int() == 110);
+        CHECK(parent->child_at(3)->bounds().y.to_int() == 55);
     }
 
     TEST_CASE("Manual cell assignment") {
@@ -49,14 +49,14 @@ TEST_SUITE("grid_layout") {
         parent->set_layout_strategy(std::move(layout));
 
         auto child1 = std::make_unique<TestElement>();
-        child1->set_width_constraint({size_policy::fixed, 50, 50});
-        child1->set_height_constraint({size_policy::fixed, 30, 30});
+        child1->set_width_constraint({size_policy::fixed, 50_lu, 50_lu});
+        child1->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
         auto child1_ptr = child1.get();
         parent->add_test_child(std::move(child1));
 
         auto child2 = std::make_unique<TestElement>();
-        child2->set_width_constraint({size_policy::fixed, 60, 60});
-        child2->set_height_constraint({size_policy::fixed, 40, 40});
+        child2->set_width_constraint({size_policy::fixed, 60_lu, 60_lu});
+        child2->set_height_constraint({size_policy::fixed, 40_lu, 40_lu});
         auto child2_ptr = child2.get();
         parent->add_test_child(std::move(child2));
 
@@ -64,19 +64,19 @@ TEST_SUITE("grid_layout") {
         // Note: Can't access layout directly in tests, so cells auto-assign
 
         // Measure: grid calculates required space
-        auto measured = parent->measure(1000, 1000);
-        CHECK(measured.w > 0);  // Grid reports space needed for children
-        CHECK(measured.h > 0);
+        auto measured = parent->measure(1000_lu, 1000_lu);
+        CHECK(measured.width > 0_lu);  // Grid reports space needed for children
+        CHECK(measured.height > 0_lu);
 
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, measured.w, measured.h));
+        parent->arrange(logical_rect{0_lu, 0_lu, measured.width, measured.height});
 
         // Verify positions (auto-assigned sequentially)
         // Child1 goes to (0,0), Child2 goes to (1,0) in the 3x3 grid
         // Grid arranges to measured size, so columns are not scaled
-        CHECK(child1_ptr->bounds().get().x == 0);
-        CHECK(child1_ptr->bounds().get().y == 0);
-        CHECK(child2_ptr->bounds().get().x == 50); // Second column starts at width of first column (50px)
-        CHECK(child2_ptr->bounds().get().y == 0);  // Still in first row
+        CHECK(child1_ptr->bounds().x.to_int() == 0);
+        CHECK(child1_ptr->bounds().y.to_int() == 0);
+        CHECK(child2_ptr->bounds().x.to_int() == 50); // Second column starts at width of first column (50px)
+        CHECK(child2_ptr->bounds().y.to_int() == 0);  // Still in first row
     }
 
     TEST_CASE("Column and row spanning") {
@@ -87,13 +87,13 @@ TEST_SUITE("grid_layout") {
         // Child spanning 2 columns
         auto child1 = std::make_unique<TestElement>();
         child1->set_width_constraint({size_policy::fill_parent});
-        child1->set_height_constraint({size_policy::fixed, 40, 40});
+        child1->set_height_constraint({size_policy::fixed, 40_lu, 40_lu});
         auto child1_ptr = child1.get();
         parent->add_test_child(std::move(child1));
 
         // Child spanning 2 rows
         auto child2 = std::make_unique<TestElement>();
-        child2->set_width_constraint({size_policy::fixed, 80, 80});
+        child2->set_width_constraint({size_policy::fixed, 80_lu, 80_lu});
         child2->set_height_constraint({size_policy::fill_parent});
         auto child2_ptr = child2.get();
         parent->add_test_child(std::move(child2));
@@ -102,19 +102,19 @@ TEST_SUITE("grid_layout") {
         // Without explicit spanning, children just occupy single cells
 
         // Measure: grid with spanning considerations
-        auto measured = parent->measure(300, 200);
-        CHECK(measured.w > 0);
-        CHECK(measured.h > 0);
+        auto measured = parent->measure(300_lu, 200_lu);
+        CHECK(measured.width > 0_lu);
+        CHECK(measured.height > 0_lu);
 
         // Arrange to measured size to avoid scaling
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, measured.w, measured.h));
+        parent->arrange(logical_rect{0_lu, 0_lu, measured.width, measured.height});
 
         // With fill_parent policy, child1 fills its cell width
-        CHECK(child1_ptr->bounds().get().w <= 100); // Single cell width
+        CHECK(child1_ptr->bounds().width.to_int() <= 100); // Single cell width
 
         // Child2 has fill_parent height policy, so it fills available cell height
         // Row height is 40px (from child1), so child2 fills to 40px
-        CHECK(child2_ptr->bounds().get().h >= 40); // Fills cell height
+        CHECK(child2_ptr->bounds().height.to_int() >= 40); // Fills cell height
     }
 
     TEST_CASE("Fixed column and row dimensions") {
@@ -136,23 +136,23 @@ TEST_SUITE("grid_layout") {
             parent->add_test_child(std::move(child));
         }
 
-        TestSize const measured = parent->measure(1000, 1000);
-        CHECK(measured.w == 250);  // 150 + 100
-        CHECK(measured.h == 140); // 60 + 80
+        auto measured = parent->measure(1000_lu, 1000_lu);
+        CHECK(measured.width == 250_lu);  // 150 + 100
+        CHECK(measured.height == 140_lu); // 60 + 80
 
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 250, 140));
+        parent->arrange(logical_rect{0_lu, 0_lu, 250_lu, 140_lu});
 
         // First column children
-        CHECK(parent->child_at(0)->bounds().get().w == 150);
-        CHECK(parent->child_at(2)->bounds().get().w == 150);
+        CHECK(parent->child_at(0)->bounds().width.to_int() == 150);
+        CHECK(parent->child_at(2)->bounds().width.to_int() == 150);
         // Second column children
-        CHECK(parent->child_at(1)->bounds().get().w == 100);
-        CHECK(parent->child_at(3)->bounds().get().w == 100);
+        CHECK(parent->child_at(1)->bounds().width.to_int() == 100);
+        CHECK(parent->child_at(3)->bounds().width.to_int() == 100);
         // First row children
-        CHECK(parent->child_at(0)->bounds().get().h == 60);
-        CHECK(parent->child_at(1)->bounds().get().h == 60);
+        CHECK(parent->child_at(0)->bounds().height.to_int() == 60);
+        CHECK(parent->child_at(1)->bounds().height.to_int() == 60);
         // Second row children
-        CHECK(parent->child_at(2)->bounds().get().h == 80);
-        CHECK(parent->child_at(3)->bounds().get().h == 80);
+        CHECK(parent->child_at(2)->bounds().height.to_int() == 80);
+        CHECK(parent->child_at(3)->bounds().height.to_int() == 80);
     }
 }

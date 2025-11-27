@@ -38,7 +38,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
 
     // Create content
     auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
-    content->set_padding(onyxui::thickness::all(2));
+    content->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
 
     // Title
     auto* title = content->template emplace_child<onyxui::label>("OnyxUI Widgets Demo");

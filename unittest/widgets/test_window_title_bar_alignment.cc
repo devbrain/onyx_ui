@@ -22,8 +22,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        (void)win->measure(30, 10);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 30, 10}});
+        (void)win->measure(30_lu, 10_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(*win, 30, 10);
@@ -61,8 +61,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        (void)win->measure(30, 10);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 30, 10}});
+        (void)win->measure(30_lu, 10_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(*win, 30, 10);
@@ -103,8 +103,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         flags.has_close_button = true;
 
         auto win = std::make_unique<window<Backend>>("Title", flags);
-        (void)win->measure(30, 10);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 30, 10}});
+        (void)win->measure(30_lu, 10_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(*win, 30, 10);
@@ -130,8 +130,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
         // Test left alignment (default)
         auto win1 = std::make_unique<window<Backend>>("Very Long Window Title Text",
             typename window<Backend>::window_flags{});
-        (void)win1->measure(40, 10);
-        win1->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 40, 10}});
+        (void)win1->measure(40_lu, 10_lu);
+        win1->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
         auto canvas1 = render_to_canvas(*win1, 40, 10);
 
         // Test center alignment
@@ -143,8 +143,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Title alignme
 
         auto win2 = std::make_unique<window<Backend>>("Very Long Window Title Text",
             typename window<Backend>::window_flags{});
-        (void)win2->measure(40, 10);
-        win2->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 40, 10}});
+        (void)win2->measure(40_lu, 10_lu);
+        win2->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
         auto canvas2 = render_to_canvas(*win2, 40, 10);
 
         // Just verify they render without errors

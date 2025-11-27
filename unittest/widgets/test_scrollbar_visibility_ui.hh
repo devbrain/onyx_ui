@@ -54,7 +54,7 @@ public:
 
         // Set up layout
         this->set_vbox_layout(spacing::tiny);  // Vertical layout with 1px spacing to allow button shadows to be visible
-        this->set_padding(onyxui::thickness::all(0));  // No internal padding for compact DOS look
+        this->set_padding(onyxui::logical_thickness(0_lu));  // No internal padding for compact DOS look
 
         // Set up actions and hotkeys (must come before build_menu_bar)
         setup_actions();
@@ -107,7 +107,7 @@ private:
         // Demo panel with border
         auto* demo_panel = add_panel(*this);
         demo_panel->set_has_border(true);
-        demo_panel->set_padding(onyxui::thickness::all(1));
+        demo_panel->set_padding(onyxui::logical_thickness(1_lu));
         demo_panel->set_vbox_layout(spacing::tiny);
 
         add_label(*demo_panel, "Panel with Border");
@@ -213,9 +213,9 @@ private:
         //   - Min size for scrollbars: 8px each (to avoid corruption)
         onyxui::size_constraint height_constraint;
         height_constraint.policy = onyxui::size_policy::content;  // Size based on content
-        height_constraint.preferred_size = 8;   // Fit in remaining space
-        height_constraint.min_size = 8;         // Minimum: ensure scrollbars can render properly
-        height_constraint.max_size = 8;         // Maximum: prevent overflow
+        height_constraint.preferred_size = logical_unit(static_cast<double>(8));   // Fit in remaining space
+        height_constraint.min_size = logical_unit(static_cast<double>(8));         // Minimum: ensure scrollbars can render properly
+        height_constraint.max_size = logical_unit(static_cast<double>(8));         // Maximum: prevent overflow
         text_view_widget->set_height_constraint(height_constraint);
 
         // Save pointer before moving

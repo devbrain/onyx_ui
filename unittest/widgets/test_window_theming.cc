@@ -73,17 +73,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         window<test_canvas_backend> win("Test Window");
 
         // Measure initially
-        auto size1 = win.measure(100, 100);
-        CHECK(size1.w > 0);
-        CHECK(size1.h > 0);
+        auto size1 = win.measure(100_lu, 100_lu);
+        CHECK(size1.width.to_int() > 0);
+        CHECK(size1.height.to_int() > 0);
 
         // Change focus - should invalidate and allow re-measure
         win.set_window_focus(true);
 
         // Can measure again (proves invalidation worked)
-        auto size2 = win.measure(100, 100);
-        CHECK(size2.w > 0);
-        CHECK(size2.h > 0);
+        auto size2 = win.measure(100_lu, 100_lu);
+        CHECK(size2.width.to_int() > 0);
+        CHECK(size2.height.to_int() > 0);
     }
 }
 
@@ -133,8 +133,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     SUBCASE("Window renders successfully when focused") {
         win.set_window_focus(true);
-        [[maybe_unused]] auto size = win.measure(80, 25);
-        win.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+        [[maybe_unused]] auto size = win.measure(80_lu, 25_lu);
+        win.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();
@@ -149,8 +149,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
 
     SUBCASE("Window renders successfully when unfocused") {
         win.set_window_focus(false);
-        [[maybe_unused]] auto size = win.measure(80, 25);
-        win.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+        [[maybe_unused]] auto size = win.measure(80_lu, 25_lu);
+        win.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         auto canvas = render_to_canvas(win, 80, 25);
         std::string rendered = canvas->render_ascii();
@@ -167,11 +167,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
         window<test_canvas_backend> win_no_title("No Title", no_title_flags);
         window<test_canvas_backend> win_with_title("With Title", flags);
 
-        auto size_no_title = win_no_title.measure(100, 100);
-        auto size_with_title = win_with_title.measure(100, 100);
+        auto size_no_title = win_no_title.measure(100_lu, 100_lu);
+        auto size_with_title = win_with_title.measure(100_lu, 100_lu);
 
         // Window with title bar should be taller
-        CHECK(size_with_title.h >= size_no_title.h);
+        CHECK(size_with_title.height.to_int() >= size_no_title.height.to_int());
     }
 }
 

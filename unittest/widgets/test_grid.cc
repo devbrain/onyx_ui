@@ -45,7 +45,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         CHECK(g.children().size() == 4);
 
         // Should not crash
-        CHECK_NOTHROW((void)g.measure(200, 200));
+        CHECK_NOTHROW((void)g.measure(200_lu, 200_lu));
     }
 
     SUBCASE("Explicit cell assignment") {
@@ -60,7 +60,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         CHECK(result);
 
         // Measure should not crash
-        CHECK_NOTHROW((void)g.measure(300, 300));
+        CHECK_NOTHROW((void)g.measure(300_lu, 300_lu));
     }
 
     SUBCASE("Fixed-size grid") {
@@ -82,9 +82,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
             g.add_child(std::make_unique<label<test_canvas_backend>>(std::to_string(i)));
         }
 
-        auto size = g.measure(500, 500);
-        int const width = size_utils::get_width(size);
-        int const height = size_utils::get_height(size);
+        auto size = g.measure(500_lu, 500_lu);
+        int const width = size.width.to_int();
+        int const height = size.height.to_int();
 
         // Width = 100 + 150 + 100 + 2*3 (spacing::xlarge resolves to 3) = 356
         CHECK(width == 356);
@@ -99,11 +99,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
             g.add_child(std::make_unique<button<test_canvas_backend>>(std::to_string(i)));
         }
 
-        CHECK_NOTHROW((void)g.measure(200, 200));
+        CHECK_NOTHROW((void)g.measure(200_lu, 200_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(g.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(g.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu}));
     }
 
     SUBCASE("Cell spanning") {
@@ -127,7 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         }
 
         CHECK(g.children().size() == 8);
-        CHECK_NOTHROW((void)g.measure(400, 300));
+        CHECK_NOTHROW((void)g.measure(400_lu, 300_lu));
     }
 
     SUBCASE("Invalid cell assignment") {
@@ -163,15 +161,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         g.add_child(std::make_unique<button<test_canvas_backend>>("B3"));
 
         // Measure
-        auto size = g.measure(80, 25);
-        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
-        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size_utils::get_height(size) > 0);
+        auto size = g.measure(80_lu, 25_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 80, 25);
-        g.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
+        g.arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Render
         auto canvas = render_to_canvas(g, 80, 25);
@@ -218,11 +214,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         grid<test_canvas_backend> g2(std::move(g1));
 
         // g2's layout pointer should be valid, not dangling
-        CHECK_NOTHROW((void)g2.measure(100, 100));
+        CHECK_NOTHROW((void)g2.measure(100_lu, 100_lu));
 
         // Arranging should work without crashes
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 100, 100);
-        CHECK_NOTHROW(g2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(g2.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu}));
     }
 }

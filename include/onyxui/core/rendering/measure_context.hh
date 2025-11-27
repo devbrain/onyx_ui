@@ -316,16 +316,15 @@ namespace onyxui {
          * The size is calculated from the bounding box: (max - min) for both dimensions.
          * If no content was drawn, returns zero size.
          */
-        [[nodiscard]] size_type get_size() const noexcept {
-            size_type result{};
+        [[nodiscard]] logical_size get_size() const noexcept {
             if (m_has_content) {
                 int const width = m_max_right - m_min_x;
                 int const height = m_max_bottom - m_min_y;
-                size_utils::set_size(result, width, height);
+                return logical_size{logical_unit(static_cast<double>(width)),
+                                   logical_unit(static_cast<double>(height))};
             } else {
-                size_utils::set_size(result, 0, 0);
+                return logical_size{logical_unit(0.0), logical_unit(0.0)};
             }
-            return result;
         }
 
         /**

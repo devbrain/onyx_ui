@@ -67,8 +67,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         item.set_text("About");  // 5 characters
 
         // Measure the menu item
-        auto size = item.measure(100, 100);
-        int width = size_utils::get_width(size);
+        auto size = item.measure(100_lu, 100_lu);
+        int width = size.width.to_int();
 
         // The text is 5 chars, but it's drawn at x+2 (left padding)
         // So the minimum width should be 5 + 2 = 7
@@ -89,8 +89,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         item.set_action(action);
 
         // Measure the menu item
-        auto size = item.measure(100, 100);
-        int width = size_utils::get_width(size);
+        auto size = item.measure(100_lu, 100_lu);
+        int width = size.width.to_int();
 
         // Text "Open" (4) at position 2
         // Shortcut "Ctrl+O" (6) with 2 chars right padding
@@ -105,9 +105,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         auto sep = std::make_unique<separator<Backend>>();
 
         // Measure the separator
-        auto size = sep->measure(100, 100);
-        int width = size_utils::get_width(size);
-        int height = size_utils::get_height(size);
+        auto size = sep->measure(100_lu, 100_lu);
+        int width = size.width.to_int();
+        int height = size.height.to_int();
 
         // Separator has expand policy for width (returns 0 during measurement)
         // and fixed height of 1
@@ -115,12 +115,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Measurem
         CHECK(width == 0);  // Expand policy returns 0 during measurement
 
         // After arrange(), the separator will fill available width
-        typename Backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 100, 1);
-        sep->arrange(geometry::relative_rect<Backend>{bounds});
+        sep->arrange(logical_rect{0_lu, 0_lu, 100_lu, 1_lu});
 
         auto arranged_bounds = sep->bounds();
-        CHECK(rect_utils::get_width(arranged_bounds) == 100);  // Now fills available width
+        CHECK(arranged_bounds.width.to_int() == 100);  // Now fills available width
     }
 }
 
@@ -132,12 +130,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Text is 
         item.set_text("About");
 
         // Measure and arrange with the measured size
-        auto measured_size = item.measure(100, 100);
-        int measured_width = size_utils::get_width(measured_size);
+        auto measured_size = item.measure(100_lu, 100_lu);
+        int measured_width = measured_size.width.to_int();
 
         // Arrange with exactly the measured width
-        Backend::rect_type bounds{0, 0, measured_width, 1};
-        item.arrange(geometry::relative_rect<Backend>{bounds});
+        item.arrange(logical_rect{0_lu, 0_lu, logical_unit(static_cast<double>(measured_width)), 1_lu});
 
         // Now simulate rendering to check if text fits
         // The text "About" (5 chars) is drawn at position x+2
@@ -167,14 +164,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme ch
         item.set_text("About");
 
         // Measure with first theme
-        auto size1 = item.measure(100, 100);
-        int width1 = size_utils::get_width(size1);
+        auto size1 = item.measure(100_lu, 100_lu);
+        int width1 = size1.width.to_int();
 
         CHECK(width1 >= 9);  // Should have padding
 
         // Measure again - should still have correct width
-        auto size2 = item.measure(100, 100);
-        int width2 = size_utils::get_width(size2);
+        auto size2 = item.measure(100_lu, 100_lu);
+        int width2 = size2.width.to_int();
 
         CHECK(width2 >= 9);  // Should still have padding after theme change
         CHECK(width2 == width1);  // Width should remain consistent
@@ -194,14 +191,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Theme ch
         item.set_action(action);
 
         // Measure with first theme
-        auto size1 = item.measure(100, 100);
-        int width1 = size_utils::get_width(size1);
+        auto size1 = item.measure(100_lu, 100_lu);
+        int width1 = size1.width.to_int();
 
         CHECK(width1 >= 14);  // Text + shortcut + padding
 
         // Measure again
-        auto size2 = item.measure(100, 100);
-        int width2 = size_utils::get_width(size2);
+        auto size2 = item.measure(100_lu, 100_lu);
+        int width2 = size2.width.to_int();
 
         CHECK(width2 >= 14);  // Should still have proper width
     }
@@ -362,9 +359,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         root.add_child(std::move(menu_bar_ptr));
 
         // Measure and arrange
-        auto root_size = root.measure(100, 100);
+        auto root_size = root.measure(100_lu, 100_lu);
         (void)root_size;  // Measurement needed for arrange
-        root.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        root.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // Get the button bounds from menu bar
         auto file_btn_bounds = menu_bar->get_menu_button_bounds(0);
@@ -372,6 +369,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         auto help_btn_bounds = menu_bar->get_menu_button_bounds(2);
 
         // For now, just check that the buttons have non-zero bounds
+        // Note: get_menu_button_bounds() returns Backend::rect_type (physical coordinates)
         CHECK(rect_utils::get_width(file_btn_bounds) > 0);
         CHECK(rect_utils::get_width(theme_btn_bounds) > 0);
         CHECK(rect_utils::get_width(help_btn_bounds) > 0);
@@ -395,7 +393,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Create main panel (like main_widget in demo.hh)
         auto root = std::make_unique<panel<CanvasBackend>>();
         root->set_vbox_layout(spacing::none);
-        root->set_padding(thickness::all(0));
+        root->set_padding(logical_thickness{0_lu, 0_lu, 0_lu, 0_lu});
 
         // Create menu bar as child (BEFORE applying theme, line 181 of demo.hh)
         auto* menu_bar_ptr = root->emplace_child<menu_bar>();
@@ -411,9 +409,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         menu_bar_ptr->add_menu("&Help", std::move(help_menu));
 
         // Measure and arrange
-        auto root_size = root->measure(80, 25);
+        auto root_size = root->measure(80_lu, 25_lu);
         (void)root_size;  // Measurement needed for arrange
-        root->arrange(geometry::relative_rect<CanvasBackend>{CanvasBackend::rect_type{0, 0, 80, 25}});
+        root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Render to canvas
         auto canvas = std::make_shared<test_canvas>(80, 25);
@@ -451,35 +449,35 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         auto theme_bounds = theme_item->bounds();
         auto help_bounds = help_item->bounds();
 
-        INFO("File button bounds: ", rect_utils::get_x(file_bounds), ",", rect_utils::get_y(file_bounds),
-             " ", rect_utils::get_width(file_bounds), "x", rect_utils::get_height(file_bounds));
-        INFO("Theme button bounds: ", rect_utils::get_x(theme_bounds), ",", rect_utils::get_y(theme_bounds),
-             " ", rect_utils::get_width(theme_bounds), "x", rect_utils::get_height(theme_bounds));
-        INFO("Help button bounds: ", rect_utils::get_x(help_bounds), ",", rect_utils::get_y(help_bounds),
-             " ", rect_utils::get_width(help_bounds), "x", rect_utils::get_height(help_bounds));
+        INFO("File button bounds: ", file_bounds.x.to_int(), ",", file_bounds.y.to_int(),
+             " ", file_bounds.width.to_int(), "x", file_bounds.height.to_int());
+        INFO("Theme button bounds: ", theme_bounds.x.to_int(), ",", theme_bounds.y.to_int(),
+             " ", theme_bounds.width.to_int(), "x", theme_bounds.height.to_int());
+        INFO("Help button bounds: ", help_bounds.x.to_int(), ",", help_bounds.y.to_int(),
+             " ", help_bounds.width.to_int(), "x", help_bounds.height.to_int());
 
         // CRITICAL: Verify menu bar items DON'T have borders!
         // Menu bar items should render ONLY text, no borders
         // This is the architectural fix for the File menu button border bug
         CHECK_MESSAGE(!canvas->has_complete_border(
-            rect_utils::get_x(file_bounds), rect_utils::get_y(file_bounds),
-            rect_utils::get_width(file_bounds), rect_utils::get_height(file_bounds)),
+            file_bounds.x.to_int(), file_bounds.y.to_int(),
+            file_bounds.width.to_int(), file_bounds.height.to_int()),
             "File menu item should NOT have border (it's not a button!)");
 
         CHECK_MESSAGE(!canvas->has_complete_border(
-            rect_utils::get_x(theme_bounds), rect_utils::get_y(theme_bounds),
-            rect_utils::get_width(theme_bounds), rect_utils::get_height(theme_bounds)),
+            theme_bounds.x.to_int(), theme_bounds.y.to_int(),
+            theme_bounds.width.to_int(), theme_bounds.height.to_int()),
             "Theme menu item should NOT have border (it's not a button!)");
 
         CHECK_MESSAGE(!canvas->has_complete_border(
-            rect_utils::get_x(help_bounds), rect_utils::get_y(help_bounds),
-            rect_utils::get_width(help_bounds), rect_utils::get_height(help_bounds)),
+            help_bounds.x.to_int(), help_bounds.y.to_int(),
+            help_bounds.width.to_int(), help_bounds.height.to_int()),
             "Help menu item should NOT have border (it's not a button!)");
 
         // Verify text is rendered (the important part)
         // Text should be left-aligned (horizontal_padding = 0 for menu bar items)
-        assert_text_at(*canvas, "File", rect_utils::get_x(file_bounds), rect_utils::get_y(file_bounds), "File menu text");
-        assert_text_at(*canvas, "Theme", rect_utils::get_x(theme_bounds), rect_utils::get_y(theme_bounds), "Theme menu text");
-        assert_text_at(*canvas, "Help", rect_utils::get_x(help_bounds), rect_utils::get_y(help_bounds), "Help menu text");
+        assert_text_at(*canvas, "File", file_bounds.x.to_int(), file_bounds.y.to_int(), "File menu text");
+        assert_text_at(*canvas, "Theme", theme_bounds.x.to_int(), theme_bounds.y.to_int(), "Theme menu text");
+        assert_text_at(*canvas, "Help", help_bounds.x.to_int(), help_bounds.y.to_int(), "Help menu text");
     }
 }

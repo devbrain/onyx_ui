@@ -196,6 +196,8 @@
 #include <concepts>
 #include <cstdint>
 #include <numeric>
+#include <onyxui/core/types.hh>
+#include <onyxui/core/geometry.hh>
 #include <onyxui/concepts/backend.hh>
 
 
@@ -532,9 +534,9 @@ namespace onyxui {
         size_policy policy = size_policy::content; ///< Sizing behavior strategy
 
         // Core size values
-        int preferred_size = 0; ///< Desired size for 'fixed' policy (pixels)
-        int min_size = 0; ///< Minimum allowed size (pixels), always enforced
-        int max_size = std::numeric_limits <int>::max(); ///< Maximum allowed size (pixels), always enforced
+        logical_unit preferred_size = logical_unit(0.0); ///< Desired size for 'fixed' policy
+        logical_unit min_size = logical_unit(0.0); ///< Minimum allowed size, always enforced
+        logical_unit max_size = logical_unit(std::numeric_limits<double>::max()); ///< Maximum allowed size, always enforced
 
         // Policy-specific parameters
         float weight = 1.0F; ///< Weight for 'weighted' policy (like CSS flex-grow)
@@ -591,7 +593,7 @@ namespace onyxui {
          * width.set_range(200, 80);  // Becomes: Min: 80px, Max: 200px
          * @endcode
          */
-        constexpr void set_range(int min, int max) noexcept {
+        constexpr void set_range(logical_unit min, logical_unit max) noexcept {
             // Auto-correct: swap if min > max to maintain invariant
             if (min > max) {
                 min_size = max;
@@ -628,12 +630,12 @@ namespace onyxui {
          * int size3 = c.clamp(300); // Returns 200 (clamped to max)
          * @endcode
          */
-        [[nodiscard]] int clamp(int value) const noexcept {
+        [[nodiscard]] logical_unit clamp(logical_unit value) const noexcept {
             // Auto-correct: if invalid constraint, use min as both bounds
             if (min_size > max_size) {
                 return min_size;
             }
-            return std::max(min_size, std::min(max_size, value));
+            return max(min_size, min(max_size, value));
         }
 
         /**
@@ -839,10 +841,10 @@ namespace onyxui {
              * @note Exception safety: Depends on derived class implementation
              * @note Base class provides no exception guarantees - derived classes should document their behavior
              */
-            virtual size_type measure_children(
+            virtual logical_size measure_children(
                 const ui_element<Backend>* parent,
-                int available_width,
-                int available_height) const = 0;
+                logical_unit available_width,
+                logical_unit available_height) const = 0;
 
             /**
              * @brief Arrange phase: assign final positions to all children
@@ -855,7 +857,7 @@ namespace onyxui {
              * to determine the exact position and size of each child.
              *
              * @param parent The parent element whose children to arrange
-             * @param content_area The area available for children (excludes padding/margin)
+             * @param content_area The area available for children (excludes padding/margin) in logical units
              *
              * @exception Any exception thrown by child->arrange()
              * @exception std::bad_alloc If derived implementation allocates memory
@@ -864,7 +866,7 @@ namespace onyxui {
              */
             virtual void arrange_children(
                 ui_element<Backend>* parent,
-                const rect_type& content_area) = 0;
+                const logical_rect& content_area) = 0;
 
             /**
              * @brief Called when a child is removed from the parent
@@ -927,7 +929,7 @@ namespace onyxui {
              * @param parent The parent element
              * @return The last measured size
              */
-            [[nodiscard]] static const size_type& get_last_measured_size(const ui_element<Backend>* parent) noexcept {
+            [[nodiscard]] static const logical_size& get_last_measured_size(const ui_element<Backend>* parent) noexcept {
                 return parent->last_measured_size();
             }
 

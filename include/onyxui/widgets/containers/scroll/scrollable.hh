@@ -163,15 +163,15 @@ namespace onyxui {
             auto const child_bounds = child->bounds();
             auto const viewport_bounds = this->get_content_area();
 
-            int const viewport_x = rect_utils::get_x(viewport_bounds);
-            int const viewport_y = rect_utils::get_y(viewport_bounds);
-            int const viewport_w = rect_utils::get_width(viewport_bounds);
-            int const viewport_h = rect_utils::get_height(viewport_bounds);
+            int const viewport_x = viewport_bounds.x.to_int();
+            int const viewport_y = viewport_bounds.y.to_int();
+            int const viewport_w = viewport_bounds.width.to_int();
+            int const viewport_h = viewport_bounds.height.to_int();
 
-            int const child_x = rect_utils::get_x(child_bounds);
-            int const child_y = rect_utils::get_y(child_bounds);
-            int const child_w = rect_utils::get_width(child_bounds);
-            int const child_h = rect_utils::get_height(child_bounds);
+            int const child_x = child_bounds.x.to_int();
+            int const child_y = child_bounds.y.to_int();
+            int const child_w = child_bounds.width.to_int();
+            int const child_h = child_bounds.height.to_int();
 
             int const scroll_x = point_utils::get_x(m_scroll_offset);
             int const scroll_y = point_utils::get_y(m_scroll_offset);
@@ -333,49 +333,43 @@ namespace onyxui {
          * @return Content size (unconstrained child size)
          * @note Children measure as if they have infinite space available
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // Ignore available size - measure children with unconstrained size
             (void)available_width;
             (void)available_height;
 
-            constexpr int UNCONSTRAINED = std::numeric_limits<int>::max() - 1;
+            constexpr logical_unit UNCONSTRAINED = logical_unit(static_cast<double>(std::numeric_limits<int>::max() - 1));
 
             if (this->children().empty()) {
-                m_content_size = size_type{0, 0};
+                size_utils::set_size(m_content_size, 0, 0);
                 // Return small size for empty container
-                return m_content_size;
+                return logical_size{logical_unit(0.0), logical_unit(0.0)};
             }
 
             // Measure all children with unconstrained size
             // This allows them to report their natural/preferred size
-            size_type max_size{0, 0};
+            logical_size max_size{logical_unit(0.0), logical_unit(0.0)};
 
             for (const auto& child : this->children()) {
                 auto const child_size = child->measure(UNCONSTRAINED, UNCONSTRAINED);
 
-                int const child_w = size_utils::get_width(child_size);
-                int const child_h = size_utils::get_height(child_size);
-                int const max_w = size_utils::get_width(max_size);
-                int const max_h = size_utils::get_height(max_size);
-
                 // Take maximum size across all children
-                size_utils::set_size(max_size,
-                    std::max(max_w, child_w),
-                    std::max(max_h, child_h));
+                max_size.width = max(max_size.width, child_size.width);
+                max_size.height = max(max_size.height, child_size.height);
             }
 
             // Detect content size change
             int const old_w = size_utils::get_width(m_content_size);
             int const old_h = size_utils::get_height(m_content_size);
-            int const new_w = size_utils::get_width(max_size);
-            int const new_h = size_utils::get_height(max_size);
+            int const new_w = max_size.width.to_int();
+            int const new_h = max_size.height.to_int();
 
             if (old_w != new_w || old_h != new_h) {
                 // Cache old scrollbar visibility
                 bool const old_h_visible = should_show_horizontal_scrollbar();
                 bool const old_v_visible = should_show_vertical_scrollbar();
 
-                m_content_size = max_size;
+                size_utils::set_size(m_content_size, new_w, new_h);
 
                 // Content size changed - may need to adjust scroll offset
                 auto info = get_scroll_info();
@@ -400,7 +394,7 @@ namespace onyxui {
 
             // Return the unconstrained content size
             // This is what the scrollable wants to be (its natural size)
-            return m_content_size;
+            return max_size;
         }
 
         /**
@@ -408,7 +402,7 @@ namespace onyxui {
          * @param final_bounds Final bounds assigned by parent
          * @note Overrides do_arrange to position children with negative scroll offset
          */
-        void do_arrange(const rect_type& final_bounds) override {
+        void do_arrange(const logical_rect& final_bounds) override {
             // SINGLE-PASS ARRANGEMENT (Solution 1 from SCROLLABLE_ARCHITECTURE_ISSUE.md)
             // Arrange children ONCE with scroll offset baked in
             // DON'T call base::do_arrange() - prevents double-arrangement
@@ -421,10 +415,9 @@ namespace onyxui {
 
             // Store viewport size from content area
             auto content_area = this->get_content_area();
-            m_viewport_size = size_type{
-                rect_utils::get_width(content_area),
-                rect_utils::get_height(content_area)
-            };
+            size_utils::set_size(m_viewport_size,
+                content_area.width.to_int(),
+                content_area.height.to_int());
 
             // Check if scrollbar visibility changed (for auto_hide policy)
             bool const new_h_visible = should_show_horizontal_scrollbar();
@@ -454,8 +447,8 @@ namespace onyxui {
 
             // Child position = content area origin (0,0) - scroll offset
             // In relative coords, base is always (0,0) - padding is handled elsewhere
-            int const child_x = 0 - scroll_x;
-            int const child_y = 0 - scroll_y;
+            logical_unit const child_x = logical_unit(static_cast<double>(0 - scroll_x));
+            logical_unit const child_y = logical_unit(static_cast<double>(0 - scroll_y));
 
             // Arrange children ONCE with scroll offset baked in
             // This is the ONLY arrangement - no double-arrangement
@@ -463,8 +456,10 @@ namespace onyxui {
                 int const content_w = size_utils::get_width(m_content_size);
                 int const content_h = size_utils::get_height(m_content_size);
 
-                rect_type child_bounds{child_x, child_y, content_w, content_h};
-                child->arrange(geometry::relative_rect<Backend>{child_bounds});
+                logical_rect child_bounds{child_x, child_y,
+                    logical_unit(static_cast<double>(content_w)),
+                    logical_unit(static_cast<double>(content_h))};
+                child->arrange(child_bounds);
             }
         }
 

@@ -199,8 +199,8 @@ namespace onyxui {
                 size_constraint constraint;
                 constraint.policy = size_policy::weighted;
                 constraint.weight = weight;
-                constraint.min_size = m_min_size;
-                constraint.max_size = m_max_size;
+                constraint.min_size = logical_unit(static_cast<double>(m_min_size));
+                constraint.max_size = logical_unit(static_cast<double>(m_max_size));
 
                 if (horizontal) {
                     this->set_width_constraint(constraint);
@@ -237,8 +237,8 @@ namespace onyxui {
                     size_constraint constraint;
                     constraint.policy = size_policy::weighted;
                     constraint.weight = weight;
-                    constraint.min_size = m_min_size;
-                    constraint.max_size = m_max_size;
+                    constraint.min_size = logical_unit(static_cast<double>(m_min_size));
+                    constraint.max_size = logical_unit(static_cast<double>(m_max_size));
 
                     if (m_horizontal) {
                         this->set_width_constraint(constraint);
@@ -347,10 +347,8 @@ namespace onyxui {
              *
              * @note Override of widget::get_content_size()
              */
-            typename Backend::size_type get_content_size() const override {
-                typename Backend::size_type size;
-                size_utils::set_size(size, m_min_size, m_min_size);
-                return size;
+            [[nodiscard]] logical_size get_content_size() const override {
+                return logical_size{logical_unit(static_cast<double>(m_min_size)), logical_unit(static_cast<double>(m_min_size))};
             }
 
             /**
@@ -394,8 +392,8 @@ namespace onyxui {
                 size_constraint constraint;
                 constraint.policy = size_policy::weighted;
                 constraint.weight = m_weight;
-                constraint.min_size = m_min_size;
-                constraint.max_size = m_max_size;
+                constraint.min_size = logical_unit(static_cast<double>(m_min_size));
+                constraint.max_size = logical_unit(static_cast<double>(m_max_size));
 
                 if (m_horizontal) {
                     this->set_width_constraint(constraint);

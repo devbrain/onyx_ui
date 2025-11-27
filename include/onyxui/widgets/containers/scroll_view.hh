@@ -320,9 +320,9 @@ namespace onyxui {
          * When scrollbar_visibility is "always", scrollbars need minimum 8 pixels to render
          * without corruption. This method ensures scroll_view requests adequate space.
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // Measure the grid (our only child)
-            size_type measured_size;
+            logical_size measured_size;
             if (m_grid_ptr) {
                 measured_size = m_grid_ptr->measure(available_width, available_height);
             } else {
@@ -339,15 +339,15 @@ namespace onyxui {
 
             // Add minimum height for horizontal scrollbar if always visible
             if (policy.horizontal == scrollbar_visibility::always) {
-                if (measured_size.h < min_size) {
-                    measured_size.h = min_size;
+                if (measured_size.height.to_int() < min_size) {
+                    measured_size.height = logical_unit(static_cast<double>(min_size));
                 }
             }
 
             // Add minimum width for vertical scrollbar if always visible
             if (policy.vertical == scrollbar_visibility::always) {
-                if (measured_size.w < min_size) {
-                    measured_size.w = min_size;
+                if (measured_size.width.to_int() < min_size) {
+                    measured_size.width = logical_unit(static_cast<double>(min_size));
                 }
             }
 
@@ -394,14 +394,14 @@ namespace onyxui {
             if (kbd.key == key_code::page_up) {
                 // Use scrollable bounds to get viewport height
                 auto viewport_bounds = m_content_ptr->bounds();
-                int viewport_height = rect_utils::get_height(viewport_bounds);
+                int viewport_height = viewport_bounds.height.to_int();
                 m_content_ptr->scroll_by(0, -viewport_height);
                 return true;
             }
             if (kbd.key == key_code::page_down) {
                 // Use scrollable bounds to get viewport height
                 auto viewport_bounds = m_content_ptr->bounds();
-                int viewport_height = rect_utils::get_height(viewport_bounds);
+                int viewport_height = viewport_bounds.height.to_int();
                 m_content_ptr->scroll_by(0, viewport_height);
                 return true;
             }

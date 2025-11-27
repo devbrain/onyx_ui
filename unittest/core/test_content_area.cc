@@ -41,77 +41,77 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
     TEST_CASE("Content area - no margin or padding") {
         test_element_accessor elem;
-        elem.arrange(testing::make_relative_rect<TestBackend>(10, 20, 100, 50));
+        elem.arrange(logical_rect{10_lu, 20_lu, 100_lu, 50_lu});
 
         auto content = elem.get_content_area();
 
         // RELATIVE COORDINATES: content_area is relative to widget's own bounds origin (0, 0)
         // Widget arranged at absolute (10, 20), but content_area is relative
-        CHECK(rect_utils::get_x(content) == 0);
-        CHECK(rect_utils::get_y(content) == 0);
-        CHECK(rect_utils::get_width(content) == 100);
-        CHECK(rect_utils::get_height(content) == 50);
+        CHECK(content.x == 0_lu);
+        CHECK(content.y == 0_lu);
+        CHECK(content.width == 100_lu);
+        CHECK(content.height == 50_lu);
     }
 
     TEST_CASE("Content area - with padding only") {
         test_element_accessor elem;
-        elem.set_padding({5, 3, 7, 9});  // L, T, R, B
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+        elem.set_padding(logical_thickness{5_lu, 3_lu, 7_lu, 9_lu});  // L, T, R, B
+        elem.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto content = elem.get_content_area();
 
         // Position offset by padding
-        CHECK(rect_utils::get_x(content) == 5);  // left padding
-        CHECK(rect_utils::get_y(content) == 3);  // top padding
+        CHECK(content.x == 5_lu);  // left padding
+        CHECK(content.y == 3_lu);  // top padding
 
         // Size reduced by padding
-        CHECK(rect_utils::get_width(content) == 88);   // 100 - 5 - 7
-        CHECK(rect_utils::get_height(content) == 88);  // 100 - 3 - 9
+        CHECK(content.width == 88_lu);   // 100 - 5 - 7
+        CHECK(content.height == 88_lu);  // 100 - 3 - 9
     }
 
     TEST_CASE("Content area - with margin only") {
         test_element_accessor elem;
-        elem.set_margin({10, 20, 10, 20});  // L, T, R, B
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 200));
+        elem.set_margin(logical_thickness{10_lu, 20_lu, 10_lu, 20_lu});  // L, T, R, B
+        elem.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
         auto content = elem.get_content_area();
 
         // Margin affects bounds, not content area - content area is calculated from bounds
         // After margin is applied, bounds should be (10, 20, 180, 160)
         // Content area should match those bounds
-        CHECK(rect_utils::get_x(content) == 10);  // left margin
-        CHECK(rect_utils::get_y(content) == 20);  // top margin
-        CHECK(rect_utils::get_width(content) == 180);   // 200 - 10 - 10
-        CHECK(rect_utils::get_height(content) == 160);  // 200 - 20 - 20
+        CHECK(content.x == 10_lu);  // left margin
+        CHECK(content.y == 20_lu);  // top margin
+        CHECK(content.width == 180_lu);   // 200 - 10 - 10
+        CHECK(content.height == 160_lu);  // 200 - 20 - 20
     }
 
     TEST_CASE("Content area - with margin AND padding") {
         test_element_accessor elem;
-        elem.set_margin({5, 5, 5, 5});
-        elem.set_padding({3, 3, 3, 3});
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+        elem.set_margin(logical_thickness{5_lu, 5_lu, 5_lu, 5_lu});
+        elem.set_padding(logical_thickness{3_lu, 3_lu, 3_lu, 3_lu});
+        elem.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto content = elem.get_content_area();
 
         // Position offset by margin + padding
-        CHECK(rect_utils::get_x(content) == 8);   // 5 + 3
-        CHECK(rect_utils::get_y(content) == 8);   // 5 + 3
+        CHECK(content.x == 8_lu);   // 5 + 3
+        CHECK(content.y == 8_lu);   // 5 + 3
 
         // Size reduced by margin + padding
-        CHECK(rect_utils::get_width(content) == 84);   // 100 - 2*8
-        CHECK(rect_utils::get_height(content) == 84);  // 100 - 2*8
+        CHECK(content.width == 84_lu);   // 100 - 2*8
+        CHECK(content.height == 84_lu);  // 100 - 2*8
     }
 
     TEST_CASE("Content area - clamped to non-negative") {
         test_element_accessor elem;
-        elem.set_padding({100, 100, 100, 100});  // Huge padding
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 50, 50));  // Small bounds
+        elem.set_padding(logical_thickness{100_lu, 100_lu, 100_lu, 100_lu});  // Huge padding
+        elem.arrange(logical_rect{0_lu, 0_lu, 50_lu, 50_lu});  // Small bounds
 
         auto content = elem.get_content_area();
 
         // Should be clamped to 0, not negative
-        CHECK(rect_utils::get_width(content) >= 0);
-        CHECK(rect_utils::get_height(content) >= 0);
+        CHECK(content.width >= 0_lu);
+        CHECK(content.height >= 0_lu);
     }
 
     // Tests using actual panel widget with canvas backend for theme support
@@ -123,59 +123,59 @@ TEST_SUITE("Content Area - Core Layout Calculation") {
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(testing::make_relative_rect<test_canvas_backend>(0, 0, 100, 100));
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto child_bounds = child->bounds();
 
         // RELATIVE COORDINATES: child positioned at (0,0) relative to parent's content area
         // Border offset is handled internally by parent, not in child's bounds
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(child_bounds.x == 0_lu);
+        CHECK(child_bounds.y == 0_lu);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Panel - border + padding compound offset") {
         panel<test_canvas_backend> p;
         p.set_has_border(true);      // +1
-        p.set_padding({2, 3, 2, 3});  // L,T,R,B
+        p.set_padding(logical_thickness{2_lu, 3_lu, 2_lu, 3_lu});  // L,T,R,B
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(testing::make_relative_rect<test_canvas_backend>(0, 0, 100, 100));
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto child_bounds = child->bounds();
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Border and padding offsets handled internally by parent
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
+        CHECK(child_bounds.x == 0_lu);
+        CHECK(child_bounds.y == 0_lu);
     }
 
     TEST_CASE("Content area - safe math prevents overflow") {
         test_element_accessor elem;
-        elem.set_padding({INT_MAX / 2, INT_MAX / 2, INT_MAX / 2, INT_MAX / 2});
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
+        elem.set_padding(logical_thickness{logical_unit(INT_MAX / 2.0), logical_unit(INT_MAX / 2.0), logical_unit(INT_MAX / 2.0), logical_unit(INT_MAX / 2.0)});
+        elem.arrange(logical_rect{0_lu, 0_lu, 1000_lu, 1000_lu});
 
         // Should not crash or produce invalid values
         auto content = elem.get_content_area();
 
         // Should clamp to valid range
-        CHECK(rect_utils::get_width(content) >= 0);
-        CHECK(rect_utils::get_height(content) >= 0);
+        CHECK(content.width >= 0_lu);
+        CHECK(content.height >= 0_lu);
     }
 
     TEST_CASE("Content area - padding all sides equal") {
         test_element_accessor elem;
-        elem.set_padding(thickness::all(10));
-        elem.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+        elem.set_padding(logical_thickness(10_lu));
+        elem.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto content = elem.get_content_area();
 
-        CHECK(rect_utils::get_x(content) == 10);
-        CHECK(rect_utils::get_y(content) == 10);
-        CHECK(rect_utils::get_width(content) == 80);   // 100 - 2*10
-        CHECK(rect_utils::get_height(content) == 80);  // 100 - 2*10
+        CHECK(content.x == 10_lu);
+        CHECK(content.y == 10_lu);
+        CHECK(content.width == 80_lu);   // 100 - 2*10
+        CHECK(content.height == 80_lu);  // 100 - 2*10
     }
 }

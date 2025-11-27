@@ -319,9 +319,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Is a vbox co
     group.add_option("Option 3", 2);
 
     // Should be able to measure and arrange like any container
-    auto size = group.measure(100, 100);
-    REQUIRE(size_utils::get_width(size) > 0);
-    REQUIRE(size_utils::get_height(size) >= 3);  // At least 3 lines (1 per option)
+    auto size = group.measure(100_lu, 100_lu);
+    REQUIRE(size.width.to_int() > 0);
+    REQUIRE(size.height.to_int() >= 3);  // At least 3 lines (1 per option)
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "button_group - Children are radio buttons") {

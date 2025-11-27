@@ -11,6 +11,11 @@
 #include <../../include/onyxui/widgets/containers/scroll/scrollable.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 using namespace onyxui;
 using namespace onyxui::testing;
@@ -24,8 +29,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scoped_clip - RAII: 
     auto test_panel = std::make_unique<panel<test_canvas_backend>>();
 
     // Measure and arrange
-    [[maybe_unused]] auto size = test_panel->measure(80, 25);
-    test_panel->arrange(make_relative_rect<test_canvas_backend>(0, 0, 80, 25));
+    [[maybe_unused]] auto size = test_panel->measure(80_lu, 25_lu);
+    test_panel->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Render with clipping - just verify compilation and runtime
     auto canvas = render_to_canvas(*test_panel, 80, 25);
@@ -48,8 +53,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scoped_clip - RAII: 
     }
 
     // Measure and arrange
-    [[maybe_unused]] auto size = scrollable_panel->measure(80, 25);
-    scrollable_panel->arrange(make_relative_rect<test_canvas_backend>(0, 0, 80, 25));
+    [[maybe_unused]] auto size = scrollable_panel->measure(80_lu, 25_lu);
+    scrollable_panel->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Render (uses scoped_clip internally)
     auto canvas = render_to_canvas(*scrollable_panel, 80, 25);

@@ -18,8 +18,13 @@
 #include <doctest/doctest.h>
 #include <../../include/onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
 #include "utils/test_backend.hh"
 #include <memory>
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 using namespace onyxui;
 
@@ -51,7 +56,7 @@ public:
         : TestElement(nullptr)
         , m_manager(mgr)
         , m_layer_id(layer_id::invalid()) {
-        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
+        arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
     }
 
     void set_layer_id(layer_id id) { m_layer_id = id; }
@@ -77,7 +82,7 @@ private:
 class EventCountingElement : public TestElement {
 public:
     explicit EventCountingElement() : TestElement(nullptr), event_count(0) {
-        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
+        arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
     }
 
     bool handle_mouse(const mouse_event& /*mouse*/) override {

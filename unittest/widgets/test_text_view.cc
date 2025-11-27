@@ -28,7 +28,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
                 0,  // No spacing
                 horizontal_alignment::left,
                 vertical_alignment::top));
-        panel.set_padding(thickness::all(1));
+        panel.set_padding(logical_thickness(1_lu));
 
         // Add three labels
         panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
@@ -36,10 +36,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         panel.add_child(std::make_unique<label<test_canvas_backend>>("Line 3"));
 
         // Measure
-        [[maybe_unused]] auto size = panel.measure(100, 100);
+        [[maybe_unused]] auto size = panel.measure(100_lu, 100_lu);
 
         // Arrange and render
-        panel.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        panel.arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         auto canvas = render_to_canvas(panel, 40, 10);
 
@@ -68,7 +68,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
                 0,  // No spacing
                 horizontal_alignment::left,
                 vertical_alignment::top));
-        panel_ptr->set_padding(thickness::all(1));
+        panel_ptr->set_padding(logical_thickness(1_lu));
 
         // Add three labels
         panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
@@ -79,13 +79,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Simple panel with li
         scrollable_widget.add_child(std::move(panel_ptr));
 
         // Measure scrollable
-        [[maybe_unused]] auto size = scrollable_widget.measure(100, 100);
+        [[maybe_unused]] auto size = scrollable_widget.measure(100_lu, 100_lu);
 
         // Check scrollable's content size
         [[maybe_unused]] auto scroll_info = scrollable_widget.get_scroll_info();
 
         // Arrange and render
-        scrollable_widget.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        scrollable_widget.arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
 
@@ -120,7 +120,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
                 0,  // No spacing
                 horizontal_alignment::left,
                 vertical_alignment::top));
-        panel_ptr->set_padding(thickness::all(1));
+        panel_ptr->set_padding(logical_thickness(1_lu));
 
         // Add three labels (same as text_view would)
         panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
@@ -133,9 +133,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         scroll_view_ptr->add_child(std::move(panel_ptr));
 
         // Measure and arrange
-        auto size = scroll_view_ptr->measure(40, 10);
+        auto size = scroll_view_ptr->measure(40_lu, 10_lu);
 
-        scroll_view_ptr->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        scroll_view_ptr->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
@@ -165,7 +165,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
                 0,  // No spacing
                 horizontal_alignment::left,
                 vertical_alignment::top));
-        panel_ptr->set_padding(thickness::all(1));
+        panel_ptr->set_padding(logical_thickness(1_lu));
 
         // Add three labels (same as text_view would)
         panel_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Line 1"));
@@ -176,9 +176,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         scrollable_widget.add_child(std::move(panel_ptr));
 
         // Measure and arrange
-        [[maybe_unused]] auto size = scrollable_widget.measure(40, 10);
+        [[maybe_unused]] auto size = scrollable_widget.measure(40_lu, 10_lu);
 
-        scrollable_widget.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        scrollable_widget.arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(scrollable_widget, 40, 10);
@@ -214,9 +214,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 3"));
 
         // Measure and arrange
-        auto size = scroll_view_ptr->measure(40, 10);
+        auto size = scroll_view_ptr->measure(40_lu, 10_lu);
 
-        scroll_view_ptr->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        scroll_view_ptr->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(*scroll_view_ptr, 40, 10);
@@ -274,12 +274,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
         CHECK(view.get_line(2) == "Line 3");
 
         // First measure to see what size it reports
-        [[maybe_unused]] auto measured_size = view.measure(40, 10);
+        [[maybe_unused]] auto measured_size = view.measure(40_lu, 10_lu);
 
         // Now let's manually check the hierarchy
         if (!view.children().empty()) {
             auto* scroll_view = view.children()[0].get();
-            [[maybe_unused]] auto scroll_measured = scroll_view->measure(40, 10);
+            [[maybe_unused]] auto scroll_measured = scroll_view->measure(40_lu, 10_lu);
 
             if (!scroll_view->children().empty()) {
                 auto* grid = scroll_view->children()[0].get();
@@ -287,19 +287,19 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Basic te
                     auto* scrollable = grid->children()[0].get();
 
                     // Measure scrollable
-                    [[maybe_unused]] auto scrollable_measured = scrollable->measure(40, 10);
+                    [[maybe_unused]] auto scrollable_measured = scrollable->measure(40_lu, 10_lu);
 
                     if (!scrollable->children().empty()) {
                         auto* content_panel = scrollable->children()[0].get();
 
                         // Measure content_panel with unconstrained size (like scrollable does)
                         constexpr int UNCONSTRAINED = std::numeric_limits<int>::max() - 1;
-                        [[maybe_unused]] auto content_measured = content_panel->measure(UNCONSTRAINED, UNCONSTRAINED);
+                        [[maybe_unused]] auto content_measured = content_panel->measure(logical_unit(static_cast<double>(UNCONSTRAINED)), logical_unit(static_cast<double>(UNCONSTRAINED)));
 
                         // Check each child
                         for (size_t i = 0; i < content_panel->children().size(); ++i) {
                             auto* label = content_panel->children()[i].get();
-                            [[maybe_unused]] auto label_measured = label->measure(UNCONSTRAINED, UNCONSTRAINED);
+                            [[maybe_unused]] auto label_measured = label->measure(logical_unit(static_cast<double>(UNCONSTRAINED)), logical_unit(static_cast<double>(UNCONSTRAINED)));
                         }
                     }
                 }
@@ -424,9 +424,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo lay
         text_view_widget->set_horizontal_align(horizontal_alignment::stretch);
         size_constraint height_constraint;
         height_constraint.policy = size_policy::fixed;
-        height_constraint.preferred_size = 5;  // Small height for testing
-        height_constraint.min_size = 5;
-        height_constraint.max_size = 5;
+        height_constraint.preferred_size = logical_unit(static_cast<double>(5));  // Small height for testing
+        height_constraint.min_size = logical_unit(static_cast<double>(5));
+        height_constraint.max_size = logical_unit(static_cast<double>(5));
         text_view_widget->set_height_constraint(height_constraint);
 
         root.add_child(std::move(text_view_widget));
@@ -436,8 +436,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Demo lay
         root.add_child(std::move(bottom));
 
         // Measure and arrange before render
-        [[maybe_unused]] auto measured_size = root.measure(40, 10);
-        root.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        [[maybe_unused]] auto measured_size = root.measure(40_lu, 10_lu);
+        root.arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Render
         auto canvas = render_to_canvas(root, 40, 10);
@@ -651,11 +651,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Measurem
         view.set_text("Test");
 
         // Measure with constraints
-        auto size = view.measure(100, 100);
+        auto size = view.measure(100_lu, 100_lu);
 
         // Should have some minimum size (scrollbar + padding)
-        CHECK(size.w > 0);
-        CHECK(size.h > 0);
+        CHECK(size.width.to_int() > 0);
+        CHECK(size.height.to_int() > 0);
     }
 
     SUBCASE("Arrange in bounds") {
@@ -663,13 +663,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Measurem
         view.set_text("Line 1\nLine 2\nLine 3");
 
         // Measure and arrange
-        [[maybe_unused]] auto size = view.measure(50, 20);
-        view.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 50, 20}});
+        [[maybe_unused]] auto size = view.measure(50_lu, 20_lu);
+        view.arrange(logical_rect{0_lu, 0_lu, 50_lu, 20_lu});
 
         // Should not crash and should update bounds
         auto bounds = view.bounds();
-        CHECK(rect_utils::get_width(bounds) == 50);
-        CHECK(rect_utils::get_height(bounds) == 20);
+        CHECK(bounds.width.to_int() == 50);
+        CHECK(bounds.height.to_int() == 20);
     }
 
     SUBCASE("Content exceeds viewport") {
@@ -712,15 +712,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Border s
         view.set_text("Hello, World!");
 
         // Measure without border
-        auto size_no_border = view.measure(40, 10);
+        auto size_no_border = view.measure(40_lu, 10_lu);
 
         // Enable border and measure again
         view.set_has_border(true);
-        auto size_with_border = view.measure(40, 10);
+        auto size_with_border = view.measure(40_lu, 10_lu);
 
         // With border, the widget should request more space (2px for border)
-        CHECK(size_with_border.w == size_no_border.w + 2);
-        CHECK(size_with_border.h == size_no_border.h + 2);
+        CHECK(size_with_border.width.to_int() == size_no_border.width.to_int() + 2);
+        CHECK(size_with_border.height.to_int() == size_no_border.height.to_int() + 2);
     }
 
     SUBCASE("Border renders correctly") {

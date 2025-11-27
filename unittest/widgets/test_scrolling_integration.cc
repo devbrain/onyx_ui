@@ -38,8 +38,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     }
 
     // Measure and arrange
-    [[maybe_unused]] auto size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Verify we added all the labels
     CHECK(view->content()->children().size() == 20);
@@ -68,8 +68,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     view->add_child(std::move(grid_widget));
 
     // Measure and arrange
-    [[maybe_unused]] auto size = view->measure(200, 150);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 150}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 150_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 150_lu});
 
     // Verify content exists
     CHECK(view->content()->children().size() == 1);
@@ -86,8 +86,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - vertic
         view->emplace_child<label>("Paragraph " + std::to_string(i) + ": Lorem ipsum dolor sit amet");
     }
 
-    [[maybe_unused]] auto size = view->measure(300, 200);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 300, 200}});
+    [[maybe_unused]] auto size = view->measure(300_lu, 200_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
     // Verify only vertical scrolling is enabled
     auto policy = view->content()->get_scrollbar_visibility_policy();
@@ -111,8 +111,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     outer_panel->add_child(std::move(inner_panel));
     view->add_child(std::move(outer_panel));
 
-    [[maybe_unused]] auto size = view->measure(200, 150);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 150}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 150_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 150_lu});
 
     // Verify structure is intact
     CHECK(view->content()->children().size() == 1);
@@ -127,8 +127,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     auto* view_ptr = view.get();
     container->add_child(std::move(view));
 
-    [[maybe_unused]] auto size = container->measure(300, 200);
-    container->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 300, 200}});
+    [[maybe_unused]] auto size = container->measure(300_lu, 200_lu);
+    container->arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
     // Verify scroll_view is a child of container
     CHECK(container->children().size() == 1);
@@ -147,11 +147,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Two in
     view1->emplace_child<label>("View 1 content");
     view2->emplace_child<label>("View 2 content");
 
-    [[maybe_unused]] auto size1 = view1->measure(200, 100);
-    view1->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size1 = view1->measure(200_lu, 100_lu);
+    view1->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
-    [[maybe_unused]] auto size2 = view2->measure(200, 100);
-    view2->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size2 = view2->measure(200_lu, 100_lu);
+    view2->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Scroll view1
     view1->scroll_to(0, 20);
@@ -176,8 +176,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Add it
         view->emplace_child<label>("Item " + std::to_string(i));
     }
 
-    [[maybe_unused]] auto size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     CHECK(view->content()->children().size() == 5);
 
@@ -187,8 +187,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Add it
     }
 
     // Remeasure
-    [[maybe_unused]] auto new_size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto new_size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Verify items were added
     CHECK(view->content()->children().size() == 15);
@@ -208,8 +208,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
         labels.push_back(view->emplace_child<label>("Item " + std::to_string(i)));
     }
 
-    [[maybe_unused]] auto size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Scroll to bottom
     auto info = view->content()->get_scroll_info();
@@ -222,8 +222,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
     }
 
     // Remeasure
-    [[maybe_unused]] auto new_size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto new_size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Scroll should clamp to new max (which may be 0 if content fits in viewport)
     auto new_offset = point_utils::get_y(view->content()->get_scroll_offset());
@@ -242,8 +242,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear 
         view->emplace_child<label>("Item " + std::to_string(i));
     }
 
-    [[maybe_unused]] auto size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     view->scroll_to(0, 50);
 
@@ -251,8 +251,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear 
     view->clear_children();
 
     // Remeasure
-    [[maybe_unused]] auto new_size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto new_size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     // Should have no children
     CHECK(view->content()->children().size() == 0);
@@ -275,8 +275,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - modern
     view->emplace_child<panel>();
     view->emplace_child<label>("Footer");
 
-    [[maybe_unused]] auto size = view->measure(200, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 100}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
 
     CHECK(view->content()->children().size() == 4);
 }
@@ -287,8 +287,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - classi
     // Add minimal content (doesn't need scrolling)
     view->emplace_child<label>("Small");
 
-    [[maybe_unused]] auto size = view->measure(200, 200);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 200}});
+    [[maybe_unused]] auto size = view->measure(200_lu, 200_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
 
     // Classic style has always-visible policy
     auto policy = view->content()->get_scrollbar_visibility_policy();
@@ -305,8 +305,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - compac
         view->emplace_child<label>("Item " + std::to_string(i));
     }
 
-    [[maybe_unused]] auto size = view->measure(150, 100);
-    view->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 150, 100}});
+    [[maybe_unused]] auto size = view->measure(150_lu, 100_lu);
+    view->arrange(logical_rect{0_lu, 0_lu, 150_lu, 100_lu});
 
     // Verify items were added
     CHECK(view->content()->children().size() == 50);

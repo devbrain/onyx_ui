@@ -120,8 +120,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - window maximizes t
     main->set_status_bar(std::make_unique<status_bar<Backend>>());
 
     // Measure and arrange main window to 80x25
-    [[maybe_unused]] auto measured = main->measure(80, 25);
-    main->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto measured = main->measure(80_lu, 25_lu);
+    main->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Create window via main_window
     typename window<Backend>::window_flags flags;

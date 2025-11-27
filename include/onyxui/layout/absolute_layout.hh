@@ -241,9 +241,9 @@ namespace onyxui {
              * @note Children at negative coordinates don't affect the bounding box.
              *       The parent's size is always at least (0, 0).
              */
-            size_type measure_children(const elt_t* parent,
-                                   int available_width,
-                                   int available_height) const override;
+            logical_size measure_children(const elt_t* parent,
+                                   logical_unit available_width,
+                                   logical_unit available_height) const override;
 
             /**
              * @brief Position children at their configured coordinates
@@ -261,7 +261,7 @@ namespace onyxui {
              * @note Children may be positioned outside content_area bounds.
              *       Clipping behavior depends on the parent's rendering settings.
              */
-            void arrange_children(elt_t* parent, const rect_type& content_area) override;
+            void arrange_children(elt_t* parent, const logical_rect& content_area) override;
 
             /**
              * @brief Clean up position mapping when child is removed
@@ -314,42 +314,40 @@ namespace onyxui {
 
     // -----------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    typename Backend::size_type absolute_layout<Backend>::measure_children(const elt_t* parent, int available_width,
-                                                           int available_height) const {
-        int max_width = 0;
-        int max_height = 0;
+    logical_size absolute_layout<Backend>::measure_children(const elt_t* parent, logical_unit available_width,
+                                                           logical_unit available_height) const {
+        logical_unit max_width = logical_unit(0.0);
+        logical_unit max_height = logical_unit(0.0);
 
         // Measure all children
         for (const auto& child : this->get_children(parent)) {
             if (!child->is_visible()) continue;
 
-            size_type const measured = child->measure(available_width, available_height);
-            int const meas_w = size_utils::get_width(measured);
-            int const meas_h = size_utils::get_height(measured);
+            logical_size const measured = child->measure(available_width, available_height);
+            logical_unit const meas_w = measured.width;
+            logical_unit const meas_h = measured.height;
 
             auto it = m_position_mapping.find(child.get());
             if (it != m_position_mapping.end()) {
                 const position_info& pos = it->second;
 
-                int const child_width = (pos.width > 0) ? pos.width : meas_w;
-                int const child_height = (pos.height > 0) ? pos.height : meas_h;
+                logical_unit const child_width = (pos.width > 0) ? logical_unit(static_cast<double>(pos.width)) : meas_w;
+                logical_unit const child_height = (pos.height > 0) ? logical_unit(static_cast<double>(pos.height)) : meas_h;
 
-                max_width = std::max(max_width, pos.x + child_width);
-                max_height = std::max(max_height, pos.y + child_height);
+                max_width = max(max_width, logical_unit(static_cast<double>(pos.x)) + child_width);
+                max_height = max(max_height, logical_unit(static_cast<double>(pos.y)) + child_height);
             } else {
-                max_width = std::max(max_width, meas_w);
-                max_height = std::max(max_height, meas_h);
+                max_width = max(max_width, meas_w);
+                max_height = max(max_height, meas_h);
             }
         }
 
-        size_type result = {};
-        size_utils::set_size(result, max_width, max_height);
-        return result;
+        return logical_size{max_width, max_height};
     }
 
     // -----------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void absolute_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
+    void absolute_layout<Backend>::arrange_children(elt_t* parent, const logical_rect& content_area) {
         // RELATIVE coordinates - positions are relative to content area (0,0)
         // pos.x and pos.y are already relative offsets
         (void)content_area;  // Unused in relative coordinate system (only dimensions matter, from measure phase)
@@ -362,19 +360,18 @@ namespace onyxui {
                                     ? it->second
                                     : position_info{0, 0, -1, -1};
 
-            const size_type& measured = this->get_last_measured_size(child.get());
-            int const meas_w = size_utils::get_width(measured);
-            int const meas_h = size_utils::get_height(measured);
+            const logical_size& measured = this->get_last_measured_size(child.get());
+            logical_unit const meas_w = measured.width;
+            logical_unit const meas_h = measured.height;
 
             // Position is relative to content area
-            int const child_x = pos.x;
-            int const child_y = pos.y;
-            int const child_width = (pos.width > 0) ? pos.width : meas_w;
-            int const child_height = (pos.height > 0) ? pos.height : meas_h;
+            logical_unit const child_x = logical_unit(static_cast<double>(pos.x));
+            logical_unit const child_y = logical_unit(static_cast<double>(pos.y));
+            logical_unit const child_width = (pos.width > 0) ? logical_unit(static_cast<double>(pos.width)) : meas_w;
+            logical_unit const child_height = (pos.height > 0) ? logical_unit(static_cast<double>(pos.height)) : meas_h;
 
-            rect_type child_bounds;
-            rect_utils::set_bounds(child_bounds, child_x, child_y, child_width, child_height);
-            child->arrange(geometry::relative_rect<Backend>{child_bounds});
+            logical_rect child_bounds{child_x, child_y, child_width, child_height};
+            child->arrange(child_bounds);
         }
     }
 }

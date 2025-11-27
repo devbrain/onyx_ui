@@ -233,7 +233,7 @@ namespace onyxui {
          * - Width: +2 for left and right borders
          * - Height: +2 for top and bottom borders
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // Measure using base class (widget_container handles border addition)
             // Base class chain: panel -> widget_container -> widget
             // widget_container::do_measure() already adds border size

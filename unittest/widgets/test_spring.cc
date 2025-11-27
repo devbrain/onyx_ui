@@ -60,8 +60,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible ex
         spring<test_canvas_backend> s;
         s.set_min_size(50);
 
-        auto size = s.measure(100, 100);
-        int const width = size_utils::get_width(size);
+        auto size = s.measure(100_lu, 100_lu);
+        int const width = size.width.to_int();
 
         // Should respect min size
         CHECK(width >= 50);
@@ -79,7 +79,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible ex
         toolbar.add_child(std::move(right_btn));
 
         CHECK(toolbar.children().size() == 3);
-        CHECK_NOTHROW((void)toolbar.measure(400, 50));
+        CHECK_NOTHROW((void)toolbar.measure(400_lu, 50_lu));
     }
 
     SUBCASE("Center content with springs on both sides") {
@@ -94,7 +94,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible ex
         centered.add_child(std::move(right_spring));
 
         CHECK(centered.children().size() == 3);
-        CHECK_NOTHROW((void)centered.measure(400, 50));
+        CHECK_NOTHROW((void)centered.measure(400_lu, 50_lu));
     }
 
     SUBCASE("Weighted springs (proportional distribution)") {
@@ -113,7 +113,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible ex
         layout.add_child(std::move(footer));
 
         CHECK(layout.children().size() == 5);
-        CHECK_NOTHROW((void)layout.measure(300, 400));
+        CHECK_NOTHROW((void)layout.measure(300_lu, 400_lu));
     }
 
     SUBCASE("Multiple springs with different weights") {
@@ -124,7 +124,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spring - Flexible ex
         box.add_child(std::make_unique<spring<test_canvas_backend>>(1.0F));
 
         CHECK(box.children().size() == 3);
-        CHECK_NOTHROW((void)box.measure(400, 50));
+        CHECK_NOTHROW((void)box.measure(400_lu, 50_lu));
     }
 
     SUBCASE("Spring is not focusable") {

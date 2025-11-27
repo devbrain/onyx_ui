@@ -27,8 +27,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         auto win = std::make_unique<window<Backend>>("TestWin", flags);
 
         // Small, controlled size
-        (void)win->measure(20, 8);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 20, 8}});
+        (void)win->measure(20_lu, 8_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 20_lu, 8_lu});
 
         // Render to exact canvas size
         auto canvas = render_to_canvas(*win, 20, 8);
@@ -70,8 +70,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         testing::canvas_renderer renderer(canvas);
 
         // Measure and arrange at offset position (10, 5)
-        (void)win->measure(20, 6);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{10, 5, 20, 6}});
+        (void)win->measure(20_lu, 6_lu);
+        win->arrange(logical_rect{10_lu, 5_lu, 20_lu, 6_lu});
 
         // Render WITHOUT re-arranging
         auto* themes_registry = ui_services<Backend>::themes();

@@ -39,8 +39,8 @@ TEST_SUITE("layout_composition") {
 
         for (int i = 0; i < 3; i++) {
             auto btn = std::make_unique<TestElement>();
-            btn->set_width_constraint({size_policy::fixed, 80, 80});
-            btn->set_height_constraint({size_policy::fixed, 30, 30});
+            btn->set_width_constraint({size_policy::fixed, 80_lu, 80_lu});
+            btn->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
             row1->add_test_child(std::move(btn));
         }
         panel->add_test_child(std::move(row1));
@@ -53,40 +53,40 @@ TEST_SUITE("layout_composition") {
         for (int i = 0; i < 2; i++) {
             auto btn = std::make_unique<TestElement>();
             btn->set_width_constraint({size_policy::expand});
-            btn->set_height_constraint({size_policy::fixed, 30, 30});
+            btn->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
             row2->add_test_child(std::move(btn));
         }
         panel->add_test_child(std::move(row2));
 
         // Measure and arrange
-        TestSize const measured = panel->measure(300, 200);
-        CHECK(measured.w == 250);  // 3*80 + 2*5 = 250
-        CHECK(measured.h == 70);  // 30 + 10 + 30 = 70
+        auto measured = panel->measure(300_lu, 200_lu);
+        CHECK(measured.width == 250_lu);  // 3*80 + 2*5 = 250
+        CHECK(measured.height == 70_lu);  // 30 + 10 + 30 = 70
 
-        panel->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
+        panel->arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
         // Verify row 1 positions
         auto r1 = panel->child_at(0);
-        auto b1 =r1->bounds().get();
-        CHECK(b1.x == 0);
-        CHECK(b1.y == 0);
-        CHECK(b1.h == 30);
+        auto b1 = r1->bounds();
+        CHECK(b1.x == 0_lu);
+        CHECK(b1.y == 0_lu);
+        CHECK(b1.height.to_int() == 30);
 
         // Verify row 1's children
-        CHECK(r1->child_at(0)->bounds().get().x == 0);
-        CHECK(r1->child_at(0)->bounds().get().w == 80);
-        CHECK(r1->child_at(1)->bounds().get().x == 85);  // 80 + 5
-        CHECK(r1->child_at(2)->bounds().get().x == 170); // 80 + 5 + 80 + 5
+        CHECK(r1->child_at(0)->bounds().x.to_int() == 0);
+        CHECK(r1->child_at(0)->bounds().width.to_int() == 80);
+        CHECK(r1->child_at(1)->bounds().x.to_int() == 85);  // 80 + 5
+        CHECK(r1->child_at(2)->bounds().x.to_int() == 170); // 80 + 5 + 80 + 5
 
         // Verify row 2 positions
         auto r2 = panel->child_at(1);
-        CHECK(r2->bounds().get().x == 0);
-        CHECK(r2->bounds().get().y == 40);  // 30 + 10 spacing
-        CHECK(r2->bounds().get().h == 30);
+        CHECK(r2->bounds().x.to_int() == 0);
+        CHECK(r2->bounds().y.to_int() == 40);  // 30 + 10 spacing
+        CHECK(r2->bounds().height.to_int() == 30);
 
         // Verify row 2's expanding children
-        CHECK(r2->child_at(0)->bounds().get().w == 148);  // (300-5)/2, first gets extra
-        CHECK(r2->child_at(1)->bounds().get().w == 147);
+        CHECK(r2->child_at(0)->bounds().width.to_int() == 148);  // (300-5)/2, first gets extra
+        CHECK(r2->child_at(1)->bounds().width.to_int() == 147);
     }
 
     /**
@@ -101,13 +101,13 @@ TEST_SUITE("layout_composition") {
 
         // Column 1: Vertical list (fixed width)
         auto col1 = std::make_unique<TestElement>();
-        col1->set_width_constraint({size_policy::fixed, 150, 150});
+        col1->set_width_constraint({size_policy::fixed, 150_lu, 150_lu});
         col1->set_layout_strategy(
             std::make_unique<TestLinearLayout>(direction::vertical, 5));
 
         for (int i = 0; i < 3; i++) {
             auto item = std::make_unique<TestElement>();
-            item->set_height_constraint({size_policy::fixed, 40, 40});
+            item->set_height_constraint({size_policy::fixed, 40_lu, 40_lu});
             col1->add_test_child(std::move(item));
         }
         container->add_test_child(std::move(col1));
@@ -120,32 +120,32 @@ TEST_SUITE("layout_composition") {
 
         for (int i = 0; i < 2; i++) {
             auto item = std::make_unique<TestElement>();
-            item->set_height_constraint({size_policy::fixed, 40, 40});
+            item->set_height_constraint({size_policy::fixed, 40_lu, 40_lu});
             col2->add_test_child(std::move(item));
         }
         container->add_test_child(std::move(col2));
 
         // Measure and arrange
-        TestSize const measured = container->measure(400, 300);
-        CHECK(measured.w == 165);  // 150 + 15 (col2 has no measured width yet)
-        CHECK(measured.h == 130);  // Max of columns: 3*40 + 2*5
+        auto measured = container->measure(400_lu, 300_lu);
+        CHECK(measured.width == 165_lu);  // 150 + 15 (col2 has no measured width yet)
+        CHECK(measured.height == 130_lu);  // Max of columns: 3*40 + 2*5
 
-        container->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 300));
+        container->arrange(logical_rect{0_lu, 0_lu, 400_lu, 300_lu});
 
         // Verify column 1
         auto c1 = container->child_at(0);
-        CHECK(c1->bounds().get().x == 0);
-        CHECK(c1->bounds().get().w == 150);
-        CHECK(c1->child_at(0)->bounds().get().y == 0);
-        CHECK(c1->child_at(1)->bounds().get().y == 45);  // 40 + 5
-        CHECK(c1->child_at(2)->bounds().get().y == 90);  // 40 + 5 + 40 + 5
+        CHECK(c1->bounds().x.to_int() == 0);
+        CHECK(c1->bounds().width.to_int() == 150);
+        CHECK(c1->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(c1->child_at(1)->bounds().y.to_int() == 45);  // 40 + 5
+        CHECK(c1->child_at(2)->bounds().y.to_int() == 90);  // 40 + 5 + 40 + 5
 
         // Verify column 2 (should expand to fill remaining space)
         auto c2 = container->child_at(1);
-        CHECK(c2->bounds().get().x == 165);  // 150 + 15
-        CHECK(c2->bounds().get().w == 235);  // 400 - 150 - 15
-        CHECK(c2->child_at(0)->bounds().get().y == 0);
-        CHECK(c2->child_at(1)->bounds().get().y == 45);
+        CHECK(c2->bounds().x.to_int() == 165);  // 150 + 15
+        CHECK(c2->bounds().width.to_int() == 235);  // 400 - 150 - 15
+        CHECK(c2->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(c2->child_at(1)->bounds().y.to_int() == 45);
     }
 
     /**
@@ -160,7 +160,7 @@ TEST_SUITE("layout_composition") {
 
         // Header: Single element
         auto header = std::make_unique<TestElement>();
-        header->set_height_constraint({size_policy::fixed, 60, 60});
+        header->set_height_constraint({size_policy::fixed, 60_lu, 60_lu});
         dashboard->add_test_child(std::move(header));
 
         // Grid: 2x2 grid of cards
@@ -171,40 +171,40 @@ TEST_SUITE("layout_composition") {
         for (int i = 0; i < 4; i++) {
             auto card = std::make_unique<TestElement>();
             card->set_width_constraint({size_policy::expand});
-            card->set_height_constraint({size_policy::fixed, 100, 100});
+            card->set_height_constraint({size_policy::fixed, 100_lu, 100_lu});
             grid->add_test_child(std::move(card));
         }
         dashboard->add_test_child(std::move(grid));
 
         // Measure and arrange
-        auto measured = dashboard->measure(500, 600);
-        CHECK(measured.w <= 500);
-        CHECK(measured.h > 0);
-        dashboard->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 600));
+        auto measured = dashboard->measure(500_lu, 600_lu);
+        CHECK(measured.width <= 500_lu);
+        CHECK(measured.height > 0_lu);
+        dashboard->arrange(logical_rect{0_lu, 0_lu, 500_lu, 600_lu});
 
         // Verify header
         auto hdr = dashboard->child_at(0);
-        CHECK(hdr->bounds().get().y == 0);
-        CHECK(hdr->bounds().get().h == 60);
+        CHECK(hdr->bounds().y.to_int() == 0);
+        CHECK(hdr->bounds().height.to_int() == 60);
 
         // Verify grid positioning
         auto g = dashboard->child_at(1);
-        CHECK(g->bounds().get().y == 80);  // 60 + 20 spacing
-        CHECK(g->bounds().get().w == 500);
+        CHECK(g->bounds().y.to_int() == 80);  // 60 + 20 spacing
+        CHECK(g->bounds().width.to_int() == 500);
 
         // Verify grid has all 4 children arranged
         CHECK(g->child_count() == 4);
         // Verify all children have valid heights (expand width may be 0 in measure)
-        CHECK(g->child_at(0)->bounds().get().h == 100);
-        CHECK(g->child_at(1)->bounds().get().h == 100);
-        CHECK(g->child_at(2)->bounds().get().h == 100);
-        CHECK(g->child_at(3)->bounds().get().h == 100);
+        CHECK(g->child_at(0)->bounds().height.to_int() == 100);
+        CHECK(g->child_at(1)->bounds().height.to_int() == 100);
+        CHECK(g->child_at(2)->bounds().height.to_int() == 100);
+        CHECK(g->child_at(3)->bounds().height.to_int() == 100);
 
         // Verify grid structure - should be in 2x2 arrangement
-        CHECK(g->child_at(0)->bounds().get().y == g->child_at(1)->bounds().get().y);  // Row 1
-        CHECK(g->child_at(2)->bounds().get().y == g->child_at(3)->bounds().get().y);  // Row 2
-        CHECK(g->child_at(0)->bounds().get().x == g->child_at(2)->bounds().get().x);  // Col 1
-        CHECK(g->child_at(1)->bounds().get().x == g->child_at(3)->bounds().get().x);  // Col 2
+        CHECK(g->child_at(0)->bounds().y.to_int() == g->child_at(1)->bounds().y.to_int());  // Row 1
+        CHECK(g->child_at(2)->bounds().y.to_int() == g->child_at(3)->bounds().y.to_int());  // Row 2
+        CHECK(g->child_at(0)->bounds().x.to_int() == g->child_at(2)->bounds().x.to_int());  // Col 1
+        CHECK(g->child_at(1)->bounds().x.to_int() == g->child_at(3)->bounds().x.to_int());  // Col 2
     }
 
     /**
@@ -223,7 +223,7 @@ TEST_SUITE("layout_composition") {
             std::make_unique<TestLinearLayout>(direction::vertical, 5));
         auto label1 = std::make_unique<ContentElement>(80, 20);
         auto input1 = std::make_unique<TestElement>();
-        input1->set_height_constraint({size_policy::fixed, 30, 30});
+        input1->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
         field1->add_test_child(std::move(label1));
         field1->add_test_child(std::move(input1));
         form->add_test_child(std::move(field1));
@@ -234,31 +234,31 @@ TEST_SUITE("layout_composition") {
             std::make_unique<TestLinearLayout>(direction::vertical, 5));
         auto label2 = std::make_unique<ContentElement>(80, 20);
         auto input2 = std::make_unique<TestElement>();
-        input2->set_height_constraint({size_policy::fixed, 30, 30});
+        input2->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
         field2->add_test_child(std::move(label2));
         field2->add_test_child(std::move(input2));
         form->add_test_child(std::move(field2));
 
         // Measure and arrange
-        TestSize const measured = form->measure(400, 300);
-        CHECK(measured.w >= 160);  // At least 2 columns worth
-        CHECK(measured.h == 55);  // 20 + 5 + 30
+        auto measured = form->measure(400_lu, 300_lu);
+        CHECK(measured.width >= 160_lu);  // At least 2 columns worth
+        CHECK(measured.height == 55_lu);  // 20 + 5 + 30
 
-        form->arrange(testing::make_relative_rect<TestBackend>(0, 0, 400, 300));
+        form->arrange(logical_rect{0_lu, 0_lu, 400_lu, 300_lu});
 
         // Verify field1 (cell 0,0)
         auto f1 = form->child_at(0);
-        CHECK(f1->bounds().get().x == 0);
-        CHECK(f1->bounds().get().y == 0);
-        CHECK(f1->child_at(0)->bounds().get().y == 0);  // label
-        CHECK(f1->child_at(1)->bounds().get().y == 25); // input: 20 + 5
+        CHECK(f1->bounds().x.to_int() == 0);
+        CHECK(f1->bounds().y.to_int() == 0);
+        CHECK(f1->child_at(0)->bounds().y.to_int() == 0);  // label
+        CHECK(f1->child_at(1)->bounds().y.to_int() == 25); // input: 20 + 5
 
         // Verify field2 (cell 1,0) - auto-assigned to next column
         auto f2 = form->child_at(1);
-        CHECK(f2->bounds().get().x > 80);  // Should be in second column
-        CHECK(f2->bounds().get().y == 0);
-        CHECK(f2->child_at(0)->bounds().get().y == 0);
-        CHECK(f2->child_at(1)->bounds().get().y == 25);
+        CHECK(f2->bounds().x.to_int() > 80);  // Should be in second column
+        CHECK(f2->bounds().y.to_int() == 0);
+        CHECK(f2->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(f2->child_at(1)->bounds().y.to_int() == 25);
     }
 
     /**
@@ -274,12 +274,12 @@ TEST_SUITE("layout_composition") {
         auto toolbar = std::make_unique<TestElement>();
         toolbar->set_layout_strategy(
             std::make_unique<TestLinearLayout>(direction::horizontal, 5));
-        toolbar->set_height_constraint({size_policy::fixed, 40, 40});
+        toolbar->set_height_constraint({size_policy::fixed, 40_lu, 40_lu});
 
         for (int i = 0; i < 3; i++) {
             auto btn = std::make_unique<TestElement>();
-            btn->set_width_constraint({size_policy::fixed, 60, 60});
-            btn->set_height_constraint({size_policy::fixed, 30, 30});
+            btn->set_width_constraint({size_policy::fixed, 60_lu, 60_lu});
+            btn->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
             toolbar->add_test_child(std::move(btn));
         }
 
@@ -290,11 +290,11 @@ TEST_SUITE("layout_composition") {
         auto sidebar = std::make_unique<TestElement>();
         sidebar->set_layout_strategy(
             std::make_unique<TestLinearLayout>(direction::vertical, 3));
-        sidebar->set_width_constraint({size_policy::fixed, 100, 100});
+        sidebar->set_width_constraint({size_policy::fixed, 100_lu, 100_lu});
 
         for (int i = 0; i < 3; i++) {
             auto item = std::make_unique<TestElement>();
-            item->set_height_constraint({size_policy::fixed, 35, 35});
+            item->set_height_constraint({size_policy::fixed, 35_lu, 35_lu});
             sidebar->add_test_child(std::move(item));
         }
 
@@ -304,37 +304,37 @@ TEST_SUITE("layout_composition") {
         window->set_layout_strategy(std::move(anchor_strategy));
 
         // Measure and arrange
-        auto measured = window->measure(600, 400);
-        CHECK(measured.w <= 600);
-        CHECK(measured.h <= 400);
-        window->arrange(testing::make_relative_rect<TestBackend>(0, 0, 600, 400));
+        auto measured = window->measure(600_lu, 400_lu);
+        CHECK(measured.width <= 600_lu);
+        CHECK(measured.height <= 400_lu);
+        window->arrange(logical_rect{0_lu, 0_lu, 600_lu, 400_lu});
 
         // Verify toolbar (anchored at top_center)
         auto tb = window->child_at(0);
         // Toolbar width: 3*60 + 2*5 = 190
         // Centered: (600 - 190) / 2 = 205
-        CHECK(tb->bounds().get().x == 205);
-        CHECK(tb->bounds().get().y == 0);
-        CHECK(tb->bounds().get().h == 40);
+        CHECK(tb->bounds().x.to_int() == 205);
+        CHECK(tb->bounds().y.to_int() == 0);
+        CHECK(tb->bounds().height.to_int() == 40);
 
         // Verify toolbar's buttons (coordinates are relative to toolbar parent)
-        CHECK(tb->child_at(0)->bounds().get().x == 0);
-        CHECK(tb->child_at(1)->bounds().get().x == 65);  // 60 + 5
-        CHECK(tb->child_at(2)->bounds().get().x == 130);  // 60 + 5 + 60 + 5
+        CHECK(tb->child_at(0)->bounds().x.to_int() == 0);
+        CHECK(tb->child_at(1)->bounds().x.to_int() == 65);  // 60 + 5
+        CHECK(tb->child_at(2)->bounds().x.to_int() == 130);  // 60 + 5 + 60 + 5
 
         // Verify sidebar (anchored at center_left)
         auto sb = window->child_at(1);
-        CHECK(sb->bounds().get().x == 0);
+        CHECK(sb->bounds().x.to_int() == 0);
         // Sidebar height: 3*35 + 2*3 = 111
         // Centered: (400 - 111) / 2 = 144 (or 145)
-        CHECK(sb->bounds().get().y >= 144);
-        CHECK(sb->bounds().get().y <= 145);
-        CHECK(sb->bounds().get().w == 100);
+        CHECK(sb->bounds().y.to_int() >= 144);
+        CHECK(sb->bounds().y.to_int() <= 145);
+        CHECK(sb->bounds().width.to_int() == 100);
 
         // Verify sidebar's items
-        CHECK(sb->child_at(0)->bounds().get().h == 35);
-        CHECK(sb->child_at(1)->bounds().get().h == 35);
-        CHECK(sb->child_at(2)->bounds().get().h == 35);
+        CHECK(sb->child_at(0)->bounds().height.to_int() == 35);
+        CHECK(sb->child_at(1)->bounds().height.to_int() == 35);
+        CHECK(sb->child_at(2)->bounds().height.to_int() == 35);
     }
 
     /**
@@ -353,7 +353,7 @@ TEST_SUITE("layout_composition") {
 
         for (int i = 0; i < 2; i++) {
             auto item = std::make_unique<TestElement>();
-            item->set_height_constraint({size_policy::fixed, 30, 30});
+            item->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
             panel1->add_test_child(std::move(item));
         }
 
@@ -367,8 +367,8 @@ TEST_SUITE("layout_composition") {
 
         for (int i = 0; i < 3; i++) {
             auto btn = std::make_unique<TestElement>();
-            btn->set_width_constraint({size_policy::fixed, 40, 40});
-            btn->set_height_constraint({size_policy::fixed, 25, 25});
+            btn->set_width_constraint({size_policy::fixed, 40_lu, 40_lu});
+            btn->set_height_constraint({size_policy::fixed, 25_lu, 25_lu});
             panel2->add_test_child(std::move(btn));
         }
 
@@ -378,33 +378,33 @@ TEST_SUITE("layout_composition") {
         canvas->set_layout_strategy(std::move(abs_strategy));
 
         // Measure and arrange
-        auto measured = canvas->measure(500, 400);
-        CHECK(measured.w <= 500);
-        CHECK(measured.h <= 400);
-        canvas->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 400));
+        auto measured = canvas->measure(500_lu, 400_lu);
+        CHECK(measured.width <= 500_lu);
+        CHECK(measured.height <= 400_lu);
+        canvas->arrange(logical_rect{0_lu, 0_lu, 500_lu, 400_lu});
 
         // Verify panel1
         auto p1 = canvas->child_at(0);
-        CHECK(p1->bounds().get().x == 50);
-        CHECK(p1->bounds().get().y == 50);
-        CHECK(p1->bounds().get().w == 100);  // Explicit width
-        CHECK(p1->bounds().get().h == 65);  // 2*30 + 5 spacing
+        CHECK(p1->bounds().x.to_int() == 50);
+        CHECK(p1->bounds().y.to_int() == 50);
+        CHECK(p1->bounds().width.to_int() == 100);  // Explicit width
+        CHECK(p1->bounds().height.to_int() == 65);  // 2*30 + 5 spacing
 
         // Verify panel1's children (coordinates are relative to panel1 parent)
-        CHECK(p1->child_at(0)->bounds().get().y == 0);
-        CHECK(p1->child_at(1)->bounds().get().y == 35);  // 30 + 5
+        CHECK(p1->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(p1->child_at(1)->bounds().y.to_int() == 35);  // 30 + 5
 
         // Verify panel2
         auto p2 = canvas->child_at(1);
-        CHECK(p2->bounds().get().x == 200);
-        CHECK(p2->bounds().get().y == 150);
-        CHECK(p2->bounds().get().w == 130);  // 3*40 + 2*5
-        CHECK(p2->bounds().get().h == 25);
+        CHECK(p2->bounds().x.to_int() == 200);
+        CHECK(p2->bounds().y.to_int() == 150);
+        CHECK(p2->bounds().width.to_int() == 130);  // 3*40 + 2*5
+        CHECK(p2->bounds().height.to_int() == 25);
 
         // Verify panel2's buttons (coordinates are relative to panel2 parent)
-        CHECK(p2->child_at(0)->bounds().get().x == 0);
-        CHECK(p2->child_at(1)->bounds().get().x == 45);  // 40 + 5
-        CHECK(p2->child_at(2)->bounds().get().x == 90);  // 40 + 5 + 40 + 5
+        CHECK(p2->child_at(0)->bounds().x.to_int() == 0);
+        CHECK(p2->child_at(1)->bounds().x.to_int() == 45);  // 40 + 5
+        CHECK(p2->child_at(2)->bounds().x.to_int() == 90);  // 40 + 5 + 40 + 5
     }
 
     /**
@@ -431,7 +431,7 @@ TEST_SUITE("layout_composition") {
 
             for (int i = 0; i < 2; i++) {
                 auto item = std::make_unique<TestElement>();
-                item->set_height_constraint({size_policy::fixed, 30, 30});
+                item->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
                 column->add_test_child(std::move(item));
             }
             row->add_test_child(std::move(column));
@@ -439,15 +439,15 @@ TEST_SUITE("layout_composition") {
         root->add_test_child(std::move(row));
 
         // Measure and arrange
-        auto measured = root->measure(300, 200);
-        CHECK(measured.w <= 300);
-        CHECK(measured.h > 0);
-        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 300, 200));
+        auto measured = root->measure(300_lu, 200_lu);
+        CHECK(measured.width <= 300_lu);
+        CHECK(measured.height > 0_lu);
+        root->arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu});
 
         // Verify level 1 (root)
         CHECK(root->child_count() == 1);
         auto l2 = root->child_at(0);
-        CHECK(l2->bounds().get().w == 300);
+        CHECK(l2->bounds().width.to_int() == 300);
 
         // Verify level 2 (horizontal row)
         CHECK(l2->child_count() == 2);
@@ -455,20 +455,20 @@ TEST_SUITE("layout_composition") {
         auto col2 = l2->child_at(1);
 
         // Columns should expand equally
-        CHECK(col1->bounds().get().w == 145);  // (300-10)/2, first gets extra
-        CHECK(col2->bounds().get().w == 145);
-        CHECK(col1->bounds().get().x == 0);
-        CHECK(col2->bounds().get().x == 155);  // 145 + 10
+        CHECK(col1->bounds().width.to_int() == 145);  // (300-10)/2, first gets extra
+        CHECK(col2->bounds().width.to_int() == 145);
+        CHECK(col1->bounds().x.to_int() == 0);
+        CHECK(col2->bounds().x.to_int() == 155);  // 145 + 10
 
         // Verify level 3 (vertical columns)
         CHECK(col1->child_count() == 2);
-        CHECK(col1->child_at(0)->bounds().get().h == 30);
-        CHECK(col1->child_at(0)->bounds().get().y == 0);
-        CHECK(col1->child_at(1)->bounds().get().y == 35);  // 30 + 5
+        CHECK(col1->child_at(0)->bounds().height.to_int() == 30);
+        CHECK(col1->child_at(0)->bounds().y.to_int() == 0);
+        CHECK(col1->child_at(1)->bounds().y.to_int() == 35);  // 30 + 5
 
         CHECK(col2->child_count() == 2);
-        CHECK(col2->child_at(0)->bounds().get().h == 30);
-        CHECK(col2->child_at(1)->bounds().get().h == 30);
+        CHECK(col2->child_at(0)->bounds().height.to_int() == 30);
+        CHECK(col2->child_at(1)->bounds().height.to_int() == 30);
     }
 
     /**
@@ -483,7 +483,7 @@ TEST_SUITE("layout_composition") {
 
         // Child 1: Fixed width vertical panel
         auto fixed_panel = std::make_unique<TestElement>();
-        fixed_panel->set_width_constraint({size_policy::fixed, 100, 100});
+        fixed_panel->set_width_constraint({size_policy::fixed, 100_lu, 100_lu});
         fixed_panel->set_layout_strategy(
             std::make_unique<TestLinearLayout>(direction::vertical, 5));
 
@@ -511,26 +511,26 @@ TEST_SUITE("layout_composition") {
         container->add_test_child(std::move(content_panel));
 
         // Measure and arrange
-        TestSize const measured = container->measure(500, 200);
-        CHECK(measured.w == 320);  // 100 + 10 + 0 (expand) + 10 + 120 + 10
-        CHECK(measured.h == 40);
+        auto measured = container->measure(500_lu, 200_lu);
+        CHECK(measured.width == 320_lu);  // 100 + 10 + 0 (expand) + 10 + 120 + 10
+        CHECK(measured.height == 40_lu);
 
-        container->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 200));
+        container->arrange(logical_rect{0_lu, 0_lu, 500_lu, 200_lu});
 
         // Verify fixed panel
         auto fp = container->child_at(0);
-        CHECK(fp->bounds().get().w == 100);
-        CHECK(fp->bounds().get().x == 0);
+        CHECK(fp->bounds().width.to_int() == 100);
+        CHECK(fp->bounds().x.to_int() == 0);
 
         // Verify expanding panel (should take remaining space)
         auto ep = container->child_at(1);
-        CHECK(ep->bounds().get().x == 110);  // 100 + 10
-        CHECK(ep->bounds().get().w == 260);  // 500 - 100 - 10 - 120 - 10
+        CHECK(ep->bounds().x.to_int() == 110);  // 100 + 10
+        CHECK(ep->bounds().width.to_int() == 260);  // 500 - 100 - 10 - 120 - 10
 
         // Verify content panel
         auto cp = container->child_at(2);
-        CHECK(cp->bounds().get().x == 380);  // 500 - 120
-        CHECK(cp->bounds().get().w == 120);
+        CHECK(cp->bounds().x.to_int() == 380);  // 500 - 120
+        CHECK(cp->bounds().width.to_int() == 120);
     }
 
     /**
@@ -549,7 +549,7 @@ TEST_SUITE("layout_composition") {
             std::make_unique<TestLinearLayout>(direction::vertical, 3));
         for (int i = 0; i < 2; i++) {
             auto item = std::make_unique<TestElement>();
-            item->set_height_constraint({size_policy::fixed, 25, 25});
+            item->set_height_constraint({size_policy::fixed, 25_lu, 25_lu});
             cell1->add_test_child(std::move(item));
         }
         grid->add_test_child(std::move(cell1));
@@ -561,7 +561,7 @@ TEST_SUITE("layout_composition") {
         for (int i = 0; i < 2; i++) {
             auto btn = std::make_unique<TestElement>();
             btn->set_width_constraint({size_policy::expand});
-            btn->set_height_constraint({size_policy::fixed, 30, 30});
+            btn->set_height_constraint({size_policy::fixed, 30_lu, 30_lu});
             cell2->add_test_child(std::move(btn));
         }
         grid->add_test_child(std::move(cell2));
@@ -581,35 +581,35 @@ TEST_SUITE("layout_composition") {
         grid->add_test_child(std::move(cell4));
 
         // Measure and arrange
-        auto measured = grid->measure(500, 400);
-        CHECK(measured.w > 0);
-        CHECK(measured.h > 0);
-        grid->arrange(testing::make_relative_rect<TestBackend>(0, 0, 500, 400));
+        auto measured = grid->measure(500_lu, 400_lu);
+        CHECK(measured.width > 0_lu);
+        CHECK(measured.height > 0_lu);
+        grid->arrange(logical_rect{0_lu, 0_lu, 500_lu, 400_lu});
 
         // Verify all cells are positioned correctly (2x2 grid)
-        CHECK(grid->child_at(0)->bounds().get().x == 0);
-        CHECK(grid->child_at(0)->bounds().get().y == 0);
+        CHECK(grid->child_at(0)->bounds().x.to_int() == 0);
+        CHECK(grid->child_at(0)->bounds().y.to_int() == 0);
 
-        CHECK(grid->child_at(1)->bounds().get().x > 0);  // Second column
-        CHECK(grid->child_at(1)->bounds().get().y == 0);
+        CHECK(grid->child_at(1)->bounds().x.to_int() > 0);  // Second column
+        CHECK(grid->child_at(1)->bounds().y.to_int() == 0);
 
-        CHECK(grid->child_at(2)->bounds().get().x == 0);
-        CHECK(grid->child_at(2)->bounds().get().y > 0);  // Second row
+        CHECK(grid->child_at(2)->bounds().x.to_int() == 0);
+        CHECK(grid->child_at(2)->bounds().y.to_int() > 0);  // Second row
 
-        CHECK(grid->child_at(3)->bounds().get().x > 0);  // Second column
-        CHECK(grid->child_at(3)->bounds().get().y > 0);  // Second row
+        CHECK(grid->child_at(3)->bounds().x.to_int() > 0);  // Second column
+        CHECK(grid->child_at(3)->bounds().y.to_int() > 0);  // Second row
 
         // Verify nested layouts work
         auto vertical_cell = grid->child_at(0);
         CHECK(vertical_cell->child_count() == 2);
-        CHECK(vertical_cell->child_at(0)->bounds().get().h == 25);
-        CHECK(vertical_cell->child_at(1)->bounds().get().h == 25);
+        CHECK(vertical_cell->child_at(0)->bounds().height.to_int() == 25);
+        CHECK(vertical_cell->child_at(1)->bounds().height.to_int() == 25);
 
         auto horizontal_cell = grid->child_at(1);
         CHECK(horizontal_cell->child_count() == 2);
         // Both should expand to fill cell
-        CHECK(horizontal_cell->child_at(0)->bounds().get().w > 0);
-        CHECK(horizontal_cell->child_at(1)->bounds().get().w > 0);
+        CHECK(horizontal_cell->child_at(0)->bounds().width.to_int() > 0);
+        CHECK(horizontal_cell->child_at(1)->bounds().width.to_int() > 0);
 
         auto nested_grid_cell = grid->child_at(3);
         CHECK(nested_grid_cell->child_count() == 2);

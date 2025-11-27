@@ -89,7 +89,7 @@ namespace {
         // Helper methods to simulate mouse events using new API
         void simulate_mouse_enter() {
             // First set bounds so is_inside works
-            this->arrange(geometry::relative_rect<TBackend>{typename TBackend::rect_type{0, 0, 100, 50}});
+            this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
             // First send mouse move outside to ensure we're not already inside
             mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
@@ -135,7 +135,7 @@ namespace {
         // Helper methods to simulate mouse events using new API
         void simulate_mouse_enter() {
             // First set bounds so is_inside works
-            this->arrange(geometry::relative_rect<TBackend>{typename TBackend::rect_type{0, 0, 100, 50}});
+            this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
             // First send mouse move outside to ensure we're not already inside
             mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
@@ -560,10 +560,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
     widget.set_state(test_stateful_widget<Backend>::state_type::hover);
 
     // Measure and arrange shouldn't affect state
-    [[maybe_unused]] auto size = widget.measure(100, 100);
+    [[maybe_unused]] auto size = widget.measure(100_lu, 100_lu);
     CHECK(widget.is_in_hover_state() == true);
 
-    widget.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 50}});
+    widget.arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
     CHECK(widget.is_in_hover_state() == true);
 }
 
@@ -571,21 +571,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
     test_stateful_widget<Backend> widget;
 
     // Measure in normal state
-    auto normal_size = widget.measure(100, 100);
+    auto normal_size = widget.measure(100_lu, 100_lu);
 
     // Measure in hover state
     widget.set_state(test_stateful_widget<Backend>::state_type::hover);
-    auto hover_size = widget.measure(100, 100);
+    auto hover_size = widget.measure(100_lu, 100_lu);
 
     // Measure in pressed state
     widget.set_state(test_stateful_widget<Backend>::state_type::pressed);
-    auto pressed_size = widget.measure(100, 100);
+    auto pressed_size = widget.measure(100_lu, 100_lu);
 
     // All sizes should be identical (state affects appearance, not size)
-    CHECK(size_utils::get_width(normal_size) == size_utils::get_width(hover_size));
-    CHECK(size_utils::get_height(normal_size) == size_utils::get_height(hover_size));
-    CHECK(size_utils::get_width(hover_size) == size_utils::get_width(pressed_size));
-    CHECK(size_utils::get_height(hover_size) == size_utils::get_height(pressed_size));
+    CHECK(normal_size.width.to_int() == hover_size.width.to_int());
+    CHECK(normal_size.height.to_int() == hover_size.height.to_int());
+    CHECK(hover_size.width.to_int() == pressed_size.width.to_int());
+    CHECK(hover_size.height.to_int() == pressed_size.height.to_int());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Default constructor initializes state") {

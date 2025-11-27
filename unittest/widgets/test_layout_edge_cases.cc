@@ -45,12 +45,12 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         // Measure with zero width
-        (void)p.measure(0, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 100}});
+        (void)p.measure(0_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 0_lu, 100_lu});
 
         // Should not crash, child should have zero or minimal width
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - zero height available") {
@@ -61,12 +61,12 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         // Measure with zero height
-        (void)p.measure(100, 0);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 0}});
+        (void)p.measure(100_lu, 0_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 0_lu});
 
         // Should not crash, child should have zero or minimal height
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - both dimensions zero") {
@@ -77,13 +77,13 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         // Measure with zero size
-        (void)p.measure(0, 0);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
+        (void)p.measure(0_lu, 0_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
 
         // Should not crash
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel with border - zero size collapses to border only") {
@@ -95,37 +95,37 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         // Measure with size smaller than border (border = 2px total)
-        (void)p.measure(1, 1);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1, 1}});
+        (void)p.measure(1_lu, 1_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 1_lu, 1_lu});
 
         // Content area should be clamped to zero
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - excessive padding clamped to zero content") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_padding(thickness::all(100));  // Huge padding
+        p.set_padding(logical_thickness(100_lu));  // Huge padding
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
         // Small available space
-        (void)p.measure(50, 50);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 50, 50}});
+        (void)p.measure(50_lu, 50_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 50_lu, 50_lu});
 
         // Content area should be clamped to non-negative
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - excessive padding with border") {
         group_box<Backend> gb;
         apply_default_theme(gb);
-        gb.set_padding({50, 50, 50, 50});  // Large padding
+        gb.set_padding(logical_thickness{50_lu, 50_lu, 50_lu, 50_lu});  // Large padding
         gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
@@ -134,12 +134,12 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         // Border: 2px total
         // Padding: 100px per side
         // Should clamp to zero
-        (void)gb.measure(100, 100);
-        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)gb.measure(100_lu, 100_lu);
+        gb.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - very large dimensions") {
@@ -151,13 +151,13 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Very large but not overflow-inducing
         const int large_size = 100000;
-        (void)p.measure(large_size, large_size);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, large_size, large_size}});
+        (void)p.measure(logical_unit(static_cast<double>(large_size)), logical_unit(static_cast<double>(large_size)));
+        p.arrange(logical_rect{0_lu, 0_lu, logical_unit(static_cast<double>(large_size)), logical_unit(static_cast<double>(large_size))});
 
         // Should handle large sizes
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) > 0);
-        CHECK(rect_utils::get_height(child_bounds) > 0);
+        CHECK(child_bounds.width.to_int() > 0);
+        CHECK(child_bounds.height.to_int() > 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - maximum int padding does not overflow") {
@@ -166,19 +166,19 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Use very large padding that could cause overflow
         const int large_padding = std::numeric_limits<int>::max() / 2;
-        p.set_padding(thickness::all(large_padding));
+        p.set_padding(logical_thickness(logical_unit(static_cast<double>(large_padding))));
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
         // Should not crash from overflow
-        (void)p.measure(1000, 1000);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1000, 1000}});
+        (void)p.measure(1000_lu, 1000_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 1000_lu, 1000_lu});
 
         // Content area should be safely clamped
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - empty container with zero size") {
@@ -186,13 +186,13 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         apply_default_theme(vb);
 
         // No children
-        (void)vb.measure(0, 0);
-        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
+        (void)vb.measure(0_lu, 0_lu);
+        vb.arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
 
         // Should not crash
         auto bounds = vb.bounds();
-        CHECK(rect_utils::get_width(bounds) == 0);
-        CHECK(rect_utils::get_height(bounds) == 0);
+        CHECK(bounds.width.to_int() == 0);
+        CHECK(bounds.height.to_int() == 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - children with zero spacing and zero size") {
@@ -203,14 +203,14 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         vb.emplace_child<label>("B");
         vb.emplace_child<label>("C");
 
-        (void)vb.measure(0, 0);
-        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
+        (void)vb.measure(0_lu, 0_lu);
+        vb.arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
 
         // Should not crash, children positioned at zero
         for (const auto& child : vb.children()) {
             auto child_bounds = child->bounds();
-            CHECK(rect_utils::get_x(child_bounds) >= 0);
-            CHECK(rect_utils::get_y(child_bounds) >= 0);
+            CHECK(child_bounds.x.to_int() >= 0);
+            CHECK(child_bounds.y.to_int() >= 0);
         }
     }
 
@@ -219,21 +219,21 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         apply_default_theme(p);
 
         // Extreme asymmetric padding
-        p.set_padding({10000, 1, 1, 1});  // Huge left padding, minimal others
+        p.set_padding(logical_thickness{10000_lu, 1_lu, 1_lu, 1_lu});  // Huge left padding, minimal others
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // Width should be clamped to zero
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
 
         // Height should be available (100 - 1 - 1 = 98)
         // Note: label height is 1 (natural height)
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box - border + extreme padding interaction") {
@@ -242,20 +242,20 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Border is always 1px per side
         // Add extreme padding on top
-        gb.set_padding({5000, 3, 5000, 3});
+        gb.set_padding(logical_thickness{5000_lu, 3_lu, 5000_lu, 3_lu});
         gb.set_vbox_layout(spacing::none);
 
         auto* child = gb.emplace_child<label>("Test");
 
-        (void)gb.measure(100, 100);
-        gb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)gb.measure(100_lu, 100_lu);
+        gb.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // Content area calculation:
         // Width: 100 - border(2) - padding(10000) should clamp to 0
         // Height: 100 - border(2) - padding(6) = 92
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel - border with minimal space (1x1)") {
@@ -267,13 +267,13 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         auto* child = p.emplace_child<label>("Test");
 
         // Border takes 2px total, content area = 0
-        (void)p.measure(2, 2);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 2, 2}});
+        (void)p.measure(2_lu, 2_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 2_lu, 2_lu});
 
         auto child_bounds = child->bounds();
         // Content area should be zero
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
     }
 
     TEST_CASE_FIXTURE(test_fixture, "VBox - many children with zero available space") {
@@ -286,14 +286,14 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
         }
 
         // Zero space available
-        (void)vb.measure(0, 0);
-        vb.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 0, 0}});
+        (void)vb.measure(0_lu, 0_lu);
+        vb.arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
 
         // Should not crash
         for (const auto& child : vb.children()) {
             auto child_bounds = child->bounds();
-            CHECK(rect_utils::get_width(child_bounds) >= 0);
-            CHECK(rect_utils::get_y(child_bounds) >= 0);
+            CHECK(child_bounds.width.to_int() >= 0);
+            CHECK(child_bounds.y.to_int() >= 0);
         }
     }
 
@@ -303,22 +303,23 @@ TEST_SUITE("Layout - Edge Cases & Robustness") {
 
         // Padding that would overflow if added directly
         const int large = std::numeric_limits<int>::max() / 3;
-        p.set_padding({large, large, large, large});
+        p.set_padding(logical_thickness{logical_unit(static_cast<double>(large)), logical_unit(static_cast<double>(large)),
+                                        logical_unit(static_cast<double>(large)), logical_unit(static_cast<double>(large))});
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
         // Measure and arrange should use safe math
-        (void)p.measure(1000, 1000);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 1000, 1000}});
+        (void)p.measure(1000_lu, 1000_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 1000_lu, 1000_lu});
 
         // Should not crash or produce negative values
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_width(child_bounds) >= 0);
-        CHECK(rect_utils::get_height(child_bounds) >= 0);
+        CHECK(child_bounds.width.to_int() >= 0);
+        CHECK(child_bounds.height.to_int() >= 0);
 
         // Position should be valid
-        CHECK(rect_utils::get_x(child_bounds) >= 0);
-        CHECK(rect_utils::get_y(child_bounds) >= 0);
+        CHECK(child_bounds.x.to_int() >= 0);
+        CHECK(child_bounds.y.to_int() >= 0);
     }
 }

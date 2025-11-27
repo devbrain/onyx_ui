@@ -231,7 +231,7 @@ namespace onyxui {
 
             size_constraint height_constraint;
             height_constraint.policy = size_policy::content;
-            height_constraint.preferred_size = lines;  // For now, 1 line = 1 unit (TUI-friendly)
+            height_constraint.preferred_size = logical_unit(static_cast<double>(lines));  // For now, 1 line = 1 unit (TUI-friendly)
             this->set_height_constraint(height_constraint);
         }
 
@@ -287,14 +287,14 @@ namespace onyxui {
 
                 case hotkey_action::scroll_page_up: {
                     auto viewport_bounds = m_scroll_view->bounds();
-                    int viewport_height = rect_utils::get_height(viewport_bounds);
+                    int viewport_height = viewport_bounds.height.to_int();
                     m_scroll_view->scroll_by(0, -viewport_height);
                     return true;
                 }
 
                 case hotkey_action::scroll_page_down: {
                     auto viewport_bounds = m_scroll_view->bounds();
-                    int viewport_height = rect_utils::get_height(viewport_bounds);
+                    int viewport_height = viewport_bounds.height.to_int();
                     m_scroll_view->scroll_by(0, viewport_height);
                     return true;
                 }
@@ -424,7 +424,7 @@ namespace onyxui {
          * When has_border() is true, we need: border (2px) + scroll_view min (8px) = 10px minimum.
          * This override ensures text_view requests adequate space even when constrained.
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // Let base class measure (handles border + child)
             auto measured = base::do_measure(available_width, available_height);
 
@@ -444,12 +444,12 @@ namespace onyxui {
             // Need at least min_scrollbar_length for content + scrollbar_thickness for vertical scrollbar
             const int min_width = border_size + min_scrollbar_length + scrollbar_thickness;
 
-            if (measured.h < min_height) {
-                measured.h = min_height;
+            if (measured.height.to_int() < min_height) {
+                measured.height = logical_unit(static_cast<double>(min_height));
             }
 
-            if (measured.w < min_width) {
-                measured.w = min_width;
+            if (measured.width.to_int() < min_width) {
+                measured.width = logical_unit(static_cast<double>(min_width));
             }
 
             return measured;
@@ -483,7 +483,7 @@ namespace onyxui {
                     horizontal_alignment::left,
                     vertical_alignment::top));
 
-            content_container_ptr->set_padding(thickness::all(1));  // Small padding
+            content_container_ptr->set_padding(logical_thickness(1_lu));  // Small padding
 
             // Add all labels to content before adding to scroll view
             for (const auto& line : m_lines) {

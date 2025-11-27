@@ -285,10 +285,10 @@ TEST_CASE("Window - State transitions") {
         win.restore();
 
         // Bounds should be restored
-        CHECK(rect_utils::get_x(win.bounds()) == rect_utils::get_x(original_bounds));
-        CHECK(rect_utils::get_y(win.bounds()) == rect_utils::get_y(original_bounds));
-        CHECK(rect_utils::get_width(win.bounds()) == rect_utils::get_width(original_bounds));
-        CHECK(rect_utils::get_height(win.bounds()) == rect_utils::get_height(original_bounds));
+        CHECK(win.bounds().x.to_int() == original_bounds.x.to_int());
+        CHECK(win.bounds().y.to_int() == original_bounds.y.to_int());
+        CHECK(win.bounds().width.to_int() == original_bounds.width.to_int());
+        CHECK(win.bounds().height.to_int() == original_bounds.height.to_int());
     }
 }
 
@@ -342,8 +342,8 @@ TEST_CASE("Window - Position and size") {
 
         win.set_position(100, 50);
 
-        CHECK(rect_utils::get_x(win.bounds()) == 100);
-        CHECK(rect_utils::get_y(win.bounds()) == 50);
+        CHECK(win.bounds().x.to_int() == 100);
+        CHECK(win.bounds().y.to_int() == 50);
         CHECK(moved_emitted);
     }
 
@@ -357,8 +357,8 @@ TEST_CASE("Window - Position and size") {
 
         win.set_size(400, 300);
 
-        CHECK(rect_utils::get_width(win.bounds()) == 400);
-        CHECK(rect_utils::get_height(win.bounds()) == 300);
+        CHECK(win.bounds().width.to_int() == 400);
+        CHECK(win.bounds().height.to_int() == 300);
         CHECK(resized_emitted);
     }
 
@@ -375,8 +375,8 @@ TEST_CASE("Window - Position and size") {
         win.set_position(50, 60);
 
         CHECK(moved_count == 3);
-        CHECK(rect_utils::get_x(win.bounds()) == 50);
-        CHECK(rect_utils::get_y(win.bounds()) == 60);
+        CHECK(win.bounds().x.to_int() == 50);
+        CHECK(win.bounds().y.to_int() == 60);
     }
 
     SUBCASE("Negative positions allowed") {
@@ -384,8 +384,8 @@ TEST_CASE("Window - Position and size") {
 
         win.set_position(-10, -20);
 
-        CHECK(rect_utils::get_x(win.bounds()) == -10);
-        CHECK(rect_utils::get_y(win.bounds()) == -20);
+        CHECK(win.bounds().x.to_int() == -10);
+        CHECK(win.bounds().y.to_int() == -20);
     }
 }
 
@@ -641,8 +641,8 @@ TEST_CASE("Window - Resize event handling") {
         win.handle_event(move_evt, event_phase::bubble);
 
         // Size should increase
-        CHECK(rect_utils::get_width(win.bounds()) > 300);
-        CHECK(rect_utils::get_height(win.bounds()) > 200);
+        CHECK(win.bounds().width.to_int() > 300);
+        CHECK(win.bounds().height.to_int() > 200);
         CHECK(resized_count >= 1);
     }
 
@@ -664,10 +664,10 @@ TEST_CASE("Window - Resize event handling") {
         win.handle_event(move_evt, event_phase::bubble);
 
         // Position should move, size should increase
-        CHECK(rect_utils::get_x(win.bounds()) < 100);
-        CHECK(rect_utils::get_y(win.bounds()) < 100);
-        CHECK(rect_utils::get_width(win.bounds()) > 300);
-        CHECK(rect_utils::get_height(win.bounds()) > 200);
+        CHECK(win.bounds().x.to_int() < 100);
+        CHECK(win.bounds().y.to_int() < 100);
+        CHECK(win.bounds().width.to_int() > 300);
+        CHECK(win.bounds().height.to_int() > 200);
     }
 
     SUBCASE("Non-resizable window ignores resize") {
@@ -693,8 +693,8 @@ TEST_CASE("Window - Resize event handling") {
         win.handle_event(move_evt, event_phase::bubble);
 
         // Size should not change
-        CHECK(rect_utils::get_width(win.bounds()) == 300);
-        CHECK(rect_utils::get_height(win.bounds()) == 200);
+        CHECK(win.bounds().width.to_int() == 300);
+        CHECK(win.bounds().height.to_int() == 200);
         CHECK(resized_count == 0);
     }
 }
@@ -891,23 +891,23 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize be
     auto* win = parent->template emplace_child<window>("Test", flags);
 
     // Arrange parent to 80x25
-    [[maybe_unused]] auto measured = parent->measure(80, 25);
-    parent->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto measured = parent->measure(80_lu, 25_lu);
+    parent->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Window starts small
     win->set_size(20, 10);
-    CHECK(rect_utils::get_width(win->bounds()) == 20);
-    CHECK(rect_utils::get_height(win->bounds()) == 10);
+    CHECK(win->bounds().width.to_int() == 20);
+    CHECK(win->bounds().height.to_int() == 10);
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
 
     // Maximize
     win->maximize();
 
     // Should fill parent
-    CHECK(rect_utils::get_x(win->bounds()) == 0);
-    CHECK(rect_utils::get_y(win->bounds()) == 0);
-    CHECK(rect_utils::get_width(win->bounds()) == 80);
-    CHECK(rect_utils::get_height(win->bounds()) == 25);
+    CHECK(win->bounds().x.to_int() == 0);
+    CHECK(win->bounds().y.to_int() == 0);
+    CHECK(win->bounds().width.to_int() == 80);
+    CHECK(win->bounds().height.to_int() == 25);
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
 }
 
@@ -920,18 +920,18 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize be
     win->set_size(20, 10);
     win->set_position(5, 3);
 
-    CHECK(rect_utils::get_width(win->bounds()) == 20);
-    CHECK(rect_utils::get_height(win->bounds()) == 10);
+    CHECK(win->bounds().width.to_int() == 20);
+    CHECK(win->bounds().height.to_int() == 10);
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
 
     // Maximize
     win->maximize();
 
     // Should fill screen (placeholder values from Phase 1)
-    CHECK(rect_utils::get_x(win->bounds()) == 0);
-    CHECK(rect_utils::get_y(win->bounds()) == 0);
-    CHECK(rect_utils::get_width(win->bounds()) == 80);  // Placeholder from Phase 1
-    CHECK(rect_utils::get_height(win->bounds()) == 25);  // Placeholder from Phase 1
+    CHECK(win->bounds().x.to_int() == 0);
+    CHECK(win->bounds().y.to_int() == 0);
+    CHECK(win->bounds().width.to_int() == 80);  // Placeholder from Phase 1
+    CHECK(win->bounds().height.to_int() == 25);  // Placeholder from Phase 1
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
 }
 
@@ -951,8 +951,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize up
     win->maximize();
 
     // Window bounds should be updated
-    CHECK(rect_utils::get_width(win->bounds()) == 80);
-    CHECK(rect_utils::get_height(win->bounds()) == 25);
+    CHECK(win->bounds().width.to_int() == 80);
+    CHECK(win->bounds().height.to_int() == 25);
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
 }
 
@@ -970,15 +970,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - restore aft
     // Maximize
     win->maximize();
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::maximized);
-    CHECK(rect_utils::get_width(win->bounds()) == 80);
-    CHECK(rect_utils::get_height(win->bounds()) == 25);
+    CHECK(win->bounds().width.to_int() == 80);
+    CHECK(win->bounds().height.to_int() == 25);
 
     // Restore
     win->restore();
     CHECK(win->get_state() == window<test_canvas_backend>::window_state::normal);
-    CHECK(rect_utils::get_x(win->bounds()) == rect_utils::get_x(original_bounds));
-    CHECK(rect_utils::get_y(win->bounds()) == rect_utils::get_y(original_bounds));
-    CHECK(rect_utils::get_width(win->bounds()) == rect_utils::get_width(original_bounds));
-    CHECK(rect_utils::get_height(win->bounds()) == rect_utils::get_height(original_bounds));
+    CHECK(win->bounds().x.to_int() == original_bounds.x.to_int());
+    CHECK(win->bounds().y.to_int() == original_bounds.y.to_int());
+    CHECK(win->bounds().width.to_int() == original_bounds.width.to_int());
+    CHECK(win->bounds().height.to_int() == original_bounds.height.to_int());
 }
 

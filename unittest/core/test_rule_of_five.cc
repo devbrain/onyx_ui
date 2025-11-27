@@ -21,6 +21,11 @@
 #include <vector>
 
 #include "utils/test_helpers.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 using namespace onyxui;
 
@@ -68,9 +73,9 @@ TEST_SUITE("RuleOfFive") {
 
         size_constraint width_c;
         width_c.policy = size_policy::fixed;
-        width_c.preferred_size = 200;
-        width_c.min_size = 100;
-        width_c.max_size = 300;
+        width_c.preferred_size = 200_lu;
+        width_c.min_size = 100_lu;
+        width_c.max_size = 300_lu;
         source.set_width_constraint(width_c);
 
         size_constraint height_c;
@@ -80,8 +85,8 @@ TEST_SUITE("RuleOfFive") {
 
         source.set_horizontal_align(horizontal_alignment::right);
         source.set_vertical_align(vertical_alignment::bottom);
-        source.set_margin({10, 20, 30, 40});
-        source.set_padding({5, 6, 7, 8});
+        source.set_margin(logical_thickness{10_lu, 20_lu, 30_lu, 40_lu});
+        source.set_padding(logical_thickness{5_lu, 6_lu, 7_lu, 8_lu});
 
         // Add a layout strategy
         source.set_layout_strategy(
@@ -110,9 +115,9 @@ TEST_SUITE("RuleOfFive") {
             // Check width constraint
             const auto& w = dest.width_constraint();
             CHECK(w.policy == size_policy::fixed);
-            CHECK(w.preferred_size == 200);
-            CHECK(w.min_size == 100);
-            CHECK(w.max_size == 300);
+            CHECK(w.preferred_size == 200_lu);
+            CHECK(w.min_size == 100_lu);
+            CHECK(w.max_size == 300_lu);
 
             // Check height constraint
             const auto& h = dest.height_constraint();
@@ -123,16 +128,16 @@ TEST_SUITE("RuleOfFive") {
             CHECK(dest.v_align() == vertical_alignment::bottom);
 
             const auto& margin = dest.margin();
-            CHECK(margin.left == 10);
-            CHECK(margin.top == 20);
-            CHECK(margin.right == 30);
-            CHECK(margin.bottom == 40);
+            CHECK(margin.left == 10_lu);
+            CHECK(margin.top == 20_lu);
+            CHECK(margin.right == 30_lu);
+            CHECK(margin.bottom == 40_lu);
 
             const auto& padding = dest.padding();
-            CHECK(padding.left == 5);
-            CHECK(padding.top == 6);
-            CHECK(padding.right == 7);
-            CHECK(padding.bottom == 8);
+            CHECK(padding.left == 5_lu);
+            CHECK(padding.top == 6_lu);
+            CHECK(padding.right == 7_lu);
+            CHECK(padding.bottom == 8_lu);
         }
 
         SUBCASE("destination has layout strategy") {
@@ -178,7 +183,7 @@ TEST_SUITE("RuleOfFive") {
         source.set_width_constraint(c);
 
         source.set_horizontal_align(horizontal_alignment::center);
-        source.set_margin({1, 2, 3, 4});
+        source.set_margin(logical_thickness{1_lu, 2_lu, 3_lu, 4_lu});
 
         auto new_child1 = std::make_unique<test_element>(nullptr);
         auto new_child2 = std::make_unique<test_element>(nullptr);
@@ -201,7 +206,7 @@ TEST_SUITE("RuleOfFive") {
             CHECK(dest.h_align() == horizontal_alignment::center);
 
             const auto& margin = dest.margin();
-            CHECK(margin.left == 1);
+            CHECK(margin.left == 1_lu);
         }
 
         SUBCASE("destination has new children with correct parent pointers") {
@@ -551,7 +556,7 @@ TEST_SUITE("RuleOfFive") {
 
             // Verify element can handle events
             // Need to set bounds first for hit testing with unified event API
-            dest.arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+            dest.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
             mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
             CHECK(dest.is_pressed());
@@ -581,18 +586,18 @@ TEST_SUITE("RuleOfFive") {
         source.add_child(std::move(child2));
 
         // Measure source (may return 0 if no children - that's ok)
-        auto size = source.measure(200, 200);
+        auto size = source.measure(200_lu, 200_lu);
         (void)size;  // Suppress unused warning
 
         // Move
         test_element dest(std::move(source));
 
         SUBCASE("can still perform layout operations after move") {
-            auto size2 = dest.measure(200, 200);
+            auto size2 = dest.measure(200_lu, 200_lu);
             // Size may be 0 if children have no intrinsic size - verify no crash
             (void)size2;
 
-            auto bounds = testing::make_relative_rect<TestBackend>(0,0,200,200);
+            auto bounds = logical_rect{0_lu, 0_lu, 200_lu, 200_lu};
 
 
             // Should not crash

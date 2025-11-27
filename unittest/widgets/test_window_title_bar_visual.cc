@@ -29,8 +29,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Measure and arrange window
-        (void)win->measure(40, 20);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 40, 20}});
+        (void)win->measure(40_lu, 20_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 40_lu, 20_lu});
 
         // Render to canvas
         auto canvas = render_to_canvas(*win, 40, 20);
@@ -88,8 +88,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win = std::make_unique<window<Backend>>("Short", flags);
 
         // Measure and arrange
-        (void)win->measure(30, 15);
-        win->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 30, 15}});
+        (void)win->measure(30_lu, 15_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 15_lu});
 
         // Render
         auto canvas = render_to_canvas(*win, 30, 15);
@@ -133,11 +133,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto win2 = std::make_unique<window<Backend>>("Win2", flags);
 
         // Arrange at different positions
-        (void)win1->measure(25, 10);
-        win1->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 25, 10}});
+        (void)win1->measure(25_lu, 10_lu);
+        win1->arrange(logical_rect{0_lu, 0_lu, 25_lu, 10_lu});
 
-        (void)win2->measure(25, 10);
-        win2->arrange(geometry::relative_rect<Backend>{Backend::rect_type{5, 5, 25, 10}});
+        (void)win2->measure(25_lu, 10_lu);
+        win2->arrange(logical_rect{5_lu, 5_lu, 25_lu, 10_lu});
 
         // Render both windows to same canvas (overlapping)
         auto canvas = std::make_shared<testing::test_canvas>(40, 20);

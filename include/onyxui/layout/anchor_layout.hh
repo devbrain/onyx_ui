@@ -235,9 +235,9 @@ namespace onyxui {
              * full available dimensions. This ensures the parent expands to fill its
              * container, providing maximum space for anchor positioning.
              */
-            size_type measure_children(const elt_t* parent,
-                                   int available_width,
-                                   int available_height) const override;
+            logical_size measure_children(const elt_t* parent,
+                                   logical_unit available_width,
+                                   logical_unit available_height) const override;
 
             /**
              * @brief Arrange children at their configured anchor points
@@ -255,7 +255,7 @@ namespace onyxui {
              * @note Children may overlap or extend outside content_area depending
              *       on their anchor configuration and offsets.
              */
-            void arrange_children(elt_t* parent, const rect_type& content_area) override;
+            void arrange_children(elt_t* parent, const logical_rect& content_area) override;
 
             /**
              * @brief Clean up anchor mapping when child is removed
@@ -319,10 +319,10 @@ namespace onyxui {
              * @note This is a static helper function with no side effects.
              *       The child may be positioned outside content_area bounds.
              */
-            static void calculate_anchor_position(const rect_type& content_area,
-                                                  const size_type& child_size,
+            static void calculate_anchor_position(const logical_rect& content_area,
+                                                  const logical_size& child_size,
                                                   const anchor_info& info,
-                                                  int& out_x, int& out_y);
+                                                  logical_unit& out_x, logical_unit& out_y);
     };
 
     // ====================================================================================================
@@ -331,8 +331,8 @@ namespace onyxui {
 
     // --------------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    typename Backend::size_type anchor_layout<Backend>::measure_children(const elt_t* parent, int available_width,
-                                                         int available_height) const {
+    logical_size anchor_layout<Backend>::measure_children(const elt_t* parent, logical_unit available_width,
+                                                         logical_unit available_height) const {
         // Measure all children with available space
         for (const auto& child : this->get_children(parent)) {
             if (child->is_visible()) {
@@ -341,14 +341,12 @@ namespace onyxui {
         }
 
         // Anchor layout uses all available space
-        size_type result = {};
-        size_utils::set_size(result, available_width, available_height);
-        return result;
+        return logical_size{available_width, available_height};
     }
 
     // -------------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void anchor_layout<Backend>::arrange_children(elt_t* parent, const rect_type& content_area) {
+    void anchor_layout<Backend>::arrange_children(elt_t* parent, const logical_rect& content_area) {
         for (auto& child : this->get_mutable_children(parent)) {
             if (!child->is_visible()) continue;
 
@@ -357,50 +355,48 @@ namespace onyxui {
                                    ? it->second
                                    : anchor_info{anchor_point::top_left, 0, 0};
 
-            const size_type& measured = this->get_last_measured_size(child.get());
+            const logical_size& measured = this->get_last_measured_size(child.get());
 
             // Calculate child size (handle percentage policy)
-            int child_w = size_utils::get_width(measured);
-            int child_h = size_utils::get_height(measured);
+            logical_unit child_w = measured.width;
+            logical_unit child_h = measured.height;
 
-            int const content_w = rect_utils::get_width(content_area);
-            int const content_h = rect_utils::get_height(content_area);
+            logical_unit const content_w = content_area.width;
+            logical_unit const content_h = content_area.height;
 
             if (child->w_constraint().policy == size_policy::percentage) {
-                int const percentage_w = static_cast<int>(static_cast<float>(content_w) * child->w_constraint().percentage);
+                logical_unit const percentage_w = logical_unit(content_w.value * static_cast<double>(child->w_constraint().percentage));
                 child_w = child->w_constraint().clamp(percentage_w);
             }
 
             if (child->h_constraint().policy == size_policy::percentage) {
-                int const percentage_h = static_cast<int>(static_cast<float>(content_h) * child->h_constraint().percentage);
+                logical_unit const percentage_h = logical_unit(content_h.value * static_cast<double>(child->h_constraint().percentage));
                 child_h = child->h_constraint().clamp(percentage_h);
             }
 
             // Calculate position based on anchor point (using potentially adjusted child size)
-            size_type child_size;
-            size_utils::set_size(child_size, child_w, child_h);
+            logical_size child_size{child_w, child_h};
 
-            int child_x, child_y;
+            logical_unit child_x, child_y;
             calculate_anchor_position(content_area, child_size, info,
                                       child_x, child_y);
 
-            rect_type child_bounds;
-            rect_utils::set_bounds(child_bounds, child_x, child_y, child_w, child_h);
-            child->arrange(geometry::relative_rect<Backend>{child_bounds});
+            logical_rect child_bounds{child_x, child_y, child_w, child_h};
+            child->arrange(child_bounds);
         }
     }
 
     // ---------------------------------------------------------------------------------------------------------------
     template<UIBackend Backend>
-    void anchor_layout<Backend>::calculate_anchor_position(const rect_type& content_area, const size_type& child_size,
-                                                                 const anchor_info& info, int& out_x, int& out_y) {
+    void anchor_layout<Backend>::calculate_anchor_position(const logical_rect& content_area, const logical_size& child_size,
+                                                                 const anchor_info& info, logical_unit& out_x, logical_unit& out_y) {
         // RELATIVE coordinates - 0,0 = top-left of content area
-        const int content_x = 0;
-        const int content_y = 0;
-        const int content_w = rect_utils::get_width(content_area);
-        const int content_h = rect_utils::get_height(content_area);
-        const int child_w = size_utils::get_width(child_size);
-        const int child_h = size_utils::get_height(child_size);
+        const logical_unit content_x = logical_unit(0.0);
+        const logical_unit content_y = logical_unit(0.0);
+        const logical_unit content_w = content_area.width;
+        const logical_unit content_h = content_area.height;
+        const logical_unit child_w = child_size.width;
+        const logical_unit child_h = child_size.height;
 
         switch (info.point) {
             case anchor_point::top_left:
@@ -409,7 +405,7 @@ namespace onyxui {
                 break;
 
             case anchor_point::top_center:
-                out_x = content_x + (content_w - child_w) / 2;
+                out_x = content_x + (content_w - child_w) / 2.0;
                 out_y = content_y;
                 break;
 
@@ -420,17 +416,17 @@ namespace onyxui {
 
             case anchor_point::center_left:
                 out_x = content_x;
-                out_y = content_y + (content_h - child_h) / 2;
+                out_y = content_y + (content_h - child_h) / 2.0;
                 break;
 
             case anchor_point::center:
-                out_x = content_x + (content_w - child_w) / 2;
-                out_y = content_y + (content_h - child_h) / 2;
+                out_x = content_x + (content_w - child_w) / 2.0;
+                out_y = content_y + (content_h - child_h) / 2.0;
                 break;
 
             case anchor_point::center_right:
                 out_x = content_x + content_w - child_w;
-                out_y = content_y + (content_h - child_h) / 2;
+                out_y = content_y + (content_h - child_h) / 2.0;
                 break;
 
             case anchor_point::bottom_left:
@@ -439,7 +435,7 @@ namespace onyxui {
                 break;
 
             case anchor_point::bottom_center:
-                out_x = content_x + (content_w - child_w) / 2;
+                out_x = content_x + (content_w - child_w) / 2.0;
                 out_y = content_y + content_h - child_h;
                 break;
 
@@ -449,7 +445,7 @@ namespace onyxui {
                 break;
         }
 
-        out_x += info.offset_x;
-        out_y += info.offset_y;
+        out_x = out_x + logical_unit(static_cast<double>(info.offset_x));
+        out_y = out_y + logical_unit(static_cast<double>(info.offset_y));
     }
 }

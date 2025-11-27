@@ -48,8 +48,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -88,8 +88,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: I
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -128,8 +128,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     bool signal_emitted = false;
@@ -167,8 +167,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
+    [[maybe_unused]] auto size = sb.measure(200_lu, 16_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 200_lu, 16_lu});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -199,8 +199,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: H
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(200, 16);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 200, 16}});
+    [[maybe_unused]] auto size = sb.measure(200_lu, 16_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 200_lu, 16_lu});
 
     // Connect to scroll_requested signal
     int emitted_value = 0;
@@ -235,8 +235,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: C
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     bool signal_emitted = false;
@@ -263,8 +263,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: M
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     int emit_count = 0;
@@ -292,8 +292,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Arrow: D
     sb.set_scroll_info(info);
 
     // Measure and arrange
-    [[maybe_unused]] auto size = sb.measure(16, 200);
-    sb.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 16, 200}});
+    [[maybe_unused]] auto size = sb.measure(16_lu, 200_lu);
+    sb.arrange(logical_rect{0_lu, 0_lu, 16_lu, 200_lu});
 
     // Connect to scroll_requested signal
     int last_emitted = 0;

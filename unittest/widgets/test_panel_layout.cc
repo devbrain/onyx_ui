@@ -43,14 +43,14 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
-        CHECK(rect_utils::get_width(child_bounds) == 98);  // 100 - 2*1
+        CHECK(child_bounds.x.to_int() == 0);
+        CHECK(child_bounds.y.to_int() == 0);
+        CHECK(child_bounds.width.to_int() == 98);  // 100 - 2*1
         // Note: height is 1 (label's natural height), not 98 (labels don't expand by default)
     }
 
@@ -80,20 +80,20 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
     TEST_CASE_FIXTURE(test_fixture, "Panel with padding - child positioned inside padding") {
         panel<Backend> p;
         apply_default_theme(p);
-        p.set_padding(thickness::all(3));
+        p.set_padding(logical_thickness(3_lu));
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Padding offset handled internally by parent
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
-        CHECK(rect_utils::get_width(child_bounds) == 94);  // 100 - 2*3 padding
+        CHECK(child_bounds.x.to_int() == 0);
+        CHECK(child_bounds.y.to_int() == 0);
+        CHECK(child_bounds.width.to_int() == 94);  // 100 - 2*3 padding
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Panel with border AND padding - compound spacing") {
@@ -103,20 +103,20 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> p;
         apply_default_theme(p);
         p.set_has_border(true);           // +1 on each side
-        p.set_padding(thickness::all(2)); // +2 on each side
+        p.set_padding(logical_thickness(2_lu)); // +2 on each side
         p.set_vbox_layout(spacing::none);
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // RELATIVE COORDINATES: child at (0,0) relative to parent's content area
         // Border and padding offsets handled internally by parent
         auto child_bounds = child->bounds();
-        CHECK(rect_utils::get_x(child_bounds) == 0);
-        CHECK(rect_utils::get_y(child_bounds) == 0);
-        CHECK(rect_utils::get_width(child_bounds) == 94);  // 100 - 2*(1+2)
+        CHECK(child_bounds.x.to_int() == 0);
+        CHECK(child_bounds.y.to_int() == 0);
+        CHECK(child_bounds.width.to_int() == 94);  // 100 - 2*(1+2)
         // Note: height is 1 (label's natural height), not 94
 
         // Visual verification
@@ -140,29 +140,29 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
         panel<Backend> main_panel;
         apply_default_theme(main_panel);
         main_panel.set_vbox_layout(spacing::none);
-        main_panel.set_padding(thickness::all(0));
+        main_panel.set_padding(logical_thickness(0_lu));
 
         // Create demo panel with border (the problematic one)
         auto* demo_panel = main_panel.emplace_child<panel>();
         demo_panel->set_has_border(true);
-        demo_panel->set_padding(thickness::all(1));
+        demo_panel->set_padding(logical_thickness(1_lu));
         demo_panel->set_vbox_layout(spacing::tiny);
 
         // Add the "Panel with Border" label
         auto* label_ptr = demo_panel->emplace_child<label>("Panel with Border");
 
         // Measure and arrange
-        (void)main_panel.measure(155, 100);
-        main_panel.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 155, 100}});
+        (void)main_panel.measure(155_lu, 100_lu);
+        main_panel.arrange(logical_rect{0_lu, 0_lu, 155_lu, 100_lu});
 
         // The bug: label_ptr->bounds() had y=65541 (overflow from negative)
         // With the fix, y should be positive and small
         auto label_bounds = label_ptr->bounds();
-        int y = rect_utils::get_y(label_bounds);
+        int y = label_bounds.y.to_int();
 
         INFO("Label y-coordinate: ", y);
-        INFO("Label bounds: (", rect_utils::get_x(label_bounds), ",", y,
-             ") ", rect_utils::get_width(label_bounds), "x", rect_utils::get_height(label_bounds));
+        INFO("Label bounds: (", label_bounds.x.to_int(), ",", y,
+             ") ", label_bounds.width.to_int(), "x", label_bounds.height.to_int());
 
         // RELATIVE COORDINATES: label at (0,0) relative to demo_panel's content area
         // Border and padding offsets handled internally by parent
@@ -190,11 +190,11 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
 
         auto* child = p.emplace_child<label>("Test");
 
-        (void)p.measure(100, 100);
-        p.arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 100, 100}});
+        (void)p.measure(100_lu, 100_lu);
+        p.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
         // Child should start at 0,0 (no border offset)
-        CHECK(rect_utils::get_x(child->bounds()) == 0);
-        CHECK(rect_utils::get_y(child->bounds()) == 0);
+        CHECK(child->bounds().x.to_int() == 0);
+        CHECK(child->bounds().y.to_int() == 0);
     }
 }

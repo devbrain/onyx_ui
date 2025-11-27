@@ -331,11 +331,8 @@ namespace onyxui {
             auto it = find_layer(id);
             if (it != m_layers.end()) {
                 // Track removed layer bounds for dirty region marking
-                // Try to get bounds from the widget itself (more accurate if manually positioned)
+                // Use the layer's screen-space bounds that was set during layer creation
                 rect_type bounds_to_track = it->bounds;
-                it->with_root([&](element_type* root) {
-                    bounds_to_track = root->bounds().get();
-                });
 
                 // Expand bounds to include potential shadow area
                 // NOTE: We don't have access to theme here to query actual shadow offset
@@ -731,10 +728,18 @@ namespace onyxui {
                     // Measure and arrange
                     int const width = rect_utils::get_width(layer.bounds);
                     int const height = rect_utils::get_height(layer.bounds);
-                    [[maybe_unused]] auto measured_size = root_ptr->measure(width, height);
+                    [[maybe_unused]] auto measured_size = root_ptr->measure(
+                        logical_unit(static_cast<double>(width)),
+                        logical_unit(static_cast<double>(height)));
 
                     // Arrange with absolute coordinates (layer.bounds contains screen position)
-                    root_ptr->arrange(geometry::relative_rect<Backend>{layer.bounds});
+                    // Convert physical rect_type to logical_rect
+                    root_ptr->arrange(logical_rect{
+                        logical_unit(static_cast<double>(rect_utils::get_x(layer.bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_y(layer.bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_width(layer.bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_height(layer.bounds)))
+                    });
 
                     // Render with theme (for proper styling in menus, dialogs, etc.)
                     root_ptr->render(renderer, theme);
@@ -1023,10 +1028,12 @@ namespace onyxui {
                 int const vp_width = rect_utils::get_width(viewport);
                 int const vp_height = rect_utils::get_height(viewport);
 
-                auto size = root_ptr->measure(vp_width, vp_height);
+                auto size = root_ptr->measure(
+                    logical_unit(static_cast<double>(vp_width)),
+                    logical_unit(static_cast<double>(vp_height)));
 
-                int const width = size_utils::get_width(size);
-                int const height = size_utils::get_height(size);
+                int const width = static_cast<int>(size.width.value);
+                int const height = static_cast<int>(size.height.value);
 
                 // Center in viewport
                 int const x = rect_utils::get_x(viewport) + ((vp_width - width) / 2);
@@ -1043,10 +1050,12 @@ namespace onyxui {
                 int const vp_width = rect_utils::get_width(viewport);
                 int const vp_height = rect_utils::get_height(viewport);
 
-                auto size = root_ptr->measure(vp_width, vp_height);
+                auto size = root_ptr->measure(
+                    logical_unit(static_cast<double>(vp_width)),
+                    logical_unit(static_cast<double>(vp_height)));
 
-                int const width = size_utils::get_width(size);
-                int const height = size_utils::get_height(size);
+                int const width = static_cast<int>(size.width.value);
+                int const height = static_cast<int>(size.height.value);
 
                 // Get anchor position
                 int const anchor_x = rect_utils::get_x(layer.anchor_bounds);

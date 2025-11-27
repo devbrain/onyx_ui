@@ -40,8 +40,8 @@ TEST_CASE("measure_context - Basic functionality") {
     SUBCASE("Initial state is zero size") {
         measure_context<Backend> const ctx(make_default_style());
         auto size = ctx.get_size();
-        CHECK(size_utils::get_width(size) == 0);
-        CHECK(size_utils::get_height(size) == 0);
+        CHECK(size.width == 0_lu);
+        CHECK(size.height == 0_lu);
     }
 
     SUBCASE("is_measuring() returns true, is_rendering() returns false") {
@@ -63,13 +63,13 @@ TEST_CASE("measure_context - Text measurement") {
         auto text_size = ctx.draw_text("Hello", pos, font, color);
 
         // Verify returned size
-        CHECK(size_utils::get_width(text_size) == 5);
-        CHECK(size_utils::get_height(text_size) == 1);
+        CHECK(text_size.w == 5);
+        CHECK(text_size.h == 1);
 
         // Verify tracked size
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 5);
-        CHECK(size_utils::get_height(measured) == 1);
+        CHECK(measured.width == 5_lu);
+        CHECK(measured.height == 1_lu);
     }
 
     SUBCASE("Text at offset position") {
@@ -85,8 +85,8 @@ TEST_CASE("measure_context - Text measurement") {
         // Bounding box: min={10,5}, max={12,6} → size = {2, 1}
         // Position is ignored - only size matters for measurement
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 2);
-        CHECK(size_utils::get_height(measured) == 1);
+        CHECK(measured.width == 2_lu);
+        CHECK(measured.height == 1_lu);
     }
 }
 
@@ -102,8 +102,8 @@ TEST_CASE("measure_context - Rectangle measurement") {
 
         // Should track rectangle bounds
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 10);
-        CHECK(size_utils::get_height(measured) == 5);
+        CHECK(measured.width == 10_lu);
+        CHECK(measured.height == 5_lu);
     }
 
     SUBCASE("Rectangle at offset position") {
@@ -118,8 +118,8 @@ TEST_CASE("measure_context - Rectangle measurement") {
         // Bounding box: min={5,3}, max={13,7} → size = {8, 4}
         // Position is ignored - only size matters for measurement
         auto measured = ctx.get_size();
-        CHECK(size_utils::get_width(measured) == 8);
-        CHECK(size_utils::get_height(measured) == 4);
+        CHECK(measured.width == 8_lu);
+        CHECK(measured.height == 4_lu);
     }
 }
 
@@ -135,15 +135,15 @@ TEST_CASE("measure_context - Reset functionality") {
 
         // Verify size is tracked
         auto measured1 = ctx.get_size();
-        CHECK(size_utils::get_width(measured1) == 5);
+        CHECK(measured1.width == 5_lu);
 
         // Reset
         ctx.reset();
 
         // Verify size is zero
         auto measured2 = ctx.get_size();
-        CHECK(size_utils::get_width(measured2) == 0);
-        CHECK(size_utils::get_height(measured2) == 0);
+        CHECK(measured2.width == 0_lu);
+        CHECK(measured2.height == 0_lu);
     }
 }
 
@@ -170,8 +170,8 @@ TEST_CASE("draw_context - Text rendering") {
         auto text_size = ctx.draw_text("Hello", pos, font, color);
 
         // Should return measured text size
-        CHECK(size_utils::get_width(text_size) == 5);
-        CHECK(size_utils::get_height(text_size) == 1);
+        CHECK(text_size.w == 5);
+        CHECK(text_size.h == 1);
     }
 }
 
@@ -224,7 +224,7 @@ TEST_CASE("Context lifetimes") {
 
         // Moved context retains state
         auto measured = ctx2.get_size();
-        CHECK(size_utils::get_width(measured) == 5);
+        CHECK(measured.width == 5_lu);
     }
 
     SUBCASE("draw_context is moveable") {

@@ -39,7 +39,7 @@ TEST_CASE("HBox - Horizontal layout widget") {
 
         // Should not crash
         box.set_spacing(spacing::large);
-        CHECK_NOTHROW((void)box.measure(100, 100));
+        CHECK_NOTHROW((void)box.measure(100_lu, 100_lu));
     }
 
     SUBCASE("Child alignment configuration") {

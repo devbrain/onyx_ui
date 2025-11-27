@@ -28,9 +28,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Keyboard
         text_view_widget->set_text(content);
 
         // Measure and arrange
-        auto size = text_view_widget->measure(40, 10);
+        auto size = text_view_widget->measure(40_lu, 10_lu);
         (void)size; // Suppress unused warning
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // text_view itself should be focusable for keyboard scrolling
         REQUIRE(text_view_widget->is_focusable());
@@ -41,9 +41,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Keyboard
 
         // Add content
         text_view_widget->set_text("Line 1\nLine 2\nLine 3\n");
-        auto size = text_view_widget->measure(40, 10);
+        auto size = text_view_widget->measure(40_lu, 10_lu);
         (void)size;
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 10}});
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
 
         // Give focus to text_view directly
         auto* input = ui_services<Backend>::input();
@@ -66,9 +66,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Keyboard
         text_view_widget->set_text(content);
 
         // Measure and arrange with limited height to force scrolling
-        auto size = text_view_widget->measure(40, 8);
+        auto size = text_view_widget->measure(40_lu, 8_lu);
         (void)size;
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 8}});
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 40_lu, 8_lu});
 
         // Give focus to text_view directly (NEW ARCHITECTURE)
         auto* input = ui_services<Backend>::input();
@@ -114,9 +114,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Keyboard
         }
         text_view_widget->set_text(content);
 
-        auto size = text_view_widget->measure(40, 8);
+        auto size = text_view_widget->measure(40_lu, 8_lu);
         (void)size;
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 8}});
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 40_lu, 8_lu});
 
         // Give focus to text_view directly (NEW ARCHITECTURE)
         auto* input = ui_services<Backend>::input();
@@ -159,9 +159,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Keyboard
         }
         text_view_widget->set_text(content);
 
-        auto size = text_view_widget->measure(40, 8);
+        auto size = text_view_widget->measure(40_lu, 8_lu);
         (void)size;
-        text_view_widget->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 40, 8}});
+        text_view_widget->arrange(logical_rect{0_lu, 0_lu, 40_lu, 8_lu});
 
         // Give focus to text_view directly (NEW ARCHITECTURE)
         auto* input = ui_services<Backend>::input();

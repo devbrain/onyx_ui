@@ -99,8 +99,8 @@ TEST_CASE("size_constraint - Float comparison with epsilon") {
 
         // Same policy, different preferred_size
         a.policy = b.policy = size_policy::fixed;
-        a.preferred_size = 100;
-        b.preferred_size = 200;
+        a.preferred_size = 100_lu;
+        b.preferred_size = 200_lu;
         CHECK(a != b);
 
         // Same everything except weight
@@ -155,31 +155,31 @@ TEST_CASE("approx_equal - Helper function tests") {
 TEST_CASE("size_constraint - Integer field comparison") {
     SUBCASE("preferred_size must match exactly") {
         size_constraint a, b;
-        a.preferred_size = 100;
-        b.preferred_size = 100;
+        a.preferred_size = 100_lu;
+        b.preferred_size = 100_lu;
         CHECK(a == b);
 
-        b.preferred_size = 101;
+        b.preferred_size = 101_lu;
         CHECK(a != b);
     }
 
     SUBCASE("min_size must match exactly") {
         size_constraint a, b;
-        a.min_size = 50;
-        b.min_size = 50;
+        a.min_size = 50_lu;
+        b.min_size = 50_lu;
         CHECK(a == b);
 
-        b.min_size = 51;
+        b.min_size = 51_lu;
         CHECK(a != b);
     }
 
     SUBCASE("max_size must match exactly") {
         size_constraint a, b;
-        a.max_size = 200;
-        b.max_size = 200;
+        a.max_size = 200_lu;
+        b.max_size = 200_lu;
         CHECK(a == b);
 
-        b.max_size = 201;
+        b.max_size = 201_lu;
         CHECK(a != b);
     }
 }

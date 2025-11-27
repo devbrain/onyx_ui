@@ -32,8 +32,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Label - Text display widget
     SUBCASE("Content size based on text") {
         label<test_backend> lbl("Test");
 
-        auto size = lbl.measure(100, 100);
-        int const width = size_utils::get_width(size);
+        auto size = lbl.measure(100_lu, 100_lu);
+        int const width = size.width.to_int();
 
         CHECK(width >= 4);  // At least as wide as text length
     }

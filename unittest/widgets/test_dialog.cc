@@ -531,13 +531,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         dlg.add_yes_no_cancel_buttons();
 
         // Measure
-        auto size = dlg.measure(60, 20);
-        INFO("Measured size: " << size.w << " x " << size.h);
-        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size.h > 0);
+        auto size = dlg.measure(60_lu, 20_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        dlg.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 60, 20}});
+        dlg.arrange(logical_rect{0_lu, 0_lu, 60_lu, 20_lu});
 
         // Render
         auto canvas = render_to_canvas(dlg, 60, 20);
@@ -563,13 +563,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         dlg.add_button("Cancel", dialog<test_canvas_backend>::dialog_result::cancel);
 
         // Measure
-        auto size = dlg.measure(70, 22);
-        INFO("Measured size: " << size.w << " x " << size.h);
-        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size.h > 0);
+        auto size = dlg.measure(70_lu, 22_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        dlg.arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{5, 5, 70, 22}});
+        dlg.arrange(logical_rect{5_lu, 5_lu, 70_lu, 22_lu});
 
         // Render
         auto canvas = render_to_canvas(dlg, 80, 30);  // Larger canvas to see full dialog
@@ -593,13 +593,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
         REQUIRE(dlg != nullptr);
 
         // Measure
-        auto size = dlg->measure(50, 15);
-        INFO("Measured size: " << size.w << " x " << size.h);
-        CHECK(size.w > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size.h > 0);
+        auto size = dlg->measure(50_lu, 15_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        dlg->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 50, 15}});
+        dlg->arrange(logical_rect{0_lu, 0_lu, 50_lu, 15_lu});
 
         // Render
         auto canvas = render_to_canvas(*dlg, 50, 15);

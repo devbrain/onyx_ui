@@ -103,8 +103,13 @@ class TestElement : public ui_element <TestBackend> {
             add_child(std::move(child));
         }
 
-        // Expose bounds for testing
-        const TestRect& test_bounds() const { return bounds().get(); }
+        // Expose bounds for testing (convert logical to physical)
+        TestRect test_bounds() const {
+            const auto& lb = bounds();
+            TestRect r;
+            rect_utils::set_bounds(r, lb.x.to_int(), lb.y.to_int(), lb.width.to_int(), lb.height.to_int());
+            return r;
+        }
 };
 
 // Custom element with content size
@@ -115,8 +120,9 @@ class ContentElement : public TestElement {
         }
 
     protected:
-        TestSize get_content_size() const override {
-            return TestSize{content_width, content_height};
+        logical_size get_content_size() const override {
+            return logical_size{logical_unit(static_cast<double>(content_width)),
+                              logical_unit(static_cast<double>(content_height))};
         }
 
     private:
@@ -171,9 +177,16 @@ namespace onyxui::testing {
         canvas_renderer renderer(canvas);
 
         // Measure and arrange
-        [[maybe_unused]] auto measured_size = element.measure(width, height);
-        canvas_rect bounds{0, 0, width, height};
-        element.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
+        [[maybe_unused]] auto measured_size = element.measure(
+            logical_unit(static_cast<double>(width)),
+            logical_unit(static_cast<double>(height)));
+        logical_rect bounds{
+            logical_unit(0.0),
+            logical_unit(0.0),
+            logical_unit(static_cast<double>(width)),
+            logical_unit(static_cast<double>(height))
+        };
+        element.arrange(bounds);
 
         // Render with current theme (if available)
         auto* themes_registry = ui_services<test_canvas_backend>::themes();

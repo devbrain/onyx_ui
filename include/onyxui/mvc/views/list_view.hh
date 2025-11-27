@@ -175,7 +175,7 @@ public:
         m_item_rects.reserve(static_cast<std::size_t>(row_count));
 
         int current_y = 0;
-        int view_width = this->bounds().width();
+        int view_width = this->bounds().width.to_int();
 
         for (int row = 0; row < row_count; ++row) {
             model_index idx = this->m_model->index(row, 0);
@@ -231,8 +231,8 @@ public:
             bool has_focus = this->m_selection_model && this->m_selection_model->current_index() == idx;
 
             // Translate to absolute coordinates
-            int abs_x = bounds.x() + item_rect.x;
-            int abs_y = bounds.y() + item_rect.y;
+            int abs_x = bounds.x.to_int() + item_rect.x;
+            int abs_y = bounds.y.to_int() + item_rect.y;
             int abs_w = item_rect.w;
             int abs_h = item_rect.h;
 

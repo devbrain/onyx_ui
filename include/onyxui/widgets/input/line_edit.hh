@@ -306,7 +306,7 @@ namespace onyxui {
 
             size_constraint width_constraint;
             width_constraint.policy = size_policy::content;
-            width_constraint.preferred_size = chars;
+            width_constraint.preferred_size = logical_unit(static_cast<double>(chars));
             this->set_width_constraint(width_constraint);
         }
 

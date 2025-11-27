@@ -146,7 +146,7 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
 
     SUBCASE("Step 4: Arrange root only (no children)") {
         auto root = std::make_unique<TestElement>();
-        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+        root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
         CHECK(true);
     }
 
@@ -155,7 +155,7 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
         root->add_child(std::make_unique<TestElement>());
 
         // THIS IS WHERE THE OVERFLOW HAPPENS
-        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
+        root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
         CHECK(true);
     }
 
@@ -164,8 +164,8 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
         root->add_child(std::make_unique<TestElement>());
         auto* child = static_cast<TestElement*>(root->children()[0].get());
 
-        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-        child->arrange(testing::make_relative_rect<TestBackend>(25, 25, 50, 50));
+        root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+        child->arrange(logical_rect{25_lu, 25_lu, 50_lu, 50_lu});
 
         // Now try hit testing
         hit_test_path<TestBackend> path;
@@ -186,9 +186,9 @@ TEST_CASE("hit_test() - Path recording with nested hierarchy") {
     root->add_child(std::move(panel));
 
     // Manually arrange without layout strategy
-    root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-    panel_ptr->arrange(testing::make_relative_rect<TestBackend>(10, 10, 80, 80));
-    label->arrange(testing::make_relative_rect<TestBackend>(5, 5, 70, 70));
+    root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+    panel_ptr->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});
+    label->arrange(logical_rect{5_lu, 5_lu, 70_lu, 70_lu});
 
     SUBCASE("Hit test records complete path") {
         hit_test_path<TestBackend> path;
@@ -243,9 +243,9 @@ TEST_CASE("hit_test() - Path ordering") {
     root->add_child(std::move(child1_obj));
 
     // Manually arrange
-    root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-    child1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 80, 80));
-    child2->arrange(testing::make_relative_rect<TestBackend>(5, 5, 70, 70));
+    root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+    child1->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});
+    child2->arrange(logical_rect{5_lu, 5_lu, 70_lu, 70_lu});
 
     hit_test_path<TestBackend> path;
     auto* result = root->hit_test(10, 10, path);
@@ -291,9 +291,9 @@ TEST_CASE("hit_test() - Z-order affects path") {
     front_child->set_z_order(10);
 
     // Manually arrange - both children occupy the same space (overlapping)
-    root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-    back_child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 80, 80));
-    front_child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 80, 80));  // Same bounds - overlapping
+    root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+    back_child->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});
+    front_child->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});  // Same bounds - overlapping
 
     // Hit test at overlapping position
     hit_test_path<TestBackend> path;
@@ -320,9 +320,9 @@ TEST_CASE("hit_test() - Visibility affects path") {
     invisible_child->set_visible(false);
 
     // Manually arrange
-    root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-    visible_child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 40, 40));
-    invisible_child->arrange(testing::make_relative_rect<TestBackend>(50, 50, 40, 40));
+    root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+    visible_child->arrange(logical_rect{10_lu, 10_lu, 40_lu, 40_lu});
+    invisible_child->arrange(logical_rect{50_lu, 50_lu, 40_lu, 40_lu});
 
     hit_test_path<TestBackend> path;
     auto* result = root->hit_test(10, 10, path);
@@ -344,8 +344,8 @@ TEST_CASE("hit_test() - Old signature still works") {
     root->add_child(std::move(child_ptr));
 
     // Manually arrange
-    root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 100));
-    child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 80, 80));
+    root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+    child->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});
 
     SUBCASE("Old hit_test() without path parameter") {
         auto* result = root->hit_test(10, 10);

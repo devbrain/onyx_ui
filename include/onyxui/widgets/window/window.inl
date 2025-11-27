@@ -45,7 +45,12 @@ namespace onyxui {
             if (m_flags.is_movable && m_title_bar) {
                 m_title_bar->drag_started.connect([this]() {
                     // Save initial position when drag starts
-                    m_drag_initial_bounds = this->bounds().get();
+                    auto logical_bounds = this->bounds();
+                    rect_utils::set_bounds(m_drag_initial_bounds,
+                        logical_bounds.x.to_int(),
+                        logical_bounds.y.to_int(),
+                        logical_bounds.width.to_int(),
+                        logical_bounds.height.to_int());
                 });
 
                 m_title_bar->dragging.connect([this](int delta_x, int delta_y) {
@@ -53,7 +58,12 @@ namespace onyxui {
                     auto new_bounds = m_drag_initial_bounds;
                     new_bounds.x += delta_x;
                     new_bounds.y += delta_y;
-                    this->arrange(geometry::relative_rect <Backend>{new_bounds});
+                    this->arrange(logical_rect{
+                        logical_unit(static_cast<double>(rect_utils::get_x(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_y(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_width(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_height(new_bounds)))
+                    });
                     moved.emit();
                 });
             }
@@ -88,12 +98,20 @@ namespace onyxui {
 
                 // Get icon's absolute screen bounds for menu positioning
                 auto icon_abs_bounds = menu_icon->get_absolute_bounds();
+                
+                // Convert absolute_rect to backend rect_type for layer_manager
+                rect_type icon_backend_rect{};
+                rect_utils::set_bounds(icon_backend_rect,
+                    icon_abs_bounds.x(),
+                    icon_abs_bounds.y(),
+                    icon_abs_bounds.width(),
+                    icon_abs_bounds.height());
 
                 // Use layer_manager's show_popup() to automatically position menu below icon
                 // This sets needs_positioning=true which triggers automatic layout
                 layer_id id = layers->show_popup(
                     menu,
-                    icon_abs_bounds.get(),
+                    icon_backend_rect,
                     popup_placement::below,
                     [menu]() {
                         menu->closing.emit();
@@ -184,7 +202,12 @@ namespace onyxui {
         }
 
         // Save current bounds for restore
-        m_before_minimize = this->bounds().get();
+        auto logical_bounds = this->bounds();
+        rect_utils::set_bounds(m_before_minimize,
+            logical_bounds.x.to_int(),
+            logical_bounds.y.to_int(),
+            logical_bounds.width.to_int(),
+            logical_bounds.height.to_int());
 
         // Change state
         m_state = window_state::minimized;
@@ -210,7 +233,12 @@ namespace onyxui {
 
         // Save normal bounds for restore
         if (m_state == window_state::normal) {
-            m_normal_bounds = this->bounds().get();
+            auto logical_bounds = this->bounds();
+            rect_utils::set_bounds(m_normal_bounds,
+                logical_bounds.x.to_int(),
+                logical_bounds.y.to_int(),
+                logical_bounds.width.to_int(),
+                logical_bounds.height.to_int());
         }
 
         // Change state
@@ -231,15 +259,15 @@ namespace onyxui {
                 maximized_bounds,
                 0, // x: relative to parent (top-left corner)
                 0, // y: relative to parent (top-left corner)
-                rect_utils::get_width(parent_bounds),
-                rect_utils::get_height(parent_bounds)
+                parent_bounds.width.to_int(),
+                parent_bounds.height.to_int()
             );
         } else if (m_workspace) {
             // Case 2: Floating window with workspace - maximize to fill workspace
             // Use workspace's full bounds (including position) since floating windows
             // use absolute screen coordinates. The workspace (e.g., central_widget)
             // may be offset from screen origin due to menu bar, status bar, etc.
-            maximized_bounds = m_workspace->bounds().get();
+            rect_utils::set_bounds(maximized_bounds, m_workspace->bounds().x.to_int(), m_workspace->bounds().y.to_int(), m_workspace->bounds().width.to_int(), m_workspace->bounds().height.to_int());
         } else {
             // Case 3: Floating window without workspace - maximize to fill viewport
             // Phase 4: Query viewport from layer_manager for actual screen dimensions
@@ -280,9 +308,14 @@ namespace onyxui {
 
         do {
             if (!this->children().empty() && ui_services <Backend>::themes()) {
-                [[maybe_unused]] const auto measured_size = this->measure(width, height);
+                [[maybe_unused]] const auto measured_size = this->measure(logical_unit(static_cast<double>(width)), logical_unit(static_cast<double>(height)));
             }
-            this->arrange(geometry::relative_rect <Backend>{maximized_bounds});
+            this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(maximized_bounds)))
+                });
             ++pass_count;
         } while ((this->needs_measure() || this->needs_arrange()) &&
                  pass_count < MAX_LAYOUT_PASSES &&
@@ -321,8 +354,13 @@ namespace onyxui {
         if ((this->needs_measure() || this->needs_arrange()) &&
             !this->children().empty() &&
             ui_services <Backend>::themes()) {
-            [[maybe_unused]] const auto measured_size = this->measure(width, height);
-            this->arrange(geometry::relative_rect <Backend>{maximized_bounds});
+            [[maybe_unused]] const auto measured_size = this->measure(logical_unit(static_cast<double>(width)), logical_unit(static_cast<double>(height)));
+            this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(maximized_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(maximized_bounds)))
+                });
             ++pass_count;
         }
 
@@ -345,7 +383,12 @@ namespace onyxui {
 
             // Restore bounds
             if (m_before_minimize.w > 0 && m_before_minimize.h > 0) {
-                this->arrange(geometry::relative_rect <Backend>{m_before_minimize});
+                this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(m_before_minimize))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(m_before_minimize))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(m_before_minimize))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(m_before_minimize)))
+                });
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
@@ -358,7 +401,12 @@ namespace onyxui {
         } else if (old_state == window_state::maximized) {
             // Restore to normal bounds
             if (m_normal_bounds.w > 0 && m_normal_bounds.h > 0) {
-                this->arrange(geometry::relative_rect <Backend>{m_normal_bounds});
+                this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(m_normal_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(m_normal_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(m_normal_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(m_normal_bounds)))
+                });
 
                 // Update layer bounds
                 if (m_layer_id.is_valid()) {
@@ -425,26 +473,48 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void window <Backend>::set_position(int x, int y) {
-        auto current_bounds = this->bounds().get();
+        rect_type current_bounds;
+        auto logical_bounds = this->bounds();
+        rect_utils::set_bounds(current_bounds,
+                logical_bounds.x.to_int(),
+                logical_bounds.y.to_int(),
+                logical_bounds.width.to_int(),
+                logical_bounds.height.to_int());
         current_bounds.x = x;
         current_bounds.y = y;
-        this->arrange(geometry::relative_rect <Backend>{current_bounds});
+        this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(current_bounds)))
+                });
 
         moved.emit();
     }
 
     template<UIBackend Backend>
     void window <Backend>::set_size(int width, int height) {
-        auto current_bounds = this->bounds().get();
+        rect_type current_bounds;
+        auto logical_bounds = this->bounds();
+        rect_utils::set_bounds(current_bounds,
+                logical_bounds.x.to_int(),
+                logical_bounds.y.to_int(),
+                logical_bounds.width.to_int(),
+                logical_bounds.height.to_int());
         current_bounds.w = width;
         current_bounds.h = height;
 
         // Only measure if needed (widget has children and theme is available)
         if (!this->children().empty() && ui_services <Backend>::themes()) {
-            (void)this->measure(width, height);
+            (void)this->measure(logical_unit(static_cast<double>(width)), logical_unit(static_cast<double>(height)));
         }
 
-        this->arrange(geometry::relative_rect <Backend>{current_bounds});
+        this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(current_bounds)))
+                });
 
         // CRITICAL FIX: Handle layout invalidation during arrange (e.g., scrollbar visibility changes)
         // When scrollbars appear/disappear during arrange, they invalidate the grid's layout.
@@ -452,8 +522,13 @@ namespace onyxui {
         // This is a standard pattern for handling layout dependency cycles in UI frameworks.
         if ((this->needs_measure() || this->needs_arrange()) && !this->children().empty() && ui_services <
                 Backend>::themes()) {
-            (void)this->measure(width, height);
-            this->arrange(geometry::relative_rect <Backend>{current_bounds});
+            (void)this->measure(logical_unit(static_cast<double>(width)), logical_unit(static_cast<double>(height)));
+            this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(current_bounds)))
+                });
         }
 
         this->invalidate_measure();
@@ -516,24 +591,35 @@ namespace onyxui {
             this->invalidate_measure();
 
             // If window already has bounds (was sized), trigger re-layout
-            const auto current_bounds = this->bounds().get();
+            rect_type current_bounds;
+        auto logical_bounds = this->bounds();
+        rect_utils::set_bounds(current_bounds,
+                logical_bounds.x.to_int(),
+                logical_bounds.y.to_int(),
+                logical_bounds.width.to_int(),
+                logical_bounds.height.to_int());
             if (rect_utils::get_width(current_bounds) > 0 &&
                 rect_utils::get_height(current_bounds) > 0) {
                 // Re-measure and re-arrange window with current size
                 [[maybe_unused]] const auto measured_size = this->measure(
-                    rect_utils::get_width(current_bounds),
-                    rect_utils::get_height(current_bounds)
+                    logical_unit(static_cast<double>(rect_utils::get_width(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(current_bounds)))
                 );
-                this->arrange(geometry::relative_rect <Backend>{current_bounds});
+                this->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(current_bounds))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(current_bounds)))
+                });
 
                 // Force content_area to re-arrange its children
                 // (window::arrange may skip if bounds unchanged due to caching)
                 auto ca_bounds = m_content_area->bounds();
                 [[maybe_unused]] auto ca_measured = m_content_area->measure(
-                    ca_bounds.width(),
-                    ca_bounds.height()
+                    ca_bounds.width,
+                    ca_bounds.height
                 );
-                m_content_area->arrange(geometry::relative_rect <Backend>{ca_bounds.get()});
+                m_content_area->arrange(ca_bounds);
             }
         }
     }
@@ -578,8 +664,14 @@ namespace onyxui {
 
             // Set layer bounds to window's position/size
             // Window uses absolute coordinates (layer and window have same bounds)
-            const auto window_bounds = this->bounds().get();
-            layers->set_layer_bounds(m_layer_id, window_bounds);
+            const auto window_bounds = this->bounds();
+            rect_type backend_bounds{};
+            rect_utils::set_bounds(backend_bounds,
+                window_bounds.x.to_int(),
+                window_bounds.y.to_int(),
+                window_bounds.width.to_int(),
+                window_bounds.height.to_int());
+            layers->set_layer_bounds(m_layer_id, backend_bounds);
         }
 
         this->set_visible(true);
@@ -681,7 +773,13 @@ namespace onyxui {
                     // Start resizing
                     m_is_resizing = true;
                     m_resize_handle = handle;
-                    m_resize_initial_bounds = this->bounds().get();
+                    auto logical_bounds = this->bounds();
+                m_resize_initial_bounds = rect_type{};
+                rect_utils::set_bounds(m_resize_initial_bounds,
+                    logical_bounds.x.to_int(),
+                    logical_bounds.y.to_int(),
+                    logical_bounds.width.to_int(),
+                    logical_bounds.height.to_int());
                     m_resize_start_x = mouse_evt->x;
                     m_resize_start_y = mouse_evt->y;
                     return true; // Event handled
@@ -739,7 +837,12 @@ namespace onyxui {
                 apply_size_constraints(new_bounds);
 
                 // Update window bounds
-                this->arrange(geometry::relative_rect <Backend>{new_bounds});
+                this->arrange(logical_rect{
+                        logical_unit(static_cast<double>(rect_utils::get_x(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_y(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_width(new_bounds))),
+                        logical_unit(static_cast<double>(rect_utils::get_height(new_bounds)))
+                    });
                 this->invalidate_measure();
                 resized_sig.emit();
 
@@ -783,10 +886,15 @@ namespace onyxui {
         auto bounds = this->bounds();
         int border = m_flags.resize_border_width;
 
-        bool on_left = (x >= bounds.x() && x < bounds.x() + border);
-        bool on_right = (x > bounds.x() + bounds.width() - border && x <= bounds.x() + bounds.width());
-        bool on_top = (y >= bounds.y() && y < bounds.y() + border);
-        bool on_bottom = (y > bounds.y() + bounds.height() - border && y <= bounds.y() + bounds.height());
+        int bounds_x = bounds.x.to_int();
+        int bounds_y = bounds.y.to_int();
+        int bounds_width = bounds.width.to_int();
+        int bounds_height = bounds.height.to_int();
+
+        bool on_left = (x >= bounds_x && x < bounds_x + border);
+        bool on_right = (x > bounds_x + bounds_width - border && x <= bounds_x + bounds_width);
+        bool on_top = (y >= bounds_y && y < bounds_y + border);
+        bool on_bottom = (y > bounds_y + bounds_height - border && y <= bounds_y + bounds_height);
 
         // Corners have priority
         if (on_top && on_left) return resize_handle::north_west;

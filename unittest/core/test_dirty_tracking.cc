@@ -7,10 +7,15 @@
 
 #include "../utils/test_helpers.hh"
 #include "../../include/onyxui/core/element.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
 #include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <utility>
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 /**
  * @class DirtyTrackingElement
@@ -33,9 +38,10 @@ public:
     }
 
     // Check if a specific region exists then clear all
-    bool check_and_clear_dirty_region(int x, int y, int w, int h) {
+    bool check_and_clear_dirty_region(logical_unit x, logical_unit y, logical_unit w, logical_unit h) {
         auto regions = get_and_clear_dirty_regions();
-        TestRect target{x, y, w, h};
+        // Dirty regions are in physical backend coordinates, so convert from logical
+        TestRect target{x.to_int(), y.to_int(), w.to_int(), h.to_int()};
 
         return std::any_of(regions.begin(), regions.end(),
             [&](const TestRect& r) {
@@ -56,7 +62,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Mark element dirty") {
-            root->arrange(testing::make_relative_rect<TestBackend>(10, 20, 100, 50));
+            root->arrange(logical_rect{logical_unit(10.0), logical_unit(20.0), logical_unit(100.0), logical_unit(50.0)});
 
             // arrange() marks old bounds dirty (initial bounds are 0,0,0,0)
             // Clear that first
@@ -92,8 +98,8 @@ TEST_SUITE("Dirty Region Tracking") {
         auto child2 = std::make_unique<DirtyTrackingElement>();
 
         // Set up hierarchy
-        child1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 30));
-        child2->arrange(testing::make_relative_rect<TestBackend>(70, 10, 50, 30));
+        child1->arrange(logical_rect{logical_unit(10.0), logical_unit(10.0), logical_unit(50.0), logical_unit(30.0)});
+        child2->arrange(logical_rect{logical_unit(70.0), logical_unit(10.0), logical_unit(50.0), logical_unit(30.0)});
 
         auto* child1_ptr = child1.get();
         auto* child2_ptr = child2.get();
@@ -149,7 +155,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Deep hierarchy propagation") {
             auto grandchild = std::make_unique<DirtyTrackingElement>();
-            grandchild->arrange(testing::make_relative_rect<TestBackend>(5, 5, 20, 10));
+            grandchild->arrange(logical_rect{5_lu, 5_lu, 20_lu, 10_lu});
             auto* grandchild_ptr = grandchild.get();
 
             child1_ptr->add_test_child(std::move(grandchild));
@@ -172,7 +178,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange(testing::make_relative_rect<TestBackend>(20, 30, 60, 40));
+        child->arrange(logical_rect{20_lu, 30_lu, 60_lu, 40_lu});
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
 
@@ -216,7 +222,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
+        child->arrange(logical_rect{10_lu, 10_lu, 30_lu, 20_lu});
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
 
@@ -225,7 +231,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Moving element marks old bounds dirty") {
             // Move to new position
-            child_ptr->arrange(testing::make_relative_rect<TestBackend>(50, 60, 30, 20));
+            child_ptr->arrange(logical_rect{50_lu, 60_lu, 30_lu, 20_lu});
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 1);
@@ -236,7 +242,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("Resizing element marks old bounds dirty") {
             // Resize at same position
-            child_ptr->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 40));
+            child_ptr->arrange(logical_rect{10_lu, 10_lu, 50_lu, 40_lu});
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 1);
@@ -249,7 +255,7 @@ TEST_SUITE("Dirty Region Tracking") {
 
         SUBCASE("No bounds change doesn't mark dirty") {
             // Arrange with same bounds
-            child_ptr->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
+            child_ptr->arrange(logical_rect{10_lu, 10_lu, 30_lu, 20_lu});
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.empty());
@@ -260,17 +266,17 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
 
         SUBCASE("Different regions accumulate") {
-            root->mark_dirty_region({10, 10, 20, 20});
-            root->mark_dirty_region({50, 50, 30, 30});
-            root->mark_dirty_region({100, 10, 40, 25});
+            root->mark_dirty_region(TestRect{10,  10,  20,  20});
+            root->mark_dirty_region(TestRect{50,  50,  30,  30});
+            root->mark_dirty_region(TestRect{100,  10,  40,  25});
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 3);
         }
 
         SUBCASE("Same region can be marked multiple times") {
-            root->mark_dirty_region({10, 10, 20, 20});
-            root->mark_dirty_region({10, 10, 20, 20});
+            root->mark_dirty_region(TestRect{10,  10,  20,  20});
+            root->mark_dirty_region(TestRect{10,  10,  20,  20});
 
             auto regions = root->get_and_clear_dirty_regions();
             // Both are stored (no deduplication at this level)
@@ -278,8 +284,8 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Clear removes all regions") {
-            root->mark_dirty_region({10, 10, 20, 20});
-            root->mark_dirty_region({50, 50, 30, 30});
+            root->mark_dirty_region(TestRect{10,  10,  20,  20});
+            root->mark_dirty_region(TestRect{50,  50,  30,  30});
 
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 2);
@@ -300,26 +306,26 @@ TEST_SUITE("Dirty Region Tracking") {
         //       └── label1
 
         auto root = std::make_unique<DirtyTrackingElement>();
-        root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 800, 600));
+        root->arrange(logical_rect{0_lu, 0_lu, 800_lu, 600_lu});
 
         auto panel1 = std::make_unique<DirtyTrackingElement>();
-        panel1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 380, 280));
+        panel1->arrange(logical_rect{10_lu, 10_lu, 380_lu, 280_lu});
         auto* panel1_ptr = panel1.get();
 
         auto button1 = std::make_unique<DirtyTrackingElement>();
-        button1->arrange(testing::make_relative_rect<TestBackend>(20, 20, 100, 30));
+        button1->arrange(logical_rect{20_lu, 20_lu, 100_lu, 30_lu});
         auto* button1_ptr = button1.get();
 
         auto button2 = std::make_unique<DirtyTrackingElement>();
-        button2->arrange(testing::make_relative_rect<TestBackend>(20, 60, 100, 30));
+        button2->arrange(logical_rect{20_lu, 60_lu, 100_lu, 30_lu});
         auto* button2_ptr = button2.get();
 
         auto panel2 = std::make_unique<DirtyTrackingElement>();
-        panel2->arrange(testing::make_relative_rect<TestBackend>(410, 10, 380, 280));
+        panel2->arrange(logical_rect{410_lu, 10_lu, 380_lu, 280_lu});
         auto* panel2_ptr = panel2.get();
 
         auto label1 = std::make_unique<DirtyTrackingElement>();
-        label1->arrange(testing::make_relative_rect<TestBackend>(420, 20, 200, 20));
+        label1->arrange(logical_rect{420_lu, 20_lu, 200_lu, 20_lu});
 
         // Build hierarchy
         panel1->add_test_child(std::move(button1));
@@ -339,7 +345,7 @@ TEST_SUITE("Dirty Region Tracking") {
             panel2_ptr->set_visible(false);
 
             // Move button2
-            button2_ptr->arrange(testing::make_relative_rect<TestBackend>(30, 70, 100, 30));
+            button2_ptr->arrange(logical_rect{30_lu, 70_lu, 100_lu, 30_lu});
 
             // Check all dirty regions collected at root
             auto regions = root->get_and_clear_dirty_regions();
@@ -384,7 +390,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
         auto child = std::make_unique<DirtyTrackingElement>();
 
-        child->arrange(testing::make_relative_rect<TestBackend>(10, 10, 30, 20));
+        child->arrange(logical_rect{10_lu, 10_lu, 30_lu, 20_lu});
         child->set_visible(false);
         auto* child_ptr = child.get();
         root->add_test_child(std::move(child));
@@ -397,7 +403,7 @@ TEST_SUITE("Dirty Region Tracking") {
             CHECK(!child_ptr->is_visible());
 
             // Change bounds while hidden
-            child_ptr->arrange(testing::make_relative_rect<TestBackend>(50, 50, 40, 30));
+            child_ptr->arrange(logical_rect{50_lu, 50_lu, 40_lu, 30_lu});
 
             // Should not mark dirty (element is hidden)
             auto regions = root->get_and_clear_dirty_regions();
@@ -409,7 +415,7 @@ TEST_SUITE("Dirty Region Tracking") {
         auto root = std::make_unique<DirtyTrackingElement>();
 
         SUBCASE("Empty bounds") {
-            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 0, 0));
+            root->arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
             root->mark_dirty();
 
             auto regions = root->get_and_clear_dirty_regions();
@@ -419,7 +425,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Negative coordinates") {
-            TestRect const negative_region{-10, -20, 30, 40};
+            TestRect const negative_region{-10,  -20,  30,  40};
             root->mark_dirty_region(negative_region);
 
             auto regions = root->get_and_clear_dirty_regions();
@@ -429,7 +435,7 @@ TEST_SUITE("Dirty Region Tracking") {
         }
 
         SUBCASE("Very large regions") {
-            TestRect const large_region{0, 0, 10000, 10000};
+            TestRect const large_region{0,  0,  10000,  10000};
             root->mark_dirty_region(large_region);
 
             auto regions = root->get_and_clear_dirty_regions();

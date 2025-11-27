@@ -8,11 +8,16 @@
 #include <doctest/doctest.h>
 #include <../../include/onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
 #include "utils/test_backend.hh"
 #include "../../include/onyxui/core/rendering/render_context.hh"
 #include "../../include/onyxui/layout/layout_strategy.hh"
 #include <memory>
 #include <limits>
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 using namespace onyxui;
 
@@ -47,7 +52,7 @@ public:
         , last_event_received(false) {
         set_focusable(true);
         // Give default bounds so is_inside works
-        arrange(testing::make_relative_rect<TestBackend>(0, 0, 100, 50));
+        arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
     }
 
     // Override virtual process_event for polymorphic dispatch
@@ -82,10 +87,14 @@ public:
 
     // Override hit testing for event routing
     bool is_inside(int x, int y) const override {
-        auto b = bounds().get();
+        auto b = bounds();
+        int bx = b.x.to_int();
+        int by = b.y.to_int();
+        int bw = b.width.to_int();
+        int bh = b.height.to_int();
 
-        return x >= b.x && x < b.x + b.w &&
-               y >= b.y && y < b.y + b.h;
+        return x >= bx && x < bx + bw &&
+               y >= by && y < by + bh;
     }
 
     // Set preferred size for layout testing
@@ -95,22 +104,23 @@ public:
 
         size_constraint width_constraint;
         width_constraint.policy = size_policy::fixed;
-        width_constraint.preferred_size = w;
-        width_constraint.min_size = 0;
-        width_constraint.max_size = std::numeric_limits<int>::max();
+        width_constraint.preferred_size = logical_unit(static_cast<double>(w));
+        width_constraint.min_size = logical_unit(0.0);
+        width_constraint.max_size = logical_unit(static_cast<double>(std::numeric_limits<int>::max()));
         set_width_constraint(width_constraint);
 
         size_constraint height_constraint;
         height_constraint.policy = size_policy::fixed;
-        height_constraint.preferred_size = h;
-        height_constraint.min_size = 0;
-        height_constraint.max_size = std::numeric_limits<int>::max();
+        height_constraint.preferred_size = logical_unit(static_cast<double>(h));
+        height_constraint.min_size = logical_unit(0.0);
+        height_constraint.max_size = logical_unit(static_cast<double>(std::numeric_limits<int>::max()));
         set_height_constraint(height_constraint);
     }
 
 protected:
-    TestSize get_content_size() const override {
-        return TestSize{preferred_width, preferred_height};
+    logical_size get_content_size() const override {
+        return logical_size{logical_unit(static_cast<double>(preferred_width)),
+                           logical_unit(static_cast<double>(preferred_height))};
     }
 
 public:
@@ -498,9 +508,9 @@ TEST_SUITE("Layer Manager") {
 
             // Popup should be positioned below anchor
             // Expected position: x=anchor.x, y=anchor.y+anchor.h
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 100);
-            CHECK(bounds.y == 80); // 50 + 30
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 100_lu);
+            CHECK(bounds.y == 80_lu); // 50 + 30
         }
 
         SUBCASE("Layer positioning for dialog") {
@@ -513,9 +523,9 @@ TEST_SUITE("Layer Manager") {
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
             // Dialog should be centered in viewport
-            auto bounds = dialog->bounds().get();
-            CHECK(bounds.x == 300); // (800 - 200) / 2
-            CHECK(bounds.y == 225); // (600 - 150) / 2
+            auto bounds = dialog->bounds();
+            CHECK(bounds.x == 300_lu); // (800 - 200) / 2
+            CHECK(bounds.y == 225_lu); // (600 - 150) / 2
         }
     }
 
@@ -541,9 +551,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::below);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 400);
-            CHECK(bounds.y == 350); // anchor.y + anchor.h
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 400_lu);
+            CHECK(bounds.y == 350_lu); // anchor.y + anchor.h
         }
 
         SUBCASE("Placement above") {
@@ -551,9 +561,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::above);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 400);
-            CHECK(bounds.y == 220); // anchor.y - popup.h
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 400_lu);
+            CHECK(bounds.y == 220_lu); // anchor.y - popup.h
         }
 
         SUBCASE("Placement left") {
@@ -561,9 +571,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::left);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 250); // anchor.x - popup.w
-            CHECK(bounds.y == 300);
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 250_lu); // anchor.x - popup.w
+            CHECK(bounds.y == 300_lu);
         }
 
         SUBCASE("Placement right") {
@@ -571,9 +581,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::right);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 500); // anchor.x + anchor.w
-            CHECK(bounds.y == 300);
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 500_lu); // anchor.x + anchor.w
+            CHECK(bounds.y == 300_lu);
         }
 
         SUBCASE("Placement below_right") {
@@ -581,9 +591,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::below_right);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
-            CHECK(bounds.y == 350); // anchor.y + anchor.h
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 350_lu); // anchor.x + anchor.w - popup.w
+            CHECK(bounds.y == 350_lu); // anchor.y + anchor.h
         }
 
         SUBCASE("Placement above_right") {
@@ -591,9 +601,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::above_right);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 350); // anchor.x + anchor.w - popup.w
-            CHECK(bounds.y == 220); // anchor.y - popup.h
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 350_lu); // anchor.x + anchor.w - popup.w
+            CHECK(bounds.y == 220_lu); // anchor.y - popup.h
         }
 
         SUBCASE("Auto placement when below fits") {
@@ -601,8 +611,8 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), anchor, popup_placement::auto_best);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.y == 350); // Chose below
+            auto bounds = popup->bounds();
+            CHECK(bounds.y == 350_lu); // Chose below
         }
 
         SUBCASE("Auto placement when below doesn't fit") {
@@ -611,8 +621,8 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), bottom_anchor, popup_placement::auto_best);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.y == 470); // Chose above (550 - 80)
+            auto bounds = popup->bounds();
+            CHECK(bounds.y == 470_lu); // Chose above (550 - 80)
         }
 
         SUBCASE("Clamping to viewport") {
@@ -621,9 +631,9 @@ TEST_SUITE("Layer Manager") {
             mgr.show_popup(popup.get(), edge_anchor, popup_placement::below);
             mgr.render_all_layers(renderer, viewport, &test_theme);
 
-            auto bounds = popup->bounds().get();
-            CHECK(bounds.x == 650); // Clamped to fit (800 - 150)
-            CHECK(bounds.y == 150); // Below anchor
+            auto bounds = popup->bounds();
+            CHECK(bounds.x == 650_lu); // Clamped to fit (800 - 150)
+            CHECK(bounds.y == 150_lu); // Below anchor
         }
     }
 

@@ -294,7 +294,7 @@ public:
 
         size_constraint constraint;
         constraint.policy = size_policy::content;
-        constraint.preferred_size = length;
+        constraint.preferred_size = logical_unit(static_cast<double>(length));
 
         // Set the appropriate dimension based on orientation
         if (m_orientation == slider_orientation::horizontal) {
@@ -322,17 +322,17 @@ protected:
     /**
      * @brief Calculate natural content size
      */
-    [[nodiscard]] size_type get_content_size() const override {
+    [[nodiscard]] logical_size get_content_size() const override {
         // Slider has a default size based on orientation
-        constexpr int DEFAULT_HORIZONTAL_WIDTH = 100;
-        constexpr int DEFAULT_HORIZONTAL_HEIGHT = 3;  // Track + thumb
-        constexpr int DEFAULT_VERTICAL_WIDTH = 3;
-        constexpr int DEFAULT_VERTICAL_HEIGHT = 20;
+        constexpr double DEFAULT_HORIZONTAL_WIDTH = 100.0;
+        constexpr double DEFAULT_HORIZONTAL_HEIGHT = 3.0;  // Track + thumb
+        constexpr double DEFAULT_VERTICAL_WIDTH = 3.0;
+        constexpr double DEFAULT_VERTICAL_HEIGHT = 20.0;
 
         if (m_orientation == slider_orientation::horizontal) {
-            return size_type{DEFAULT_HORIZONTAL_WIDTH, DEFAULT_HORIZONTAL_HEIGHT};
+            return logical_size{logical_unit(DEFAULT_HORIZONTAL_WIDTH), logical_unit(DEFAULT_HORIZONTAL_HEIGHT)};
         } else {
-            return size_type{DEFAULT_VERTICAL_WIDTH, DEFAULT_VERTICAL_HEIGHT};
+            return logical_size{logical_unit(DEFAULT_VERTICAL_WIDTH), logical_unit(DEFAULT_VERTICAL_HEIGHT)};
         }
     }
 
@@ -461,8 +461,8 @@ protected:
 
         int const x = point_utils::get_x(pos);
         int const y = point_utils::get_y(pos);
-        int const width = rect_utils::get_width(bounds);
-        int const height = rect_utils::get_height(bounds);
+        int const width = bounds.width.to_int();
+        int const height = bounds.height.to_int();
 
         if (m_orientation == slider_orientation::horizontal) {
             render_horizontal_slider(ctx, x, y, width, height, filled_color, empty_color, thumb_color);

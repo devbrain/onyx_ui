@@ -95,10 +95,10 @@ TEST_SUITE("status_bar") {
         status->set_left_text("Some text");
 
         // Measure
-        auto size = status->measure(80, 25);
+        auto size = status->measure(80_lu, 25_lu);
 
         // Status bar should be single line height
-        CHECK(size_utils::get_height(size) == 1);
+        CHECK(size.height.to_int() == 1);
     }
 
     TEST_CASE("Update text dynamically") {

@@ -57,34 +57,34 @@ TEST_SUITE("window - content layout") {
 
         // Content should have non-zero bounds
         auto content_bounds = content_widget->bounds();
-        INFO("Content bounds: (" << content_bounds.x() << ", " << content_bounds.y()
-             << ", " << content_bounds.width() << ", " << content_bounds.height() << ")");
+        INFO("Content bounds: (" << content_bounds.x.to_int() << ", " << content_bounds.y.to_int()
+             << ", " << content_bounds.width.to_int() << ", " << content_bounds.height.to_int() << ")");
 
-        CHECK(content_bounds.width() > 0);
-        CHECK(content_bounds.height() > 0);
+        CHECK(content_bounds.width.to_int() > 0);
+        CHECK(content_bounds.height.to_int() > 0);
 
         // Children should have non-zero bounds
         auto label1_bounds = label1->bounds();
-        INFO("Label1 bounds: (" << label1_bounds.x() << ", " << label1_bounds.y()
-             << ", " << label1_bounds.width() << ", " << label1_bounds.height() << ")");
+        INFO("Label1 bounds: (" << label1_bounds.x.to_int() << ", " << label1_bounds.y.to_int()
+             << ", " << label1_bounds.width.to_int() << ", " << label1_bounds.height.to_int() << ")");
 
-        CHECK(label1_bounds.width() > 0);
-        CHECK(label1_bounds.height() > 0);
+        CHECK(label1_bounds.width.to_int() > 0);
+        CHECK(label1_bounds.height.to_int() > 0);
 
         auto label2_bounds = label2->bounds();
-        CHECK(label2_bounds.width() > 0);
-        CHECK(label2_bounds.height() > 0);
+        CHECK(label2_bounds.width.to_int() > 0);
+        CHECK(label2_bounds.height.to_int() > 0);
 
         auto button1_bounds = button1->bounds();
-        CHECK(button1_bounds.width() > 0);
-        CHECK(button1_bounds.height() > 0);
+        CHECK(button1_bounds.width.to_int() > 0);
+        CHECK(button1_bounds.height.to_int() > 0);
 
         // Children should be positioned sequentially (vbox layout)
         // label2.y should be greater than label1.y (below it)
-        CHECK(label2_bounds.y() > label1_bounds.y());
+        CHECK(label2_bounds.y.to_int() > label1_bounds.y.to_int());
 
         // button1.y should be greater than label2.y (below it)
-        CHECK(button1_bounds.y() > label2_bounds.y());
+        CHECK(button1_bounds.y.to_int() > label2_bounds.y.to_int());
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Content WITHOUT stretch alignment should still be visible") {
@@ -112,11 +112,11 @@ TEST_SUITE("window - content layout") {
 
         // Button should have non-zero bounds
         auto btn_bounds = btn->bounds();
-        INFO("Button bounds: (" << btn_bounds.x() << ", " << btn_bounds.y()
-             << ", " << btn_bounds.width() << ", " << btn_bounds.height() << ")");
+        INFO("Button bounds: (" << btn_bounds.x.to_int() << ", " << btn_bounds.y.to_int()
+             << ", " << btn_bounds.width.to_int() << ", " << btn_bounds.height.to_int() << ")");
 
-        CHECK(btn_bounds.width() > 0);
-        CHECK(btn_bounds.height() > 0);
+        CHECK(btn_bounds.width.to_int() > 0);
+        CHECK(btn_bounds.height.to_int() > 0);
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Reverse order: set_size BEFORE set_content (the bug case)") {
@@ -148,18 +148,18 @@ TEST_SUITE("window - content layout") {
         REQUIRE(content_widget != nullptr);
 
         auto content_bounds = content_widget->bounds();
-        INFO("Content bounds: (" << content_bounds.x() << ", " << content_bounds.y()
-             << ", " << content_bounds.width() << ", " << content_bounds.height() << ")");
+        INFO("Content bounds: (" << content_bounds.x.to_int() << ", " << content_bounds.y.to_int()
+             << ", " << content_bounds.width.to_int() << ", " << content_bounds.height.to_int() << ")");
 
-        CHECK(content_bounds.width() > 0);
-        CHECK(content_bounds.height() > 0);
+        CHECK(content_bounds.width.to_int() > 0);
+        CHECK(content_bounds.height.to_int() > 0);
 
         auto label1_bounds = label1->bounds();
-        CHECK(label1_bounds.width() > 0);
-        CHECK(label1_bounds.height() > 0);
+        CHECK(label1_bounds.width.to_int() > 0);
+        CHECK(label1_bounds.height.to_int() > 0);
 
         auto button1_bounds = button1->bounds();
-        CHECK(button1_bounds.width() > 0);
-        CHECK(button1_bounds.height() > 0);
+        CHECK(button1_bounds.width.to_int() > 0);
+        CHECK(button1_bounds.height.to_int() > 0);
     }
 }

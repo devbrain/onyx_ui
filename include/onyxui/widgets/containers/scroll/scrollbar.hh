@@ -126,7 +126,7 @@ namespace onyxui {
             // CRITICAL FIX: If we've already been arranged once, immediately update child bounds
             // to avoid thumb being invisible until next layout cycle
             auto const bounds = this->bounds();
-            if (rect_utils::get_width(bounds) > 0 && rect_utils::get_height(bounds) > 0) {
+            if (bounds.width.to_int() > 0 && bounds.height.to_int() > 0) {
                 // We have valid bounds, so we've been arranged - update children immediately
                 update_child_arrangement();
             }
@@ -209,10 +209,10 @@ namespace onyxui {
          * @param available_height Available height constraint
          * @return Desired size
          */
-        size_type do_measure(int available_width, int available_height) override {
+        logical_size do_measure(logical_unit available_width, logical_unit available_height) override {
             // CRITICAL FIX: If not visible, return zero size so grid collapses our row/column
             if (!this->is_visible()) {
-                return size_type{0, 0};
+                return logical_size{0_lu, 0_lu};
             }
 
             // Scrollbar has fixed thickness from theme
@@ -234,15 +234,18 @@ namespace onyxui {
             // This prevents scroll_view from measuring to INT_MAX which breaks nested scroll_views.
             constexpr int UNCONSTRAINED_THRESHOLD = std::numeric_limits<int>::max() / 2;
 
-            size_type result;
+            int const avail_w = available_width.to_int();
+            int const avail_h = available_height.to_int();
+
+            logical_size result;
             if (m_orientation == orientation::horizontal) {
                 // Horizontal: request width (capped if unconstrained), fixed thickness
-                int const request_width = (available_width > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(available_width, min_size);
-                result = size_type{request_width, thickness};
+                int const request_width = (avail_w > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(avail_w, min_size);
+                result = logical_size{logical_unit(static_cast<double>(request_width)), logical_unit(static_cast<double>(thickness))};
             } else {
                 // Vertical: fixed thickness, request height (capped if unconstrained)
-                int const request_height = (available_height > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(available_height, min_size);
-                result = size_type{thickness, request_height};
+                int const request_height = (avail_h > UNCONSTRAINED_THRESHOLD) ? min_size : std::max(avail_h, min_size);
+                result = logical_size{logical_unit(static_cast<double>(thickness)), logical_unit(static_cast<double>(request_height))};
             }
 
             return result;
@@ -252,7 +255,7 @@ namespace onyxui {
          * @brief Arrange scrollbar and position child widgets
          * @param final_bounds Final bounds assigned by parent
          */
-        void do_arrange(const rect_type& final_bounds) override {
+        void do_arrange(const logical_rect& final_bounds) override {
             base::do_arrange(final_bounds);
 
             // Get theme to determine scrollbar style
@@ -274,12 +277,28 @@ namespace onyxui {
 
             // Arrange children at calculated positions
             // Note: arrange() expects RELATIVE bounds (which calculate_layout provides)
-            m_thumb->arrange(geometry::relative_rect<Backend>{layout.thumb});
+            // Convert backend rect_type to logical_rect
+            m_thumb->arrange(logical_rect{
+                logical_unit(static_cast<double>(rect_utils::get_x(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_y(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_width(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_height(layout.thumb)))
+            });
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(geometry::relative_rect<Backend>{layout.arrow_decrement});
-                m_arrow_inc->arrange(geometry::relative_rect<Backend>{layout.arrow_increment});
+                m_arrow_dec->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_decrement)))
+                });
+                m_arrow_inc->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_increment)))
+                });
 
                 // Make arrows visible
                 m_arrow_dec->set_visible(true);
@@ -423,8 +442,8 @@ namespace onyxui {
 
             // Convert to relative coordinates
             auto const bounds = this->bounds();
-            int const rel_x = mouse.x - rect_utils::get_x(bounds);
-            int const rel_y = mouse.y - rect_utils::get_y(bounds);
+            int const rel_x = mouse.x - bounds.x.to_int();
+            int const rel_y = mouse.y - bounds.y.to_int();
             point_type const rel_point{rel_x, rel_y};
 
             // Dispatch based on action type
@@ -529,8 +548,8 @@ namespace onyxui {
 
             // CRITICAL FIX: Don't render if scrollbar is too small
             auto const bounds = this->bounds();
-            int const width = rect_utils::get_width(bounds);
-            int const height = rect_utils::get_height(bounds);
+            int const width = bounds.width.to_int();
+            int const height = bounds.height.to_int();
             int const min_size = theme->scrollbar.min_render_size;
 
             if (m_orientation == orientation::vertical && height < min_size) {
@@ -625,8 +644,8 @@ namespace onyxui {
             // do_render() will add ctx.position() to convert to absolute screen coords
             int const x = 0;
             int const y = 0;
-            int const w = rect_utils::get_width(bounds);
-            int const h = rect_utils::get_height(bounds);
+            int const w = bounds.width.to_int();
+            int const h = bounds.height.to_int();
 
             int const content_w = size_utils::get_width(m_scroll_info.content_size);
             int const content_h = size_utils::get_height(m_scroll_info.content_size);
@@ -745,10 +764,10 @@ namespace onyxui {
          */
         [[nodiscard]] rect_type calculate_thumb_bounds() const {
             auto const bounds = this->bounds();
-            int const x = rect_utils::get_x(bounds);
-            int const y = rect_utils::get_y(bounds);
-            int const w = rect_utils::get_width(bounds);
-            int const h = rect_utils::get_height(bounds);
+            int const x = bounds.x.to_int();
+            int const y = bounds.y.to_int();
+            int const w = bounds.width.to_int();
+            int const h = bounds.height.to_int();
 
             int const content_w = size_utils::get_width(m_scroll_info.content_size);
             int const content_h = size_utils::get_height(m_scroll_info.content_size);
@@ -850,12 +869,28 @@ namespace onyxui {
             m_thumb_bounds = calculate_thumb_bounds();
 
             // Arrange children at calculated positions
-            m_thumb->arrange(geometry::relative_rect<Backend>{layout.thumb});
+            // Convert backend rect_type to logical_rect
+            m_thumb->arrange(logical_rect{
+                logical_unit(static_cast<double>(rect_utils::get_x(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_y(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_width(layout.thumb))),
+                logical_unit(static_cast<double>(rect_utils::get_height(layout.thumb)))
+            });
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(geometry::relative_rect<Backend>{layout.arrow_decrement});
-                m_arrow_inc->arrange(geometry::relative_rect<Backend>{layout.arrow_increment});
+                m_arrow_dec->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_decrement))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_decrement)))
+                });
+                m_arrow_inc->arrange(logical_rect{
+                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_increment))),
+                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_increment)))
+                });
                 m_arrow_dec->set_visible(true);
                 m_arrow_inc->set_visible(true);
             } else {

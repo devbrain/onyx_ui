@@ -60,13 +60,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
     test_menu->add_item(std::move(item5));
 
     // Measure and arrange the menu
-    auto measured_size = test_menu->measure(100, 100);
+    auto measured_size = test_menu->measure(100_lu, 100_lu);
 
     Backend::rect_type menu_bounds;
     rect_utils::set_bounds(menu_bounds, 10, 10,
-                          size_utils::get_width(measured_size),
-                          size_utils::get_height(measured_size));
-    test_menu->arrange(geometry::relative_rect<Backend>{menu_bounds});
+                          measured_size.width.to_int(),
+                          measured_size.height.to_int());
+    test_menu->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     auto menu_final_bounds = test_menu->bounds();
 
@@ -80,13 +80,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
 
         // Check that each item is fully contained within menu bounds
         // Item bottom should be <= menu bottom
-        int menu_bottom = rect_utils::get_y(menu_final_bounds) + rect_utils::get_height(menu_final_bounds);
+        int menu_bottom = menu_final_bounds.y.to_int() + menu_final_bounds.height.to_int();
 
-        int item1_bottom = rect_utils::get_y(b1) + rect_utils::get_height(b1);
-        int item2_bottom = rect_utils::get_y(b2) + rect_utils::get_height(b2);
-        int item3_bottom = rect_utils::get_y(b3) + rect_utils::get_height(b3);
-        int item4_bottom = rect_utils::get_y(b4) + rect_utils::get_height(b4);
-        int item5_bottom = rect_utils::get_y(b5) + rect_utils::get_height(b5);
+        int item1_bottom = b1.y.to_int() + b1.height.to_int();
+        int item2_bottom = b2.y.to_int() + b2.height.to_int();
+        int item3_bottom = b3.y.to_int() + b3.height.to_int();
+        int item4_bottom = b4.y.to_int() + b4.height.to_int();
+        int item5_bottom = b5.y.to_int() + b5.height.to_int();
 
         // CRITICAL: Last items (4 and 5) should be within menu bounds
         CHECK(item4_bottom <= menu_bottom);
@@ -104,12 +104,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
 
         // First item should start at content area origin
         auto b1 = item1_ptr->bounds();
-        CHECK(rect_utils::get_y(b1) == 0);  // Relative to menu's content area
+        CHECK(b1.y.to_int() == 0);  // Relative to menu's content area
 
         // Last item should end before border (menu_bottom - 1)
         auto b5 = item5_ptr->bounds();
-        int menu_bottom = rect_utils::get_y(menu_final_bounds) + rect_utils::get_height(menu_final_bounds);
-        int item5_bottom = rect_utils::get_y(b5) + rect_utils::get_height(b5);
+        int menu_bottom = menu_final_bounds.y.to_int() + menu_final_bounds.height.to_int();
+        int item5_bottom = b5.y.to_int() + b5.height.to_int();
 
         // Item should end at or before (menu_bottom - 1) to stay inside border
         CHECK(item5_bottom <= menu_bottom - 1);
@@ -117,16 +117,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu border contains
 
     SUBCASE("Menu size accounts for all children plus border") {
         // Each item has height (measured), they stack vertically
-        auto h1 = rect_utils::get_height(item1_ptr->bounds());
-        auto h2 = rect_utils::get_height(item2_ptr->bounds());
-        auto h3 = rect_utils::get_height(item3_ptr->bounds());
-        auto h4 = rect_utils::get_height(item4_ptr->bounds());
-        auto h5 = rect_utils::get_height(item5_ptr->bounds());
+        auto h1 = item1_ptr->bounds().height.to_int();
+        auto h2 = item2_ptr->bounds().height.to_int();
+        auto h3 = item3_ptr->bounds().height.to_int();
+        auto h4 = item4_ptr->bounds().height.to_int();
+        auto h5 = item5_ptr->bounds().height.to_int();
 
         int total_items_height = h1 + h2 + h3 + h4 + h5;
 
         // Menu bounds should be at least as tall as all items + border (2px total)
-        int menu_height = rect_utils::get_height(menu_final_bounds);
+        int menu_height = menu_final_bounds.height.to_int();
         CHECK(menu_height >= total_items_height + 2);
     }
 }
@@ -145,21 +145,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with many items
     }
 
     // Measure and arrange
-    auto measured_size = test_menu->measure(200, 300);
+    auto measured_size = test_menu->measure(200_lu, 300_lu);
 
     Backend::rect_type menu_bounds;
     rect_utils::set_bounds(menu_bounds, 0, 0,
-                          size_utils::get_width(measured_size),
-                          size_utils::get_height(measured_size));
-    test_menu->arrange(geometry::relative_rect<Backend>{menu_bounds});
+                          measured_size.width.to_int(),
+                          measured_size.height.to_int());
+    test_menu->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     auto menu_final_bounds = test_menu->bounds();
-    int menu_bottom = rect_utils::get_y(menu_final_bounds) + rect_utils::get_height(menu_final_bounds);
+    int menu_bottom = menu_final_bounds.y.to_int() + menu_final_bounds.height.to_int();
 
     // Check that ALL items are within menu bounds
     for (size_t i = 0; i < item_ptrs.size(); ++i) {
         auto item_bounds = item_ptrs[i]->bounds();
-        int item_bottom = rect_utils::get_y(item_bounds) + rect_utils::get_height(item_bounds);
+        int item_bottom = item_bounds.y.to_int() + item_bounds.height.to_int();
 
         INFO("Item " << i << " bottom: " << item_bottom << ", menu bottom: " << menu_bottom);
         CHECK(item_bottom <= menu_bottom);
@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with many items
 
     // Last item should be inside border
     auto last_item_bounds = item_ptrs.back()->bounds();
-    int last_item_bottom = rect_utils::get_y(last_item_bounds) + rect_utils::get_height(last_item_bounds);
+    int last_item_bottom = last_item_bounds.y.to_int() + last_item_bounds.height.to_int();
     CHECK(last_item_bottom <= menu_bottom - 1);  // -1 for border
 }
 

@@ -135,6 +135,11 @@ namespace onyxui {
         [[nodiscard]] constexpr logical_unit round() const noexcept {
             return logical_unit(std::round(value));
         }
+
+        // Conversion to int (with rounding)
+        [[nodiscard]] constexpr int to_int() const noexcept {
+            return static_cast<int>(std::round(value));
+        }
     };
 
     // Free function operators (scalar * logical_unit)

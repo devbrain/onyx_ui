@@ -311,7 +311,10 @@ namespace onyxui {
          */
         [[nodiscard]] rect_type get_menu_button_bounds(std::size_t index) const {
             if (index < m_menus.size() && m_menus[index].title_item) {
-                return m_menus[index].title_item->bounds().get();
+                auto const logical = m_menus[index].title_item->bounds();
+                rect_type result;
+                rect_utils::set_bounds(result, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
+                return result;
             }
             return rect_type{};
         }
@@ -469,7 +472,10 @@ namespace onyxui {
 
             // Draw continuous background stripe (Norton Utilities 8 style)
             // This fills the entire menu bar width, creating a continuous colored bar
-            ctx.fill_rect(this->bounds().get());
+            auto const logical = this->bounds();
+            rect_type physical;
+            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
+            ctx.fill_rect(physical);
 
             // Render children on top of background
             base::do_render(ctx);
@@ -549,15 +555,15 @@ namespace onyxui {
             window = window->parent();  // Walk up to root (window)
         }
         if (window && (window->needs_measure() || window->needs_arrange())) {
-            auto const bounds = window->bounds().get();
-            int const width = rect_utils::get_width(bounds);
-            int const height = rect_utils::get_height(bounds);
+            auto const logical = window->bounds();
+            int const width = logical.width.to_int();
+            int const height = logical.height.to_int();
             if (auto* themes = ui_services<Backend>::themes()) {
                 if (window->needs_measure()) {
-                    [[maybe_unused]] auto const measured = window->measure(width, height);
+                    [[maybe_unused]] auto const measured = window->measure(logical_unit(static_cast<double>(width)), logical_unit(static_cast<double>(height)));
                 }
                 if (window->needs_arrange()) {
-                    window->arrange(geometry::relative_rect<Backend>{bounds});
+                    window->arrange(logical);
                 }
             }
         }

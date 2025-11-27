@@ -123,11 +123,11 @@ TEST_SUITE("group_box") {
         group->add_child(std::move(lbl));
 
         // Measure
-        auto size = group->measure(80, 25);
+        auto size = group->measure(80_lu, 25_lu);
 
         // Size should include border space (+2 for width, +2 for height)
-        int const width = size_utils::get_width(size);
-        int const height = size_utils::get_height(size);
+        int const width = size.width.to_int();
+        int const height = size.height.to_int();
 
         // Width should be at least label width + borders
         CHECK(width >= 6);  // 4 chars + 2 borders

@@ -56,8 +56,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     // Add to root and layout
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     SUBCASE("Initially unfocused") {
         CHECK(input->get_focused() == nullptr);
@@ -109,8 +109,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     // Add to root and layout
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     SUBCASE("Click on text gives text_view focus (not label)") {
         // Click at (5, 5) - should hit a label child
@@ -192,7 +192,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
     // CRITICAL: Override fill_parent policy with fixed height to prevent text_view1 from taking all space
     size_constraint height1;
     height1.policy = size_policy::fixed;
-    height1.preferred_size = 150;  // Fixed 150px height
+    height1.preferred_size = logical_unit(150.0);  // Fixed 150px height
     text_view1_obj->set_height_constraint(height1);
 
     auto text_view2_obj = std::make_unique<text_view<test_canvas_backend>>();
@@ -202,7 +202,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
     // Also fix text_view2 height
     size_constraint height2;
     height2.policy = size_policy::fixed;
-    height2.preferred_size = 150;  // Fixed 150px height
+    height2.preferred_size = logical_unit(150.0);  // Fixed 150px height
     text_view2_obj->set_height_constraint(height2);
 
     // Add to root with vertical layout
@@ -210,8 +210,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
     root->add_child(std::move(text_view2_obj));
 
     // Now both text_views have fixed heights and won't compete for space
-    [[maybe_unused]] auto _ = root->measure(80, 400);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 400}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 400_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 400_lu});
 
     SUBCASE("Click first text_view gives it focus") {
         mouse_event click{
@@ -255,7 +255,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         // Now click on text_view2 (lower in the layout)
         // First, find where text_view2 actually is
         auto text_view2_bounds = text_view2->bounds();
-        int text_view2_y = rect_utils::get_y(text_view2_bounds) + (rect_utils::get_height(text_view2_bounds) / 2);  // Middle of text_view2
+        int text_view2_y = text_view2_bounds.y.to_int() + (text_view2_bounds.height.to_int() / 2);  // Middle of text_view2
 
         mouse_event click2{
             .x = 5,
@@ -327,8 +327,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Event co
     auto* text_view_ptr = text_view_widget.get();  // Store pointer before moving
 
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Verify text_view doesn't consume the press event
     // With unified event API, the child labels will consume the event,
@@ -364,8 +364,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     text_view_widget->set_text("Line 1");
 
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     SUBCASE("Mouse release doesn't give focus") {
         mouse_event release{
@@ -444,8 +444,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Capture 
     text_view_widget->set_text("Line 1\nLine 2\nLine 3");
 
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     SUBCASE("Verify capture phase is used") {
         // This test verifies the architecture:
@@ -496,8 +496,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Non-focu
     text_view_widget->set_focusable(false);
 
     root->add_child(std::move(text_view_widget));
-    [[maybe_unused]] auto _ = root->measure(80, 25);
-    root->arrange(geometry::relative_rect<test_canvas_backend>{test_canvas_backend::rect_type{0, 0, 80, 25}});
+    [[maybe_unused]] auto _ = root->measure(80_lu, 25_lu);
+    root->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     SUBCASE("Click doesn't give focus to non-focusable widget") {
         mouse_event click{

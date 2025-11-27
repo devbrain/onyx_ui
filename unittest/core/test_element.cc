@@ -4,10 +4,15 @@
  */
 
 #include "../../include/onyxui/layout/layout_strategy.hh"
+#include "../../include/onyxui/core/types.hh"
+#include "../../include/onyxui/core/geometry.hh"
 #include "utils/test_backend.hh"
 #include "utils/test_helpers.hh"
 #include <memory>
 #include <utility>
+
+using namespace onyxui;
+using testing::make_relative_rect;
 
 TEST_SUITE("ui_element") {
     TEST_CASE("Basic construction and hierarchy") {
@@ -27,26 +32,26 @@ TEST_SUITE("ui_element") {
     TEST_CASE("Margin and padding") {
         auto element = std::make_unique<TestElement>();
 
-        element->set_margin({10, 15, 10, 15});
-        element->set_padding({5, 8, 5, 8});
+        element->set_margin(logical_thickness{10_lu, 15_lu, 10_lu, 15_lu});
+        element->set_padding(logical_thickness{5_lu, 8_lu, 5_lu, 8_lu});
 
-        CHECK(element->margin().left == 10);
-        CHECK(element->margin().top == 15);
-        CHECK(element->margin().horizontal() == 20);
-        CHECK(element->margin().vertical() == 30);
+        CHECK(element->margin().left == 10_lu);
+        CHECK(element->margin().top == 15_lu);
+        CHECK(element->margin().horizontal() == 20_lu);
+        CHECK(element->margin().vertical() == 30_lu);
 
-        CHECK(element->padding().left == 5);
-        CHECK(element->padding().top == 8);
-        CHECK(element->padding().horizontal() == 10);
-        CHECK(element->padding().vertical() == 16);
+        CHECK(element->padding().left == 5_lu);
+        CHECK(element->padding().top == 8_lu);
+        CHECK(element->padding().horizontal() == 10_lu);
+        CHECK(element->padding().vertical() == 16_lu);
 
         // With fixed size policy, the preferred_size is the final size (margin not added)
-        element->set_width_constraint({size_policy::fixed, 100, 100});
-        element->set_height_constraint({size_policy::fixed, 50, 50});
+        element->set_width_constraint({size_policy::fixed, 100_lu, 100_lu});
+        element->set_height_constraint({size_policy::fixed, 50_lu, 50_lu});
 
-        TestSize const measured = element->measure(1000, 1000);
-        CHECK(measured.w == 100);  // Fixed size is exact
-        CHECK(measured.h == 50);  // Fixed size is exact
+        logical_size const measured = element->measure(1000_lu, 1000_lu);
+        CHECK(measured.width == 100_lu);  // Fixed size is exact
+        CHECK(measured.height == 50_lu);  // Fixed size is exact
     }
 
     TEST_CASE("Size constraints") {
@@ -54,17 +59,17 @@ TEST_SUITE("ui_element") {
 
         // Test minimum constraint
         // With content policy and no content, size is 0, then clamped to min
-        element->set_width_constraint({size_policy::content, 100, 50, 200});
-        element->set_height_constraint({size_policy::content, 80, 40, 150});
+        element->set_width_constraint({size_policy::content, 100_lu, 50_lu, 200_lu});
+        element->set_height_constraint({size_policy::content, 80_lu, 40_lu, 150_lu});
 
-        TestSize measured = element->measure(30, 20);
-        CHECK(measured.w == 50);   // Clamped to min
-        CHECK(measured.h == 40);  // Clamped to min
+        logical_size measured = element->measure(30_lu, 20_lu);
+        CHECK(measured.width == 50_lu);   // Clamped to min
+        CHECK(measured.height == 40_lu);  // Clamped to min
 
         // Test maximum constraint - content size is 0, so it gets clamped to min
-        measured = element->measure(300, 250);
-        CHECK(measured.w == 50);  // Content is 0, clamped to min
-        CHECK(measured.h == 40); // Content is 0, clamped to min
+        measured = element->measure(300_lu, 250_lu);
+        CHECK(measured.width == 50_lu);  // Content is 0, clamped to min
+        CHECK(measured.height == 40_lu); // Content is 0, clamped to min
     }
 
     TEST_CASE("Visibility changes") {
@@ -102,15 +107,15 @@ TEST_SUITE("ui_element") {
 
     TEST_CASE("Hit testing") {
         auto parent = std::make_unique<TestElement>();
-        parent->arrange(testing::make_relative_rect<TestBackend>(0, 0, 200, 150));
+        parent->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(200.0), logical_unit(150.0)});
 
         auto child1 = std::make_unique<TestElement>();
-        child1->arrange(testing::make_relative_rect<TestBackend>(10, 10, 50, 30));
+        child1->arrange(logical_rect{logical_unit(10.0), logical_unit(10.0), logical_unit(50.0), logical_unit(30.0)});
         auto child1_ptr = child1.get();
         parent->add_test_child(std::move(child1));
 
         auto child2 = std::make_unique<TestElement>();
-        child2->arrange(testing::make_relative_rect<TestBackend>(100, 50, 60, 40));
+        child2->arrange(logical_rect{logical_unit(100.0), logical_unit(50.0), logical_unit(60.0), logical_unit(40.0)});
         auto child2_ptr = child2.get();
         parent->add_test_child(std::move(child2));
 
@@ -141,21 +146,11 @@ TEST_SUITE("ui_element") {
     TEST_CASE("Custom content size") {
         auto element = std::make_unique<ContentElement>(120, 80);
 
-        TestSize const measured = element->measure(1000, 1000);
-        CHECK(measured.w == 120);
-        CHECK(measured.h == 80);
+        logical_size const measured = element->measure(1000_lu, 1000_lu);
+        CHECK(measured.width == 120_lu);
+        CHECK(measured.height == 80_lu);
     }
 
-    TEST_CASE("Thickness operators") {
-        thickness const t1 = {10, 20, 30, 40};
-        thickness t2 = {10, 20, 30, 40};
-        thickness t3 = {10, 20, 30, 41};
-
-        CHECK(t1 == t2);
-        CHECK(t1 != t3);
-        CHECK(!(t1 == t3));
-        CHECK(!(t1 != t2));
-    }
 
     TEST_CASE("Deep hierarchy - recursion safety") {
         SUBCASE("Moderate depth (50 levels) - typical deep UI") {
@@ -174,11 +169,11 @@ TEST_SUITE("ui_element") {
             current->invalidate_measure();
 
             // Test measure/arrange (walks DOWN the tree)
-            auto size = root->measure(1000, 1000);
-            CHECK(size.w >= 0);
-            CHECK(size.h >= 0);
-            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
-            CHECK(root->bounds().get().w == 1000);
+            auto size = root->measure(1000_lu, 1000_lu);
+            CHECK(size.width >= 0_lu);
+            CHECK(size.height >= 0_lu);
+            root->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(1000.0), logical_unit(1000.0)});
+            CHECK(root->bounds().width.to_int() == 1000);
 
             // Test hit_test (walks DOWN the tree)
             auto* hit = root->hit_test(500, 500);
@@ -199,11 +194,11 @@ TEST_SUITE("ui_element") {
 
             // All operations should work without stack overflow
             current->invalidate_measure();
-            auto size = root->measure(1000, 1000);
-            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
+            auto size = root->measure(1000_lu, 1000_lu);
+            root->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(1000.0), logical_unit(1000.0)});
             auto* hit = root->hit_test(500, 500);
 
-            CHECK(size.w >= 0);
+            CHECK(size.width >= 0_lu);
             CHECK(hit != nullptr);
         }
 
@@ -220,12 +215,12 @@ TEST_SUITE("ui_element") {
 
             // Should handle invalidation efficiently
             root->invalidate_measure();
-            auto size = root->measure(1000, 1000);
-            root->arrange(testing::make_relative_rect<TestBackend>(0, 0, 1000, 1000));
+            auto size = root->measure(1000_lu, 1000_lu);
+            root->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(1000.0), logical_unit(1000.0)});
 
             // Hit testing should work
             auto* hit = root->hit_test(500, 500);
-            CHECK(size.w >= 0);
+            CHECK(size.width >= 0_lu);
             CHECK(hit != nullptr);
         }
     }

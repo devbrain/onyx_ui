@@ -45,9 +45,9 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto title_bar = std::make_unique<window_title_bar<Backend>>("Test", flags);
 
         // Measure and arrange
-        [[maybe_unused]] auto measured = title_bar->measure(80, 1);
+        [[maybe_unused]] auto measured = title_bar->measure(80_lu, 1_lu);
 
-        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
+        title_bar->arrange(logical_rect{0_lu, 0_lu, 80_lu, 1_lu});
 
         // Should have 5 children (1 label + 1 spring + 3 icons)
         auto& children = title_bar->children();
@@ -58,12 +58,12 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
             auto bounds = children[i]->bounds();
 
             // All children should have non-zero width and height
-            CHECK(rect_utils::get_width(bounds) > 0);
-            CHECK(rect_utils::get_height(bounds) == 1);  // Title bar is 1 row tall
+            CHECK(bounds.width.to_int() > 0);
+            CHECK(bounds.height.to_int() == 1);  // Title bar is 1 row tall
 
             // Icons should be positioned to the right of the title
             if (i > 0) {  // Icons are after the label
-                CHECK(rect_utils::get_x(bounds) > 0);  // Should not be at position 0
+                CHECK(bounds.x.to_int() > 0);  // Should not be at position 0
             }
         }
 
@@ -71,7 +71,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         // Last icon (close button) should be near the right edge
         // Children: 0=label, 1=spring, 2=minimize, 3=maximize, 4=close
         auto close_icon_bounds = children[4]->bounds();
-        CHECK(rect_utils::get_x(close_icon_bounds) >= 77);  // Should be near right edge (80 - 3 icons)
+        CHECK(close_icon_bounds.x.to_int() >= 77);  // Should be near right edge (80 - 3 icons)
     }
 
     // Note: Rendering test removed - the important tests are:
@@ -85,9 +85,9 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
         auto icon_ptr = std::make_unique<icon_widget>(icon_type::close_x);
 
         // Icons should measure as 1x1 for text backends
-        auto size = icon_ptr->measure(10, 10);
-        CHECK(size.w == 1);
-        CHECK(size.h == 1);
+        auto size = icon_ptr->measure(10_lu, 10_lu);
+        CHECK(size.width.to_int() == 1);
+        CHECK(size.height.to_int() == 1);
     }
 
     SUBCASE("Title label width is constrained to content") {
@@ -98,8 +98,8 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
 
         auto title_bar = std::make_unique<window_title_bar<Backend>>("Short", flags);
 
-        [[maybe_unused]] auto measured_size = title_bar->measure(80, 1);
-        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
+        [[maybe_unused]] auto measured_size = title_bar->measure(80_lu, 1_lu);
+        title_bar->arrange(logical_rect{0_lu, 0_lu, 80_lu, 1_lu});
 
         // First child should be the title label
         auto& children = title_bar->children();
@@ -109,7 +109,7 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
 
         // Title label should only be as wide as its content
         // "Short" = 5 characters
-        CHECK(rect_utils::get_width(title_bounds) <= 10);  // Allow some padding but not full width
+        CHECK(title_bounds.width.to_int() <= 10);  // Allow some padding but not full width
 
     }
 
@@ -121,8 +121,8 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
 
         auto title_bar = std::make_unique<window_title_bar<Backend>>("MyApp", flags);
 
-        [[maybe_unused]] auto measured_size = title_bar->measure(80, 1);
-        title_bar->arrange(geometry::relative_rect<Backend>{Backend::rect_type{0, 0, 80, 1}});
+        [[maybe_unused]] auto measured_size = title_bar->measure(80_lu, 1_lu);
+        title_bar->arrange(logical_rect{0_lu, 0_lu, 80_lu, 1_lu});
 
         auto& children = title_bar->children();
         REQUIRE(children.size() == 5);  // title + spring + 3 icons
@@ -135,14 +135,14 @@ TEST_CASE("window_title_bar - Icons are created and rendered") {
 
 
         // Icons should be to the right of the title
-        CHECK(rect_utils::get_x(min_bounds) > (rect_utils::get_x(title_bounds) + rect_utils::get_width(title_bounds)));
+        CHECK(min_bounds.x.to_int() > (title_bounds.x.to_int() + title_bounds.width.to_int()));
 
         // Icons should be in order (minimize, maximize, close)
-        CHECK(rect_utils::get_x(max_bounds) > rect_utils::get_x(min_bounds));
-        CHECK(rect_utils::get_x(close_bounds) > rect_utils::get_x(max_bounds));
+        CHECK(max_bounds.x.to_int() > min_bounds.x.to_int());
+        CHECK(close_bounds.x.to_int() > max_bounds.x.to_int());
 
         // Icons should be near the right edge
-        CHECK(rect_utils::get_x(close_bounds) >= 77);  // 80 - 3 for the close button itself
+        CHECK(close_bounds.x.to_int() >= 77);  // 80 - 3 for the close button itself
     }
 }
 
@@ -159,10 +159,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         auto win = std::make_unique<window<Backend>>("Test Window", flags);
 
         // Measure and arrange window at screen position (5, 3) with size 40x15
-        (void)win->measure(40, 15);
+        (void)win->measure(40_lu, 15_lu);
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 5, 3, 40, 15);
-        win->arrange(geometry::relative_rect<Backend>{win_bounds});
+        win->arrange(logical_rect{5_lu, 3_lu, 40_lu, 15_lu});
 
 
         // Get the title bar (first child of window)
@@ -172,10 +172,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Title bar should be at (0, 0) relative to window, size (40, 1)
         auto tb_bounds = title_bar->bounds();
-        CHECK(rect_utils::get_x(tb_bounds) == 0);
-        CHECK(rect_utils::get_y(tb_bounds) == 0);
-        CHECK(rect_utils::get_width(tb_bounds) == 40);
-        CHECK(rect_utils::get_height(tb_bounds) == 1);
+        CHECK(tb_bounds.x.to_int() == 0);
+        CHECK(tb_bounds.y.to_int() == 0);
+        CHECK(tb_bounds.width.to_int() == 40);
+        CHECK(tb_bounds.height.to_int() == 1);
 
         // Close icon should be at right edge of title bar
         // With 40 width, close icon should be at x=39 (relative to title bar)
@@ -184,10 +184,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         REQUIRE(close_icon != nullptr);
 
         auto icon_bounds = close_icon->bounds();
-        CHECK(rect_utils::get_x(icon_bounds) == 39);
-        CHECK(rect_utils::get_y(icon_bounds) == 0);
-        CHECK(rect_utils::get_width(icon_bounds) == 1);
-        CHECK(rect_utils::get_height(icon_bounds) == 1);
+        CHECK(icon_bounds.x.to_int() == 39);
+        CHECK(icon_bounds.y.to_int() == 0);
+        CHECK(icon_bounds.width.to_int() == 1);
+        CHECK(icon_bounds.height.to_int() == 1);
 
         // Close icon absolute screen position should be:
         // window_x + title_bar_x + icon_x = 5 + 0 + 39 = 44
@@ -245,11 +245,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         flags.has_menu_button = false;
 
         auto win = std::make_unique<window<Backend>>("Test", flags);
-        [[maybe_unused]] auto measured = win->measure(30, 10);
+        [[maybe_unused]] auto measured = win->measure(30_lu, 10_lu);
 
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 10, 5, 30, 10);
-        win->arrange(geometry::relative_rect<Backend>{win_bounds});
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
         REQUIRE(!win->children().empty());
         auto* title_bar = dynamic_cast<window_title_bar<Backend>*>(win->children()[0].get());
@@ -261,17 +261,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         });
 
         // Minimize icon should be at x=29 relative to title bar
-        // Absolute position: 10 + 0 + 29 = 39, y = 5
+        // Use relative coordinates for hit testing (window is at 0,0 with size 30x10)
         mouse_event click;
-        click.x = 39;
-        click.y = 5;
+        click.x = 29;  // Relative to window (icon at right edge)
+        click.y = 0;   // Title bar is at y=0
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
 
         // Route through three-phase system
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(39, 5, path);
+        auto* target = win->hit_test(29, 0, path);
         REQUIRE(target != nullptr);
 
         [[maybe_unused]] bool handled = route_event(evt, path);
@@ -287,11 +287,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         flags.has_menu_button = false;
 
         auto win = std::make_unique<window<Backend>>("Test", flags);
-        [[maybe_unused]] auto measured = win->measure(30, 10);
+        [[maybe_unused]] auto measured = win->measure(30_lu, 10_lu);
 
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 10, 5, 30, 10);
-        win->arrange(geometry::relative_rect<Backend>{win_bounds});
+        win->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
         REQUIRE(!win->children().empty());
         auto* title_bar = dynamic_cast<window_title_bar<Backend>*>(win->children()[0].get());
@@ -303,17 +303,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         });
 
         // Maximize icon should be at x=29 relative to title bar
-        // Absolute position: 10 + 0 + 29 = 39, y = 5
+        // Use relative coordinates for hit testing (window is at 0,0 with size 30x10)
         mouse_event click;
-        click.x = 39;
-        click.y = 5;
+        click.x = 29;  // Relative to window (icon at right edge)
+        click.y = 0;   // Title bar is at y=0
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
 
         // Route through three-phase system
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(39, 5, path);
+        auto* target = win->hit_test(29, 0, path);
         REQUIRE(target != nullptr);
 
         [[maybe_unused]] bool handled = route_event(evt, path);
@@ -341,14 +341,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Now measure and arrange parent (which will layout its children)
         typename Backend::rect_type parent_bounds;
         rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
-        [[maybe_unused]] auto parent_size = parent->measure(80, 25);
-        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
+        [[maybe_unused]] auto parent_size = parent->measure(80_lu, 25_lu);
+        parent->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Position window at (10, 5) with size 30x10
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 10, 5, 30, 10);
-        [[maybe_unused]] auto measured = win_ptr->measure(30, 10);
-        win_ptr->arrange(geometry::relative_rect<Backend>{win_bounds});
+        [[maybe_unused]] auto measured = win_ptr->measure(30_lu, 10_lu);
+        win_ptr->arrange(logical_rect{0_lu, 0_lu, 30_lu, 10_lu});
 
 
         // Get title bar
@@ -401,10 +401,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         CHECK(maximize_signal_fired == true);
 
         // Window should now fill parent (0, 0, 80, 25)
-        CHECK(rect_utils::get_x(final_bounds) == 0);
-        CHECK(rect_utils::get_y(final_bounds) == 0);
-        CHECK(rect_utils::get_width(final_bounds) == 80);
-        CHECK(rect_utils::get_height(final_bounds) == 25);
+        CHECK(final_bounds.x.to_int() == 0);
+        CHECK(final_bounds.y.to_int() == 0);
+        CHECK(final_bounds.width.to_int() == 80);
+        CHECK(final_bounds.height.to_int() == 25);
     }
 
     SUBCASE("All buttons work correctly (minimize, maximize, close all enabled)") {
@@ -425,14 +425,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Now measure and arrange parent
         typename Backend::rect_type parent_bounds;
         rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
-        [[maybe_unused]] auto parent_size = parent->measure(80, 25);
-        parent->arrange(geometry::relative_rect<Backend>{parent_bounds});
+        [[maybe_unused]] auto parent_size = parent->measure(80_lu, 25_lu);
+        parent->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
         // Position window
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 10, 5, 40, 15);
-        [[maybe_unused]] auto measured = win_ptr->measure(40, 15);
-        win_ptr->arrange(geometry::relative_rect<Backend>{win_bounds});
+        [[maybe_unused]] auto measured = win_ptr->measure(40_lu, 15_lu);
+        win_ptr->arrange(logical_rect{0_lu, 0_lu, 40_lu, 15_lu});
 
         // Find all icons
         auto* title_bar = dynamic_cast<window_title_bar<Backend>*>(win_ptr->children()[0].get());
@@ -470,8 +470,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Verify window maximized
         auto final_bounds = win_ptr->bounds();
-        CHECK(rect_utils::get_width(final_bounds) == 80);
-        CHECK(rect_utils::get_height(final_bounds) == 25);
+        CHECK(final_bounds.width.to_int() == 80);
+        CHECK(final_bounds.height.to_int() == 25);
     }
 }
 
@@ -564,10 +564,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         // Window has parent, so maximize should fill parent (80x25)
         // Window should now be maximized to fill the entire canvas
         auto final_bounds = win->bounds();
-        CHECK(rect_utils::get_x(final_bounds) == 0);
-        CHECK(rect_utils::get_y(final_bounds) == 0);
-        CHECK(rect_utils::get_width(final_bounds) == 80);
-        CHECK(rect_utils::get_height(final_bounds) == 25);
+        CHECK(final_bounds.x.to_int() == 0);
+        CHECK(final_bounds.y.to_int() == 0);
+        CHECK(final_bounds.width.to_int() == 80);
+        CHECK(final_bounds.height.to_int() == 25);
 
         // Semantic assertions: Verify window fills canvas
         // Check title text (not specific character)

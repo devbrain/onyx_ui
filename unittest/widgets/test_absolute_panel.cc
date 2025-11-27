@@ -40,11 +40,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         CHECK(panel.children().size() == 2);
 
         // Should not crash
-        CHECK_NOTHROW((void)panel.measure(400, 400));
+        CHECK_NOTHROW((void)panel.measure(400_lu, 400_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 400_lu, 400_lu}));
     }
 
     SUBCASE("Explicit positioning with auto-size") {
@@ -62,11 +60,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.set_position(btn2_ptr, 200, 150);
 
         CHECK(panel.children().size() == 2);
-        CHECK_NOTHROW((void)panel.measure(300, 200));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 200_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu}));
     }
 
     SUBCASE("Explicit positioning with size override") {
@@ -78,11 +74,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.add_child(std::move(btn));
         panel.set_position(btn_ptr, 50, 50, 120, 40);
 
-        CHECK_NOTHROW((void)panel.measure(300, 300));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 300_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 300);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 300_lu, 300_lu}));
     }
 
     SUBCASE("Custom dialog layout") {
@@ -113,11 +107,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         dialog.set_position(cancel_ptr, 170, 150, 80, 30);
 
         CHECK(dialog.children().size() == 4);
-        CHECK_NOTHROW((void)dialog.measure(300, 200));
+        CHECK_NOTHROW((void)dialog.measure(300_lu, 200_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(dialog.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(dialog.arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu}));
     }
 
     SUBCASE("Tooltip positioning") {
@@ -132,11 +124,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         overlay.add_child(std::move(tooltip));
         overlay.set_position(tooltip_ptr, mouse_x + 10, mouse_y - 30);
 
-        CHECK_NOTHROW((void)overlay.measure(400, 400));
+        CHECK_NOTHROW((void)overlay.measure(400_lu, 400_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 400, 400);
-        CHECK_NOTHROW(overlay.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(overlay.arrange(logical_rect{0_lu, 0_lu, 400_lu, 400_lu}));
     }
 
     SUBCASE("Negative coordinates") {
@@ -148,11 +138,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.add_child(std::move(lbl));
         panel.set_position(lbl_ptr, -10, -10);
 
-        CHECK_NOTHROW((void)panel.measure(200, 200));
+        CHECK_NOTHROW((void)panel.measure(200_lu, 200_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu}));
     }
 
     SUBCASE("Overlapping children") {
@@ -170,7 +158,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         canvas.set_position(fg_ptr, 50, 50);
 
         CHECK(canvas.children().size() == 2);
-        CHECK_NOTHROW((void)canvas.measure(300, 300));
+        CHECK_NOTHROW((void)canvas.measure(300_lu, 300_lu));
     }
 
     SUBCASE("Node editor layout") {
@@ -196,11 +184,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         }
 
         CHECK(node_canvas.children().size() == 3);
-        CHECK_NOTHROW((void)node_canvas.measure(500, 300));
+        CHECK_NOTHROW((void)node_canvas.measure(500_lu, 300_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 500, 300);
-        CHECK_NOTHROW(node_canvas.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(node_canvas.arrange(logical_rect{0_lu, 0_lu, 500_lu, 300_lu}));
     }
 
     SUBCASE("Mixed auto and fixed sizing") {
@@ -219,7 +205,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.set_position(fixed_ptr, 10, 50, 100, 30);  // Width and height override
 
         CHECK(panel.children().size() == 2);
-        CHECK_NOTHROW((void)panel.measure(300, 200));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 200_lu));
     }
 
     SUBCASE("Zero size hiding") {
@@ -238,7 +224,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.set_position(visible_ptr, 100, 100);
 
         CHECK(panel.children().size() == 2);
-        CHECK_NOTHROW((void)panel.measure(300, 200));
+        CHECK_NOTHROW((void)panel.measure(300_lu, 200_lu));
     }
 
     // ===========================================================================
@@ -265,15 +251,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         panel.set_position(lbl2_ptr, 60, 20);
 
         // Measure
-        auto size = panel.measure(100, 30);
-        INFO("Measured size: " << size_utils::get_width(size) << " x " << size_utils::get_height(size));
-        CHECK(size_utils::get_width(size) > 0);   // CRITICAL: Must not measure to zero
-        CHECK(size_utils::get_height(size) > 0);
+        auto size = panel.measure(100_lu, 30_lu);
+        INFO("Measured size: " << size.width.to_int() << " x " << size.height.to_int());
+        CHECK(size.width.to_int() > 0);   // CRITICAL: Must not measure to zero
+        CHECK(size.height.to_int() > 0);
 
         // Arrange
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 100, 30);
-        panel.arrange(geometry::relative_rect<test_canvas_backend>{bounds});
+                panel.arrange(logical_rect{0_lu, 0_lu, 100_lu, 30_lu});
 
         // Render
         auto canvas = render_to_canvas(panel, 100, 30);
@@ -314,11 +298,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "AbsolutePanel - Abso
         absolute_panel<test_canvas_backend> panel2(std::move(panel1));
 
         // panel2's layout pointer should be valid, not dangling
-        CHECK_NOTHROW((void)panel2.measure(300, 200));
+        CHECK_NOTHROW((void)panel2.measure(300_lu, 200_lu));
 
         // Arranging should work without crashes
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 300, 200);
-        CHECK_NOTHROW(panel2.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+                CHECK_NOTHROW(panel2.arrange(logical_rect{0_lu, 0_lu, 300_lu, 200_lu}));
     }
 }

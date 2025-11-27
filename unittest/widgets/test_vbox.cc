@@ -64,11 +64,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "VBox - Vertical layo
         CHECK(main_layout.children().size() == 2);
 
         // Verify measure/arrange don't crash
-        CHECK_NOTHROW((void)main_layout.measure(200, 200));
+        CHECK_NOTHROW((void)main_layout.measure(200_lu, 200_lu));
 
-        test_canvas_backend::rect_type bounds;
-        rect_utils::set_bounds(bounds, 0, 0, 200, 200);
-        CHECK_NOTHROW(main_layout.arrange(geometry::relative_rect<test_canvas_backend>{bounds}));
+        CHECK_NOTHROW(main_layout.arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu}));
     }
 
     SUBCASE("Child alignment configuration") {

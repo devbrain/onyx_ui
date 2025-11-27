@@ -269,7 +269,7 @@ public:
 
         size_constraint constraint;
         constraint.policy = size_policy::content;
-        constraint.preferred_size = width;
+        constraint.preferred_size = logical_unit(static_cast<double>(width));
 
         // Set the appropriate dimension based on orientation
         if (m_orientation == progress_bar_orientation::horizontal) {
@@ -288,17 +288,17 @@ protected:
     /**
      * @brief Calculate natural content size based on orientation
      */
-    [[nodiscard]] size_type get_content_size() const override {
+    [[nodiscard]] logical_size get_content_size() const override {
         // Progress bar has a default size based on orientation
-        constexpr int DEFAULT_HORIZONTAL_WIDTH = 100;
-        constexpr int DEFAULT_HORIZONTAL_HEIGHT = 1;
-        constexpr int DEFAULT_VERTICAL_WIDTH = 1;
-        constexpr int DEFAULT_VERTICAL_HEIGHT = 20;
+        constexpr double DEFAULT_HORIZONTAL_WIDTH = 100.0;
+        constexpr double DEFAULT_HORIZONTAL_HEIGHT = 1.0;
+        constexpr double DEFAULT_VERTICAL_WIDTH = 1.0;
+        constexpr double DEFAULT_VERTICAL_HEIGHT = 20.0;
 
         if (m_orientation == progress_bar_orientation::horizontal) {
-            return size_type{DEFAULT_HORIZONTAL_WIDTH, DEFAULT_HORIZONTAL_HEIGHT};
+            return logical_size{logical_unit(DEFAULT_HORIZONTAL_WIDTH), logical_unit(DEFAULT_HORIZONTAL_HEIGHT)};
         } else {
-            return size_type{DEFAULT_VERTICAL_WIDTH, DEFAULT_VERTICAL_HEIGHT};
+            return logical_size{logical_unit(DEFAULT_VERTICAL_WIDTH), logical_unit(DEFAULT_VERTICAL_HEIGHT)};
         }
     }
 
@@ -322,8 +322,8 @@ protected:
 
         int const track_x = point_utils::get_x(pos);
         int const track_y = point_utils::get_y(pos);
-        int const track_w = rect_utils::get_width(bounds);
-        int const track_h = rect_utils::get_height(bounds);
+        int const track_w = bounds.width.to_int();
+        int const track_h = bounds.height.to_int();
 
         // Render based on orientation
         if (m_orientation == progress_bar_orientation::horizontal) {

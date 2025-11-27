@@ -99,11 +99,11 @@ namespace onyxui {
          * @brief Measure the icon size
          * @return Fixed size of 1x1 for text-based icons
          */
-        [[nodiscard]] size_type do_measure([[maybe_unused]] int available_width,
-                                                           [[maybe_unused]] int available_height) override {
+        [[nodiscard]] logical_size do_measure([[maybe_unused]] logical_unit available_width,
+                                               [[maybe_unused]] logical_unit available_height) override {
             // Icons have a fixed size - typically 1x1 for character-based icons
             // The actual glyph is determined by the backend's draw_icon() method
-            return size_type{1, 1};
+            return logical_size{1_lu, 1_lu};
         }
 
         /**

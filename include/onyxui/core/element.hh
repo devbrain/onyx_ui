@@ -75,6 +75,8 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/event_target.hh>
+#include <onyxui/core/types.hh>
+#include <onyxui/core/geometry.hh>
 #include <onyxui/events/hit_test_path.hh>
 #include <onyxui/geometry/coordinates.hh>
 #include <onyxui/layout/layout_strategy.hh>
@@ -86,77 +88,10 @@
 
 namespace onyxui {
     /**
-     * @struct thickness
-     * @brief Represents spacing on all four sides (margin or padding)
+     * @brief Type alias for thickness (uses logical units)
+     * @details This is an alias for logical_thickness from geometry.hh
      */
-    struct thickness {
-        int left; ///< Left spacing in pixels
-        int top; ///< Top spacing in pixels
-        int right; ///< Right spacing in pixels
-        int bottom; ///< Bottom spacing in pixels
-
-        /**
-         * @brief Calculate total horizontal spacing (left + right)
-         */
-        [[nodiscard]] int horizontal() const noexcept { return left + right; }
-
-        /**
-         * @brief Calculate total vertical spacing (top + bottom)
-         */
-        [[nodiscard]] int vertical() const noexcept { return top + bottom; }
-
-        /**
-         * @brief Create uniform thickness on all sides
-         * @param value The spacing value for all sides
-         * @return thickness with equal spacing on all sides
-         *
-         * @example
-         * @code
-         * element->set_padding(thickness::all(10));  // 10px on all sides
-         * @endcode
-         */
-        [[nodiscard]] static constexpr thickness all(int value) noexcept {
-            return {value, value, value, value};
-        }
-
-        /**
-         * @brief Create symmetric thickness (horizontal and vertical)
-         * @param horizontal The spacing for left and right sides
-         * @param vertical The spacing for top and bottom sides
-         * @return thickness with symmetric spacing
-         *
-         * @example
-         * @code
-         * // 20px left/right, 10px top/bottom
-         * element->set_margin(thickness::symmetric(20, 10));
-         * @endcode
-         */
-        [[nodiscard]] static constexpr thickness symmetric(int horizontal, int vertical) noexcept {
-            return {horizontal, vertical, horizontal, vertical};
-        }
-
-        /**
-         * @brief Create thickness with no spacing
-         * @return thickness with all sides set to zero
-         *
-         * @example
-         * @code
-         * element->set_padding(thickness::none());  // No padding
-         * @endcode
-         */
-        [[nodiscard]] static constexpr thickness none() noexcept {
-            return {0, 0, 0, 0};
-        }
-
-        bool operator==(const thickness& other) const noexcept {
-            return left == other.left && top == other.top &&
-                   right == other.right && bottom == other.bottom;
-        }
-
-        bool operator!=(const thickness& other) const noexcept {
-            return !(*this == other);
-        }
-    };
+    using thickness = logical_thickness;
 
     /**
      * @class ui_element
@@ -391,16 +326,16 @@ namespace onyxui {
 
             /**
              * @brief Measure phase: calculate desired size
-             * @param available_width Maximum width available (pixels)
-             * @param available_height Maximum height available (pixels)
-             * @return The measured size for this element
+             * @param available_width Maximum width available (logical units)
+             * @param available_height Maximum height available (logical units)
+             * @return The measured size for this element (in logical units)
              *
              * @exception Any exception thrown by do_measure() override
              * @exception Any exception thrown by layout_strategy::measure_children()
              * @note Exception safety: Basic guarantee - cache may be partially updated if exception thrown
              * @note Results are cached - repeated calls with same parameters return cached value
              */
-            [[nodiscard]] size_type measure(int available_width, int available_height);
+            [[nodiscard]] logical_size measure(logical_unit available_width, logical_unit available_height);
 
             /**
              * @brief Measure element with no constraints (natural size)
@@ -412,23 +347,23 @@ namespace onyxui {
              * Useful for determining the minimum size needed to display content
              * without clipping or wrapping.
              *
-             * @note Equivalent to measure(std::numeric_limits<int>::max(), std::numeric_limits<int>::max())
+             * @note Equivalent to measure(logical_unit(max), logical_unit(max))
              */
-            [[nodiscard]] size_type measure_unconstrained() {
-                return measure(std::numeric_limits<int>::max(),
-                              std::numeric_limits<int>::max());
+            [[nodiscard]] logical_size measure_unconstrained() {
+                constexpr double max_lu = 1e9;  // Large value for unconstrained
+                return measure(logical_unit(max_lu), logical_unit(max_lu));
             }
 
             /**
              * @brief Arrange phase: assign final bounds
-             * @param final_bounds The allocated rectangle for this element (in relative coordinates)
+             * @param final_bounds The allocated rectangle for this element (in logical units)
              *
              * @exception Any exception thrown by do_arrange() override
              * @exception Any exception thrown by layout_strategy::arrange_children()
              * @note Exception safety: Basic guarantee - bounds updated before arrange, children may be partially arranged
              * @note Skipped if bounds unchanged and layout state is valid
              */
-            void arrange(geometry::relative_rect<Backend> final_bounds);
+            void arrange(logical_rect final_bounds);
 
             /**
              * @brief Sort children by their z_index values
@@ -695,14 +630,14 @@ namespace onyxui {
                 // Bounds are now RELATIVE to parent's content area
                 // Add accumulated offset to get absolute screen position
                 point_type absolute_pos{
-                    rect_utils::get_x(m_bounds) + point_utils::get_x(offset),
-                    rect_utils::get_y(m_bounds) + point_utils::get_y(offset)
+                    m_bounds.x.to_int() + point_utils::get_x(offset),
+                    m_bounds.y.to_int() + point_utils::get_y(offset)
                 };
 
                 size_type size;
                 size_utils::set_size(size,
-                    rect_utils::get_width(m_bounds),
-                    rect_utils::get_height(m_bounds));
+                    m_bounds.width.to_int(),
+                    m_bounds.height.to_int());
 
                 // Create draw context with resolved style, ABSOLUTE position, size, dirty regions, and theme
                 // The absolute_pos accounts for all parent content area offsets
@@ -710,7 +645,11 @@ namespace onyxui {
 
                 // Skip rendering if this element doesn't intersect with any dirty region
                 rect_type absolute_bounds;
-                rect_utils::make_absolute_bounds(absolute_bounds, absolute_pos, m_bounds);
+                rect_utils::set_bounds(absolute_bounds,
+                                     point_utils::get_x(absolute_pos),
+                                     point_utils::get_y(absolute_pos),
+                                     m_bounds.width.to_int(),
+                                     m_bounds.height.to_int());
 
                 if (!ctx.should_render(absolute_bounds)) {
                     // Early return - don't render this element or its children
@@ -721,16 +660,16 @@ namespace onyxui {
                 do_render(ctx);
 
                 // Set clip rect for children (content area only)
-                rect_type const content_area = get_content_area();
+                logical_rect const content_area_logical = get_content_area();
 
                 // Calculate absolute clip rect
                 // content_area position is now relative to widget's bounds origin, so add absolute_pos
                 rect_type absolute_clip;
                 rect_utils::set_bounds(absolute_clip,
-                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area),
-                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area),
-                    rect_utils::get_width(content_area),
-                    rect_utils::get_height(content_area));
+                    point_utils::get_x(absolute_pos) + content_area_logical.x.to_int(),
+                    point_utils::get_y(absolute_pos) + content_area_logical.y.to_int(),
+                    content_area_logical.width.to_int(),
+                    content_area_logical.height.to_int());
 
                 // Push clip rect before rendering children
                 renderer.push_clip(absolute_clip);
@@ -739,8 +678,8 @@ namespace onyxui {
                 // Children are arranged at RELATIVE coordinates (0,0 = top-left of content area)
                 // Accumulate offset for children: widget's absolute position + content area offset
                 point_type child_offset{
-                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area),
-                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area)
+                    point_utils::get_x(absolute_pos) + content_area_logical.x.to_int(),
+                    point_utils::get_y(absolute_pos) + content_area_logical.y.to_int()
                 };
 
                 for (const auto& child : m_children) {
@@ -755,8 +694,8 @@ namespace onyxui {
             // Public Accessors
             // -----------------------------------------------------------------------
 
-            [[nodiscard]] geometry::relative_rect<Backend> bounds() const noexcept {
-                return geometry::relative_rect<Backend>{m_bounds};
+            [[nodiscard]] const logical_rect& bounds() const noexcept {
+                return m_bounds;
             }
 
             /**
@@ -788,8 +727,14 @@ namespace onyxui {
              *       if you need to call it repeatedly in the same frame.
              */
             [[nodiscard]] geometry::absolute_rect<Backend> get_absolute_bounds() const noexcept {
-                // Use the coordinate conversion function
-                return geometry::to_absolute(geometry::relative_rect<Backend>{m_bounds}, this);
+                // Convert logical_rect to Backend::rect_type for coordinate conversion
+                rect_type bounds_physical;
+                rect_utils::set_bounds(bounds_physical,
+                                      m_bounds.x.to_int(),
+                                      m_bounds.y.to_int(),
+                                      m_bounds.width.to_int(),
+                                      m_bounds.height.to_int());
+                return geometry::to_absolute(geometry::relative_rect<Backend>{bounds_physical}, this);
             }
 
             /**
@@ -805,26 +750,24 @@ namespace onyxui {
              * Position is relative to this element's bounds origin (0,0). For absolute
              * positioning, use get_absolute_bounds() to convert to screen coordinates.
              */
-            [[nodiscard]] virtual rect_type get_content_area() const noexcept {
+            [[nodiscard]] virtual logical_rect get_content_area() const noexcept {
                 // Content area position is relative to this widget's bounds origin (0,0).
                 // Absolute positioning is computed during rendering by accumulating parent offsets.
-                const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
-                const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
+                logical_unit x = m_margin.left + m_padding.left;
+                logical_unit y = m_margin.top + m_padding.top;
 
-                // Calculate dimensions with safe subtraction
-                const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
-                const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
+                // Calculate dimensions
+                logical_unit total_h_spacing = m_margin.horizontal() + m_padding.horizontal();
+                logical_unit total_v_spacing = m_margin.vertical() + m_padding.vertical();
 
-                int w = safe_math::subtract_clamped(rect_utils::get_width(m_bounds), total_h_spacing);
-                int h = safe_math::subtract_clamped(rect_utils::get_height(m_bounds), total_v_spacing);
+                logical_unit w = m_bounds.width - total_h_spacing;
+                logical_unit h = m_bounds.height - total_v_spacing;
 
                 // Clamp to non-negative
-                w = std::max(0, w);
-                h = std::max(0, h);
+                w = max(w, logical_unit(0.0));
+                h = max(h, logical_unit(0.0));
 
-                rect_type content_area;
-                rect_utils::set_bounds(content_area, x, y, w, h);
-                return content_area;
+                return logical_rect{x, y, w, h};
             }
 
             [[nodiscard]] bool is_visible() const noexcept { return m_visible; }
@@ -839,7 +782,7 @@ namespace onyxui {
             // For layout strategies
             [[nodiscard]] const std::vector <ui_element_ptr>& children() const noexcept { return m_children; }
             [[nodiscard]] std::vector <ui_element_ptr>& mutable_children() noexcept { return m_children; }
-            [[nodiscard]] const size_type& last_measured_size() const noexcept { return m_last_measured_size; }
+            [[nodiscard]] const logical_size& last_measured_size() const noexcept { return m_last_measured_size; }
             [[nodiscard]] horizontal_alignment h_align() const noexcept { return m_h_align; }
             [[nodiscard]] vertical_alignment v_align() const noexcept { return m_v_align; }
             [[nodiscard]] const size_constraint& w_constraint() const noexcept { return m_width_constraint; }
@@ -916,7 +859,9 @@ namespace onyxui {
 
                 if (!m_parent) {
                     // Root element - m_bounds is already absolute
-                    return rect_utils::contains(m_bounds, x, y);
+                    // Convert logical to physical for comparison
+                    return x >= m_bounds.x.to_int() && x < (m_bounds.x + m_bounds.width).to_int() &&
+                           y >= m_bounds.y.to_int() && y < (m_bounds.y + m_bounds.height).to_int();
                 }
 
                 // Child element - compute absolute bounds by recursively walking up the tree
@@ -927,21 +872,21 @@ namespace onyxui {
                 get_absolute_pos = [&get_absolute_pos](const ui_element* elem, int& abs_x, int& abs_y) {
                     if (!elem->m_parent) {
                         // Root element
-                        abs_x = rect_utils::get_x(elem->m_bounds);
-                        abs_y = rect_utils::get_y(elem->m_bounds);
+                        abs_x = elem->m_bounds.x.to_int();
+                        abs_y = elem->m_bounds.y.to_int();
                     } else {
                         // Get parent's absolute position
                         int parent_x, parent_y;
                         get_absolute_pos(elem->m_parent, parent_x, parent_y);
 
                         // Add parent's content offset
-                        rect_type elem_parent_content = elem->m_parent->get_content_area();
-                        parent_x += rect_utils::get_x(elem_parent_content);
-                        parent_y += rect_utils::get_y(elem_parent_content);
+                        logical_rect elem_parent_content = elem->m_parent->get_content_area();
+                        parent_x += elem_parent_content.x.to_int();
+                        parent_y += elem_parent_content.y.to_int();
 
                         // Add this element's relative position
-                        abs_x = parent_x + rect_utils::get_x(elem->m_bounds);
-                        abs_y = parent_y + rect_utils::get_y(elem->m_bounds);
+                        abs_x = parent_x + elem->m_bounds.x.to_int();
+                        abs_y = parent_y + elem->m_bounds.y.to_int();
                     }
                 };
 
@@ -950,16 +895,16 @@ namespace onyxui {
                 get_absolute_pos(m_parent, parent_abs_x, parent_abs_y);
 
                 // Get parent's content area
-                rect_type parent_content = m_parent->get_content_area();
+                logical_rect parent_content = m_parent->get_content_area();
 
                 // Compute this element's absolute position
-                int content_abs_x = parent_abs_x + rect_utils::get_x(parent_content);
-                int content_abs_y = parent_abs_y + rect_utils::get_y(parent_content);
+                int content_abs_x = parent_abs_x + parent_content.x.to_int();
+                int content_abs_y = parent_abs_y + parent_content.y.to_int();
 
-                int abs_x = content_abs_x + rect_utils::get_x(m_bounds);
-                int abs_y = content_abs_y + rect_utils::get_y(m_bounds);
-                int abs_w = rect_utils::get_width(m_bounds);
-                int abs_h = rect_utils::get_height(m_bounds);
+                int abs_x = content_abs_x + m_bounds.x.to_int();
+                int abs_y = content_abs_y + m_bounds.y.to_int();
+                int abs_w = m_bounds.width.to_int();
+                int abs_h = m_bounds.height.to_int();
 
                 return (x >= abs_x && x < abs_x + abs_w && y >= abs_y && y < abs_y + abs_h);
             }
@@ -971,20 +916,18 @@ namespace onyxui {
             /**
              * @brief Override to provide custom measurement logic
              */
-            virtual size_type do_measure(int available_width, int available_height);
+            virtual logical_size do_measure(logical_unit available_width, logical_unit available_height);
 
             /**
              * @brief Override to provide custom arrangement logic
              */
-            virtual void do_arrange(const rect_type& final_bounds);
+            virtual void do_arrange(const logical_rect& final_bounds);
 
             /**
              * @brief Get the intrinsic content size
              */
-            [[nodiscard]] virtual size_type get_content_size() const {
-                size_type s = {};
-                size_utils::set_size(s, 0, 0);
-                return s;
+            [[nodiscard]] virtual logical_size get_content_size() const {
+                return logical_size{logical_unit(0.0), logical_unit(0.0)};
             }
 
             /**
@@ -1033,20 +976,20 @@ namespace onyxui {
             layout_state arrange_state = layout_state::dirty;
 
             // Cache
-            size_type m_last_measured_size = {};
-            int m_last_available_width = -1;
-            int m_last_available_height = -1;
+            logical_size m_last_measured_size = {};
+            logical_unit m_last_available_width = logical_unit(-1.0);
+            logical_unit m_last_available_height = logical_unit(-1.0);
 
             // Properties
             bool m_visible = true;
-            rect_type m_bounds = {};
+            logical_rect m_bounds = {};
             int m_z_index = 0;
             size_constraint m_width_constraint;
             size_constraint m_height_constraint;
             horizontal_alignment m_h_align = horizontal_alignment::stretch;
             vertical_alignment m_v_align = vertical_alignment::stretch;
-            thickness m_margin = {0, 0, 0, 0};
-            thickness m_padding = {0, 0, 0, 0};
+            thickness m_margin = logical_thickness{};
+            thickness m_padding = logical_thickness{};
 
             // Dirty region tracking (only used by root element)
             std::vector<rect_type> m_dirty_regions;
@@ -1236,8 +1179,7 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    typename ui_element <Backend>::size_type
-    ui_element <Backend>::measure(int available_width, int available_height) {
+    logical_size ui_element <Backend>::measure(logical_unit available_width, logical_unit available_height) {
         // Check cache
         if (measure_state == layout_state::valid &&
             m_last_available_width == available_width &&
@@ -1245,24 +1187,28 @@ namespace onyxui {
             return m_last_measured_size;
         }
 
-        // Account for margin using safe subtraction
-        int content_width = safe_math::subtract_clamped(available_width, m_margin.horizontal());
-        int content_height = safe_math::subtract_clamped(available_height, m_margin.vertical());
-        content_width = std::max(0, content_width);
-        content_height = std::max(0, content_height);
+        // Account for margin - subtract from available space
+        logical_unit content_width = available_width - m_margin.horizontal();
+        logical_unit content_height = available_height - m_margin.vertical();
+
+        // Clamp to zero (can't have negative dimensions)
+        content_width = max(content_width, logical_unit(0.0));
+        content_height = max(content_height, logical_unit(0.0));
 
         // Measure content
-        size_type measured = do_measure(content_width, content_height);
+        logical_size measured = do_measure(content_width, content_height);
 
-        // Add margin back using safe addition
-        int meas_w = safe_math::add_clamped(size_utils::get_width(measured), m_margin.horizontal());
-        int meas_h = safe_math::add_clamped(size_utils::get_height(measured), m_margin.vertical());
+        // Add margin back
+        logical_unit meas_w = measured.width + m_margin.horizontal();
+        logical_unit meas_h = measured.height + m_margin.vertical();
 
         // Apply constraints
-        meas_w = m_width_constraint.clamp(meas_w);
-        meas_h = m_height_constraint.clamp(meas_h);
+        logical_unit clamped_w = m_width_constraint.clamp(meas_w);
+        logical_unit clamped_h = m_height_constraint.clamp(meas_h);
 
-        size_utils::set_size(measured, meas_w, meas_h);
+        // Store clamped sizes
+        measured.width = clamped_w;
+        measured.height = clamped_h;
 
         // Cache results
         m_last_measured_size = measured;
@@ -1274,19 +1220,16 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void ui_element <Backend>::arrange(geometry::relative_rect<Backend> final_bounds) {
-        // Unwrap the strong type to get the underlying rect
-        const rect_type& final_bounds_rect = final_bounds.get();
-
+    void ui_element <Backend>::arrange(logical_rect final_bounds) {
         // Check if bounds changed
-        const bool bounds_changed = !rect_utils::equal(m_bounds, final_bounds_rect);
+        const bool bounds_changed = (m_bounds != final_bounds);
 
         // Mark old bounds as dirty if they changed
         if (bounds_changed && m_visible) {
             mark_dirty();
         }
 
-        m_bounds = final_bounds_rect;
+        m_bounds = final_bounds;
 
         if (!bounds_changed &&
             arrange_state == layout_state::valid &&
@@ -1294,26 +1237,25 @@ namespace onyxui {
             return;
         }
 
-        // Calculate content area using safe arithmetic
+        // Calculate content area
         // RELATIVE COORDINATES: content_area position is relative to widget's own bounds origin
-        rect_type content_area;
 
         // Position is relative to bounds origin (0, 0), not absolute
-        const int x = safe_math::add_clamped(m_margin.left, m_padding.left);
-        const int y = safe_math::add_clamped(m_margin.top, m_padding.top);
+        logical_unit x = m_margin.left + m_padding.left;
+        logical_unit y = m_margin.top + m_padding.top;
 
-        // Calculate dimensions with safe subtraction
-        const int total_h_spacing = safe_math::add_clamped(m_margin.horizontal(), m_padding.horizontal());
-        const int total_v_spacing = safe_math::add_clamped(m_margin.vertical(), m_padding.vertical());
+        // Calculate dimensions
+        logical_unit total_h_spacing = m_margin.horizontal() + m_padding.horizontal();
+        logical_unit total_v_spacing = m_margin.vertical() + m_padding.vertical();
 
-        int w = safe_math::subtract_clamped(rect_utils::get_width(final_bounds), total_h_spacing);
-        int h = safe_math::subtract_clamped(rect_utils::get_height(final_bounds), total_v_spacing);
+        logical_unit w = final_bounds.width - total_h_spacing;
+        logical_unit h = final_bounds.height - total_v_spacing;
 
         // Clamp to non-negative
-        w = std::max(0, w);
-        h = std::max(0, h);
+        w = max(w, logical_unit(0.0));
+        h = max(h, logical_unit(0.0));
 
-        rect_utils::set_bounds(content_area, x, y, w, h);
+        logical_rect content_area{x, y, w, h};
 
         do_arrange(content_area);
         arrange_state = layout_state::valid;
@@ -1404,32 +1346,33 @@ namespace onyxui {
     // -------------------------------------------------------------------------------
 
     template<UIBackend Backend>
-    typename ui_element <Backend>::size_type
-    ui_element <Backend>::do_measure(int available_width, int available_height) {
+    logical_size ui_element <Backend>::do_measure(logical_unit available_width, logical_unit available_height) {
         if (m_layout_strategy) {
             // Subtract padding from available space before passing to layout strategy
             // (margin is already subtracted by measure())
-            const int content_width = safe_math::subtract_clamped(available_width, m_padding.horizontal());
-            const int content_height = safe_math::subtract_clamped(available_height, m_padding.vertical());
+            logical_unit content_width = available_width - m_padding.horizontal();
+            logical_unit content_height = available_height - m_padding.vertical();
 
-            size_type const content_size = m_layout_strategy->measure_children(
+            // Clamp to zero
+            content_width = max(content_width, logical_unit(0.0));
+            content_height = max(content_height, logical_unit(0.0));
+
+            logical_size const content_size = m_layout_strategy->measure_children(
                 static_cast <const ui_element*>(this),
-                std::max(0, content_width),
-                std::max(0, content_height));
+                content_width,
+                content_height);
 
             // Add padding back to the measured size
-            int const w = safe_math::add_clamped(size_utils::get_width(content_size), m_padding.horizontal());
-            int const h = safe_math::add_clamped(size_utils::get_height(content_size), m_padding.vertical());
+            logical_unit w = content_size.width + m_padding.horizontal();
+            logical_unit h = content_size.height + m_padding.vertical();
 
-            size_type result{};
-            size_utils::set_size(result, w, h);
-            return result;
+            return logical_size{w, h};
         }
         return get_content_size();
     }
 
     template<UIBackend Backend>
-    void ui_element <Backend>::do_arrange(const rect_type& final_bounds) {
+    void ui_element <Backend>::do_arrange(const logical_rect& final_bounds) {
         (void)final_bounds;  // Mark as used (bounds already set in arrange())
         if (m_layout_strategy) {
             // Use content area instead of full bounds to account for borders/padding
@@ -1444,22 +1387,24 @@ namespace onyxui {
     template<UIBackend Backend>
     void ui_element<Backend>::mark_dirty() {
         // Convert relative bounds to absolute before marking dirty
-        // Walk up parent chain to accumulate absolute position
-        int abs_x = rect_utils::get_x(m_bounds);
-        int abs_y = rect_utils::get_y(m_bounds);
+        // Walk up parent chain to accumulate absolute position in logical units
+        logical_unit abs_x = m_bounds.x;
+        logical_unit abs_y = m_bounds.y;
 
         ui_element* current_parent = m_parent;
         while (current_parent) {
             // Add parent's content area offset
-            rect_type parent_content = current_parent->get_content_area();
-            abs_x += rect_utils::get_x(parent_content);
-            abs_y += rect_utils::get_y(parent_content);
+            logical_rect parent_content = current_parent->get_content_area();
+            abs_x = abs_x + parent_content.x;
+            abs_y = abs_y + parent_content.y;
             current_parent = current_parent->m_parent;
         }
 
-        // Create absolute bounds rectangle
+        // Convert logical coordinates to physical backend coordinates
         rect_type absolute_bounds;
-        rect_utils::make_absolute_bounds(absolute_bounds, abs_x, abs_y, m_bounds);
+        rect_utils::set_bounds(absolute_bounds,
+                              abs_x.to_int(), abs_y.to_int(),
+                              m_bounds.width.to_int(), m_bounds.height.to_int());
 
         mark_dirty_region(absolute_bounds);
     }

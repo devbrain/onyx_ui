@@ -97,7 +97,14 @@ namespace onyxui {
         // bounds() contains relative bounds (for width/height)
         // make_absolute_bounds uses position for x,y and bounds for w,h
         typename Backend::rect_type absolute_bounds;
-        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), this->bounds());
+        auto logical_bounds = this->bounds();
+        typename Backend::rect_type relative_bounds{};
+        rect_utils::set_bounds(relative_bounds,
+            logical_bounds.x.to_int(),
+            logical_bounds.y.to_int(),
+            logical_bounds.width.to_int(),
+            logical_bounds.height.to_int());
+        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), relative_bounds);
 
         ctx.fill_rect(absolute_bounds);
 

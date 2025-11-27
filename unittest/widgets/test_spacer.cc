@@ -34,8 +34,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         CHECK(s.width() == 20);
         CHECK(s.height() == 0);
 
-        auto size = s.measure(100, 100);
-        CHECK(size_utils::get_width(size) == 20);
+        auto size = s.measure(100_lu, 100_lu);
+        CHECK(size.width.to_int() == 20);
     }
 
     SUBCASE("Construction with vertical spacing") {
@@ -44,8 +44,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         CHECK(s.width() == 0);
         CHECK(s.height() == 30);
 
-        auto size = s.measure(100, 100);
-        CHECK(size_utils::get_height(size) == 30);
+        auto size = s.measure(100_lu, 100_lu);
+        CHECK(size.height.to_int() == 30);
     }
 
     SUBCASE("Construction with both dimensions") {
@@ -54,9 +54,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         CHECK(s.width() == 50);
         CHECK(s.height() == 40);
 
-        auto size = s.measure(200, 200);
-        CHECK(size_utils::get_width(size) == 50);
-        CHECK(size_utils::get_height(size) == 40);
+        auto size = s.measure(200_lu, 200_lu);
+        CHECK(size.width.to_int() == 50);
+        CHECK(size.height.to_int() == 40);
     }
 
     SUBCASE("Set width") {
@@ -65,8 +65,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         s.set_width(25);
         CHECK(s.width() == 25);
 
-        auto size = s.measure(100, 100);
-        CHECK(size_utils::get_width(size) == 25);
+        auto size = s.measure(100_lu, 100_lu);
+        CHECK(size.width.to_int() == 25);
     }
 
     SUBCASE("Set height") {
@@ -75,8 +75,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         s.set_height(35);
         CHECK(s.height() == 35);
 
-        auto size = s.measure(100, 100);
-        CHECK(size_utils::get_height(size) == 35);
+        auto size = s.measure(100_lu, 100_lu);
+        CHECK(size.height.to_int() == 35);
     }
 
     SUBCASE("Change dimensions invalidates layout") {
@@ -88,9 +88,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         s.set_height(30);
         CHECK(s.height() == 30);
 
-        auto size = s.measure(100, 100);
-        CHECK(size_utils::get_width(size) == 20);
-        CHECK(size_utils::get_height(size) == 30);
+        auto size = s.measure(100_lu, 100_lu);
+        CHECK(size.width.to_int() == 20);
+        CHECK(size.height.to_int() == 30);
     }
 
     SUBCASE("Spacer in horizontal layout") {
@@ -105,7 +105,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         box.add_child(std::move(btn2));
 
         CHECK(box.children().size() == 3);
-        CHECK_NOTHROW((void)box.measure(300, 50));
+        CHECK_NOTHROW((void)box.measure(300_lu, 50_lu));
     }
 
     SUBCASE("Spacer in vertical layout") {
@@ -120,7 +120,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         box.add_child(std::move(btn2));
 
         CHECK(box.children().size() == 3);
-        CHECK_NOTHROW((void)box.measure(300, 200));
+        CHECK_NOTHROW((void)box.measure(300_lu, 200_lu));
     }
 
     SUBCASE("Multiple spacers with different sizes") {
@@ -133,7 +133,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Spacer - Fixed-size 
         box.add_child(std::make_unique<button<test_canvas_backend>>("C"));
 
         CHECK(box.children().size() == 5);
-        CHECK_NOTHROW((void)box.measure(400, 50));
+        CHECK_NOTHROW((void)box.measure(400_lu, 50_lu));
     }
 
     SUBCASE("Spacer is not focusable") {
