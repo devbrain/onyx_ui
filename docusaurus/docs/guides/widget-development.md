@@ -127,7 +127,7 @@ auto content_area = element.get_content_area();
 //  border(1) + padding(5) = 6 logical unit offset
 
 // Children positioned at content area origin
-child->arrange({0, 0, 100, 50});  // Relative (0,0)
+child->arrange({0_lu, 0_lu, 100_lu, 50_lu});  // Relative (0,0)
 ```
 
 ---
@@ -1061,11 +1061,13 @@ protected:
     }
 
     // Provide minimum size
-    size_type measure_override(int available_width,
-                              int available_height) override {
+    logical_size do_measure(logical_unit available_width,
+                           logical_unit available_height) override {
         // Minimum 100x20 logical units
-        return {std::min(100, available_width),
-                std::min(20, available_height)};
+        return {
+            logical_unit(std::min(100.0, available_width.value)),
+            logical_unit(std::min(20.0, available_height.value))
+        };
     }
 
 private:

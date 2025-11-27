@@ -42,8 +42,8 @@ auto scrollable = std::make_unique<scrollable<Backend>>();
 scrollable->add_child(create_large_content());
 
 // Measure and arrange
-scrollable->measure(200, 150);
-scrollable->arrange({0, 0, 200, 150});
+scrollable->measure(200_lu, 150_lu);
+scrollable->arrange({0_lu, 0_lu, 200_lu, 150_lu});
 
 // Programmatic scrolling
 scrollable->scroll_to(0, 100);  // Scroll to y=100
