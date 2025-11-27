@@ -251,7 +251,7 @@ namespace onyxui {
             /**
              * @brief Set minimum size constraint
              *
-             * @param min_size Minimum size in pixels
+             * @param min_size Minimum size in logical units
              *
              * @throws Any exception thrown by update_constraint()
              *
@@ -273,7 +273,7 @@ namespace onyxui {
             /**
              * @brief Set maximum size constraint
              *
-             * @param max_size Maximum size in pixels
+             * @param max_size Maximum size in logical units
              *
              * @throws Any exception thrown by update_constraint()
              *
@@ -305,7 +305,7 @@ namespace onyxui {
             /**
              * @brief Get minimum size
              *
-             * @return Minimum size constraint in pixels
+             * @return Minimum size constraint in logical units
              *
              * @note noexcept - guaranteed not to throw exceptions
              * @note Thread-safe for reading (const operation)
@@ -315,7 +315,7 @@ namespace onyxui {
             /**
              * @brief Get maximum size
              *
-             * @return Maximum size constraint in pixels
+             * @return Maximum size constraint in logical units
              *
              * @note noexcept - guaranteed not to throw exceptions
              * @note Thread-safe for reading (const operation)
@@ -404,8 +404,8 @@ namespace onyxui {
 
             float m_weight;      ///< Weight for proportional distribution
             bool m_horizontal;   ///< True for horizontal, false for vertical
-            int m_min_size;      ///< Minimum size in pixels
-            int m_max_size;      ///< Maximum size in pixels
+            int m_min_size;      ///< Minimum size in logical units
+            int m_max_size;      ///< Maximum size in logical units
     };
 
     // ============================================================================

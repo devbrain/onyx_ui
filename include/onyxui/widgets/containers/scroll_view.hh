@@ -317,7 +317,7 @@ namespace onyxui {
          * @brief Override measure to ensure minimum size for always-visible scrollbars
          *
          * @details
-         * When scrollbar_visibility is "always", scrollbars need minimum 8 pixels to render
+         * When scrollbar_visibility is "always", scrollbars need minimum 8 logical units to render
          * without corruption. This method ensures scroll_view requests adequate space.
          */
         logical_size do_measure(logical_unit available_width, logical_unit available_height) override {

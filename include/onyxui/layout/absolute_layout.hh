@@ -195,10 +195,10 @@ namespace onyxui {
              * @brief Set the position (and optionally size) for a child element
              *
              * @param child Pointer to the child element to position
-             * @param x X coordinate in pixels relative to parent's content area
-             * @param y Y coordinate in pixels relative to parent's content area
-             * @param width Width override in pixels (-1 to use measured width, 0 to hide)
-             * @param height Height override in pixels (-1 to use measured height, 0 to hide)
+             * @param x X coordinate in logical units relative to parent's content area
+             * @param y Y coordinate in logical units relative to parent's content area
+             * @param width Width override in logical units (-1 to use measured width, 0 to hide)
+             * @param height Height override in logical units (-1 to use measured height, 0 to hide)
              *
              * @details
              * Configures the exact position and optional size for a child element.
@@ -300,8 +300,8 @@ namespace onyxui {
             struct position_info {
                 int x = 0; ///< X coordinate relative to parent's content area origin
                 int y = 0; ///< Y coordinate relative to parent's content area origin
-                int width = -1; ///< Width override in pixels (-1 for measured width)
-                int height = -1; ///< Height override in pixels (-1 for measured height)
+                int width = -1; ///< Width override in logical units (-1 for measured width)
+                int height = -1; ///< Height override in logical units (-1 for measured height)
             };
 
             /// Maps each child to its position configuration (mutable for lazy updates)

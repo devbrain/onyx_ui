@@ -43,7 +43,7 @@ namespace onyxui {
      *
      * ## Comparison with Other Widgets
      *
-     * - vs `anchor_panel`: absolute uses exact pixels, anchor uses relative positioning
+     * - vs `anchor_panel`: absolute uses exact coordinates, anchor uses relative positioning
      * - vs `grid`: absolute allows overlapping, grid enforces cell structure
      * - vs `hbox`/`vbox`: absolute has no automatic flow, linear layouts stack children
      *
@@ -151,10 +151,10 @@ namespace onyxui {
          * @brief Set the position and optionally size for a child element
          *
          * @param child Pointer to the child element to position
-         * @param x X coordinate in pixels relative to panel's content area
-         * @param y Y coordinate in pixels relative to panel's content area
-         * @param width Width override in pixels (-1 to use measured width)
-         * @param height Height override in pixels (-1 to use measured height)
+         * @param x X coordinate in logical units relative to panel's content area
+         * @param y Y coordinate in logical units relative to panel's content area
+         * @param width Width override in logical units (-1 to use measured width)
+         * @param height Height override in logical units (-1 to use measured height)
          *
          * @details
          * Configures the exact position and optional size for a child element.

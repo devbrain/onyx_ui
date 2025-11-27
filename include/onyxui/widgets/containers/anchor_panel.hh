@@ -141,8 +141,8 @@ namespace onyxui {
          *
          * @param child Pointer to the child element to anchor
          * @param point Which anchor point to use for positioning
-         * @param offset_x Horizontal offset in pixels (positive = right, negative = left)
-         * @param offset_y Vertical offset in pixels (positive = down, negative = up)
+         * @param offset_x Horizontal offset in logical units (positive = right, negative = left)
+         * @param offset_y Vertical offset in logical units (positive = down, negative = up)
          *
          * @details
          * Configures how a child element should be positioned relative to the panel.

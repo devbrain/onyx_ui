@@ -183,7 +183,7 @@ namespace onyxui {
             /**
              * @brief Construct linear layout with immutable configuration
              * @param dir Stack direction (vertical or horizontal)
-             * @param spacing Gap between children in pixels
+             * @param spacing Gap between children in logical units
              * @param h_align Horizontal alignment for children
              * @param v_align Vertical alignment for children
              */
@@ -218,7 +218,7 @@ namespace onyxui {
 
             /**
              * @brief Get spacing between children
-             * @return Spacing in pixels
+             * @return Spacing in logical units
              */
             [[nodiscard]] int spacing() const noexcept { return m_spacing; }
 
@@ -272,7 +272,7 @@ namespace onyxui {
         private:
             // Immutable configuration
             const direction m_layout_direction; ///< Stacking direction (vertical/horizontal)
-            const int m_spacing; ///< Gap between children in pixels
+            const int m_spacing; ///< Gap between children in logical units
             const horizontal_alignment m_h_align; ///< Default horizontal alignment for children
             const vertical_alignment m_v_align; ///< Default vertical alignment for children
 

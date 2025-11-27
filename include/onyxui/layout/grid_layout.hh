@@ -196,12 +196,12 @@ namespace onyxui {
              *
              * @param num_columns Number of columns in grid (minimum 1, clamped if less)
              * @param num_rows Number of rows (-1 for auto-calculate based on children)
-             * @param column_spacing Horizontal gap between cells in pixels
-             * @param row_spacing Vertical gap between cells in pixels
+             * @param column_spacing Horizontal gap between cells in logical units
+             * @param row_spacing Vertical gap between cells in logical units
              * @param auto_size If true, size cells from content; if false, use fixed sizes
-             * @param fixed_column_widths Array of fixed column widths in pixels (ignored if auto_size=true).
+             * @param fixed_column_widths Array of fixed column widths in logical units (ignored if auto_size=true).
              *                            If shorter than num_columns, remaining columns default to 100px
-             * @param fixed_row_heights Array of fixed row heights in pixels (ignored if auto_size=true).
+             * @param fixed_row_heights Array of fixed row heights in logical units (ignored if auto_size=true).
              *                          If shorter than actual rows, remaining rows default to 100px
              *
              * @note All parameters are immutable after construction to ensure thread safety

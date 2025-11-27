@@ -361,7 +361,7 @@ namespace onyxui {
 
         /**
          * @brief Set spacing between menu items
-         * @param spacing New spacing in pixels
+         * @param spacing New spacing in logical units
          */
         void set_spacing(int spacing) {
             if (m_spacing != spacing) {
@@ -372,7 +372,7 @@ namespace onyxui {
 
         /**
          * @brief Get current spacing between menu items
-         * @return Spacing in pixels
+         * @return Spacing in logical units
          */
         [[nodiscard]] int spacing() const noexcept { return m_spacing; }
 
