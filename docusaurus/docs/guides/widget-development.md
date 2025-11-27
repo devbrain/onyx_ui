@@ -118,13 +118,13 @@ Parents have a **content area** where children are positioned:
 ```cpp
 // Element with padding + border
 element.set_padding({5, 5, 5, 5});
-element.set_has_border(true);  // +1 pixel
+element.set_has_border(true);  // +1 logical unit
 
 // Content area is RELATIVE to element's bounds
 auto content_area = element.get_content_area();
 // {x: 6, y: 6, w: width-12, h: height-12}
 //  ^^^
-//  border(1) + padding(5) = 6 pixel offset
+//  border(1) + padding(5) = 6 logical unit offset
 
 // Children positioned at content area origin
 child->arrange({0, 0, 100, 50});  // Relative (0,0)
@@ -390,7 +390,7 @@ public:
         this->set_layout_strategy(
             std::make_unique<linear_layout<Backend>>(
                 direction::vertical,
-                5,  // 5 pixel spacing
+                5,  // 5 logical unit spacing
                 horizontal_alignment::left,
                 vertical_alignment::top
             )
@@ -416,7 +416,7 @@ public:
             point_utils::get_x(pos),
             point_utils::get_y(pos),
             rect_utils::get_width(bounds),
-            20);  // 20 pixel tall title bar
+            20);  // 20 logical unit tall title bar
 
         typename Backend::color_type title_color{0, 100, 200};
         // For custom title bar color, use direct renderer access
@@ -1063,7 +1063,7 @@ protected:
     // Provide minimum size
     size_type measure_override(int available_width,
                               int available_height) override {
-        // Minimum 100x20 pixels
+        // Minimum 100x20 logical units
         return {std::min(100, available_width),
                 std::min(20, available_height)};
     }

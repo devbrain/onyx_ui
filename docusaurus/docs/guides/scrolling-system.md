@@ -95,7 +95,7 @@ for (int i = 0; i < 100; ++i) {
 view->scroll_to(0, 100);  // x=0, y=100
 
 // Scroll by relative delta
-view->scroll_by(0, 50);   // Move down 50 pixels
+view->scroll_by(0, 50);   // Move down 50 logical units
 
 // Scroll a widget into view
 auto* widget = view->emplace_child<label>("Bottom item");
