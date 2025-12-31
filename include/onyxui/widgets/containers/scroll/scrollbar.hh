@@ -311,31 +311,152 @@ namespace onyxui {
         }
 
         /**
-         * @brief Override event handling to intercept arrow clicks in CAPTURE phase
+         * @brief Override event handling to intercept clicks in CAPTURE phase
          * @param evt Event to handle
          * @param phase Event routing phase
          * @return true if event was handled
          *
          * @details
-         * Since arrow buttons are child widgets, with the fixed hit_test they now
-         * receive events directly. We need to intercept mouse button press events
-         * in CAPTURE phase (before they reach the arrow children) to handle scrolling.
+         * Intercepts mouse events in CAPTURE phase to handle:
+         * - Arrow button clicks for line scrolling
+         * - Thumb press to start dragging (captures mouse to scrollbar)
+         * - Mouse move during drag
+         * - Mouse release to stop dragging
+         *
+         * This is necessary because child widgets (thumb, arrows) would otherwise
+         * capture the mouse, preventing the scrollbar from receiving drag events.
          */
         bool handle_event(const ui_event& evt, event_phase phase) override {
-            // Only intercept in CAPTURE phase (before children receive events)
+            // Handle mouse events in CAPTURE phase (before children receive them)
             if (phase == event_phase::capture) {
-                // Check if this is a mouse button press event
                 if (auto const* mouse = std::get_if<mouse_event>(&evt)) {
-                    if (mouse->act == mouse_event::action::press) {
-                        // Try to handle as arrow click
-                        if (handle_arrow_click(mouse->x, mouse->y)) {
-                            return true;  // Stop propagation - we handled it
+                    // Get theme for layout calculation
+                    auto const* themes = ui_services<Backend>::themes();
+                    auto const* theme = themes ? themes->get_current_theme() : nullptr;
+
+                    if (theme) {
+                        scrollbar_style const style = theme->scrollbar.style;
+                        auto const layout = calculate_layout(style);
+
+                        // Convert to scrollbar-relative coordinates
+                        auto const abs_bounds = this->get_absolute_bounds();
+                        int const rel_x = mouse->x - abs_bounds.x();
+                        int const rel_y = mouse->y - abs_bounds.y();
+                        point_type const rel_point{rel_x, rel_y};
+
+                        if (mouse->act == mouse_event::action::press) {
+                            // Check if press is on arrow first
+                            if (handle_arrow_click(mouse->x, mouse->y)) {
+                                return true;
+                            }
+
+                            // Check if press is on track (including thumb area)
+                            if (point_in_rect(rel_point, layout.track)) {
+                                // Calculate scroll position based on click location
+                                int const track_start = (m_orientation == orientation::vertical)
+                                    ? rect_utils::get_y(layout.track)
+                                    : rect_utils::get_x(layout.track);
+                                int const track_size = (m_orientation == orientation::vertical)
+                                    ? rect_utils::get_height(layout.track)
+                                    : rect_utils::get_width(layout.track);
+                                int const thumb_size = (m_orientation == orientation::vertical)
+                                    ? rect_utils::get_height(layout.thumb)
+                                    : rect_utils::get_width(layout.thumb);
+                                int const click_pos = (m_orientation == orientation::vertical)
+                                    ? rel_y : rel_x;
+
+                                int const content_size = (m_orientation == orientation::vertical)
+                                    ? size_utils::get_height(m_scroll_info.content_size)
+                                    : size_utils::get_width(m_scroll_info.content_size);
+                                int const viewport_size = (m_orientation == orientation::vertical)
+                                    ? size_utils::get_height(m_scroll_info.viewport_size)
+                                    : size_utils::get_width(m_scroll_info.viewport_size);
+
+                                int const max_scroll = content_size - viewport_size;
+                                int const max_thumb_travel = track_size - thumb_size;
+
+                                if (max_thumb_travel > 0 && max_scroll > 0) {
+                                    // Center thumb on click position
+                                    int const thumb_center_offset = click_pos - track_start - (thumb_size / 2);
+                                    int const clamped_offset = std::clamp(thumb_center_offset, 0, max_thumb_travel);
+                                    int const new_scroll = (clamped_offset * max_scroll) / max_thumb_travel;
+
+                                    scroll_requested.emit(new_scroll);
+
+                                    // Start dragging from new position
+                                    m_dragging = true;
+                                    m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse->y : mouse->x;
+                                    m_drag_start_scroll = new_scroll;
+
+                                    m_thumb->set_state(thumb_state::pressed);
+
+                                    // Capture mouse to scrollbar so we receive drag events
+                                    if (auto* input = ui_services<Backend>::input()) {
+                                        input->set_capture(this);
+                                    }
+                                }
+                                return true;  // Consume event
+                            }
                         }
                     }
                 }
             }
 
-            // Let base class handle the event (will route to children if not handled)
+            // Handle drag events when we have mouse capture (TARGET phase)
+            if (phase == event_phase::target && m_dragging) {
+                if (auto const* mouse = std::get_if<mouse_event>(&evt)) {
+                    if (mouse->act == mouse_event::action::move) {
+                        // Calculate new scroll position based on mouse movement
+                        auto const* themes = ui_services<Backend>::themes();
+                        auto const* theme = themes ? themes->get_current_theme() : nullptr;
+
+                        if (theme) {
+                            scrollbar_style const style = theme->scrollbar.style;
+                            auto const layout = calculate_layout(style);
+
+                            int const mouse_pos = (m_orientation == orientation::vertical) ? mouse->y : mouse->x;
+                            int const mouse_delta = mouse_pos - m_drag_start_mouse;
+
+                            int const content_size = (m_orientation == orientation::vertical)
+                                ? size_utils::get_height(m_scroll_info.content_size)
+                                : size_utils::get_width(m_scroll_info.content_size);
+                            int const viewport_size = (m_orientation == orientation::vertical)
+                                ? size_utils::get_height(m_scroll_info.viewport_size)
+                                : size_utils::get_width(m_scroll_info.viewport_size);
+
+                            int const track_size = (m_orientation == orientation::vertical)
+                                ? rect_utils::get_height(layout.track)
+                                : rect_utils::get_width(layout.track);
+                            int const thumb_size = (m_orientation == orientation::vertical)
+                                ? rect_utils::get_height(layout.thumb)
+                                : rect_utils::get_width(layout.thumb);
+
+                            int const max_scroll = content_size - viewport_size;
+                            int const max_thumb_travel = track_size - thumb_size;
+
+                            if (max_thumb_travel > 0 && max_scroll > 0) {
+                                int const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                                int const new_scroll = std::clamp(m_drag_start_scroll + scroll_delta, 0, max_scroll);
+                                scroll_requested.emit(new_scroll);
+                            }
+                        }
+                        return true;
+                    }
+
+                    if (mouse->act == mouse_event::action::release) {
+                        m_dragging = false;
+                        m_thumb->set_state(thumb_state::normal);
+
+                        // Release mouse capture
+                        if (auto* input = ui_services<Backend>::input()) {
+                            input->release_capture();
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            // Let base class handle other events
             return base::handle_event(evt, phase);
         }
 
@@ -440,15 +561,53 @@ namespace onyxui {
             scrollbar_style const style = theme->scrollbar.style;
             auto const layout = calculate_layout(style);
 
-            // Convert to relative coordinates
-            auto const bounds = this->bounds();
-            int const rel_x = mouse.x - bounds.x.to_int();
-            int const rel_y = mouse.y - bounds.y.to_int();
+            // Convert absolute mouse coordinates to scrollbar-relative coordinates
+            // CRITICAL: Use get_absolute_bounds() since mouse.x/y are absolute screen coords
+            auto const abs_bounds = this->get_absolute_bounds();
+            int const abs_x = abs_bounds.x();
+            int const abs_y = abs_bounds.y();
+            int const rel_x = mouse.x - abs_x;
+            int const rel_y = mouse.y - abs_y;
             point_type const rel_point{rel_x, rel_y};
 
             // Dispatch based on action type
             switch (mouse.act) {
                 case mouse_event::action::move:
+                    // Handle thumb dragging
+                    if (m_dragging) {
+                        // Calculate new scroll position based on mouse movement
+                        int const mouse_pos = (m_orientation == orientation::vertical) ? mouse.y : mouse.x;
+                        int const mouse_delta = mouse_pos - m_drag_start_mouse;
+
+                        // Get track size and content/viewport info
+                        int const content_size = (m_orientation == orientation::vertical)
+                            ? size_utils::get_height(m_scroll_info.content_size)
+                            : size_utils::get_width(m_scroll_info.content_size);
+                        int const viewport_size = (m_orientation == orientation::vertical)
+                            ? size_utils::get_height(m_scroll_info.viewport_size)
+                            : size_utils::get_width(m_scroll_info.viewport_size);
+
+                        int const track_size = (m_orientation == orientation::vertical)
+                            ? rect_utils::get_height(layout.track)
+                            : rect_utils::get_width(layout.track);
+                        int const thumb_size = (m_orientation == orientation::vertical)
+                            ? rect_utils::get_height(layout.thumb)
+                            : rect_utils::get_width(layout.thumb);
+
+                        int const max_scroll = content_size - viewport_size;
+                        int const max_thumb_travel = track_size - thumb_size;
+
+                        if (max_thumb_travel > 0 && max_scroll > 0) {
+                            // Convert mouse delta to scroll delta
+                            // scroll_delta / max_scroll = mouse_delta / max_thumb_travel
+                            int const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                            int const new_scroll = std::clamp(m_drag_start_scroll + scroll_delta, 0, max_scroll);
+
+                            scroll_requested.emit(new_scroll);
+                        }
+                        return true;  // Event handled
+                    }
+
                     if (now_hovered) {
                         // Update thumb hover state
                         if (point_in_rect(rel_point, layout.thumb)) {
@@ -475,9 +634,16 @@ namespace onyxui {
                     break;
 
                 case mouse_event::action::press:
-                    // Update thumb pressed state
+                    // Update thumb pressed state and start dragging
                     if (point_in_rect(rel_point, layout.thumb)) {
                         m_thumb->set_state(thumb_state::pressed);
+
+                        // Start thumb dragging
+                        m_dragging = true;
+                        m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse.y : mouse.x;
+                        m_drag_start_scroll = (m_orientation == orientation::vertical)
+                            ? point_utils::get_y(m_scroll_info.scroll_offset)
+                            : point_utils::get_x(m_scroll_info.scroll_offset);
                     }
 
                     // Update arrow pressed states
@@ -492,6 +658,9 @@ namespace onyxui {
                     break;
 
                 case mouse_event::action::release:
+                    // Stop thumb dragging
+                    m_dragging = false;
+
                     // Clear pressed states on all children
                     if (m_thumb->get_state() == thumb_state::pressed) {
                         m_thumb->set_state(thumb_state::normal);
@@ -518,6 +687,10 @@ namespace onyxui {
 
             // Handle mouse leave (hover state changed from true to false)
             if (was_hovered && !now_hovered) {
+                // Stop dragging if mouse leaves while dragging
+                // (Some backends may not send release events when mouse leaves)
+                m_dragging = false;
+
                 // Clear hover states on all children
                 if (m_thumb->get_state() == thumb_state::hover) {
                     m_thumb->set_state(thumb_state::normal);
@@ -908,6 +1081,11 @@ namespace onyxui {
         scrollbar_thumb<Backend>* m_thumb = nullptr;        ///< Thumb widget
         scrollbar_arrow<Backend>* m_arrow_dec = nullptr;    ///< Decrement arrow (up/left)
         scrollbar_arrow<Backend>* m_arrow_inc = nullptr;    ///< Increment arrow (down/right)
+
+        // Drag state for thumb dragging
+        bool m_dragging = false;           ///< True while thumb is being dragged
+        int m_drag_start_mouse = 0;        ///< Mouse position at drag start (x or y based on orientation)
+        int m_drag_start_scroll = 0;       ///< Scroll position at drag start
     };
 
 } // namespace onyxui

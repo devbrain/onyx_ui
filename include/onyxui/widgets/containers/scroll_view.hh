@@ -355,6 +355,77 @@ namespace onyxui {
         }
 
         /**
+         * @brief Handle events including mouse wheel during bubble phase
+         * @param evt Event to handle
+         * @param phase Event routing phase
+         * @return True if event was handled
+         *
+         * @details
+         * Overrides base to handle mouse wheel events during BUBBLE phase.
+         * When a child widget doesn't handle wheel events, they bubble up
+         * to scroll_view which scrolls the content.
+         *
+         * @note Mouse wheel events are not supported by all backends (e.g., conio).
+         *       This gracefully returns false for unsupported backends.
+         */
+        bool handle_event(const ui_event& evt, event_phase phase) override {
+            // Handle mouse wheel events in BUBBLE phase (when children don't handle them)
+            // Also handle in TARGET phase for direct wheel events on scroll_view
+            if (phase == event_phase::bubble || phase == event_phase::target) {
+                if (auto const* mouse = std::get_if<mouse_event>(&evt)) {
+                    if (mouse->act == mouse_event::action::wheel_up ||
+                        mouse->act == mouse_event::action::wheel_down) {
+
+                        // Get line increment from theme
+                        auto const* themes = ui_services<Backend>::themes();
+                        int line_increment = 16;  // Default fallback
+                        if (themes) {
+                            if (auto const* theme = themes->get_current_theme()) {
+                                line_increment = theme->scrollbar.line_increment;
+                            }
+                        }
+
+                        int const delta = (mouse->act == mouse_event::action::wheel_up)
+                            ? -line_increment : line_increment;
+
+                        // Determine scroll direction:
+                        // 1. Shift+wheel = horizontal scroll
+                        // 2. If content only scrolls horizontally = horizontal scroll
+                        // 3. Otherwise = vertical scroll
+                        bool scroll_horizontal = mouse->modifiers.shift;
+
+                        if (!scroll_horizontal) {
+                            // Check if we can scroll vertically
+                            auto scroll_info = m_content_ptr->get_scroll_info();
+                            int const content_h = size_utils::get_height(scroll_info.content_size);
+                            int const viewport_h = size_utils::get_height(scroll_info.viewport_size);
+                            int const content_w = size_utils::get_width(scroll_info.content_size);
+                            int const viewport_w = size_utils::get_width(scroll_info.viewport_size);
+
+                            bool const can_scroll_v = content_h > viewport_h;
+                            bool const can_scroll_h = content_w > viewport_w;
+
+                            // If can't scroll vertically but can scroll horizontally, use horizontal
+                            if (!can_scroll_v && can_scroll_h) {
+                                scroll_horizontal = true;
+                            }
+                        }
+
+                        if (scroll_horizontal) {
+                            m_content_ptr->scroll_by(delta, 0);
+                        } else {
+                            m_content_ptr->scroll_by(0, delta);
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            // Let base class handle other events
+            return base::handle_event(evt, phase);
+        }
+
+        /**
          * @brief Handle keyboard events for scrolling
          * @param kbd Keyboard event
          * @return True if event was handled
