@@ -87,7 +87,7 @@ void build_ui(
     // Create central widget for all content
     auto central = std::make_unique<onyxui::panel<Backend>>();
     central->set_vbox_layout(onyxui::spacing::tiny);  // Vertical layout with 1px spacing
-    central->set_padding(onyxui::thickness::all(0));  // No padding for compact look
+    central->set_padding(onyxui::thickness(onyxui::logical_unit(0)));  // No padding for compact look
 
     // Title (add to central widget)
     add_label(*central, "DOS Theme Showcase - New Theme System");
@@ -120,9 +120,9 @@ void build_ui(
     edit1->set_has_border(true);
     onyxui::size_constraint width_constraint;
     width_constraint.policy = onyxui::size_policy::content;
-    width_constraint.preferred_size = 30;
-    width_constraint.min_size = 30;
-    width_constraint.max_size = 30;
+    width_constraint.preferred_size = onyxui::logical_unit(30);
+    width_constraint.min_size = onyxui::logical_unit(30);
+    width_constraint.max_size = onyxui::logical_unit(30);
     edit1->set_width_constraint(width_constraint);
     central->add_child(std::move(edit1));
 
@@ -157,9 +157,9 @@ void build_ui(
     progress1->set_text_format("%v%");
     onyxui::size_constraint progress_width;
     progress_width.policy = onyxui::size_policy::content;
-    progress_width.preferred_size = 40;
-    progress_width.min_size = 40;
-    progress_width.max_size = 40;
+    progress_width.preferred_size = onyxui::logical_unit(40);
+    progress_width.min_size = onyxui::logical_unit(40);
+    progress_width.max_size = onyxui::logical_unit(40);
     progress1->set_width_constraint(progress_width);
 
     auto* progress2 = central->template emplace_child<onyxui::progress_bar>();
@@ -180,16 +180,16 @@ void build_ui(
     slider1->set_page_step(10);
     onyxui::size_constraint slider_width;
     slider_width.policy = onyxui::size_policy::content;
-    slider_width.preferred_size = 50;
-    slider_width.min_size = 50;
-    slider_width.max_size = 50;
+    slider_width.preferred_size = onyxui::logical_unit(50);
+    slider_width.min_size = onyxui::logical_unit(50);
+    slider_width.max_size = onyxui::logical_unit(50);
     slider1->set_width_constraint(slider_width);
 
     // Ensure slider has enough height to render
     onyxui::size_constraint slider_height;
     slider_height.policy = onyxui::size_policy::content;
-    slider_height.preferred_size = 3;
-    slider_height.min_size = 3;
+    slider_height.preferred_size = onyxui::logical_unit(3);
+    slider_height.min_size = onyxui::logical_unit(3);
     slider1->set_height_constraint(slider_height);
 
     // Connect slider to progress bar for interactive demo
@@ -213,9 +213,9 @@ void build_ui(
 
     onyxui::size_constraint combo_width;
     combo_width.policy = onyxui::size_policy::content;
-    combo_width.preferred_size = 20;
-    combo_width.min_size = 15;
-    combo_width.max_size = 30;
+    combo_width.preferred_size = onyxui::logical_unit(20);
+    combo_width.min_size = onyxui::logical_unit(15);
+    combo_width.max_size = onyxui::logical_unit(30);
     combo1->set_width_constraint(combo_width);
 
     // Tab Widget Section
@@ -261,9 +261,9 @@ void build_ui(
     // Set size constraints for the list view
     onyxui::size_constraint mvc_height;
     mvc_height.policy = onyxui::size_policy::content;
-    mvc_height.preferred_size = 6;  // Show 6 items
-    mvc_height.min_size = 4;
-    mvc_height.max_size = 8;
+    mvc_height.preferred_size = onyxui::logical_unit(6);  // Show 6 items
+    mvc_height.min_size = onyxui::logical_unit(4);
+    mvc_height.max_size = onyxui::logical_unit(8);
     mvc_list->set_height_constraint(mvc_height);
 
     // Add label and list to page
@@ -299,15 +299,15 @@ void build_ui(
     // Set size constraints for the tab widget
     onyxui::size_constraint tabs_width;
     tabs_width.policy = onyxui::size_policy::content;
-    tabs_width.preferred_size = 50;
-    tabs_width.min_size = 40;
-    tabs_width.max_size = 60;
+    tabs_width.preferred_size = onyxui::logical_unit(50);
+    tabs_width.min_size = onyxui::logical_unit(40);
+    tabs_width.max_size = onyxui::logical_unit(60);
     tabs->set_width_constraint(tabs_width);
 
     onyxui::size_constraint tabs_height;
     tabs_height.policy = onyxui::size_policy::content;
-    tabs_height.preferred_size = 10;  // Taller to show scrollable content
-    tabs_height.min_size = 10;
+    tabs_height.preferred_size = onyxui::logical_unit(10);  // Taller to show scrollable content
+    tabs_height.min_size = onyxui::logical_unit(10);
     tabs->set_height_constraint(tabs_height);
 
     central->add_child(std::move(tabs));

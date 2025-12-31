@@ -175,6 +175,18 @@ namespace onyxui {
         }
 
         /**
+         * @brief "Fill" a rectangle with specific color (measurement only)
+         *
+         * @details
+         * Tracks the rectangle bounds for measurement.
+         * Color is ignored during measurement.
+         */
+        void fill_rect(const rect_type& bounds, const color_type& /*color*/) override {
+            // Same as fill_rect without color for measurement purposes
+            draw_rect(bounds, box_style{});
+        }
+
+        /**
          * @brief "Draw" a line (measurement only)
          *
          * @details

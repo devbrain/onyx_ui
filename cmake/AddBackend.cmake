@@ -93,9 +93,9 @@ function(add_backend_library)
     # Always link to core onyxui
     target_link_libraries(${TARGET_NAME} PUBLIC onyxui)
 
-    # Apply warning flags
-    if(ONYX_UI_WARNING_FLAGS)
-        target_compile_options(${TARGET_NAME} PRIVATE ${ONYX_UI_WARNING_FLAGS})
+    # Apply warning flags from neutrino-cmake if available
+    if(TARGET neutrino::warnings)
+        target_link_libraries(${TARGET_NAME} PRIVATE neutrino::warnings)
     endif()
 
     # Set output name (remove redundant "onyxui_" prefix if present)

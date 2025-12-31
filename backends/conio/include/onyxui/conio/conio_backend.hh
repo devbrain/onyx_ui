@@ -7,6 +7,32 @@
  * @details
  * Provides a text-based UI backend for terminal applications.
  * Uses termbox2 library for cross-platform console rendering.
+ *
+ * This backend supports two usage modes:
+ *
+ * ## Standalone App Mode
+ * Use run_app() for a complete application with event loop:
+ * @code
+ * int main() {
+ *     return conio_backend::run_app<MyWidget>();
+ * }
+ * @endcode
+ *
+ * ## Custom Integration Mode
+ * Use init/shutdown/process_event for custom event loops:
+ * @code
+ * conio_backend::init();
+ * while (running) {
+ *     tb_event ev;
+ *     if (conio_poll_event(&ev) == TB_OK) {
+ *         if (auto ui_ev = conio_backend::process_event(ev)) {
+ *             ui.handle_event(*ui_ev);
+ *         }
+ *     }
+ *     ui.display();
+ * }
+ * conio_backend::shutdown();
+ * @endcode
  */
 
 #pragma once
@@ -18,9 +44,13 @@
 #include <onyxui/conio/conio_events.hh>
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/theming/theme_registry.hh>
+#include <onyxui/services/ui_context.hh>
+#include <onyxui/ui_handle.hh>
 #include <onyxui/backends/conio/onyxui_conio_export.h>
 #include <optional>
 #include <cctype>
+#include <functional>
+#include <memory>
 
 namespace onyxui::conio {
     // ======================================================================
@@ -251,6 +281,80 @@ namespace onyxui::conio {
          * 4. "DOS Edit" - MS-DOS Edit
          */
         ONYXUI_CONIO_EXPORT static void register_themes(onyxui::theme_registry<conio_backend>& registry);
+
+        // ========================================================================
+        // Platform Integration (Custom Integration Mode)
+        // ========================================================================
+
+        /**
+         * @brief Initialize termbox2 library
+         * @return true on success, false on failure
+         *
+         * Call this before using OnyxUI in a custom integration context.
+         */
+        ONYXUI_CONIO_EXPORT static bool init();
+
+        /**
+         * @brief Shutdown termbox2 and release resources
+         *
+         * Must be called before program exit to restore terminal state.
+         */
+        ONYXUI_CONIO_EXPORT static void shutdown();
+
+        /**
+         * @brief Process termbox event and convert to ui_event
+         * @param event Native termbox event
+         * @return ui_event if event is relevant to UI, nullopt otherwise
+         *
+         * Use this in custom integration to convert termbox events.
+         * This is essentially a wrapper around create_event().
+         */
+        [[nodiscard]] static std::optional<ui_event> process_event(const tb_event& event) {
+            return create_event(event);
+        }
+
+        /**
+         * @brief Check if quit was requested
+         * @return true if application should exit
+         */
+        [[nodiscard]] ONYXUI_CONIO_EXPORT static bool should_quit() noexcept;
+
+        /**
+         * @brief Clear the quit flag
+         */
+        ONYXUI_CONIO_EXPORT static void clear_quit_flag() noexcept;
+
+        /**
+         * @brief Request application quit
+         */
+        ONYXUI_CONIO_EXPORT static void request_quit() noexcept;
+
+        // ========================================================================
+        // Standalone Application Mode
+        // ========================================================================
+
+        /**
+         * @brief Run a complete standalone terminal application
+         * @tparam Widget Widget class template (must accept Backend parameter)
+         * @param setup Optional callback to configure widget after creation
+         * @return Exit code (0 for success)
+         *
+         * Initializes termbox2, runs event loop, handles cleanup.
+         * Terminal dimensions are used automatically.
+         *
+         * @code
+         * template<typename Backend>
+         * class MyApp : public main_window<Backend> {
+         *     // ... widget implementation
+         * };
+         *
+         * int main() {
+         *     return conio_backend::run_app<MyApp>();
+         * }
+         * @endcode
+         */
+        template<template<typename> class Widget>
+        static int run_app(std::function<void(Widget<conio_backend>&)> setup = nullptr);
     };
 
     // ======================================================================
@@ -283,3 +387,6 @@ namespace onyxui::conio {
 
 // Static assertion to verify backend compliance (after event_traits specialization)
 static_assert(onyxui::UIBackend<onyxui::conio::conio_backend>, "conio_backend must satisfy UIBackend concept");
+
+// Include template implementation
+#include <onyxui/conio/conio_backend_impl.hh>

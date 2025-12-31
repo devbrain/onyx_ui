@@ -60,15 +60,22 @@ template<UIBackend Backend>
 
     auto result = abs.get();  // Start with absolute rect
 
-    // Get parent's absolute position
+    // Get parent's absolute bounds position
     auto parent_abs = parent->get_absolute_bounds().get();  // Get underlying Backend::rect_type
     const int px = rect_utils::get_x(parent_abs);
     const int py = rect_utils::get_y(parent_abs);
 
-    // Subtract parent's position using rect_utils
+    // Get parent's content area offset (padding/margin within bounds)
+    // Children are positioned relative to parent's content area, not bounds
+    auto parent_content = parent->get_content_area();
+    const int cx = parent_content.x.to_int();
+    const int cy = parent_content.y.to_int();
+
+    // Subtract parent's absolute content area position (bounds + content offset)
+    // This is the inverse of to_absolute() which adds parent_bounds + parent_content
     rect_utils::set_bounds(result,
-                          rect_utils::get_x(result) - px,
-                          rect_utils::get_y(result) - py,
+                          rect_utils::get_x(result) - px - cx,
+                          rect_utils::get_y(result) - py - cy,
                           rect_utils::get_width(result),
                           rect_utils::get_height(result));
 

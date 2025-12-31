@@ -145,25 +145,31 @@ add_executable(ui_unittest
         # MVC system tests
         mvc/test_mvc_basic.cc
 )
-target_compile_options(ui_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
+# Apply warning flags from neutrino-cmake if available
+if(TARGET neutrino::warnings)
+    target_link_libraries(ui_unittest PRIVATE neutrino::warnings)
+endif()
+
 target_include_directories(ui_unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Disable logging in unit tests (override inherited DEBUG level)
 target_compile_options(ui_unittest PRIVATE
     -ULOGGER_MIN_LEVEL                      # Undefine inherited value
     -DLOGGER_MIN_LEVEL=LOGGER_LEVEL_ERROR   # Set to ERROR only
 )
+
 target_link_libraries(ui_unittest PRIVATE
     onyxui
     doctest::doctest
-    thirdparty::utf8cpp  # Required by test_backend.hh for measure_text()
-    test_support         # Test utilities and generated config
+    utf8cpp::utf8cpp  # Required by test_backend.hh for measure_text()
+    test_support      # Test utilities and generated config
 )
 
 # Link with backend integration test DLLs
 # Tests are automatically discovered from DLLs via doctest's DLL mechanism
-if(ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
+if(NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
     target_link_libraries(ui_unittest PRIVATE conio_unittest)
-    target_compile_definitions(ui_unittest PRIVATE ONYX_UI_BUILD_BACKEND_CONIO=1)
+    target_compile_definitions(ui_unittest PRIVATE NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO=1)
     message(STATUS "ui_unittest: Linked with conio_unittest DLL (doctest auto-discovery)")
 endif()
 

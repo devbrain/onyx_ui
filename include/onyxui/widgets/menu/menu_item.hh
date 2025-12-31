@@ -358,9 +358,9 @@ namespace onyxui {
                 }
             }
 
-            // Define padding constants
-            constexpr int LEFT_PADDING = 2;
-            constexpr int RIGHT_PADDING = 2;
+            // Get padding from resolved style (use theme values, with defaults)
+            int const padding_horizontal = ctx.style().padding_horizontal.value.value_or(2);
+            int const padding_vertical = ctx.style().padding_vertical.value.value_or(0);
             constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
 
             // Use absolute screen position from context
@@ -368,31 +368,29 @@ namespace onyxui {
             int const base_y = point_utils::get_y(pos);
 
             // Calculate minimum width needed (includes submenu indicator if present)
-            int const min_width = LEFT_PADDING + text_width +
+            int const min_width = padding_horizontal + text_width +
                                   (shortcut.empty() ? 0 : SHORTCUT_SPACING + shortcut_width) +
                                   submenu_indicator_width +
-                                  RIGHT_PADDING;
+                                  padding_horizontal;
 
-            // Get final width (context returns assigned width during rendering, natural width during measurement)
-            int const effective_width = ctx.get_final_width(min_width);
-
-            // Get text height for background rectangle
+            // Get text height and calculate total height with vertical padding
             int const text_height = size_utils::get_height(text_size);
+            int const natural_height = text_height + (padding_vertical * 2);
+
+            // Get final dimensions (context returns assigned size during rendering, natural size during measurement)
+            auto const [effective_width, effective_height] = ctx.get_final_dims(min_width, natural_height);
 
             // Draw background rectangle using resolved style
             // Background color is state-dependent (normal/highlighted/disabled)
             typename Backend::rect_type bg_rect;
-            rect_utils::set_bounds(bg_rect, base_x, base_y, effective_width, text_height);
+            rect_utils::set_bounds(bg_rect, base_x, base_y, effective_width, effective_height);
             ctx.fill_rect(bg_rect);
 
-            // Ensure measurement includes left padding by drawing marker at leftmost edge
-            // During measurement (base_x = 0), this ensures bounding box starts at 0
-            // During rendering, this is harmless (just a space at the left edge)
-            typename Backend::point_type const left_marker{base_x, base_y};
-            ctx.draw_text(" ", left_marker, text_font, fg);
+            // Calculate text Y position (centered vertically with padding)
+            int const text_y = base_y + padding_vertical;
 
-            // Draw text with left padding (with mnemonic support)
-            int const text_x = base_x + LEFT_PADDING;
+            // Draw text with horizontal padding (with mnemonic support)
+            int const text_x = base_x + padding_horizontal;
             if (!m_mnemonic_markup.empty() && ctx.theme()) {
                 // Parse mnemonic on-the-fly (no mutable state modification!)
                 const auto mnemonic_info = parse_mnemonic<Backend>(
@@ -405,7 +403,7 @@ namespace onyxui {
                     // Render styled text with mnemonics (multi-segment)
                     int segment_x = text_x;
                     for (const auto& segment : mnemonic_info.text) {
-                        typename Backend::point_type const seg_pos{segment_x, base_y};
+                        typename Backend::point_type const seg_pos{segment_x, text_y};
                         // Use mnemonic color for mnemonic segments, normal color for others
                         auto segment_color = segment.is_mnemonic ? mnemonic_fg.value : fg.value;
                         auto seg_size = ctx.draw_text(segment.text, seg_pos, segment.font, segment_color);
@@ -413,12 +411,12 @@ namespace onyxui {
                     }
                 } else {
                     // Fallback to plain text if parsing failed
-                    typename Backend::point_type const text_pos{text_x, base_y};
+                    typename Backend::point_type const text_pos{text_x, text_y};
                     ctx.draw_text(m_text, text_pos, text_font, fg);
                 }
             } else {
                 // Render plain text (no mnemonics)
-                typename Backend::point_type const text_pos{text_x, base_y};
+                typename Backend::point_type const text_pos{text_x, text_y};
                 ctx.draw_text(m_text, text_pos, text_font, fg);
             }
 
@@ -430,32 +428,26 @@ namespace onyxui {
                     int indicator_x;
                     if (!shortcut.empty()) {
                         // After shortcut
-                        indicator_x = base_x + effective_width - shortcut_width - RIGHT_PADDING - 2;
+                        indicator_x = base_x + effective_width - shortcut_width - padding_horizontal - 2;
                     } else {
                         // After text
-                        indicator_x = base_x + effective_width - RIGHT_PADDING - 1;
+                        indicator_x = base_x + effective_width - padding_horizontal - 1;
                     }
                     // Draw icon at calculated position
-                    typename Backend::point_type const icon_pos{indicator_x, base_y};
+                    typename Backend::point_type const icon_pos{indicator_x, text_y};
                     ctx.draw_icon(*submenu_icon_opt, icon_pos);
                 }
             }
 
             // Draw shortcut if present (right-aligned within effective width)
             if (!shortcut.empty() && ctx.theme()) {
-                int const shortcut_x = base_x + effective_width - shortcut_width - RIGHT_PADDING;
-                typename Backend::point_type const shortcut_pos{shortcut_x, base_y};
+                int const shortcut_x = base_x + effective_width - shortcut_width - padding_horizontal;
+                typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
                 // Use shortcut color from theme (shortcuts use a dimmed color for subtlety)
                 auto shortcut_color = ctx.theme()->menu_item.shortcut.foreground;
                 ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, shortcut_color);
             }
 
-            // Ensure measurement includes right padding by drawing marker at rightmost edge
-            // During measurement this ensures the bounding box extends to include right padding
-            // During rendering this is harmless (just a space at the right edge)
-            int const right_edge = base_x + effective_width - 1;
-            typename Backend::point_type const right_marker{right_edge, base_y};
-            ctx.draw_text(" ", right_marker, text_font, fg);
         }
 
         /**

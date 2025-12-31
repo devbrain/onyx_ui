@@ -350,6 +350,15 @@ namespace onyxui {
                 rect_utils::set_bounds(bounds_to_track, x, y, w + SHADOW_MARGIN, h + SHADOW_MARGIN);
 
                 m_removed_layer_dirty_regions.push_back(bounds_to_track);
+
+                // CRITICAL: Clear hover on element BEFORE removing the layer
+                // Otherwise the element stays highlighted even after layer is gone
+                // (e.g., submenu items when switching between menu bar items)
+                if (m_layer_hovered) {
+                    m_layer_hovered->reset_hover_and_press_state();
+                    m_layer_hovered = nullptr;
+                }
+
                 m_layers.erase(it);
                 m_layers_changed = true;  // Signal that layers were modified
             }
@@ -371,6 +380,11 @@ namespace onyxui {
             );
             if (m_layers.size() != old_size) {
                 m_layers_changed = true;  // Signal that layers were modified
+                // Clear hover on element before clearing pointer
+                if (m_layer_hovered) {
+                    m_layer_hovered->reset_hover_and_press_state();
+                    m_layer_hovered = nullptr;
+                }
             }
         }
 
@@ -405,6 +419,11 @@ namespace onyxui {
          * @brief Remove all layers except base UI
          */
         void clear_all_layers() {
+            // Clear hover on element before clearing pointer
+            if (m_layer_hovered) {
+                m_layer_hovered->reset_hover_and_press_state();
+                m_layer_hovered = nullptr;
+            }
             m_layers.clear();
         }
 
@@ -660,6 +679,17 @@ namespace onyxui {
                         geometry::absolute_point<Backend> abs_pt{pt};
                         element_type* target = root_ptr->hit_test(abs_pt, path);
 
+                        // CRITICAL: Clear hover on previously hovered element within layers
+                        // This fixes submenu items staying highlighted when mouse moves away.
+                        // The old element won't receive a mouse event (not in hit test path),
+                        // so we must explicitly clear its state here.
+                        if (m_layer_hovered != target) {
+                            if (m_layer_hovered) {
+                                m_layer_hovered->reset_hover_and_press_state();
+                            }
+                            m_layer_hovered = target;
+                        }
+
                         if (target) {
                             if (!path.empty()) {
                                 // Route event through three phases (capture/target/bubble)
@@ -683,6 +713,12 @@ namespace onyxui {
                 if (it->modal && it->blocks_events) {
                     return true;  // Block event from going lower
                 }
+            }
+
+            // Mouse moved out of all layers - clear layer hover
+            if (std::holds_alternative<mouse_event>(ui_evt) && m_layer_hovered) {
+                m_layer_hovered->reset_hover_and_press_state();
+                m_layer_hovered = nullptr;
             }
 
             return false;  // Event not handled by any layer
@@ -966,6 +1002,7 @@ namespace onyxui {
         std::vector<rect_type> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (for dirty region tracking)
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
         rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
+        element_type* m_layer_hovered = nullptr;  ///< Currently hovered element within layers (for clearing stale hover)
 
         // Helper methods
         auto find_layer(layer_id id) {

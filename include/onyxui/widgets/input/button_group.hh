@@ -28,6 +28,9 @@ enum class button_group_orientation : std::uint8_t {
     horizontal   ///< Arrange radio buttons horizontally (left-to-right)
 };
 
+// Import spacing enum from layout
+using onyxui::spacing;
+
 /// Manages mutually exclusive radio buttons as a widget container
 ///
 /// The button_group class is a widget container that owns and manages
@@ -74,22 +77,22 @@ public:
     /// Create button group with configurable layout orientation
     ///
     /// @param orientation Layout direction (vertical or horizontal)
-    /// @param spacing Spacing between radio buttons (default: 0)
+    /// @param spacing_value Semantic spacing between radio buttons (resolved via theme)
     /// @param parent Parent element (optional)
     explicit button_group(
         button_group_orientation orientation = button_group_orientation::vertical,
-        int spacing = 0,
+        spacing spacing_value = spacing::small,
         ui_element<Backend>* parent = nullptr
     )
         : base(parent)
         , m_orientation(orientation)
-        , m_spacing(spacing)
+        , m_spacing(spacing_value)
     {
         // Set up linear layout based on orientation
         if (m_orientation == button_group_orientation::vertical) {
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(
-                    direction::vertical, m_spacing,
+                    direction::vertical, resolve_spacing(),
                     horizontal_alignment::stretch,
                     vertical_alignment::top
                 )
@@ -97,7 +100,7 @@ public:
         } else {
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(
-                    direction::horizontal, m_spacing,
+                    direction::horizontal, resolve_spacing(),
                     horizontal_alignment::left,
                     vertical_alignment::stretch
                 )
@@ -207,10 +210,32 @@ public:
 
 private:
     button_group_orientation m_orientation;
-    int m_spacing;
+    spacing m_spacing;
     std::unordered_map<int, radio_button<Backend>*> m_buttons;
     int m_checked_id = -1;
     int m_next_id = 0;
+
+    /**
+     * @brief Resolve semantic spacing to backend-specific integer via theme
+     * @return Resolved spacing value in logical units
+     */
+    [[nodiscard]] int resolve_spacing() const {
+        // Get current theme from ui_services
+        auto* themes = ui_services<Backend>::themes();
+        if (!themes) {
+            // No theme available, use default small spacing (1)
+            return 1;
+        }
+
+        auto* theme = themes->get_current_theme();
+        if (!theme) {
+            // No current theme, use default small spacing (1)
+            return 1;
+        }
+
+        // Resolve spacing enum via theme
+        return theme->spacing.resolve(m_spacing);
+    }
 
     /// Internal: Called by radio_button when it's checked
     ///

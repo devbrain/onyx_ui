@@ -208,9 +208,9 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     // Radio Buttons (Horizontal)
     input_section->template emplace_child<onyxui::label>("");  // Spacer
     input_section->template emplace_child<onyxui::label>("Radio Buttons (Horizontal):");
-    // Create horizontal button group with 2px spacing
+    // Create horizontal button group with medium spacing (theme-resolved)
     auto* h_button_group = input_section->template emplace_child<onyxui::button_group>(
-        onyxui::button_group_orientation::horizontal, 2
+        onyxui::button_group_orientation::horizontal, onyxui::spacing::medium
     );
     h_button_group->add_option("Red", 10);
     h_button_group->add_option("Green", 11);
@@ -308,35 +308,35 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     using icon_style = typename Backend::renderer_type::icon_style;
 
     // General purpose icons row
-    auto* icons_row1 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
+    auto* icons_row1 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::large);
     icons_row1->template emplace_child<onyxui::icon>(icon_style::check);
-    icons_row1->template emplace_child<onyxui::label>("check ");
+    icons_row1->template emplace_child<onyxui::label>("check");
     icons_row1->template emplace_child<onyxui::icon>(icon_style::cross);
-    icons_row1->template emplace_child<onyxui::label>("cross ");
+    icons_row1->template emplace_child<onyxui::label>("cross");
     icons_row1->template emplace_child<onyxui::icon>(icon_style::bullet);
-    icons_row1->template emplace_child<onyxui::label>("bullet ");
+    icons_row1->template emplace_child<onyxui::label>("bullet");
     icons_row1->template emplace_child<onyxui::icon>(icon_style::folder);
     icons_row1->template emplace_child<onyxui::label>("folder");
 
     // Navigation icons row
-    auto* icons_row2 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
+    auto* icons_row2 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::large);
     icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_up);
-    icons_row2->template emplace_child<onyxui::label>("up ");
+    icons_row2->template emplace_child<onyxui::label>("up");
     icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_down);
-    icons_row2->template emplace_child<onyxui::label>("down ");
+    icons_row2->template emplace_child<onyxui::label>("down");
     icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_left);
-    icons_row2->template emplace_child<onyxui::label>("left ");
+    icons_row2->template emplace_child<onyxui::label>("left");
     icons_row2->template emplace_child<onyxui::icon>(icon_style::arrow_right);
     icons_row2->template emplace_child<onyxui::label>("right");
 
     // Window icons row
-    auto* icons_row3 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
+    auto* icons_row3 = icons_section->template emplace_child<onyxui::hbox>(onyxui::spacing::large);
     icons_row3->template emplace_child<onyxui::icon>(icon_style::menu);
-    icons_row3->template emplace_child<onyxui::label>("menu ");
+    icons_row3->template emplace_child<onyxui::label>("menu");
     icons_row3->template emplace_child<onyxui::icon>(icon_style::minimize);
-    icons_row3->template emplace_child<onyxui::label>("min ");
+    icons_row3->template emplace_child<onyxui::label>("min");
     icons_row3->template emplace_child<onyxui::icon>(icon_style::maximize);
-    icons_row3->template emplace_child<onyxui::label>("max ");
+    icons_row3->template emplace_child<onyxui::label>("max");
     icons_row3->template emplace_child<onyxui::icon>(icon_style::close_x);
     icons_row3->template emplace_child<onyxui::label>("close");
 

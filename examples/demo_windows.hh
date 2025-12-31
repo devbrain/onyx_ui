@@ -179,7 +179,7 @@ namespace demo_windows {
 
         // Create content
         auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
-        content->set_padding(onyxui::thickness::all(2));
+        content->set_padding(onyxui::thickness(onyxui::logical_unit(2)));
 
         auto* msg_label = content->template emplace_child<onyxui::label>(message);
         msg_label->set_horizontal_align(onyxui::horizontal_alignment::center);
@@ -305,8 +305,8 @@ namespace demo_windows {
         if (final_content) {
             auto fc_bounds = final_content->bounds();
             std::cout << "[DEBUG Interactive Controls] Final content bounds: ("
-                      << fc_bounds.x() << ", " << fc_bounds.y() << ", "
-                      << fc_bounds.width() << ", " << fc_bounds.height() << ")\n";
+                      << fc_bounds.x.value << ", " << fc_bounds.y.value << ", "
+                      << fc_bounds.width.value << ", " << fc_bounds.height.value << ")\n";
         } else {
             std::cout << "[DEBUG Interactive Controls] Final content is NULL!\n";
         }

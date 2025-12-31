@@ -342,8 +342,8 @@ namespace onyxui {
          * is active.
          */
         [[nodiscard]] interaction_state get_effective_state() const noexcept {
-            // Disabled always takes priority
-            if (m_state == interaction_state::disabled) {
+            // Disabled always takes priority - check both m_state AND is_enabled()
+            if (m_state == interaction_state::disabled || !this->is_enabled()) {
                 return interaction_state::disabled;
             }
 

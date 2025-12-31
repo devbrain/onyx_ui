@@ -1,0 +1,62 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Required dependencies
+find_dependency(failsafe REQUIRED)
+
+# Optional dependencies (YAML themes)
+set(_onyxui_yaml_themes @NEUTRINO_ONYX_UI_ENABLE_YAML_THEMES@)
+if(_onyxui_yaml_themes)
+    find_dependency(fkYAML REQUIRED)
+    find_dependency(reflectcpp REQUIRED)
+endif()
+
+# Create the onyxui interface target
+if(NOT TARGET neutrino::onyxui)
+    add_library(neutrino::onyxui INTERFACE IMPORTED)
+    set_target_properties(neutrino::onyxui PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@"
+    )
+
+    # Link required dependencies
+    if(TARGET neutrino::failsafe)
+        set_property(TARGET neutrino::onyxui APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES neutrino::failsafe)
+    elseif(TARGET failsafe::failsafe)
+        set_property(TARGET neutrino::onyxui APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES failsafe::failsafe)
+    elseif(TARGET failsafe)
+        set_property(TARGET neutrino::onyxui APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES failsafe)
+    endif()
+
+    # Link optional YAML theme dependencies
+    if(_onyxui_yaml_themes)
+        if(TARGET fkYAML::fkYAML)
+            set_property(TARGET neutrino::onyxui APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES fkYAML::fkYAML)
+        elseif(TARGET fkYAML)
+            set_property(TARGET neutrino::onyxui APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES fkYAML)
+        endif()
+
+        if(TARGET reflectcpp::reflectcpp)
+            set_property(TARGET neutrino::onyxui APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES reflectcpp::reflectcpp)
+        elseif(TARGET reflectcpp)
+            set_property(TARGET neutrino::onyxui APPEND PROPERTY
+                INTERFACE_LINK_LIBRARIES reflectcpp)
+        endif()
+
+        set_property(TARGET neutrino::onyxui APPEND PROPERTY
+            INTERFACE_COMPILE_DEFINITIONS ONYXUI_ENABLE_YAML_THEMES=1)
+    endif()
+
+    # Create onyxui alias for compatibility
+    if(NOT TARGET onyxui)
+        add_library(onyxui ALIAS neutrino::onyxui)
+    endif()
+endif()
+
+check_required_components(onyxui)

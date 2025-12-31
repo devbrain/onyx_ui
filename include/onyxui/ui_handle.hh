@@ -255,12 +255,21 @@ namespace onyxui {
             const ui_event& ui_evt = *ui_evt_opt;
 
             // ============================================================
+            // Cache Service References (Performance Optimization)
+            // ============================================================
+            // Cache service pointers once at function entry to avoid repeated
+            // service locator lookups throughout event handling
+            auto* layers = ui_services<Backend>::layers();
+            auto* input = ui_services<Backend>::input();
+            auto* hotkeys = ui_services<Backend>::hotkeys();
+
+            // ============================================================
             // Layer Event Routing - FIRST PRIORITY!
             // ============================================================
             // Route event through layers first (top to bottom).
             // If a layer handles the event or a modal blocks it, don't route to root widget.
             // ARCHITECTURAL FIX: Pass ui_event instead of native_event to prevent double conversion
-            if (auto* layers = ui_services<Backend>::layers()) {
+            if (layers) {
                 if (layers->route_event(ui_evt)) {
                     return true;  // Layer handled the event
                 }
@@ -300,7 +309,7 @@ namespace onyxui {
             // Use variant dispatch to handle keyboard events
             if (auto* kbd_evt = std::get_if<keyboard_event>(&ui_evt)) {
                 // 1. Handle Tab navigation (input_manager traverses tree automatically)
-                if (auto* input = ui_services<Backend>::input()) {
+                if (input) {
                     if (input->handle_tab_navigation_in_tree(*kbd_evt, m_root.get())) {
                         return true;  // Tab was handled, focus changed
                     }
@@ -308,7 +317,7 @@ namespace onyxui {
 
                 // 2. Get focused widget for hotkey dispatch
                 widget_type* focused = nullptr;
-                if (auto* input = ui_services<Backend>::input()) {
+                if (input) {
                     auto* focused_target = input->get_focused();
                     focused = static_cast<widget_type*>(focused_target);
                 }
@@ -316,7 +325,7 @@ namespace onyxui {
                 // 3. Try global hotkeys from service locator
                 // Use ui_event API for hotkey matching
                 // IMPORTANT: Pass focused element so semantic actions can be dispatched to it
-                if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                if (hotkeys) {
                     if (hotkeys->handle_ui_event(ui_evt, focused)) {
                         return true;  // Global hotkey handled
                     }
@@ -324,7 +333,7 @@ namespace onyxui {
 
                 // 3.5. Handle activate_focused semantic action for widgets that accept keys as clicks
                 if (focused && focused->accepts_keys_as_click()) {
-                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                    if (hotkeys) {
                         if (hotkeys->matches_action(*kbd_evt, hotkey_action::activate_focused)) {
                             // With unified event API, widgets that accept keys as clicks
                             // handle Enter/Space through handle_keyboard() which emits clicked signal.
@@ -337,7 +346,7 @@ namespace onyxui {
 
                 // 3.6. Try semantic actions (scrolling, navigation) on focused widget
                 if (focused) {
-                    if (auto* hotkeys = ui_services<Backend>::hotkeys()) {
+                    if (hotkeys) {
                         // Check for scroll actions
                         if (hotkeys->matches_action(*kbd_evt, hotkey_action::scroll_up)) {
                             return focused->handle_semantic_action(hotkey_action::scroll_up);
@@ -372,7 +381,6 @@ namespace onyxui {
             // ============================================================
             // Use variant dispatch to handle mouse events
             if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
-                auto* input = ui_services<Backend>::input();
                 if (!input) return false;  // No input manager available
 
                 // Get mouse position from typed event
@@ -383,6 +391,15 @@ namespace onyxui {
                 bool is_button_event = (mouse_evt->act == mouse_event::action::press ||
                                        mouse_evt->act == mouse_event::action::release);
                 bool is_press = (mouse_evt->act == mouse_event::action::press);
+
+                // Close popups (menus) when scrolling - standard UI behavior
+                bool is_wheel = (mouse_evt->act == mouse_event::action::wheel_up ||
+                                mouse_evt->act == mouse_event::action::wheel_down);
+                if (is_wheel) {
+                    if (auto* layers = ui_services<Backend>::layers()) {
+                        layers->clear_layers(layer_type::popup);
+                    }
+                }
 
                 // Determine target widget:
                 // - If mouse is captured, route to captured widget (direct, no path)
@@ -440,11 +457,9 @@ namespace onyxui {
                         // send release events, but we keep it for backends that do.
                         input->release_capture();
 
-                        // After releasing capture, update hover state based on current mouse position
-                        // This ensures is_hovered() is correct when handle_mouse() is called
-                        hit_test_path<Backend> hover_path;  // Temporary path for hover update
-                        widget_type* hover_target = m_root->hit_test(mouse_x, mouse_y, hover_path);
-                        input->set_hover(hover_target);
+                        // After releasing capture, update hover state using existing hit-test result
+                        // (Performance: reuse hit_path from above instead of doing a second hit-test)
+                        input->set_hover(target_widget);
                     }
                 }
 
@@ -573,6 +588,7 @@ namespace onyxui {
             [[maybe_unused]] auto measured_size = m_root->measure(
                 logical_unit(static_cast<double>(rect_utils::get_width(bounds))),
                 logical_unit(static_cast<double>(rect_utils::get_height(bounds))));
+
             m_root->arrange(logical_rect{
                 logical_unit(0.0),
                 logical_unit(0.0),

@@ -193,14 +193,19 @@ namespace onyxui {
                 typename Backend::renderer_type::box_style border_style = ctx.style().box_style.value;
 
                 // Enable border drawing based on backend type
-                // Test backends use bool draw_border, conio uses border_style enum
+                // Test backends use bool draw_border, other backends use border_style enum
                 if constexpr (requires { border_style.draw_border; }) {
                     border_style.draw_border = true;
                 } else if constexpr (requires { border_style.style; }) {
-                    // conio backend: set border style to single_line if currently none
+                    // Set border style to a visible style if currently none
                     using border_style_enum = decltype(border_style.style);
                     if (border_style.style == border_style_enum::none) {
-                        border_style.style = border_style_enum::single_line;
+                        // Use single_line for conio, flat for graphical backends
+                        if constexpr (requires { border_style_enum::single_line; }) {
+                            border_style.style = border_style_enum::single_line;
+                        } else if constexpr (requires { border_style_enum::flat; }) {
+                            border_style.style = border_style_enum::flat;
+                        }
                     }
                 }
 

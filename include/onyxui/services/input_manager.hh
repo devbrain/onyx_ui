@@ -270,10 +270,14 @@ namespace onyxui {
                 return false;  // Already hovered
             }
 
-            // With unified event API, hover state is managed by handle_mouse()
-            // We don't need to explicitly call mouse enter/leave handlers.
-            // The handle_mouse() method detects hover state changes internally
-            // and emits mouse_entered/mouse_exited signals as needed.
+            // CRITICAL: Clear hover state on previously hovered widget
+            // This fixes the issue where widgets stay highlighted after mouse moves away,
+            // particularly visible with sdlpp backend's continuous mouse move events.
+            // The old widget won't receive a mouse event (it's not in the hit test path),
+            // so we must explicitly clear its state here.
+            if (m_hovered) {
+                m_hovered->reset_hover_and_press_state();
+            }
 
             // Update hover
             m_hovered = target;

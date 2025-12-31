@@ -34,11 +34,11 @@ add_backend_library(
     DEPENDENCIES
         termbox2_lib
     PRIVATE_DEPENDENCIES
-        thirdparty::utf8cpp  # Required for UTF-8 text measurement in renderer
+        utf8cpp::utf8cpp  # Required for UTF-8 text measurement in renderer
 )
 
 
 # Conio backend integration tests (built as shared library for doctest DLL)
-if(ONYX_UI_BUILD_TEST)
+if(NEUTRINO_ONYX_UI_BUILD_TESTS)
     add_subdirectory(unittest)
 endif()

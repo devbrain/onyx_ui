@@ -54,6 +54,7 @@ namespace onyxui {
     // Forward declarations for friend declarations
     template<UIBackend Backend> class focus_manager;
     template<UIBackend Backend> class input_manager;
+    template<UIBackend Backend> class layer_manager;
     template<UIBackend Backend> class ui_handle;
     template<UIBackend Backend> class ui_context;
 
@@ -95,6 +96,8 @@ namespace onyxui {
         friend class ui_handle<Backend>;
         // Allow ui_context to access protected handle_click for semantic actions
         friend class ui_context<Backend>;
+        // Allow layer_manager to access protected hover state for layer hover tracking
+        friend class layer_manager<Backend>;
 
         public:
             // Type aliases from backend

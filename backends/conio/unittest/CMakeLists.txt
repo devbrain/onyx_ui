@@ -35,11 +35,13 @@ target_link_libraries(conio_unittest PRIVATE
         onyxui_conio_backend
         doctest::doctest
         test_support  # Test utilities (test_types, test_config)
-        thirdparty::failsafe  # Explicit dependency for headers
+        neutrino::failsafe  # Explicit dependency for headers
 )
 
-# Apply warning flags
-target_compile_options(conio_unittest PRIVATE ${ONYX_UI_WARNING_FLAGS})
+# Apply warning flags from neutrino-cmake if available
+if(TARGET neutrino::warnings)
+    target_link_libraries(conio_unittest PRIVATE neutrino::warnings)
+endif()
 
 # Disable logging in tests (override inherited DEBUG level)
 target_compile_options(conio_unittest PRIVATE

@@ -578,7 +578,8 @@ namespace onyxui {
                 if (m_z_index != z_index) {
                     m_z_index = z_index;
                     if (m_parent) {
-                        m_parent->invalidate_arrange();
+                        // Re-sort children to reflect new z-order
+                        m_parent->update_child_order();
                     }
                 }
             }
@@ -1388,15 +1389,21 @@ namespace onyxui {
     void ui_element<Backend>::mark_dirty() {
         // Convert relative bounds to absolute before marking dirty
         // Walk up parent chain to accumulate absolute position in logical units
+        // Must add both parent's bounds position AND content area offset for each parent
         logical_unit abs_x = m_bounds.x;
         logical_unit abs_y = m_bounds.y;
 
         ui_element* current_parent = m_parent;
         while (current_parent) {
-            // Add parent's content area offset
+            // Add parent's bounds position (relative to its own parent's content area)
+            abs_x = abs_x + current_parent->m_bounds.x;
+            abs_y = abs_y + current_parent->m_bounds.y;
+
+            // Add parent's content area offset (padding/margin within bounds)
             logical_rect parent_content = current_parent->get_content_area();
             abs_x = abs_x + parent_content.x;
             abs_y = abs_y + parent_content.y;
+
             current_parent = current_parent->m_parent;
         }
 

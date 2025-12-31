@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Testing Guide](docs/CLAUDE/TESTING.md) - Test strategy, fixtures, best practices
 - [Changelog](docs/CLAUDE/CHANGELOG.md) - Recent major changes, migration notes
 - [Scrolling Guide](docs/scrolling_guide.md) - Comprehensive scrolling system documentation
+- [SDL++ Backend Guide](docs/SDLPP_BACKEND_GUIDE.md) - Implementing SDL3/lib_sdlpp graphical backend
 - [Refactoring Plan](docs/REFACTORING_PLAN.md) - Upcoming code improvements
 
 ---

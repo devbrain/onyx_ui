@@ -325,9 +325,14 @@ void apply_defaults(ui_theme<Backend>& theme) {
         using border_style = typename Backend::renderer_type::border_style;
         using box_style = typename Backend::renderer_type::box_style;
 
-        // If box_style.style is none (default), set it to single_line
+        // If box_style.style is none (default), set it to a visible style
         if (theme.line_edit.box_style.style == border_style::none) {
-            theme.line_edit.box_style = box_style{border_style::single_line, true};
+            // Use single_line for conio, flat for graphical backends
+            if constexpr (requires { border_style::single_line; }) {
+                theme.line_edit.box_style = box_style{border_style::single_line, true};
+            } else if constexpr (requires { border_style::flat; }) {
+                theme.line_edit.box_style = box_style{border_style::flat, true};
+            }
         }
     }
 

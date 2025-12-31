@@ -241,9 +241,10 @@ TEST_CASE("mouse_event - Modifiers during mouse action") {
         mouse.modifiers.alt = false;
         mouse.modifiers.shift = false;
 
-        CHECK(mouse.modifiers.ctrl);
-        CHECK_FALSE(mouse.modifiers.alt);
-        CHECK_FALSE(mouse.modifiers.shift);
+        // Cast bit-fields to bool for doctest CHECK macro compatibility
+        CHECK(static_cast<bool>(mouse.modifiers.ctrl));
+        CHECK_FALSE(static_cast<bool>(mouse.modifiers.alt));
+        CHECK_FALSE(static_cast<bool>(mouse.modifiers.shift));
     }
 
     SUBCASE("Shift+Click") {
@@ -256,9 +257,10 @@ TEST_CASE("mouse_event - Modifiers during mouse action") {
         mouse.modifiers.alt = false;
         mouse.modifiers.shift = true;
 
-        CHECK_FALSE(mouse.modifiers.ctrl);
-        CHECK_FALSE(mouse.modifiers.alt);
-        CHECK(mouse.modifiers.shift);
+        // Cast bit-fields to bool for doctest CHECK macro compatibility
+        CHECK_FALSE(static_cast<bool>(mouse.modifiers.ctrl));
+        CHECK_FALSE(static_cast<bool>(mouse.modifiers.alt));
+        CHECK(static_cast<bool>(mouse.modifiers.shift));
     }
 }
 

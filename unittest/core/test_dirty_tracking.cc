@@ -169,8 +169,9 @@ TEST_SUITE("Dirty Region Tracking") {
             // Should propagate to root
             auto regions = root->get_and_clear_dirty_regions();
             CHECK(regions.size() == 1);
-            CHECK(regions[0].x == 5);
-            CHECK(regions[0].y == 5);
+            // grandchild at (5, 5) relative to child1 at (10, 10) → absolute (15, 15)
+            CHECK(regions[0].x == 15);
+            CHECK(regions[0].y == 15);
         }
     }
 
@@ -357,9 +358,12 @@ TEST_SUITE("Dirty Region Tracking") {
             bool found_button2_old = false;
 
             for (const auto& r : regions) {
-                if (r.x == 20 && r.y == 20) found_button1 = true;
+                // button1 at (20, 20) relative to panel1 at (10, 10) → absolute (30, 30)
+                if (r.x == 30 && r.y == 30) found_button1 = true;
+                // panel2 is direct child of root at (410, 10) → absolute (410, 10)
                 if (r.x == 410 && r.y == 10) found_panel2 = true;
-                if (r.x == 20 && r.y == 60) found_button2_old = true;
+                // button2 at (20, 60) relative to panel1 at (10, 10) → absolute (30, 70)
+                if (r.x == 30 && r.y == 70) found_button2_old = true;
             }
 
             CHECK(found_button1);

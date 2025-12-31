@@ -168,6 +168,21 @@ namespace onyxui {
         virtual void fill_rect(const rect_type& bounds) = 0;
 
         /**
+         * @brief Fill a rectangle with a specific color
+         *
+         * @param bounds Rectangle bounds
+         * @param color Fill color
+         *
+         * @details
+         * - **measure_context**: Tracks bounds, no rendering
+         * - **draw_context**: Fills rectangle with specified color
+         *
+         * Use this when you need to fill with a color different from
+         * the resolved style's background color.
+         */
+        virtual void fill_rect(const rect_type& bounds, const color_type& color) = 0;
+
+        /**
          * @brief Draw a line
          *
          * @param from Start point

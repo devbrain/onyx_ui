@@ -263,9 +263,11 @@ protected:
         const int box_height = size_utils::get_height(box_size);
 
         int text_width = 0;
+        int text_height = 0;
         if (!m_text.empty()) {
             auto text_size = renderer_type::measure_text(m_text, default_font);
             text_width = size_utils::get_width(text_size);
+            text_height = size_utils::get_height(text_size);
         }
 
         // Get spacing from theme (defaults to 1 if no theme)
@@ -273,8 +275,9 @@ protected:
         const int spacing = (!m_text.empty() && theme) ? theme->checkbox.spacing : 0;
 
         // Calculate natural size: icon + spacing + text
+        // Height must accommodate both icon and text (including descenders)
         const int natural_width = box_width + spacing + text_width;
-        const int natural_height = box_height;
+        const int natural_height = std::max(box_height, text_height);
 
         // Get final dimensions and position from context
         auto const [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);

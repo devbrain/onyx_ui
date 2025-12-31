@@ -266,6 +266,17 @@ namespace onyxui {
         }
 
         /**
+         * @brief Fill a rectangle with a specific color
+         */
+        void fill_rect(const rect_type& bounds, const color_type& color) override {
+            // Create fill-only style (no border, solid fill)
+            box_style fill_style{};  // Default: border_style::none, is_solid=true
+
+            // Pass color directly to renderer
+            m_renderer->draw_box(bounds, fill_style, color, color);
+        }
+
+        /**
          * @brief Draw a line
          *
          * @details
