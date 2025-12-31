@@ -49,6 +49,7 @@
 
 #include "onyxui/core/rendering/render_context.hh"
 #include <onyxui/widgets/containers/panel.hh>
+#include <onyxui/services/ui_services.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/concepts/point_like.hh>
@@ -228,6 +229,7 @@ namespace onyxui {
             update_visibility();
             current_changed.emit(m_current_index);
             this->invalidate_arrange();
+            this->mark_dirty();  // Force visual refresh
         }
 
         /**
@@ -460,6 +462,62 @@ namespace onyxui {
 
     protected:
         /**
+         * @brief Get content area excluding tab bar
+         *
+         * @details
+         * Overrides base to account for tab bar height. Children (tab pages)
+         * are positioned and clipped to the area BELOW the tab bar, preventing
+         * them from drawing over the tab labels.
+         */
+        [[nodiscard]] logical_rect get_content_area() const noexcept override {
+            // Get base content area (accounts for margin/padding)
+            logical_rect content = base::get_content_area();
+
+            // Compute tab bar height if we have tabs
+            int tab_bar_h = 0;
+            if (!m_tabs.empty()) {
+                // Try to get computed height from rendering
+                if (m_tab_bar_height > 0) {
+                    tab_bar_h = m_tab_bar_height;
+                } else {
+                    // Fallback: estimate from theme
+                    auto* themes = ui_services<Backend>::themes();
+                    if (themes) {
+                        if (auto* theme = themes->get_current_theme()) {
+                            auto font_size = Backend::renderer_type::measure_text("Xg", theme->tab_widget.tab_font);
+                            int font_height = size_utils::get_height(font_size);
+                            tab_bar_h = font_height + 2 * theme->tab_widget.tab_padding_vertical;
+                        }
+                    }
+                    // Update cached value for next call
+                    m_tab_bar_height = tab_bar_h;
+                }
+            }
+
+            // Adjust content area based on tab position
+            switch (m_tab_position) {
+                case tab_position::top:
+                    content.y = content.y + logical_unit(static_cast<double>(tab_bar_h));
+                    content.height = content.height - logical_unit(static_cast<double>(tab_bar_h));
+                    break;
+                case tab_position::bottom:
+                    content.height = content.height - logical_unit(static_cast<double>(tab_bar_h));
+                    break;
+                case tab_position::left:
+                case tab_position::right:
+                    // Vertical tabs - same as top for now
+                    content.y = content.y + logical_unit(static_cast<double>(tab_bar_h));
+                    content.height = content.height - logical_unit(static_cast<double>(tab_bar_h));
+                    break;
+            }
+
+            // Clamp to non-negative
+            content.height = max(content.height, logical_unit(0.0));
+
+            return content;
+        }
+
+        /**
          * @brief Render the tab widget
          */
         void do_render(render_context<Backend>& ctx) const override {
@@ -500,7 +558,9 @@ namespace onyxui {
 
             for (const auto& tab : m_tabs) {
                 std::string display_label = truncate_label(tab.label, max_label_len);
-                int tab_width = 2 + static_cast<int>(display_label.length());  // " label "
+                std::string padded_label = " " + display_label + " ";
+                auto label_size = Backend::renderer_type::measure_text(padded_label, tab_style.tab_font);
+                int tab_width = size_utils::get_width(label_size);
                 if (m_tabs_closable && tab.closeable) {
                     tab_width += m_close_icon_width;
                 }
@@ -511,11 +571,20 @@ namespace onyxui {
             int const arrow_width = tab_style.scroll_arrow_width;
             m_has_overflow = (total_tabs_width > total_width);
 
+            // Compute tab bar height from font metrics + padding
+            auto font_size = Backend::renderer_type::measure_text("Xg", tab_style.tab_font);
+            int font_height = size_utils::get_height(font_size);
+            m_tab_bar_height = font_height + 2 * tab_style.tab_padding_vertical;
+
             // Draw tab bar based on position
             auto draw_tabs_horizontal = [&](int tab_y) {
                 // Store relative Y for hit testing (tab_y and y are both absolute)
                 m_tab_bar_y = tab_y - y;
                 int tab_x = x;
+
+                // Clear tab bar background before drawing
+                typename Backend::rect_type tab_bar_rect{x, tab_y, total_width, m_tab_bar_height};
+                ctx.fill_rect(tab_bar_rect, tab_style.tab_bar_background);
 
                 // Draw left scroll arrow if overflow
                 if (m_has_overflow) {
@@ -544,16 +613,17 @@ namespace onyxui {
                     std::string display_label = truncate_label(tab.label, max_label_len);
                     std::string text = " " + display_label + " ";
 
-                    int close_icon_x = -1;
+                    // Measure text width for proper positioning (pixel-accurate)
+                    auto measured_size = Backend::renderer_type::measure_text(text, font);
+                    int text_width = size_utils::get_width(measured_size);
+
+                    // Calculate total tab width for overflow check
+                    int tab_width = text_width;
                     if (m_tabs_closable && tab.closeable) {
-                        close_icon_x = tab_x + static_cast<int>(text.length());  // Absolute X for icon
-                        tab.close_x = close_icon_x - x;  // Relative for hit testing
-                    } else {
-                        tab.close_x = -1;
+                        tab_width += m_close_icon_width;
                     }
 
                     // Check if this tab would overflow
-                    int tab_width = static_cast<int>(text.length()) + (close_icon_x >= 0 ? m_close_icon_width : 0);
                     if (tab_x + tab_width > tabs_end_x) {
                         // Mark remaining tabs as not visible
                         tab.x_start = -1;
@@ -565,15 +635,18 @@ namespace onyxui {
 
                     // Draw tab label text
                     typename Backend::point_type tab_pos{tab_x, tab_y};
-                    auto text_size = ctx.draw_text(text, tab_pos, font, fg);
-                    int text_end_x = tab_x + size_utils::get_width(text_size);
+                    auto rendered_size = ctx.draw_text(text, tab_pos, font, fg);
+                    int text_end_x = tab_x + size_utils::get_width(rendered_size);
 
                     // Draw close button icon if enabled
-                    if (close_icon_x >= 0) {
+                    if (m_tabs_closable && tab.closeable) {
+                        int close_icon_x = text_end_x;
+                        tab.close_x = close_icon_x - x;  // Relative for hit testing
                         typename Backend::point_type icon_pos{close_icon_x, tab_y};
                         ctx.draw_icon(tab_style.close_button_icon, icon_pos);
                         tab_x = close_icon_x + m_close_icon_width + tab_style.tab_spacing;
                     } else {
+                        tab.close_x = -1;
                         tab_x = text_end_x + tab_style.tab_spacing;
                     }
                     tab.x_end = tab_x - tab_style.tab_spacing - x;  // Store relative
@@ -639,8 +712,8 @@ namespace onyxui {
                 int mouse_x = mouse_evt->x - abs_bounds.x();
                 int mouse_y = mouse_evt->y - abs_bounds.y();
 
-                // Use stored tab bar Y from rendering (m_tab_bar_y is set during do_render)
-                bool in_tab_bar = (mouse_y == m_tab_bar_y);
+                // Use stored tab bar Y and height from rendering (set during do_render)
+                bool in_tab_bar = (mouse_y >= m_tab_bar_y && mouse_y < m_tab_bar_y + m_tab_bar_height);
 
                 // Handle mouse move for hover state
                 if (mouse_evt->act == mouse_event::action::move) {
@@ -767,6 +840,7 @@ namespace onyxui {
         mutable bool m_has_overflow = false;  // True if tabs overflow available width
         mutable int m_left_arrow_end = 0;     // X position where left arrow ends
         mutable int m_tab_bar_y = 0;          // Y position of tab bar (relative)
+        mutable int m_tab_bar_height = 1;     // Height of tab bar (for hit testing)
         mutable int m_right_arrow_start = 0;  // X position where right arrow starts
         mutable int m_close_icon_width = 0;   // Close button icon width (measured from backend)
 
