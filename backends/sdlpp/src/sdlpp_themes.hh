@@ -330,16 +330,17 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.tab_widget.scroll_arrow_width = 2;         // 16 pixels
 
     // ========================================================================
-    // Window (MDI style)
+    // Window (MDI style) - values in LOGICAL UNITS (1 logical unit = 8 pixels)
     // ========================================================================
     t.window.title_focused.background = highlight;
     t.window.title_focused.foreground = highlight_text;
     t.window.title_focused.mnemonic_foreground = highlight_text;
     t.window.title_focused.font = bold_font;
 
-    t.window.title_unfocused.background = button_face;
-    t.window.title_unfocused.foreground = button_shadow;
-    t.window.title_unfocused.mnemonic_foreground = button_shadow;
+    // Unfocused: darker gray background with black text for visibility
+    t.window.title_unfocused.background = button_shadow;  // Darker gray (128,128,128)
+    t.window.title_unfocused.foreground = window_text;    // Black text for contrast
+    t.window.title_unfocused.mnemonic_foreground = window_text;
     t.window.title_unfocused.font = default_font;
 
     t.window.border_focused = sdlpp_renderer::box_style{
@@ -349,6 +350,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.window.border_color_focused = button_shadow;
     t.window.border_color_unfocused = button_shadow;
     t.window.content_background = window_bg;
+
+    // Title bar layout
+    t.window.title_bar_height = 3;    // 24 pixels - comfortable title bar height
+    t.window.border_width = 1;        // 8 pixels - standard border
 
     t.window.shadow.enabled = false;  // Win3.11 didn't have window shadows
 

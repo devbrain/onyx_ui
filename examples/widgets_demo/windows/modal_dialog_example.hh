@@ -38,7 +38,7 @@ std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& 
     flags.has_maximize_button = false;
     flags.has_menu_button = false;
     flags.is_resizable = false;
-    flags.is_movable = false;  // Centered, non-movable
+    flags.is_movable = true;   // Allow dragging
     flags.is_scrollable = false;
 
     auto dialog = std::make_shared<onyxui::window<Backend>>("Modal Dialog", flags);
@@ -69,7 +69,7 @@ std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& 
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // Buttons
-    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* ok_btn = button_row->template emplace_child<onyxui::button>("OK");

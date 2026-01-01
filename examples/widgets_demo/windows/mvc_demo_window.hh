@@ -83,7 +83,7 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Controls section
     auto* controls_section = content->template emplace_child<onyxui::group_box>();
     controls_section->set_title("Model Controls");
-    auto* controls_hbox = controls_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* controls_hbox = controls_section->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
 
     // Item counter for unique names (captured in lambdas)
     auto item_counter = std::make_shared<int>(1);

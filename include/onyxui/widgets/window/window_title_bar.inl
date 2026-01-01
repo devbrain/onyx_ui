@@ -11,7 +11,6 @@
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/layout/layout_strategy.hh>  // For size_constraint, horizontal_alignment
 #include <onyxui/services/ui_services.hh>     // For theme access
-#include <iostream>
 #include <string>
 
 namespace onyxui {
@@ -33,11 +32,19 @@ namespace onyxui {
     {
         using icon_style = typename Backend::renderer_type::icon_style;
 
-        // Get title alignment from current theme (defaults to left if no theme set)
+        // Get title alignment and height from current theme
         horizontal_alignment alignment = horizontal_alignment::left;
         if (auto* theme_registry = ui_services<Backend>::themes()) {
             if (auto* theme = theme_registry->get_current_theme()) {
                 alignment = theme->window.title_alignment;
+
+                // Set minimum height from theme
+                if (theme->window.title_bar_height > 0) {
+                    size_constraint height_constraint;
+                    height_constraint.policy = size_policy::fixed;
+                    height_constraint.preferred_size = logical_unit(theme->window.title_bar_height);
+                    this->set_height_constraint(height_constraint);
+                }
             }
         }
 
@@ -139,6 +146,33 @@ namespace onyxui {
         // Check if this is a mouse event
         auto* mouse_evt = std::get_if<mouse_event>(&event);
 
+        // Handle mouse press in CAPTURE phase to start dragging (before children consume it)
+        if (phase == event_phase::capture && mouse_evt && mouse_evt->act == mouse_event::action::press) {
+            if (mouse_evt->btn == mouse_event::button::left) {
+                // Check if clicking on an icon - if so, don't start drag
+                hit_test_path<Backend> dummy_path;
+                bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_menu_icon) ||
+                                     (m_minimize_icon && m_minimize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_minimize_icon) ||
+                                     (m_maximize_icon && m_maximize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_maximize_icon) ||
+                                     (m_close_icon && m_close_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_close_icon);
+
+                if (!clicking_icon) {
+                    m_is_dragging = true;
+                    m_drag_start_x = mouse_evt->x.value;
+                    m_drag_start_y = mouse_evt->y.value;
+
+                    // Capture mouse to receive drag events even outside title bar
+                    auto* input = ui_services<Backend>::input();
+                    if (input) {
+                        input->set_capture(this);
+                    }
+
+                    drag_started.emit();
+                    return true;  // Event handled - don't let children get it
+                }
+            }
+        }
+
         // Handle mouse release in CAPTURE phase (before children)
         // This allows us to intercept clicks on icon children
         if (phase == event_phase::capture && mouse_evt && mouse_evt->act == mouse_event::action::release) {
@@ -190,25 +224,7 @@ namespace onyxui {
             return base::handle_event(event, phase);
         }
 
-        // Handle mouse dragging (only if not clicking an icon)
-        if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::press) {
-            // Start dragging (unless clicking on an icon)
-            // Use hit_test_logical for full precision hit testing
-            hit_test_path<Backend> dummy_path;
-            bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_menu_icon) ||
-                                 (m_minimize_icon && m_minimize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_minimize_icon) ||
-                                 (m_maximize_icon && m_maximize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_maximize_icon) ||
-                                 (m_close_icon && m_close_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_close_icon);
-
-            if (!clicking_icon) {
-                m_is_dragging = true;
-                m_drag_start_x = mouse_evt->x.value;  // Store logical coordinate
-                m_drag_start_y = mouse_evt->y.value;  // Store logical coordinate
-                drag_started.emit();
-                return true;  // Event handled
-            }
-        }
-
+        // Handle mouse move during drag (target phase)
         if (m_is_dragging && mouse_evt->act == mouse_event::action::move) {
             // Continue dragging - emit delta from start position (logical precision)
             // Note: dragging signal takes int for compatibility, floor the delta
@@ -222,6 +238,13 @@ namespace onyxui {
             // End dragging
             // NOTE: termbox2 sets btn=none on release
             m_is_dragging = false;
+
+            // Release mouse capture
+            auto* input = ui_services<Backend>::input();
+            if (input) {
+                input->release_capture();
+            }
+
             drag_ended.emit();
             return true;  // Event handled
         }

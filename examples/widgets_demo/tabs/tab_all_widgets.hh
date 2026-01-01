@@ -87,7 +87,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     // Buttons
     basic_section->template emplace_child<onyxui::label>("Buttons:");
 
-    auto* btn_row = basic_section->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* btn_row = basic_section->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
     auto* normal_btn = btn_row->template emplace_child<onyxui::button>("Normal Button");
     normal_btn->clicked.connect([status_label]() {
         status_label->set_text("Normal button clicked!");

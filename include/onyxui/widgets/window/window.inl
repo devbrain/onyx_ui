@@ -55,6 +55,15 @@ namespace onyxui {
                     new_bounds.x = new_bounds.x + logical_unit(static_cast<double>(delta_x));
                     new_bounds.y = new_bounds.y + logical_unit(static_cast<double>(delta_y));
                     this->arrange(new_bounds);
+
+                    // Update layer bounds so the window visually moves
+                    if (m_layer_id.is_valid()) {
+                        auto* layers = ui_services<Backend>::layers();
+                        if (layers) {
+                            layers->set_layer_bounds(m_layer_id, new_bounds);
+                        }
+                    }
+
                     moved.emit();
                 });
             }

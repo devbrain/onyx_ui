@@ -116,6 +116,9 @@ namespace onyxui {
     template<UIBackend Backend>
     class scoped_layer;
 
+    template<UIBackend Backend>
+    class input_manager;
+
     // ======================================================================
     // Layer Types and Configuration
     // ======================================================================
@@ -237,6 +240,14 @@ namespace onyxui {
         layer_manager& operator=(const layer_manager&) = delete;
         layer_manager(layer_manager&&) noexcept = delete;
         layer_manager& operator=(layer_manager&&) noexcept = delete;
+
+        /**
+         * @brief Set input manager for capture handling
+         * @param input Pointer to input_manager (can be nullptr)
+         */
+        void set_input_manager(input_manager<Backend>* input) noexcept {
+            m_input_manager = input;
+        }
 
         // ============================================================
         // Layer Management
@@ -596,6 +607,30 @@ namespace onyxui {
 
             // No conversion needed - we already have ui_event!
             const ui_event& ui_evt = event;
+
+            // ================================================================
+            // CRITICAL: Check for captured widget FIRST
+            // ================================================================
+            // When a widget has captured the mouse (e.g., during window dragging),
+            // all mouse events should go directly to that widget regardless of
+            // hit-testing or layer hierarchy.
+            if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
+                if (m_input_manager) {
+                    auto* captured = m_input_manager->get_captured();
+                    if (captured) {
+                        // Route directly to captured widget
+                        bool handled = static_cast<element_type*>(captured)->handle_event(
+                            ui_evt, event_phase::target);
+
+                        // Release capture on mouse release
+                        if (mouse_evt->act == mouse_event::action::release) {
+                            m_input_manager->release_capture();
+                        }
+
+                        return handled;
+                    }
+                }
+            }
 
             // Check if modal is active
             std::optional<int> modal_z_index;
@@ -992,6 +1027,7 @@ namespace onyxui {
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
         rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
         element_type* m_layer_hovered = nullptr;  ///< Currently hovered element within layers (for clearing stale hover)
+        input_manager<Backend>* m_input_manager = nullptr;  ///< Input manager for capture handling
 
         // Helper methods
         auto find_layer(layer_id id) {

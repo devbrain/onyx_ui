@@ -91,7 +91,7 @@ std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // Close button
-    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* button_row = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* close_btn = button_row->template emplace_child<onyxui::button>("OK");

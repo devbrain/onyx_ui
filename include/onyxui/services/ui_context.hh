@@ -648,6 +648,9 @@ namespace onyxui {
         {
             ensure_shared_services_initialized();
 
+            // Wire up input_manager to layer_manager for capture handling
+            m_layer_manager.set_input_manager(&m_input_manager);
+
             // NOTE: activate_focused is NOT registered as a global handler
             // It's dispatched to the focused widget via handle_semantic_action()
             // This allows widgets (buttons, etc.) to handle activation properly
