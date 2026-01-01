@@ -46,8 +46,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
     auto* menu2_ptr = menu2.get();
 
     // Show first menu at position (10, 10) with size (40, 20)
-    Backend::rect_type anchor1;
-    rect_utils::set_bounds(anchor1, 10, 10, 5, 5);
+    logical_rect const anchor1{10.0_lu, 10.0_lu, 5.0_lu, 5.0_lu};
 
     layer_id menu1_id = layer_mgr->show_popup(
         menu1_ptr,
@@ -59,8 +58,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
     CHECK(layer_mgr->layer_count() == 1);
 
     // Position and measure menu1
-    Backend::rect_type menu1_bounds;
-    rect_utils::set_bounds(menu1_bounds, 10, 15, 40, 20);
+    logical_rect const menu1_bounds{10.0_lu, 15.0_lu, 40.0_lu, 20.0_lu};
     layer_mgr->set_layer_bounds(menu1_id, menu1_bounds);
     [[maybe_unused]] auto size1 = menu1_ptr->measure(logical_unit(static_cast<double>(40)), logical_unit(static_cast<double>(20)));
     menu1_ptr->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -79,10 +77,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         REQUIRE(dirty_after.size() == 1);
 
         // Verify the dirty region matches menu1's bounds + shadow margin (2 units)
-        CHECK(dirty_after[0].x == 10);
-        CHECK(dirty_after[0].y == 15);
-        CHECK(rect_utils::get_width(dirty_after[0]) == 42);  // 40 + 2 for shadow
-        CHECK(rect_utils::get_height(dirty_after[0]) == 22);  // 20 + 2 for shadow
+        CHECK(dirty_after[0].x == 10.0_lu);
+        CHECK(dirty_after[0].y == 15.0_lu);
+        CHECK(dirty_after[0].width == 42.0_lu);  // 40 + 2 for shadow
+        CHECK(dirty_after[0].height == 22.0_lu);  // 20 + 2 for shadow
 
         // Clear dirty regions should reset the list
         layer_mgr->clear_removed_layer_dirty_regions();
@@ -92,8 +90,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
 
     SUBCASE("Menu switching: old menu area marked dirty") {
         // Show second menu at different position (60, 10) with size (40, 30)
-        Backend::rect_type anchor2;
-        rect_utils::set_bounds(anchor2, 60, 10, 5, 5);
+        logical_rect const anchor2{60.0_lu, 10.0_lu, 5.0_lu, 5.0_lu};
 
         layer_id menu2_id = layer_mgr->show_popup(
             menu2_ptr,
@@ -105,8 +102,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         CHECK(layer_mgr->layer_count() == 2);
 
         // Position menu2
-        Backend::rect_type menu2_bounds;
-        rect_utils::set_bounds(menu2_bounds, 60, 15, 40, 30);
+        logical_rect const menu2_bounds{60.0_lu, 15.0_lu, 40.0_lu, 30.0_lu};
         layer_mgr->set_layer_bounds(menu2_id, menu2_bounds);
         [[maybe_unused]] auto size2 = menu2_ptr->measure(logical_unit(static_cast<double>(40)), logical_unit(static_cast<double>(30)));
         menu2_ptr->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -118,10 +114,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         // Check that menu1's area is marked dirty (including shadow margin)
         auto dirty = layer_mgr->get_removed_layer_dirty_regions();
         REQUIRE(dirty.size() == 1);
-        CHECK(dirty[0].x == 10);
-        CHECK(dirty[0].y == 15);
-        CHECK(rect_utils::get_width(dirty[0]) == 42);  // 40 + 2 for shadow
-        CHECK(rect_utils::get_height(dirty[0]) == 22);  // 20 + 2 for shadow
+        CHECK(dirty[0].x == 10.0_lu);
+        CHECK(dirty[0].y == 15.0_lu);
+        CHECK(dirty[0].width == 42.0_lu);  // 40 + 2 for shadow
+        CHECK(dirty[0].height == 22.0_lu);  // 20 + 2 for shadow
 
         // menu2 should still be visible
         CHECK(layer_mgr->is_layer_visible(menu2_id));
@@ -129,8 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
 
     SUBCASE("Multiple layer removals accumulate dirty regions") {
         // Show second menu
-        Backend::rect_type anchor2;
-        rect_utils::set_bounds(anchor2, 60, 10, 5, 5);
+        logical_rect const anchor2{60.0_lu, 10.0_lu, 5.0_lu, 5.0_lu};
 
         layer_id menu2_id = layer_mgr->show_popup(
             menu2_ptr,
@@ -138,8 +133,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
             popup_placement::below
         );
 
-        Backend::rect_type menu2_bounds;
-        rect_utils::set_bounds(menu2_bounds, 60, 15, 40, 30);
+        logical_rect const menu2_bounds{60.0_lu, 15.0_lu, 40.0_lu, 30.0_lu};
         layer_mgr->set_layer_bounds(menu2_id, menu2_bounds);
         [[maybe_unused]] auto sz = menu2_ptr->measure(logical_unit(static_cast<double>(40)), logical_unit(static_cast<double>(30)));
         menu2_ptr->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -153,12 +147,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
         REQUIRE(dirty.size() == 2);
 
         // First removed (menu1)
-        CHECK(dirty[0].x == 10);
-        CHECK(dirty[0].y == 15);
+        CHECK(dirty[0].x == 10.0_lu);
+        CHECK(dirty[0].y == 15.0_lu);
 
         // Second removed (menu2)
-        CHECK(dirty[1].x == 60);
-        CHECK(dirty[1].y == 15);
+        CHECK(dirty[1].x == 60.0_lu);
+        CHECK(dirty[1].y == 15.0_lu);
     }
 
     SUBCASE("Removing non-existent layer doesn't add dirty region") {
@@ -190,15 +184,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates remove
     auto popup = std::make_unique<panel<Backend>>();
     auto* popup_ptr = popup.get();
 
-    Backend::rect_type anchor;
-    rect_utils::set_bounds(anchor, 20, 20, 5, 5);
+    logical_rect const anchor{20.0_lu, 20.0_lu, 5.0_lu, 5.0_lu};
 
     layer_id popup_id = layer_mgr->show_popup(popup_ptr, anchor, popup_placement::below);
     REQUIRE(popup_id != layer_id::invalid());
 
     // Position popup
-    Backend::rect_type popup_bounds;
-    rect_utils::set_bounds(popup_bounds, 20, 25, 30, 15);
+    logical_rect const popup_bounds{20.0_lu, 25.0_lu, 30.0_lu, 15.0_lu};
     layer_mgr->set_layer_bounds(popup_id, popup_bounds);
     [[maybe_unused]] auto popup_size = popup_ptr->measure(logical_unit(static_cast<double>(30)), logical_unit(static_cast<double>(15)));
     popup_ptr->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -212,8 +204,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates remove
     // Verify dirty regions are tracked
     auto dirty = layer_mgr->get_removed_layer_dirty_regions();
     REQUIRE(dirty.size() == 1);
-    CHECK(dirty[0].x == 20);
-    CHECK(dirty[0].y == 25);
+    CHECK(dirty[0].x == 20.0_lu);
+    CHECK(dirty[0].y == 25.0_lu);
 
     // Display again - dirty regions should be used and cleared
     ui.display();

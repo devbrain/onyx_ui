@@ -43,10 +43,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Default
     scrollable<test_canvas_backend> scroll;
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 0);
-    CHECK(size_utils::get_height(info.content_size) == 0);
-    CHECK(point_utils::get_x(info.scroll_offset) == 0);
-    CHECK(point_utils::get_y(info.scroll_offset) == 0);
+    CHECK(info.content_width == 0);
+    CHECK(info.content_height == 0);
+    CHECK(info.scroll_x == 0);
+    CHECK(info.scroll_y == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Construction with child") {
@@ -64,8 +64,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Single 
     [[maybe_unused]] auto size = scroll.measure(100_lu, 150_lu);
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 200);
-    CHECK(size_utils::get_height(info.content_size) == 300);
+    CHECK(info.content_width == 200);
+    CHECK(info.content_height == 300);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - get_scroll_info") {
@@ -78,10 +78,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - get_scr
 
     auto info = scroll.get_scroll_info();
 
-    CHECK(size_utils::get_width(info.content_size) == 200);
-    CHECK(size_utils::get_height(info.content_size) == 300);
-    CHECK(size_utils::get_width(info.viewport_size) == 100);
-    CHECK(size_utils::get_height(info.viewport_size) == 150);
+    CHECK(info.content_width == 200);
+    CHECK(info.content_height == 300);
+    CHECK(info.viewport_width == 100);
+    CHECK(info.viewport_height == 150);
     CHECK(info.needs_horizontal_scroll());
     CHECK(info.needs_vertical_scroll());
 }
@@ -191,8 +191,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Unconst
     [[maybe_unused]] auto size = scroll.measure(100_lu, 150_lu);
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 500);
-    CHECK(size_utils::get_height(info.content_size) == 800);
+    CHECK(info.content_width == 500);
+    CHECK(info.content_height == 800);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Content larger than viewport") {
@@ -324,15 +324,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Viewpor
     scroll.arrange(logical_rect{0_lu, 0_lu, 100_lu, 150_lu});
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.viewport_size) == 100);
-    CHECK(size_utils::get_height(info.viewport_size) == 150);
+    CHECK(info.viewport_width == 100);
+    CHECK(info.viewport_height == 150);
 
     // Re-arrange with different size
     scroll.arrange(logical_rect{0_lu, 0_lu, 150_lu, 200_lu});
 
     auto info2 = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info2.viewport_size) == 150);
-    CHECK(size_utils::get_height(info2.viewport_size) == 200);
+    CHECK(info2.viewport_width == 150);
+    CHECK(info2.viewport_height == 200);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Multiple children arrangement") {
@@ -387,8 +387,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Content
 
     // Content area should be reduced by border (1px each side)
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.viewport_size) == 100);
-    CHECK(size_utils::get_height(info.viewport_size) == 150);
+    CHECK(info.viewport_width == 100);
+    CHECK(info.viewport_height == 150);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Scroll offset affects child position") {
@@ -430,8 +430,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Arrange
     scroll.arrange(logical_rect{0_lu, 0_lu, 100_lu, 150_lu});
 
     auto info = scroll.get_scroll_info();
-    CHECK(point_utils::get_x(info.scroll_offset) == 50);
-    CHECK(point_utils::get_y(info.scroll_offset) == 75);
+    CHECK(info.scroll_x == 50);
+    CHECK(info.scroll_y == 75);
 }
 
 // =============================================================================
@@ -611,8 +611,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Zero vi
     scroll.arrange(logical_rect{0_lu, 0_lu, 0_lu, 0_lu});
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.viewport_size) == 0);
-    CHECK(size_utils::get_height(info.viewport_size) == 0);
+    CHECK(info.viewport_width == 0);
+    CHECK(info.viewport_height == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Very large content size") {
@@ -626,8 +626,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Very la
     scroll.arrange(logical_rect{0_lu, 0_lu, 100_lu, 150_lu});
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == LARGE);
-    CHECK(size_utils::get_height(info.content_size) == LARGE);
+    CHECK(info.content_width == LARGE);
+    CHECK(info.content_height == LARGE);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Rapid scroll updates") {
@@ -689,8 +689,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Multipl
     }
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 200);
-    CHECK(size_utils::get_height(info.content_size) == 300);
+    CHECK(info.content_width == 200);
+    CHECK(info.content_height == 300);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Scroll offset persistence") {

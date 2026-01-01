@@ -42,7 +42,7 @@ static test_backend::test_keyboard_event make_key_event(int key_code) {
 TEST_SUITE("menu_bar::hotkey_integration") {
 
     TEST_CASE("Semantic actions registered on-demand when menu opens") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -89,7 +89,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("F10 opens first menu (Windows scheme)") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Windows");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -113,7 +113,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("F9 opens first menu (Norton Commander scheme)") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Norton Commander");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -133,7 +133,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Escape closes menu") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -157,7 +157,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Arrow keys not handled when menu is closed (on-demand registration)") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -184,7 +184,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Multiple menus can be added") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Windows");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -212,7 +212,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Enter key activates focused item") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -244,7 +244,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Up/Down keys navigate within dropdown") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -277,7 +277,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Scheme switching changes activation key") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 
@@ -299,7 +299,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Empty menu bar handles F10 gracefully") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Windows");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -313,7 +313,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Semantic actions have priority over application actions") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Windows");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -339,7 +339,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Left/Right arrows navigate between menu bar items (Phase 2)") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.hotkey_schemes().set_current_scheme("Windows");
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
@@ -398,7 +398,7 @@ TEST_SUITE("menu_bar::hotkey_integration") {
     }
 
     TEST_CASE("Left/Right navigation with single menu wraps to same menu (Phase 2 edge case)") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
 

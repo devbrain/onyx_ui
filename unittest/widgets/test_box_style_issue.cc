@@ -11,7 +11,7 @@ using namespace onyxui::testing;
 using Backend = test_canvas_backend;
 
 TEST_CASE("Debug box_style resolution") {
-    scoped_ui_context<Backend> ctx;
+    scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
     ctx.themes().set_current_theme("Canvas Test Theme");
     
     auto* theme = ui_services<Backend>::themes()->get_current_theme();

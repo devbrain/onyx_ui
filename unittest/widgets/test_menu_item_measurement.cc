@@ -428,7 +428,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu Item - Visual r
         // Create root parent_style from theme
         auto parent_style = resolved_style<CanvasBackend>::from_theme(theme);
 
-        root->render(renderer, dirty_regions, &theme, parent_style);
+        root->render(renderer, dirty_regions, &theme, parent_style, make_terminal_metrics<CanvasBackend>());
 
         // Visual inspection
         INFO("Rendered menu bar:\n", debug_canvas(*canvas));

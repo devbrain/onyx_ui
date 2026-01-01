@@ -128,8 +128,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "handle_ui_event - Mo
 
     SUBCASE("Mouse event - ignored") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
 

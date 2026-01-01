@@ -85,6 +85,7 @@
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/core/rendering/draw_context.hh>
 #include <onyxui/core/rendering/render_info.hh>
+#include <onyxui/core/backend_metrics.hh>
 
 namespace onyxui {
     /**
@@ -383,94 +384,91 @@ namespace onyxui {
              */
             void update_child_order();
 
-            /**
-             * @brief Perform hit testing to find element at coordinates
-             * @param point Point in absolute screen coordinates
-             * @return Pointer to the deepest visible element at point, or nullptr if none found
-             *
-             * @note Exception safety: No-throw guarantee (no allocations, simple traversal)
-             * @note Searches in reverse z-order (highest z-index checked first)
-             * @note Only visible elements are considered for hit testing
-             */
-            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point);
+            // -----------------------------------------------------------------------
+            // Hit Testing
+            // -----------------------------------------------------------------------
+            //
+            // Hit testing finds the deepest visible element at a given coordinate.
+            // All methods search in reverse z-order (highest z-index first).
+            //
+            // **Preferred API** (logical coordinates):
+            //   hit_test_logical(logical_unit x, logical_unit y)
+            //   hit_test_logical(logical_unit x, logical_unit y, hit_test_path&)
+            //
+            // **Legacy API** (physical coordinates, for backward compatibility):
+            //   hit_test(int x, int y)
+            //   hit_test(int x, int y, hit_test_path&)
+            //   hit_test(absolute_point)
+            //   hit_test(absolute_point, hit_test_path&)
+            //
+            // For scaled backends (SDL), mouse coordinates should be converted to
+            // logical units once at the entry point (ui_handle.hh) using:
+            //   metrics.physical_to_logical_x/y()
+            //
+            // @see hit_test_path For path structure and three-phase event routing
+            // -----------------------------------------------------------------------
 
             /**
-             * @brief Perform hit testing with path recording for event routing
-             * @param point Point in absolute screen coordinates
-             * @param path Path to record elements from root to target
-             * @return Pointer to the deepest visible element at point, or nullptr if none found
+             * @brief Hit testing with logical coordinates (preferred)
+             * @param x Logical X coordinate (absolute)
+             * @param y Logical Y coordinate (absolute)
+             * @return Pointer to the deepest visible element at (x, y), or nullptr
              *
              * @details
-             * This overload records the complete path from root to target element,
-             * enabling three-phase event routing (capture/target/bubble).
-             *
-             * As hit testing traverses the tree, each element adds itself to the path
-             * before checking children. The resulting path can be used by the event
-             * routing engine to deliver events in the correct order.
-             *
-             * ## Path Recording
-             *
-             * Elements are added to path in traversal order (root → target):
-             * - [0]: Root element (where hit_test was called)
-             * - [1..n-1]: Intermediate ancestors
-             * - [n]: Target element (deepest hit)
-             *
-             * ## Example
-             *
-             * @code
-             * hit_test_path<Backend> path;
-             * geometry::absolute_point<Backend> pt{typename Backend::point_type{10, 10}};
-             * auto* target = root->hit_test(pt, path);
-             *
-             * // Path now contains: [root, ..., target]
-             * CHECK(path.target() == target);
-             * CHECK(path.root() == root);
-             * @endcode
-             *
-             * @note Exception safety: Strong guarantee (path unchanged if hit test fails)
-             * @note Searches in reverse z-order (highest z-index checked first)
-             * @note Only visible elements are considered for hit testing
-             *
-             * @see hit_test_path For path structure details
-             * @see event_phase For three-phase event routing
+             * This is the preferred hit testing method for scaled backends (SDL).
+             * Mouse coordinates should be converted to logical units once at the
+             * entry point (ui_handle.hh), then passed here for consistent precision.
              */
-            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path);
+            [[nodiscard]] ui_element* hit_test_logical(logical_unit x, logical_unit y);
 
             /**
-             * @brief Convenience overload for hit testing with raw coordinates
-             * @param x X coordinate in absolute screen space
-             * @param y Y coordinate in absolute screen space
+             * @brief Hit testing with logical coordinates and path recording (preferred)
+             * @param x Logical X coordinate (absolute)
+             * @param y Logical Y coordinate (absolute)
+             * @param path Path to record elements from root to target
              * @return Pointer to the deepest visible element at (x, y), or nullptr
              */
+            [[nodiscard]] ui_element* hit_test_logical(logical_unit x, logical_unit y, hit_test_path<Backend>& path);
+
+            /**
+             * @brief Hit testing with physical coordinates (legacy)
+             * @param x Physical X coordinate in screen pixels
+             * @param y Physical Y coordinate in screen pixels
+             * @return Pointer to the deepest visible element at (x, y), or nullptr
+             *
+             * @note For scaled backends, prefer hit_test_logical() with proper coordinate conversion.
+             */
             [[nodiscard]] ui_element* hit_test(int x, int y) {
-                typename Backend::point_type pt;
-                if constexpr (detail::has_member_x<typename Backend::point_type> &&
-                              detail::has_member_y<typename Backend::point_type>) {
-                    pt.x = x;
-                    pt.y = y;
-                } else {
-                    pt = typename Backend::point_type{x, y};
-                }
-                return hit_test(geometry::absolute_point<Backend>{pt});
+                // Treat physical int as logical for backward compatibility (works for 1:1 backends)
+                return hit_test_logical(logical_unit(static_cast<double>(x)),
+                                       logical_unit(static_cast<double>(y)));
             }
 
             /**
-             * @brief Convenience overload for hit testing with path recording and raw coordinates
-             * @param x X coordinate in absolute screen space
-             * @param y Y coordinate in absolute screen space
+             * @brief Hit testing with physical coordinates and path recording (legacy)
+             * @param x Physical X coordinate in screen pixels
+             * @param y Physical Y coordinate in screen pixels
              * @param path Path to record elements from root to target
              * @return Pointer to the deepest visible element at (x, y), or nullptr
+             *
+             * @note For scaled backends, prefer hit_test_logical() with proper coordinate conversion.
              */
             [[nodiscard]] ui_element* hit_test(int x, int y, hit_test_path<Backend>& path) {
-                typename Backend::point_type pt;
-                if constexpr (detail::has_member_x<typename Backend::point_type> &&
-                              detail::has_member_y<typename Backend::point_type>) {
-                    pt.x = x;
-                    pt.y = y;
-                } else {
-                    pt = typename Backend::point_type{x, y};
-                }
-                return hit_test(geometry::absolute_point<Backend>{pt}, path);
+                return hit_test_logical(logical_unit(static_cast<double>(x)),
+                                       logical_unit(static_cast<double>(y)), path);
+            }
+
+            // Keep absolute_point versions for backward compatibility
+            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point) {
+                int x = point.x();
+                int y = point.y();
+                return hit_test(x, y);
+            }
+
+            [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path) {
+                int x = point.x();
+                int y = point.y();
+                return hit_test(x, y, path);
             }
 
             // -----------------------------------------------------------------------
@@ -588,15 +586,17 @@ namespace onyxui {
        * @brief Render this element and its children with proper clipping
        * @param renderer The backend renderer instance
        * @param theme Global theme pointer (REQUIRED - must not be nullptr)
+       * @param metrics Backend metrics for coordinate conversion (REQUIRED)
        * @throws std::runtime_error if theme is nullptr
        */
-            void render(renderer_type& renderer, const theme_type* theme) {
+            void render(renderer_type& renderer, const theme_type* theme,
+                       const backend_metrics<Backend>& metrics) {
                 if (!theme) {
                     throw std::runtime_error("render() called with null theme - theme is required for rendering");
                 }
                 // Create default parent style from theme
                 resolved_style<Backend> default_style = resolved_style<Backend>::from_theme(*theme);
-                render(renderer, {}, theme, default_style);  // Empty vector means "render everything"
+                render(renderer, {}, theme, default_style, metrics, point_type{0, 0});  // Empty vector means "render everything"
             }
 
             /**
@@ -605,6 +605,8 @@ namespace onyxui {
        * @param dirty_regions Regions that need redrawing (empty = render everything)
        * @param theme Global theme pointer (may be nullptr - fetched once by ui_handle and passed down tree)
        * @param parent_style Parent's resolved style (accumulated top-down, no recursion!)
+       * @param metrics Backend metrics for logical-to-physical coordinate conversion
+       * @param offset Accumulated physical offset from parent content areas
        *
        * @details
        * Uses dirty rectangle optimization to skip rendering elements that don't
@@ -617,9 +619,15 @@ namespace onyxui {
        * Parent style is passed down during top-down traversal, eliminating the need
        * for recursive parent lookups during style resolution. This is O(1) per widget
        * instead of O(depth), following the same pattern used by browser rendering engines.
+       *
+       * Coordinate conversion:
+       * - m_bounds is in logical units (set by arrange())
+       * - metrics converts logical → physical for actual rendering
+       * - offset is accumulated physical position from parent content areas
        */
             void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions,
                        const theme_type* theme, const resolved_style<Backend>& parent_style,
+                       const backend_metrics<Backend>& metrics,
                        point_type const& offset = point_type{0, 0}) {
                 if (!m_visible) {
                     return;
@@ -628,17 +636,21 @@ namespace onyxui {
                 // Resolve style by merging parent_style with my overrides (no recursion!)
                 auto style = this->resolve_style(theme, parent_style);
 
-                // Bounds are now RELATIVE to parent's content area
-                // Add accumulated offset to get absolute screen position
+                // Convert logical bounds to physical using metrics
+                // m_bounds is in logical units, snap_rect converts to physical
+                rect_type physical_bounds = metrics.snap_rect(m_bounds);
+
+                // Bounds are RELATIVE to parent's content area
+                // Add accumulated physical offset to get absolute screen position
                 point_type absolute_pos{
-                    m_bounds.x.to_int() + point_utils::get_x(offset),
-                    m_bounds.y.to_int() + point_utils::get_y(offset)
+                    rect_utils::get_x(physical_bounds) + point_utils::get_x(offset),
+                    rect_utils::get_y(physical_bounds) + point_utils::get_y(offset)
                 };
 
-                size_type size;
-                size_utils::set_size(size,
-                    m_bounds.width.to_int(),
-                    m_bounds.height.to_int());
+                size_type size{
+                    rect_utils::get_width(physical_bounds),
+                    rect_utils::get_height(physical_bounds)
+                };
 
                 // Create draw context with resolved style, ABSOLUTE position, size, dirty regions, and theme
                 // The absolute_pos accounts for all parent content area offsets
@@ -649,8 +661,8 @@ namespace onyxui {
                 rect_utils::set_bounds(absolute_bounds,
                                      point_utils::get_x(absolute_pos),
                                      point_utils::get_y(absolute_pos),
-                                     m_bounds.width.to_int(),
-                                     m_bounds.height.to_int());
+                                     size_utils::get_width(size),
+                                     size_utils::get_height(size));
 
                 if (!ctx.should_render(absolute_bounds)) {
                     // Early return - don't render this element or its children
@@ -663,28 +675,31 @@ namespace onyxui {
                 // Set clip rect for children (content area only)
                 logical_rect const content_area_logical = get_content_area();
 
+                // Convert logical content area to physical
+                rect_type content_area_physical = metrics.snap_rect(content_area_logical);
+
                 // Calculate absolute clip rect
-                // content_area position is now relative to widget's bounds origin, so add absolute_pos
+                // content_area position is relative to widget's bounds origin, so add absolute_pos
                 rect_type absolute_clip;
                 rect_utils::set_bounds(absolute_clip,
-                    point_utils::get_x(absolute_pos) + content_area_logical.x.to_int(),
-                    point_utils::get_y(absolute_pos) + content_area_logical.y.to_int(),
-                    content_area_logical.width.to_int(),
-                    content_area_logical.height.to_int());
+                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area_physical),
+                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area_physical),
+                    rect_utils::get_width(content_area_physical),
+                    rect_utils::get_height(content_area_physical));
 
                 // Push clip rect before rendering children
                 renderer.push_clip(absolute_clip);
 
                 // Render children in z-order (they're already clipped)
                 // Children are arranged at RELATIVE coordinates (0,0 = top-left of content area)
-                // Accumulate offset for children: widget's absolute position + content area offset
+                // Accumulate physical offset for children: widget's absolute position + content area physical offset
                 point_type child_offset{
-                    point_utils::get_x(absolute_pos) + content_area_logical.x.to_int(),
-                    point_utils::get_y(absolute_pos) + content_area_logical.y.to_int()
+                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area_physical),
+                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area_physical)
                 };
 
                 for (const auto& child : m_children) {
-                    child->render(renderer, dirty_regions, theme, style, child_offset);
+                    child->render(renderer, dirty_regions, theme, style, metrics, child_offset);
                 }
 
                 // Restore previous clip rect
@@ -700,42 +715,126 @@ namespace onyxui {
             }
 
             /**
-             * @brief Get absolute bounds in screen coordinates
-             * @return Rectangle with absolute position and size
+             * @brief Get absolute bounds as snapped logical integers
+             * @return Rectangle with absolute position and size as integers
              *
              * @details
-             * After the relative coordinate refactoring, child elements store bounds
-             * relative to their parent's content area. This method walks up the parent
-             * chain to compute the absolute screen position.
+             * Returns the widget's position relative to the UI root, with logical units
+             * snapped to integers using floor/ceil for consistent boundaries.
              *
-             * **Use cases:**
-             * - Converting absolute mouse coordinates to widget-relative coordinates
-             * - Determining if an absolute point is inside a nested widget
-             * - Positioning popups relative to a nested widget
+             * **Coordinate semantics:**
+             * - "Absolute" means relative to UI root (not parent-relative)
+             * - Values are logical units snapped to int (NOT DPI-scaled physical pixels)
+             * - For terminal backends: 1 logical unit = 1 character cell
+             * - For GUI backends: logical units snapped to grid, NOT physical pixels
+             *
+             * **Prefer more specific methods:**
+             * - get_absolute_logical_bounds() - Full double precision logical coordinates
+             * - get_screen_bounds(metrics) - True DPI-aware physical screen pixels
+             *
+             * **Use cases for this method:**
+             * - Legacy code expecting int-based bounds
+             * - Compatibility with older hit-testing code
              *
              * @example
              * @code
              * auto abs_bounds = widget->get_absolute_bounds();
-             * int widget_abs_x = abs_bounds.x();
+             * int widget_abs_x = abs_bounds.x();  // Snapped logical coordinate
              * int widget_abs_y = abs_bounds.y();
              *
-             * // Convert absolute click to widget-relative
+             * // Convert absolute click to widget-relative (loses fractional precision)
              * int rel_x = click_x - widget_abs_x;
              * int rel_y = click_y - widget_abs_y;
              * @endcode
              *
-             * @note This walks the parent chain, so it's O(depth). Cache the result
-             *       if you need to call it repeatedly in the same frame.
+             * @note O(depth) - walks parent chain. Cache if calling repeatedly.
+             * @see get_absolute_logical_bounds() for full-precision logical coordinates
+             * @see get_screen_bounds() for DPI-aware physical pixel coordinates
              */
             [[nodiscard]] geometry::absolute_rect<Backend> get_absolute_bounds() const noexcept {
-                // Convert logical_rect to Backend::rect_type for coordinate conversion
-                rect_type bounds_physical;
-                rect_utils::set_bounds(bounds_physical,
-                                      m_bounds.x.to_int(),
-                                      m_bounds.y.to_int(),
-                                      m_bounds.width.to_int(),
-                                      m_bounds.height.to_int());
-                return geometry::to_absolute(geometry::relative_rect<Backend>{bounds_physical}, this);
+                // Walk parent chain to accumulate absolute position in logical units
+                logical_unit abs_x = m_bounds.x;
+                logical_unit abs_y = m_bounds.y;
+
+                const ui_element* current_parent = m_parent;
+                while (current_parent) {
+                    abs_x = abs_x + current_parent->m_bounds.x;
+                    abs_y = abs_y + current_parent->m_bounds.y;
+                    logical_rect parent_content = current_parent->get_content_area();
+                    abs_x = abs_x + parent_content.x;
+                    abs_y = abs_y + parent_content.y;
+                    current_parent = current_parent->m_parent;
+                }
+
+                // Snap logical coordinates to integer grid (for legacy int-based hit testing)
+                // NOTE: This does NOT apply DPI scaling - use get_screen_bounds() for physical pixels
+                // Position: floor (consistent with rendering), far edges: ceil for full coverage
+                int const left   = static_cast<int>(std::floor(abs_x.value));
+                int const top    = static_cast<int>(std::floor(abs_y.value));
+                int const right  = static_cast<int>(std::ceil((abs_x + m_bounds.width).value));
+                int const bottom = static_cast<int>(std::ceil((abs_y + m_bounds.height).value));
+
+                rect_type bounds_snapped;
+                rect_utils::set_bounds(bounds_snapped,
+                                      left, top,
+                                      right - left, bottom - top);
+                return geometry::absolute_rect<Backend>{bounds_snapped};
+            }
+
+            /**
+             * @brief Get absolute bounds in logical units
+             * @return Absolute position and size in logical coordinate space
+             *
+             * @details
+             * Returns the widget's absolute position in **logical units** (backend-agnostic).
+             * This is the primary method for internal coordinate calculations like:
+             * - Hit testing (comparing mouse position to widget bounds)
+             * - Popup/menu positioning
+             * - Widget-to-widget coordinate transforms
+             *
+             * For rendering or dirty region tracking, use get_screen_bounds() which
+             * converts to physical pixels via backend_metrics.
+             *
+             * @note O(depth) - walks parent chain. Cache if calling repeatedly.
+             * @see get_screen_bounds() for physical pixel coordinates
+             */
+            [[nodiscard]] logical_rect get_absolute_logical_bounds() const noexcept {
+                logical_unit abs_x = m_bounds.x;
+                logical_unit abs_y = m_bounds.y;
+
+                const ui_element* current_parent = m_parent;
+                while (current_parent) {
+                    abs_x = abs_x + current_parent->m_bounds.x;
+                    abs_y = abs_y + current_parent->m_bounds.y;
+                    logical_rect parent_content = current_parent->get_content_area();
+                    abs_x = abs_x + parent_content.x;
+                    abs_y = abs_y + parent_content.y;
+                    current_parent = current_parent->m_parent;
+                }
+
+                return logical_rect{abs_x, abs_y, m_bounds.width, m_bounds.height};
+            }
+
+            /**
+             * @brief Get absolute bounds in physical screen pixels
+             * @param metrics Backend metrics for logical→physical conversion
+             * @return Absolute position and size in physical pixel coordinates
+             *
+             * @details
+             * Returns the widget's screen position in **physical pixels**.
+             * Uses metrics.snap_rect() for consistent floor/ceil snapping.
+             * Use this for:
+             * - Dirty region tracking
+             * - External system integration (accessibility, screen capture)
+             *
+             * For internal coordinate calculations (hit testing, positioning),
+             * prefer get_absolute_logical_bounds() which preserves precision.
+             *
+             * @note O(depth) - walks parent chain. Cache if calling repeatedly.
+             * @see get_absolute_logical_bounds() for logical coordinates
+             */
+            [[nodiscard]] rect_type get_screen_bounds(const backend_metrics<Backend>& metrics) const noexcept {
+                return metrics.snap_rect(get_absolute_logical_bounds());
             }
 
             /**
@@ -854,60 +953,33 @@ namespace onyxui {
              * @see geometry::to_absolute() for the public coordinate conversion API
              * @see hit_test() for the tree traversal algorithm that uses is_inside()
              */
-            [[nodiscard]] bool is_inside(int x, int y) const override {
-                // CRITICAL FIX: After relative coordinate refactoring, m_bounds is relative for children.
-                // We need to compute absolute bounds by walking up to the root.
+            /**
+             * @brief Check if a logical point is inside this element
+             * @param x Logical X coordinate (absolute)
+             * @param y Logical Y coordinate (absolute)
+             * @return true if point is inside bounds
+             *
+             * @details
+             * This is the preferred method for hit testing as it works entirely
+             * in logical space, preserving fractional precision. Mouse coordinates
+             * should be converted to logical once at the entry point (ui_handle.hh).
+             */
+            [[nodiscard]] bool is_inside_logical(logical_unit x, logical_unit y) const noexcept {
+                logical_rect abs_bounds = get_absolute_logical_bounds();
+                return x >= abs_bounds.x &&
+                       x < (abs_bounds.x + abs_bounds.width) &&
+                       y >= abs_bounds.y &&
+                       y < (abs_bounds.y + abs_bounds.height);
+            }
 
-                if (!m_parent) {
-                    // Root element - m_bounds is already absolute
-                    // Convert logical to physical for comparison
-                    return x >= m_bounds.x.to_int() && x < (m_bounds.x + m_bounds.width).to_int() &&
-                           y >= m_bounds.y.to_int() && y < (m_bounds.y + m_bounds.height).to_int();
-                }
-
-                // Child element - compute absolute bounds by recursively walking up the tree
-                // Absolute position = parent_absolute_position + parent_content_offset + child_relative_position
-
-                // Recursive helper: get absolute position of any element
-                std::function<void(const ui_element*, int&, int&)> get_absolute_pos;
-                get_absolute_pos = [&get_absolute_pos](const ui_element* elem, int& abs_x, int& abs_y) {
-                    if (!elem->m_parent) {
-                        // Root element
-                        abs_x = elem->m_bounds.x.to_int();
-                        abs_y = elem->m_bounds.y.to_int();
-                    } else {
-                        // Get parent's absolute position
-                        int parent_x, parent_y;
-                        get_absolute_pos(elem->m_parent, parent_x, parent_y);
-
-                        // Add parent's content offset
-                        logical_rect elem_parent_content = elem->m_parent->get_content_area();
-                        parent_x += elem_parent_content.x.to_int();
-                        parent_y += elem_parent_content.y.to_int();
-
-                        // Add this element's relative position
-                        abs_x = parent_x + elem->m_bounds.x.to_int();
-                        abs_y = parent_y + elem->m_bounds.y.to_int();
-                    }
-                };
-
-                // Get parent's absolute position
-                int parent_abs_x, parent_abs_y;
-                get_absolute_pos(m_parent, parent_abs_x, parent_abs_y);
-
-                // Get parent's content area
-                logical_rect parent_content = m_parent->get_content_area();
-
-                // Compute this element's absolute position
-                int content_abs_x = parent_abs_x + parent_content.x.to_int();
-                int content_abs_y = parent_abs_y + parent_content.y.to_int();
-
-                int abs_x = content_abs_x + m_bounds.x.to_int();
-                int abs_y = content_abs_y + m_bounds.y.to_int();
-                int abs_w = m_bounds.width.to_int();
-                int abs_h = m_bounds.height.to_int();
-
-                return (x >= abs_x && x < abs_x + abs_w && y >= abs_y && y < abs_y + abs_h);
+            /**
+             * @brief Check if a point is inside this element (event_target interface)
+             * @param x X coordinate in logical units
+             * @param y Y coordinate in logical units
+             * @return true if point is inside bounds
+             */
+            [[nodiscard]] bool is_inside(logical_unit x, logical_unit y) const override {
+                return is_inside_logical(x, y);
             }
 
             // -----------------------------------------------------------------------
@@ -1281,29 +1353,25 @@ namespace onyxui {
     }
 
     // -------------------------------------------------------------------------------
-    // Hit Testing
+    // Hit Testing (Logical Coordinates)
     // -------------------------------------------------------------------------------
 
     // NOLINTNEXTLINE(misc-no-recursion)
     // Note: Recursive tree traversal for hit testing, bounded by UI tree height
     template<UIBackend Backend>
-    ui_element <Backend>* ui_element <Backend>::hit_test(geometry::absolute_point<Backend> point) {
+    ui_element <Backend>* ui_element <Backend>::hit_test_logical(logical_unit x, logical_unit y) {
         if (!m_visible) {
             return nullptr;
         }
 
-        // Get absolute bounds for hit testing
-        auto absolute_bounds = get_absolute_bounds();
-
-        // Check if point is inside this element's bounds
-        if (!absolute_bounds.contains(point)) {
+        // Check if point is inside this element using logical coordinates
+        if (!is_inside_logical(x, y)) {
             return nullptr;
         }
 
         // Check children in reverse order (highest z-index first)
-        // Pass the same absolute point - children will use get_absolute_bounds() to check if hit
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(point)) {
+            if (ui_element* hit = (*it)->hit_test_logical(x, y)) {
                 return hit;
             }
         }
@@ -1314,16 +1382,13 @@ namespace onyxui {
     // NOLINTNEXTLINE(misc-no-recursion)
     // Note: Recursive tree traversal for hit testing with path recording
     template<UIBackend Backend>
-    ui_element <Backend>* ui_element <Backend>::hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path) {
+    ui_element <Backend>* ui_element <Backend>::hit_test_logical(logical_unit x, logical_unit y, hit_test_path<Backend>& path) {
         if (!m_visible) {
             return nullptr;
         }
 
-        // Get absolute bounds for hit testing
-        auto absolute_bounds = get_absolute_bounds();
-
-        // Check if point is inside this element's bounds
-        if (!absolute_bounds.contains(point)) {
+        // Check if point is inside this element using logical coordinates
+        if (!is_inside_logical(x, y)) {
             return nullptr;
         }
 
@@ -1331,9 +1396,8 @@ namespace onyxui {
         path.push(this);
 
         // Check children in reverse order (highest z-index first)
-        // Pass the same absolute point - children will use get_absolute_bounds() to check if hit
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-            if (ui_element* hit = (*it)->hit_test(point, path)) {
+            if (ui_element* hit = (*it)->hit_test_logical(x, y, path)) {
                 return hit;
             }
         }
@@ -1387,31 +1451,19 @@ namespace onyxui {
 
     template<UIBackend Backend>
     void ui_element<Backend>::mark_dirty() {
-        // Convert relative bounds to absolute before marking dirty
-        // Walk up parent chain to accumulate absolute position in logical units
-        // Must add both parent's bounds position AND content area offset for each parent
-        logical_unit abs_x = m_bounds.x;
-        logical_unit abs_y = m_bounds.y;
-
-        ui_element* current_parent = m_parent;
-        while (current_parent) {
-            // Add parent's bounds position (relative to its own parent's content area)
-            abs_x = abs_x + current_parent->m_bounds.x;
-            abs_y = abs_y + current_parent->m_bounds.y;
-
-            // Add parent's content area offset (padding/margin within bounds)
-            logical_rect parent_content = current_parent->get_content_area();
-            abs_x = abs_x + parent_content.x;
-            abs_y = abs_y + parent_content.y;
-
-            current_parent = current_parent->m_parent;
-        }
-
-        // Convert logical coordinates to physical backend coordinates
+        // Convert to physical screen coordinates using metrics
+        // Uses floor for position, ceil for far edges to ensure full coverage
+        const auto* metrics = ui_services<Backend>::metrics();
         rect_type absolute_bounds;
-        rect_utils::set_bounds(absolute_bounds,
-                              abs_x.to_int(), abs_y.to_int(),
-                              m_bounds.width.to_int(), m_bounds.height.to_int());
+        if (metrics) {
+            absolute_bounds = get_screen_bounds(*metrics);
+        } else {
+            // Fallback for no metrics (terminal backend with 1:1)
+            logical_rect abs_logical = get_absolute_logical_bounds();
+            rect_utils::set_bounds(absolute_bounds,
+                                  abs_logical.x.to_int(), abs_logical.y.to_int(),
+                                  abs_logical.width.to_int(), abs_logical.height.to_int());
+        }
 
         mark_dirty_region(absolute_bounds);
     }

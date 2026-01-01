@@ -79,6 +79,7 @@
 #include <onyxui/events/event_router.hh>  // For route_event()
 #include <onyxui/geometry/coordinates.hh>
 #include <onyxui/theming/theme.hh>
+#include <onyxui/core/backend_metrics.hh>
 
 namespace onyxui {
 
@@ -330,9 +331,9 @@ namespace onyxui {
         void remove_layer(layer_id id) {
             auto it = find_layer(id);
             if (it != m_layers.end()) {
-                // Track removed layer bounds for dirty region marking
-                // Use the layer's screen-space bounds that was set during layer creation
-                rect_type bounds_to_track = it->bounds;
+                // Track removed layer bounds for dirty region marking (in logical coordinates)
+                // Caller converts to physical using metrics when processing dirty regions
+                logical_rect bounds_to_track = it->bounds;
 
                 // Expand bounds to include potential shadow area
                 // NOTE: We don't have access to theme here to query actual shadow offset
@@ -340,14 +341,9 @@ namespace onyxui {
                 // Shadow defaults in theme.hh: offset_x=1, offset_y=1 (backend-specific units)
                 // We use 2 as a conservative estimate that covers typical themes.
                 // This may clear slightly more than necessary, but prevents artifacts.
-                int x = rect_utils::get_x(bounds_to_track);
-                int y = rect_utils::get_y(bounds_to_track);
-                int w = rect_utils::get_width(bounds_to_track);
-                int h = rect_utils::get_height(bounds_to_track);
-
-                // Expand: left/top by 0 (shadow is to right/bottom), right/bottom by 2 units
-                constexpr int SHADOW_MARGIN = 2;  // Conservative estimate for shadow offset
-                rect_utils::set_bounds(bounds_to_track, x, y, w + SHADOW_MARGIN, h + SHADOW_MARGIN);
+                constexpr double SHADOW_MARGIN = 2.0;  // Conservative estimate for shadow offset
+                bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
+                bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
 
                 m_removed_layer_dirty_regions.push_back(bounds_to_track);
 
@@ -435,16 +431,17 @@ namespace onyxui {
          * @brief Show popup positioned relative to anchor
          *
          * @param content Popup content (non-owning pointer)
-         * @param anchor_bounds Bounds of anchor element
+         * @param anchor_bounds Bounds of anchor element (in logical coordinates)
          * @param placement Desired placement
          * @return Layer ID
          *
          * @details
          * Creates a non-owning reference to the content. Caller MUST keep
          * content alive while layer exists and remove layer before destroying content.
+         * All positioning is done in logical coordinate space.
          */
         layer_id show_popup(element_type* content,
-                           const rect_type& anchor_bounds,
+                           const logical_rect& anchor_bounds,
                            popup_placement placement = popup_placement::below,
                            std::function<void()> outside_click_callback = nullptr) {
             // Create non-owning shared_ptr (caller owns the memory)
@@ -467,16 +464,17 @@ namespace onyxui {
          * @brief Show tooltip at specific position
          *
          * @param content Tooltip content (non-owning pointer)
-         * @param x X position
-         * @param y Y position
+         * @param x X position (logical units)
+         * @param y Y position (logical units)
          * @return Layer ID
          *
          * @details
          * Creates a non-owning reference to the content. Caller MUST keep
          * content alive while layer exists and remove layer before destroying content.
+         * Position is in logical coordinate space.
          */
         layer_id show_tooltip(element_type* content,
-                             int x, int y) {
+                             logical_unit x, logical_unit y) {
             // Create non-owning shared_ptr (caller owns the memory)
             auto non_owning = std::shared_ptr<element_type>(content, [](element_type*) {});
             layer_id id = add_layer(layer_type::tooltip, non_owning);
@@ -484,9 +482,7 @@ namespace onyxui {
             auto it = find_layer(id);
             if (it != m_layers.end()) {
                 it->owner = non_owning;  // Store to keep weak_ptr valid
-                rect_type pos;
-                rect_utils::set_bounds(pos, x, y, 0, 0);
-                it->anchor_bounds = pos;
+                it->anchor_bounds = logical_rect{x, y, 0.0_lu, 0.0_lu};
                 it->placement = popup_placement::below;
                 it->needs_positioning = true;
             }
@@ -567,8 +563,10 @@ namespace onyxui {
 
         /**
          * @brief Set layer bounds manually (for windows with explicit position/size)
+         * @param id Layer ID
+         * @param bounds Layer bounds in logical coordinates
          */
-        void set_layer_bounds(layer_id id, const rect_type& bounds) {
+        void set_layer_bounds(layer_id id, const logical_rect& bounds) {
             if (auto it = find_layer(id); it != m_layers.end()) {
                 it->bounds = bounds;
                 it->needs_positioning = false;  // Manual bounds, no auto-positioning
@@ -618,12 +616,13 @@ namespace onyxui {
                     // Check if we have any popup layers
                     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
                         if (it->type == layer_type::popup && it->visible && it->is_valid()) {
-                            // Get click position from mouse event
-                            int click_x = mouse->x;
-                            int click_y = mouse->y;
+                            // Check if click is outside popup bounds (both in logical coordinates)
+                            bool const inside = mouse->x >= it->bounds.x &&
+                                               mouse->x < (it->bounds.x + it->bounds.width) &&
+                                               mouse->y >= it->bounds.y &&
+                                               mouse->y < (it->bounds.y + it->bounds.height);
 
-                            // Check if click is outside popup bounds
-                            if (!rect_utils::contains(it->bounds, click_x, click_y)) {
+                            if (!inside) {
                                 // Click outside popup - trigger callback but DON'T consume event
                                 // This allows:
                                 // 1. Menu switching: Click Theme while File is open → File closes, Theme opens
@@ -662,22 +661,9 @@ namespace onyxui {
                 it->with_root([&](element_type* root_ptr) {
                     // For mouse events, use hit-testing with three-phase routing
                     if (auto* mouse = std::get_if<mouse_event>(&ui_evt)) {
-                        int const x = mouse->x;
-                        int const y = mouse->y;
-
-                        // Build hit test path from root to target
+                        // Use hit_test_logical to preserve full precision of logical coordinates
                         hit_test_path<Backend> path;
-                        // Create absolute point for hit testing
-                        typename Backend::point_type pt;
-                        if constexpr (detail::has_member_x<typename Backend::point_type> &&
-                                      detail::has_member_y<typename Backend::point_type>) {
-                            pt.x = x;
-                            pt.y = y;
-                        } else {
-                            pt = typename Backend::point_type{x, y};
-                        }
-                        geometry::absolute_point<Backend> abs_pt{pt};
-                        element_type* target = root_ptr->hit_test(abs_pt, path);
+                        element_type* target = root_ptr->hit_test_logical(mouse->x, mouse->y, path);
 
                         // CRITICAL: Clear hover on previously hovered element within layers
                         // This fixes submenu items staying highlighted when mouse moves away.
@@ -741,9 +727,13 @@ namespace onyxui {
          * Automatically skips expired layers (safe lifetime tracking).
          * Theme must be explicitly passed to ensure popup menus/dialogs use correct styling.
          */
-        void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type* theme) {
+        void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type* theme,
+                               const backend_metrics<Backend>& metrics) {
             // Save viewport for workspace detection (Phase 4)
             m_viewport = viewport;
+
+            // Convert physical viewport to logical once at boundary (DPI-aware)
+            const logical_rect logical_viewport = metrics.physical_to_logical_rect(viewport);
 
             // Clean up expired layers first (automatic lifetime management)
             cleanup_expired_layers();
@@ -753,32 +743,27 @@ namespace onyxui {
                     continue;
                 }
 
-                // Position layer if needed
+                // Position layer if needed (entirely in logical space)
                 if (layer.needs_positioning) {
-                    position_layer(layer, viewport);
+                    position_layer(layer, logical_viewport);
                     layer.needs_positioning = false;
                 }
 
                 // Measure, arrange, and render using safe lifetime access
                 layer.with_root([&](element_type* root_ptr) {
-                    // Measure and arrange
-                    int const width = rect_utils::get_width(layer.bounds);
-                    int const height = rect_utils::get_height(layer.bounds);
+                    // Layer bounds are already in logical coordinates
+                    const logical_rect& logical_bounds = layer.bounds;
+
+                    // Measure with logical size
                     [[maybe_unused]] auto measured_size = root_ptr->measure(
-                        logical_unit(static_cast<double>(width)),
-                        logical_unit(static_cast<double>(height)));
+                        logical_bounds.width,
+                        logical_bounds.height);
 
-                    // Arrange with absolute coordinates (layer.bounds contains screen position)
-                    // Convert physical rect_type to logical_rect
-                    root_ptr->arrange(logical_rect{
-                        logical_unit(static_cast<double>(rect_utils::get_x(layer.bounds))),
-                        logical_unit(static_cast<double>(rect_utils::get_y(layer.bounds))),
-                        logical_unit(static_cast<double>(rect_utils::get_width(layer.bounds))),
-                        logical_unit(static_cast<double>(rect_utils::get_height(layer.bounds)))
-                    });
+                    // Arrange with logical coordinates
+                    root_ptr->arrange(logical_bounds);
 
-                    // Render with theme (for proper styling in menus, dialogs, etc.)
-                    root_ptr->render(renderer, theme);
+                    // Render with theme and metrics (converts to physical during rendering)
+                    root_ptr->render(renderer, theme, metrics);
                 });
             }
         }
@@ -865,7 +850,11 @@ namespace onyxui {
          * **Use case:** Menu switching - when menu A is replaced by menu B,
          * menu A's area needs to be redrawn to clear artifacts.
          */
-        [[nodiscard]] const std::vector<rect_type>& get_removed_layer_dirty_regions() const noexcept {
+        /**
+         * @brief Get bounds of removed layers for dirty region tracking
+         * @return Vector of logical bounds (caller converts to physical using metrics)
+         */
+        [[nodiscard]] const std::vector<logical_rect>& get_removed_layer_dirty_regions() const noexcept {
             return m_removed_layer_dirty_regions;
         }
 
@@ -937,9 +926,9 @@ namespace onyxui {
             bool modal = false;
             bool blocks_events = true;
 
-            // Positioning info
-            rect_type bounds;
-            rect_type anchor_bounds;
+            // Positioning info (all in logical coordinates)
+            logical_rect bounds;
+            logical_rect anchor_bounds;
             popup_placement placement = popup_placement::below;
             dialog_position dialog_pos = dialog_position::center;
             bool needs_positioning = false;
@@ -999,7 +988,7 @@ namespace onyxui {
         config m_config;
         std::vector<layer_data> m_layers;
         uint32_t m_next_id;
-        std::vector<rect_type> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (for dirty region tracking)
+        std::vector<logical_rect> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (logical, caller converts to physical)
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
         rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
         element_type* m_layer_hovered = nullptr;  ///< Currently hovered element within layers (for clearing stale hover)
@@ -1047,7 +1036,12 @@ namespace onyxui {
             );
         }
 
-        void position_layer(layer_data& layer, const rect_type& viewport) {
+        /**
+         * @brief Position a layer within the logical viewport
+         * @param layer Layer to position
+         * @param viewport Logical viewport bounds (already converted from physical)
+         */
+        void position_layer(layer_data& layer, const logical_rect& viewport) {
             if (layer.type == layer_type::modal) {
                 position_dialog(layer, viewport);
             } else if (layer.type == layer_type::popup || layer.type == layer_type::tooltip) {
@@ -1058,51 +1052,41 @@ namespace onyxui {
             }
         }
 
-        void position_dialog(layer_data& layer, const rect_type& viewport) {
+        /**
+         * @brief Center a dialog in the logical viewport
+         */
+        void position_dialog(layer_data& layer, const logical_rect& viewport) {
             // Use safe weak_ptr access for positioning
             layer.with_root([&](element_type* root_ptr) {
-                // Measure to get desired size
-                int const vp_width = rect_utils::get_width(viewport);
-                int const vp_height = rect_utils::get_height(viewport);
+                // Measure to get desired size in logical units
+                auto size = root_ptr->measure(viewport.width, viewport.height);
 
-                auto size = root_ptr->measure(
-                    logical_unit(static_cast<double>(vp_width)),
-                    logical_unit(static_cast<double>(vp_height)));
+                // Center in viewport (all in logical coordinates)
+                logical_unit const x = viewport.x + (viewport.width - size.width) / 2.0;
+                logical_unit const y = viewport.y + (viewport.height - size.height) / 2.0;
 
-                int const width = static_cast<int>(size.width.value);
-                int const height = static_cast<int>(size.height.value);
-
-                // Center in viewport
-                int const x = rect_utils::get_x(viewport) + ((vp_width - width) / 2);
-                int const y = rect_utils::get_y(viewport) + ((vp_height - height) / 2);
-
-                rect_utils::set_bounds(layer.bounds, x, y, width, height);
+                layer.bounds = logical_rect{x, y, size.width, size.height};
             });
         }
 
-        void position_popup(layer_data& layer, const rect_type& viewport) {
+        /**
+         * @brief Position a popup relative to its anchor in logical space
+         */
+        void position_popup(layer_data& layer, const logical_rect& viewport) {
             // Use safe weak_ptr access for positioning
             layer.with_root([&](element_type* root_ptr) {
-                // Measure to get desired size
-                int const vp_width = rect_utils::get_width(viewport);
-                int const vp_height = rect_utils::get_height(viewport);
+                // Measure to get desired size in logical units
+                auto size = root_ptr->measure(viewport.width, viewport.height);
 
-                auto size = root_ptr->measure(
-                    logical_unit(static_cast<double>(vp_width)),
-                    logical_unit(static_cast<double>(vp_height)));
-
-                int const width = static_cast<int>(size.width.value);
-                int const height = static_cast<int>(size.height.value);
-
-                // Get anchor position
-                int const anchor_x = rect_utils::get_x(layer.anchor_bounds);
-                int const anchor_y = rect_utils::get_y(layer.anchor_bounds);
-                int const anchor_w = rect_utils::get_width(layer.anchor_bounds);
-                int const anchor_h = rect_utils::get_height(layer.anchor_bounds);
+                // Get anchor position (already in logical coordinates)
+                logical_unit const anchor_x = layer.anchor_bounds.x;
+                logical_unit const anchor_y = layer.anchor_bounds.y;
+                logical_unit const anchor_w = layer.anchor_bounds.width;
+                logical_unit const anchor_h = layer.anchor_bounds.height;
 
                 // Calculate position based on placement
-                int x = anchor_x;
-                int y = anchor_y;
+                logical_unit x = anchor_x;
+                logical_unit y = anchor_y;
 
                 switch (layer.placement) {
                     case popup_placement::below:
@@ -1110,11 +1094,11 @@ namespace onyxui {
                         break;
 
                     case popup_placement::above:
-                        y = anchor_y - height;
+                        y = anchor_y - size.height;
                         break;
 
                     case popup_placement::left:
-                        x = anchor_x - width;
+                        x = anchor_x - size.width;
                         break;
 
                     case popup_placement::right:
@@ -1122,38 +1106,38 @@ namespace onyxui {
                         break;
 
                     case popup_placement::below_right:
-                        x = anchor_x + anchor_w - width;
+                        x = anchor_x + anchor_w - size.width;
                         y = anchor_y + anchor_h;
                         break;
 
                     case popup_placement::above_right:
-                        x = anchor_x + anchor_w - width;
-                        y = anchor_y - height;
+                        x = anchor_x + anchor_w - size.width;
+                        y = anchor_y - size.height;
                         break;
 
                     case popup_placement::auto_best:
                         // Try below first, then above, then right, then left
-                        if (anchor_y + anchor_h + height <= rect_utils::get_y(viewport) + vp_height) {
+                        if (anchor_y + anchor_h + size.height <= viewport.y + viewport.height) {
                             y = anchor_y + anchor_h;  // Below fits
-                        } else if (anchor_y - height >= rect_utils::get_y(viewport)) {
-                            y = anchor_y - height;  // Above fits
-                        } else if (anchor_x + anchor_w + width <= rect_utils::get_x(viewport) + vp_width) {
+                        } else if (anchor_y - size.height >= viewport.y) {
+                            y = anchor_y - size.height;  // Above fits
+                        } else if (anchor_x + anchor_w + size.width <= viewport.x + viewport.width) {
                             x = anchor_x + anchor_w;  // Right fits
                             y = anchor_y;
                         } else {
-                            x = anchor_x - width;  // Left
+                            x = anchor_x - size.width;  // Left
                             y = anchor_y;
                         }
                         break;
                 }
 
                 // Clamp to viewport
-                int const vp_x = rect_utils::get_x(viewport);
-                int const vp_y = rect_utils::get_y(viewport);
-                x = std::max(vp_x, std::min(x, vp_x + vp_width - width));
-                y = std::max(vp_y, std::min(y, vp_y + vp_height - height));
+                if (x < viewport.x) x = viewport.x;
+                if (x > viewport.x + viewport.width - size.width) x = viewport.x + viewport.width - size.width;
+                if (y < viewport.y) y = viewport.y;
+                if (y > viewport.y + viewport.height - size.height) y = viewport.y + viewport.height - size.height;
 
-                rect_utils::set_bounds(layer.bounds, x, y, width, height);
+                layer.bounds = logical_rect{x, y, size.width, size.height};
             });
         }
     };

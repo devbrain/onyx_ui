@@ -56,8 +56,8 @@ int sdlpp_backend::run_app(
             return 1;
         }
 
-        // Create UI context (registers themes, services)
-        scoped_ui_context<sdlpp_backend> ui_ctx;
+        // Create UI context with GUI metrics (1 logical unit = 8 pixels)
+        scoped_ui_context<sdlpp_backend> ui_ctx(make_gui_metrics<sdlpp_backend>());
 
         // Create widget
         auto widget = std::make_unique<Widget<sdlpp_backend>>();

@@ -435,7 +435,7 @@ TEST_CASE("Background Renderer - Copy and move semantics") {
 
 TEST_CASE("Background Renderer - ui_context integration") {
     SUBCASE("ui_services provides background_renderer instance") {
-        scoped_ui_context<mock_test_backend> ctx;
+        scoped_ui_context<mock_test_backend> ctx{make_terminal_metrics<mock_test_backend>()};
 
         auto* bg = ui_services<mock_test_backend>::background();
         REQUIRE(bg != nullptr);
@@ -445,7 +445,7 @@ TEST_CASE("Background Renderer - ui_context integration") {
     }
 
     SUBCASE("Can configure background through ui_services") {
-        scoped_ui_context<mock_test_backend> ctx;
+        scoped_ui_context<mock_test_backend> ctx{make_terminal_metrics<mock_test_backend>()};
 
         auto* bg = ui_services<mock_test_backend>::background();
         REQUIRE(bg != nullptr);
@@ -460,12 +460,12 @@ TEST_CASE("Background Renderer - ui_context integration") {
     }
 
     SUBCASE("Multiple contexts have independent backgrounds") {
-        scoped_ui_context<mock_test_backend> ctx1;
+        scoped_ui_context<mock_test_backend> ctx1{make_terminal_metrics<mock_test_backend>()};
         auto* bg1 = ui_services<mock_test_backend>::background();
         bg1->set_color({255, 0, 0});
 
         {
-            scoped_ui_context<mock_test_backend> ctx2;
+            scoped_ui_context<mock_test_backend> ctx2{make_terminal_metrics<mock_test_backend>()};
             auto* bg2 = ui_services<mock_test_backend>::background();
 
             // New context should have independent background

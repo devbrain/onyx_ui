@@ -6,6 +6,7 @@
 #include <sdlpp/image/image.hh>
 #include <onyx_font/text/utf8.hh>
 #include <cmath>
+#include <iostream>
 #include <stack>
 #include <unordered_map>
 #include <vector>
@@ -783,9 +784,30 @@ void sdlpp_renderer::draw_shadow(const rect& wb, int offset_x, int offset_y)
 
 void sdlpp_renderer::push_clip(const rect& r)
 {
-    m_pimpl->clip_stack.push(r);
+    // Calculate effective clip by intersecting with current clip
+    rect effective_clip = r;
+
+    if (!m_pimpl->clip_stack.empty()) {
+        const auto& current = m_pimpl->clip_stack.top();
+
+        // Intersect the new clip rect with the current one
+        int x1 = std::max(r.x, current.x);
+        int y1 = std::max(r.y, current.y);
+        int x2 = std::min(r.x + r.w, current.x + current.w);
+        int y2 = std::min(r.y + r.h, current.y + current.h);
+
+        // Ensure non-negative dimensions
+        effective_clip.x = x1;
+        effective_clip.y = y1;
+        effective_clip.w = std::max(0, x2 - x1);
+        effective_clip.h = std::max(0, y2 - y1);
+    }
+
+    m_pimpl->clip_stack.push(effective_clip);
     m_pimpl->renderer->set_clip_rect(
-        std::optional<::sdlpp::rect_i>{::sdlpp::rect_i(r.x, r.y, r.w, r.h)});
+        std::optional<::sdlpp::rect_i>{::sdlpp::rect_i(
+            effective_clip.x, effective_clip.y,
+            effective_clip.w, effective_clip.h)});
 }
 
 void sdlpp_renderer::pop_clip()
@@ -813,6 +835,16 @@ rect sdlpp_renderer::get_clip_rect() const
 
 rect sdlpp_renderer::get_viewport() const
 {
+    // Always query SDL for current output size to ensure accuracy
+    // This handles cases where the window was resized without an explicit resize event
+    if (auto size_result = m_pimpl->renderer->get_output_size<::sdlpp::size_i>()) {
+        // Update cache if different (viewport is just a cache that should reflect SDL state)
+        if (size_result->width != m_pimpl->viewport.w ||
+            size_result->height != m_pimpl->viewport.h) {
+            const_cast<impl*>(m_pimpl.get())->viewport = rect{0, 0, size_result->width, size_result->height};
+        }
+        return rect{0, 0, size_result->width, size_result->height};
+    }
     return m_pimpl->viewport;
 }
 

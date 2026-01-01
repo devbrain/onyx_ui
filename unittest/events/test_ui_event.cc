@@ -147,24 +147,24 @@ TEST_CASE("keyboard_event - Key press/release") {
 TEST_CASE("mouse_event - Button press") {
     SUBCASE("Left button press") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
         mouse.modifiers.ctrl = false;
         mouse.modifiers.alt = false;
         mouse.modifiers.shift = false;
 
-        CHECK(mouse.x == 10);
-        CHECK(mouse.y == 20);
+        CHECK(mouse.x == 10.0_lu);
+        CHECK(mouse.y == 20.0_lu);
         CHECK(mouse.btn == mouse_event::button::left);
         CHECK(mouse.act == mouse_event::action::press);
     }
 
     SUBCASE("Right button press") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::right;
         mouse.act = mouse_event::action::press;
 
@@ -174,8 +174,8 @@ TEST_CASE("mouse_event - Button press") {
 
     SUBCASE("Middle button press") {
         mouse_event mouse{};
-        mouse.x = 100;
-        mouse.y = 150;
+        mouse.x = 100.0_lu;
+        mouse.y = 150.0_lu;
         mouse.btn = mouse_event::button::middle;
         mouse.act = mouse_event::action::press;
 
@@ -186,8 +186,8 @@ TEST_CASE("mouse_event - Button press") {
 
 TEST_CASE("mouse_event - Button release") {
     mouse_event mouse{};
-    mouse.x = 10;
-    mouse.y = 20;
+    mouse.x = 10.0_lu;
+    mouse.y = 20.0_lu;
     mouse.btn = mouse_event::button::none;  // Unknown which button
     mouse.act = mouse_event::action::release;
 
@@ -197,13 +197,13 @@ TEST_CASE("mouse_event - Button release") {
 
 TEST_CASE("mouse_event - Mouse move") {
     mouse_event mouse{};
-    mouse.x = 100;
-    mouse.y = 150;
+    mouse.x = 100.0_lu;
+    mouse.y = 150.0_lu;
     mouse.btn = mouse_event::button::none;
     mouse.act = mouse_event::action::move;
 
-    CHECK(mouse.x == 100);
-    CHECK(mouse.y == 150);
+    CHECK(mouse.x == 100.0_lu);
+    CHECK(mouse.y == 150.0_lu);
     CHECK(mouse.btn == mouse_event::button::none);
     CHECK(mouse.act == mouse_event::action::move);
 }
@@ -211,8 +211,8 @@ TEST_CASE("mouse_event - Mouse move") {
 TEST_CASE("mouse_event - Mouse wheel") {
     SUBCASE("Wheel up") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::none;
         mouse.act = mouse_event::action::wheel_up;
 
@@ -221,8 +221,8 @@ TEST_CASE("mouse_event - Mouse wheel") {
 
     SUBCASE("Wheel down") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::none;
         mouse.act = mouse_event::action::wheel_down;
 
@@ -233,8 +233,8 @@ TEST_CASE("mouse_event - Mouse wheel") {
 TEST_CASE("mouse_event - Modifiers during mouse action") {
     SUBCASE("Ctrl+Click") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
         mouse.modifiers.ctrl = true;
@@ -249,8 +249,8 @@ TEST_CASE("mouse_event - Modifiers during mouse action") {
 
     SUBCASE("Shift+Click") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
         mouse.modifiers.ctrl = false;
@@ -303,8 +303,8 @@ TEST_CASE("ui_event - Variant holds keyboard_event") {
 
 TEST_CASE("ui_event - Variant holds mouse_event") {
     mouse_event mouse{};
-    mouse.x = 10;
-    mouse.y = 20;
+    mouse.x = 10.0_lu;
+    mouse.y = 20.0_lu;
     mouse.btn = mouse_event::button::left;
     mouse.act = mouse_event::action::press;
 
@@ -343,16 +343,16 @@ TEST_CASE("ui_event - std::get_if access pattern") {
 
     SUBCASE("Get mouse event") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::right;
 
         ui_event evt = mouse;
 
         auto* mouse_ptr = std::get_if<mouse_event>(&evt);
         REQUIRE(mouse_ptr != nullptr);
-        CHECK(mouse_ptr->x == 50);
-        CHECK(mouse_ptr->y == 60);
+        CHECK(mouse_ptr->x == 50.0_lu);
+        CHECK(mouse_ptr->y == 60.0_lu);
         CHECK(mouse_ptr->btn == mouse_event::button::right);
     }
 
@@ -391,8 +391,8 @@ TEST_CASE("ui_event - std::visit pattern") {
 
     SUBCASE("Visit mouse event") {
         mouse_event mouse{};
-        mouse.x = 100;
-        mouse.y = 150;
+        mouse.x = 100.0_lu;
+        mouse.y = 150.0_lu;
 
         ui_event evt = mouse;
 
@@ -401,8 +401,8 @@ TEST_CASE("ui_event - std::visit pattern") {
             using T = std::decay_t<decltype(e)>;
             if constexpr (std::is_same_v<T, mouse_event>) {
                 visited = true;
-                CHECK(e.x == 100);
-                CHECK(e.y == 150);
+                CHECK(e.x == 100.0_lu);
+                CHECK(e.y == 150.0_lu);
             }
         }, evt);
 

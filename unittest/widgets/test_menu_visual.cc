@@ -49,54 +49,62 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu renders with bo
     INFO("Menu rendered at (0, 0) with size ",
          measured_size.width.to_int(), "x", measured_size.height.to_int());
 
-    SUBCASE("First item renders at expected position") {
-        // NOTE: test_canvas doesn't render visible borders, only tracks bounds
-        // Menu items should start at row 1 (accounting for border offset)
-        std::string row1 = canvas->get_row(1);
-        INFO("Row 1 (first item): ", row1);
+    // Find row positions for each item (items may have vertical padding)
+    int new_row = -1, open_row = -1, save_row = -1;
+    for (int y = 0; y < 20; ++y) {
+        std::string row = canvas->get_row(y);
+        if (new_row == -1 && row.find("New") != std::string::npos) new_row = y;
+        if (open_row == -1 && row.find("Open") != std::string::npos) open_row = y;
+        if (save_row == -1 && row.find("Save") != std::string::npos) save_row = y;
+    }
 
-        // First item should contain "New" text
-        CHECK(row1.find("New") != std::string::npos);
+    SUBCASE("All items are rendered") {
+        INFO("New at row ", new_row, ", Open at row ", open_row, ", Save at row ", save_row);
+        CHECK(new_row != -1);
+        CHECK(open_row != -1);
+        CHECK(save_row != -1);
+    }
 
+    SUBCASE("First item renders inside border") {
         // Row 0 should NOT contain items (border area)
         std::string row0 = canvas->get_row(0);
         CHECK(row0.find("New") == std::string::npos);
+
+        // First item should be at row 1 or later (inside content area)
+        CHECK(new_row >= 1);
     }
 
     SUBCASE("Items are vertically stacked (no overlap)") {
-        std::string row1 = canvas->get_row(1);  // First item
-        std::string row2 = canvas->get_row(2);  // Second item
-        std::string row3 = canvas->get_row(3);  // Third item
+        INFO("New at row ", new_row, ", Open at row ", open_row, ", Save at row ", save_row);
 
-        INFO("Row 1: ", row1);
-        INFO("Row 2: ", row2);
-        INFO("Row 3: ", row3);
+        // Items should be in order
+        CHECK(new_row < open_row);
+        CHECK(open_row < save_row);
 
-        // Each row should have different content
-        CHECK(row1.find("New") != std::string::npos);
-        CHECK(row2.find("Open") != std::string::npos);
-        CHECK(row3.find("Save") != std::string::npos);
-
-        // Verify no overlap: "New" should only be on row 1
-        CHECK(row2.find("New") == std::string::npos);
-        CHECK(row3.find("New") == std::string::npos);
+        // Verify no overlap: each item text appears only on its row
+        if (new_row != -1) {
+            std::string new_row_str = canvas->get_row(new_row);
+            CHECK(new_row_str.find("Open") == std::string::npos);
+            CHECK(new_row_str.find("Save") == std::string::npos);
+        }
     }
 
     SUBCASE("Menu items positioned at correct X coordinate (inside left border)") {
-        std::string row1 = canvas->get_row(1);
+        REQUIRE(new_row != -1);
+        std::string row = canvas->get_row(new_row);
 
         // Find where "New" appears
-        size_t new_pos = row1.find("New");
+        size_t new_pos = row.find("New");
         REQUIRE(new_pos != std::string::npos);
 
         INFO("'New' found at column ", new_pos);
 
         // With menu at x=0, border at x=0, item should be at x=1 or later
-        // (inside the border, accounting for 1-pixel border)
+        // (inside the border, accounting for 1-pixel border + padding)
         CHECK(new_pos >= 1);
 
         // Should not be too far right (no excessive offset)
-        CHECK(new_pos <= 5);
+        CHECK(new_pos <= 10);
     }
 }
 
@@ -114,9 +122,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Menu with single ite
 
     INFO("Menu with single item");
 
-    // Item should be at row 1 (accounting for border offset)
-    std::string row1 = canvas->get_row(1);
-    CHECK(row1.find("File") != std::string::npos);
+    // Find where "File" is rendered (may have vertical padding)
+    int file_row = -1;
+    for (int y = 0; y < 10; ++y) {
+        std::string row = canvas->get_row(y);
+        if (row.find("File") != std::string::npos) {
+            file_row = y;
+            break;
+        }
+    }
+
+    // Item should be found somewhere
+    CHECK(file_row != -1);
+
+    // Item should be inside content area (not at row 0 which is border)
+    CHECK(file_row >= 1);
 
     // Row 0 should NOT contain items (border area)
     std::string row0 = canvas->get_row(0);

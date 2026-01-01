@@ -531,8 +531,8 @@ namespace onyxui::testing {
             // Canvas backend events are minimal - for testing, just convert any event to a simple mouse event
             // This allows layer_manager tests to work with the unified event API
             mouse_event evt{
-                .x = 10,
-                .y = 10,
+                .x = 10.0_lu,
+                .y = 10.0_lu,
                 .btn = mouse_event::button::left,
                 .act = mouse_event::action::press,
                 .modifiers = {}

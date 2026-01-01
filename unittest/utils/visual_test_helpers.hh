@@ -16,6 +16,7 @@
 #include "test_canvas_backend.hh"
 #include <../../include/onyxui/core/element.hh>
 #include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/core/backend_metrics.hh>
 #include <onyxui/ui_handle.hh>
 #include <memory>
 #include <string>
@@ -75,7 +76,7 @@ namespace onyxui::testing {
             if (!widget) return;
 
             // Create UI context for rendering
-            scoped_ui_context<Backend> ctx;
+            scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
             // Measure and arrange widget to fill canvas
             [[maybe_unused]] auto size = widget->measure(
@@ -93,7 +94,7 @@ namespace onyxui::testing {
             auto const* themes = ui_services<Backend>::themes();
             auto const* theme = themes ? themes->get_current_theme() : nullptr;
             if (theme) {
-                widget->render(renderer, theme);
+                widget->render(renderer, theme, make_terminal_metrics<Backend>());
             }
         }
 

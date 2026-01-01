@@ -69,6 +69,7 @@ namespace onyxui {
     template<UIBackend Backend> class theme_registry;
     template<UIBackend Backend> class background_renderer;
     template<UIBackend Backend> class window_manager;
+    template<UIBackend Backend> struct backend_metrics;
     class hotkey_scheme_registry;
 
     /**
@@ -349,6 +350,30 @@ namespace onyxui {
             return ctx ? &ctx->windows() : nullptr;
         }
 
+        /**
+         * @brief Get the backend metrics from current context
+         * @return Pointer to backend metrics, or nullptr if no context
+         *
+         * @details
+         * Backend metrics provide conversion between logical and physical coordinates.
+         *
+         * Returns nullptr if:
+         * - No context has been pushed
+         * - Context stack is empty
+         *
+         * Always check for nullptr before using:
+         * @code
+         * if (auto* m = ui_services<Backend>::metrics()) {
+         *     auto physical_rect = m->snap_rect(logical_bounds);
+         *     auto logical_size = m->physical_to_logical_size(physical_size);
+         * }
+         * @endcode
+         */
+        [[nodiscard]] static const backend_metrics<Backend>* metrics() noexcept {
+            auto* ctx = current();
+            return ctx ? &ctx->metrics() : nullptr;
+        }
+
         // ================================================================
         // Introspection / Debugging
         // ================================================================
@@ -381,7 +406,10 @@ namespace onyxui {
     // ================================================================
 
     template<UIBackend Backend>
-    scoped_ui_context<Backend>::scoped_ui_context() {
+    scoped_ui_context<Backend>::scoped_ui_context(metrics_type metrics)
+        : m_metrics(metrics)
+        , m_context(m_metrics)
+    {
         ui_services<Backend>::push_context(&m_context);
     }
 

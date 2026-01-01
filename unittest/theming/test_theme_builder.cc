@@ -38,7 +38,7 @@ TEST_CASE("theme_builder - from existing theme") {
 }
 
 TEST_CASE("theme_builder - extend from registry") {
-    scoped_ui_context<test_backend> ctx;
+    scoped_ui_context<test_backend> ctx{make_terminal_metrics<test_backend>()};
 
     auto base = theme_builder<test_backend>::create("Base", "Base theme")
         .with_palette(0x0000AA, 0xFFFFFF, 0xFFFF00)

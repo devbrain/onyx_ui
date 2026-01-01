@@ -218,6 +218,10 @@ namespace onyxui::conio {
             // Set submenu indicator icon (arrow_right for all themes)
             theme.menu_item.submenu_icon = conio_renderer::icon_style::folder;
 
+            // Menu item padding (character-based, not pixel-based)
+            theme.menu_item.padding_horizontal = 1;  // 1 character on each side
+            theme.menu_item.padding_vertical = 0;    // No vertical padding (flush)
+
             // ====================================================================
             // Scrollbar Configuration (Text UI defaults)
             // ====================================================================

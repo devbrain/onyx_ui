@@ -49,8 +49,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Viewpor
     // Verify content extends beyond viewport
     auto info = scroll.get_scroll_info();
     CHECK(scroll.children().size() == 1);
-    CHECK(size_utils::get_height(info.content_size) == 1000);
-    CHECK(size_utils::get_height(info.viewport_size) == 100);
+    CHECK(info.content_height == 1000);
+    CHECK(info.viewport_height == 100);
     CHECK(info.needs_vertical_scroll());
 }
 
@@ -75,10 +75,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Nested 
 
     // Inner should need scrolling
     auto inner_info = inner_ptr->get_scroll_info();
-    CHECK(size_utils::get_height(inner_info.content_size) == 600);
+    CHECK(inner_info.content_height == 600);
     // Inner viewport might be same as content if outer gave it enough space
     // This test just verifies nested scrollables work, not that both need scrolling
-    CHECK(size_utils::get_height(inner_info.viewport_size) <= 600);
+    CHECK(inner_info.viewport_height <= 600);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clipping with empty content") {
@@ -90,8 +90,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
 
     CHECK(scroll.children().empty());
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 0);
-    CHECK(size_utils::get_height(info.content_size) == 0);
+    CHECK(info.content_width == 0);
+    CHECK(info.content_height == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clipping with single large item") {
@@ -108,8 +108,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
     CHECK(scroll.children().size() == 1);
 
     auto info = scroll.get_scroll_info();
-    CHECK(size_utils::get_height(info.content_size) == 5000);
-    CHECK(size_utils::get_height(info.viewport_size) == 100);
+    CHECK(info.content_height == 5000);
+    CHECK(info.viewport_height == 100);
     CHECK(info.needs_vertical_scroll());
 }
 
@@ -125,13 +125,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Scroll 
     SUBCASE("Initial scroll position (top)") {
         scroll.scroll_to(0, 0);
         auto info = scroll.get_scroll_info();
-        CHECK(point_utils::get_y(info.scroll_offset) == 0);
+        CHECK(info.scroll_y == 0);
     }
 
     SUBCASE("Scrolled down") {
         scroll.scroll_to(0, 500);
         auto info = scroll.get_scroll_info();
-        CHECK(point_utils::get_y(info.scroll_offset) == 500);
+        CHECK(info.scroll_y == 500);
     }
 
     SUBCASE("Scrolled to bottom") {
@@ -139,7 +139,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Scroll 
         scroll.scroll_to(0, 5000);  // Try to scroll beyond
         auto info = scroll.get_scroll_info();
         // Should be clamped to max
-        CHECK(point_utils::get_y(info.scroll_offset) == 2900);
+        CHECK(info.scroll_y == 2900);
     }
 }
 
@@ -164,7 +164,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Clippin
 
     // Content height = sum of children + spacing gaps
     // 50 + 75 + 100 = 225, plus 2 gaps of spacing::medium (1 each) = 227
-    CHECK(size_utils::get_height(info.content_size) == 227);
-    CHECK(size_utils::get_height(info.viewport_size) == 100);
+    CHECK(info.content_height == 227);
+    CHECK(info.viewport_height == 100);
     CHECK(info.needs_vertical_scroll());
 }

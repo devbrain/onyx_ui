@@ -2,6 +2,7 @@
 #include "sdlpp_themes.hh"
 
 #include <sdlpp/events/events.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui::sdlpp {
 
@@ -98,6 +99,31 @@ bool g_quit_requested = false;
     return key_code::none;
 }
 
+/**
+ * @brief Convert physical pixel coordinates to logical units
+ * @param physical_x X coordinate in physical pixels
+ * @param physical_y Y coordinate in physical pixels
+ * @return Pair of logical_unit coordinates
+ *
+ * @details
+ * SDL provides mouse coordinates in physical screen pixels.
+ * Hit testing uses logical coordinates. This function converts
+ * using the backend metrics (1 logical unit = 8 pixels for SDL).
+ */
+[[nodiscard]] std::pair<logical_unit, logical_unit> pixels_to_logical(int physical_x, int physical_y) {
+    auto const* metrics = ui_services<sdlpp_backend>::metrics();
+    if (metrics) {
+        double const scale_x = metrics->logical_to_physical_x * metrics->dpi_scale;
+        double const scale_y = metrics->logical_to_physical_y * metrics->dpi_scale;
+        double const logical_x = (scale_x > 0) ? physical_x / scale_x : physical_x;
+        double const logical_y = (scale_y > 0) ? physical_y / scale_y : physical_y;
+        return {logical_unit(logical_x), logical_unit(logical_y)};
+    }
+    // Fallback: 1:1 mapping
+    return {logical_unit(static_cast<double>(physical_x)),
+            logical_unit(static_cast<double>(physical_y))};
+}
+
 } // anonymous namespace
 
 std::optional<ui_event> sdlpp_backend::create_event(
@@ -128,8 +154,10 @@ std::optional<ui_event> sdlpp_backend::create_event(
     // Handle mouse button events
     if (const auto* btn = native.as<::sdlpp::mouse_button_event>()) {
         mouse_event evt{};
-        evt.x = static_cast<int>(btn->x);
-        evt.y = static_cast<int>(btn->y);
+        // Convert physical pixels to logical units for hit testing
+        auto [logical_x, logical_y] = pixels_to_logical(btn->x, btn->y);
+        evt.x = logical_x;
+        evt.y = logical_y;
 
         auto mb = btn->get_button();
         if (mb == ::sdlpp::mouse_button::left) {
@@ -152,8 +180,10 @@ std::optional<ui_event> sdlpp_backend::create_event(
     // Handle mouse motion events
     if (const auto* motion = native.as<::sdlpp::mouse_motion_event>()) {
         mouse_event evt{};
-        evt.x = static_cast<int>(motion->x);
-        evt.y = static_cast<int>(motion->y);
+        // Convert physical pixels to logical units for hit testing
+        auto [logical_x, logical_y] = pixels_to_logical(motion->x, motion->y);
+        evt.x = logical_x;
+        evt.y = logical_y;
         evt.btn = mouse_event::button::none;
         evt.act = mouse_event::action::move;
         return ui_event{evt};
@@ -162,8 +192,10 @@ std::optional<ui_event> sdlpp_backend::create_event(
     // Handle mouse wheel events
     if (const auto* wheel = native.as<::sdlpp::mouse_wheel_event>()) {
         mouse_event evt{};
-        evt.x = static_cast<int>(wheel->mouse_x);
-        evt.y = static_cast<int>(wheel->mouse_y);
+        // Convert physical pixels to logical units for hit testing
+        auto [logical_x, logical_y] = pixels_to_logical(wheel->mouse_x, wheel->mouse_y);
+        evt.x = logical_x;
+        evt.y = logical_y;
         evt.btn = mouse_event::button::none;
 
         if (wheel->y > 0) {

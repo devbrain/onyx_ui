@@ -13,6 +13,7 @@
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/concepts/point_like.hh>
 #include <onyxui/utils/safe_math.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
     /**
@@ -332,6 +333,21 @@ namespace onyxui {
             if (m_has_content) {
                 int const width = m_max_right - m_min_x;
                 int const height = m_max_bottom - m_min_y;
+
+                // Convert from backend-native units (pixels for GUI, characters for terminal)
+                // to logical units using the metrics scale factors.
+                // For terminal backends: logical_to_physical = 1.0, so no change
+                // For GUI backends: logical_to_physical = 8.0, so divide by 8
+                auto const* metrics = ui_services<Backend>::metrics();
+                if (metrics) {
+                    double const scale_x = metrics->logical_to_physical_x * metrics->dpi_scale;
+                    double const scale_y = metrics->logical_to_physical_y * metrics->dpi_scale;
+                    double const logical_w = (scale_x > 0) ? width / scale_x : width;
+                    double const logical_h = (scale_y > 0) ? height / scale_y : height;
+                    return logical_size{logical_unit(logical_w), logical_unit(logical_h)};
+                }
+
+                // Fallback: no metrics (1:1 mapping, e.g., terminal backend)
                 return logical_size{logical_unit(static_cast<double>(width)),
                                    logical_unit(static_cast<double>(height))};
             } else {

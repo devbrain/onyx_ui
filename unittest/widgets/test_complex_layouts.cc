@@ -29,7 +29,7 @@ TEST_SUITE("Layout - Complex Scenarios") {
     using Backend = test_canvas_backend;
 
     struct test_fixture {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         test_fixture() {
             setup_theme();

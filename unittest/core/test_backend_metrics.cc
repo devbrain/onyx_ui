@@ -40,9 +40,9 @@ TEST_CASE("backend_metrics - Snap logical X to physical") {
         CHECK(metrics.snap_to_physical_x(10.5_lu, snap_mode::round) == 11);  // Round half up
     }
 
-    SUBCASE("No snapping (truncate)") {
-        CHECK(metrics.snap_to_physical_x(10.0_lu, snap_mode::none) == 10);
-        CHECK(metrics.snap_to_physical_x(10.7_lu, snap_mode::none) == 10);
+    SUBCASE("Truncate (towards zero)") {
+        CHECK(metrics.snap_to_physical_x(10.0_lu, snap_mode::truncate) == 10);
+        CHECK(metrics.snap_to_physical_x(10.7_lu, snap_mode::truncate) == 10);
     }
 }
 
@@ -74,7 +74,6 @@ TEST_CASE("backend_metrics - Terminal conversion (1:1 mapping)") {
     SUBCASE("Verify terminal metrics") {
         CHECK(metrics.logical_to_physical_x == 1.0);
         CHECK(metrics.logical_to_physical_y == 1.0);
-        CHECK(metrics.aspect_ratio == 0.5);  // Char cells ~8×16
         CHECK(metrics.dpi_scale == 1.0);
     }
 
@@ -129,7 +128,6 @@ TEST_CASE("backend_metrics - GUI conversion (8 pixels per logical unit)") {
     SUBCASE("Verify GUI metrics") {
         CHECK(metrics.logical_to_physical_x == 8.0);
         CHECK(metrics.logical_to_physical_y == 8.0);
-        CHECK(metrics.aspect_ratio == 1.0);  // Square pixels
         CHECK(metrics.dpi_scale == 1.0);
     }
 

@@ -291,7 +291,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
         layer_manager<Backend> mgr;
 
         auto popup = std::make_shared<TestElement>();
-        TestRect const anchor{100, 100, 50, 20};
+        logical_rect const anchor{100.0_lu, 100.0_lu, 50.0_lu, 20.0_lu};
 
         // Callback invocation tracking
         bool callback_invoked = false;
@@ -315,7 +315,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
         layer_manager<Backend> mgr;
 
         auto popup = std::make_shared<TestElement>();
-        TestRect const anchor{100, 100, 50, 20};
+        logical_rect const anchor{100.0_lu, 100.0_lu, 50.0_lu, 20.0_lu};
 
         // No callback provided (nullptr)
         layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below, nullptr);
@@ -334,7 +334,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
 
         auto popup1 = std::make_shared<TestElement>();
         auto popup2 = std::make_shared<TestElement>();
-        TestRect const anchor{100, 100, 50, 20};
+        logical_rect const anchor{100.0_lu, 100.0_lu, 50.0_lu, 20.0_lu};
 
         bool callback1_invoked = false;
         bool callback2_invoked = false;
@@ -362,7 +362,7 @@ TEST_SUITE("Layer Manager - Click Outside") {
 
         layer_manager<Backend> mgr;
         auto popup = std::make_shared<TestElement>();
-        TestRect const anchor{100, 100, 50, 20};
+        logical_rect const anchor{100.0_lu, 100.0_lu, 50.0_lu, 20.0_lu};
 
         // Verify callback can be passed through
         layer_id const id = mgr.show_popup(popup.get(), anchor, popup_placement::below,

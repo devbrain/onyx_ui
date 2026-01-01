@@ -211,7 +211,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Signals not emit
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Mouse click toggles unchecked to checked") {
     test_checkbox<Backend> cb;
 
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
 
     const bool handled = cb.handle_event(ui_event{mouse_evt}, event_phase::target);
@@ -223,7 +223,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Mouse click togg
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Mouse click toggles checked to unchecked") {
     test_checkbox<Backend> cb("Test", true);
 
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
 
     const bool handled = cb.handle_event(ui_event{mouse_evt}, event_phase::target);
@@ -252,7 +252,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "checkbox - Events ignored w
     cb.set_enabled(false);
 
     // Try mouse click
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
     cb.handle_event(ui_event{mouse_evt}, event_phase::target);
 

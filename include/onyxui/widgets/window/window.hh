@@ -212,8 +212,9 @@ namespace onyxui {
 
         /**
          * @brief Get normal (non-maximized) bounds for restore
+         * @return Bounds in logical coordinates
          */
-        [[nodiscard]] rect_type get_normal_bounds() const noexcept {
+        [[nodiscard]] logical_rect get_normal_bounds() const noexcept {
             return m_normal_bounds;
         }
 
@@ -451,8 +452,8 @@ namespace onyxui {
         bool handle_event(const ui_event& event, event_phase phase) override;
 
         // Resize helpers (protected for testing and subclass customization)
-        resize_handle get_resize_handle_at(int x, int y) const;
-        void apply_size_constraints(rect_type& bounds) const;
+        resize_handle get_resize_handle_at(double x, double y) const;
+        void apply_size_constraints(logical_rect& bounds) const;
 
         /**
          * @brief Hook called when window is closing (Phase 5)
@@ -476,21 +477,21 @@ namespace onyxui {
         std::string m_title;
         window_flags m_flags;
         window_state m_state = window_state::normal;
-        rect_type m_normal_bounds{};      // For restore from maximized
-        rect_type m_before_minimize{};    // For restore from minimized
+        logical_rect m_normal_bounds{};      // For restore from maximized (logical coordinates)
+        logical_rect m_before_minimize{};    // For restore from minimized (logical coordinates)
 
         // Phase 8: Focus state
         bool m_has_focus = false;
 
         // Phase 2: Drag state
-        rect_type m_drag_initial_bounds{};  // Window bounds when drag started
+        logical_rect m_drag_initial_bounds{};  // Window bounds when drag started (logical)
 
         // Phase 3: Resize state
         bool m_is_resizing = false;         // Currently resizing
         resize_handle m_resize_handle = resize_handle::none;  // Which handle is being dragged
-        rect_type m_resize_initial_bounds{};  // Window bounds when resize started
-        int m_resize_start_x = 0;           // Mouse X when resize started
-        int m_resize_start_y = 0;           // Mouse Y when resize started
+        logical_rect m_resize_initial_bounds{};  // Window bounds when resize started (logical)
+        logical_unit m_resize_start_x{};    // Mouse X when resize started (logical)
+        logical_unit m_resize_start_y{};    // Mouse Y when resize started (logical)
 
         // Phase 5: Layer manager integration
         layer_id m_layer_id{};              // Layer ID when shown in layer_manager

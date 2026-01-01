@@ -59,8 +59,8 @@ TEST_CASE("route_event() - Empty path") {
     hit_test_path<test_backend> path;
 
     mouse_event evt{
-        .x = 10,
-        .y = 10,
+        .x = 10.0_lu,
+        .y = 10.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -77,8 +77,8 @@ TEST_CASE("route_event() - Single element") {
     path.push(&root);
 
     mouse_event evt{
-        .x = 10,
-        .y = 10,
+        .x = 10.0_lu,
+        .y = 10.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -121,8 +121,8 @@ TEST_CASE("route_event() - Three-phase ordering with multiple elements") {
     path.push(&child2);
 
     mouse_event evt{
-        .x = 10,
-        .y = 10,
+        .x = 10.0_lu,
+        .y = 10.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -220,8 +220,8 @@ TEST_CASE("route_event() - Event consumption stops propagation") {
     path.push(&child2);
 
     mouse_event evt{
-        .x = 10,
-        .y = 10,
+        .x = 10.0_lu,
+        .y = 10.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -359,8 +359,8 @@ TEST_CASE("route_event() - Different event types") {
         child.reset();
 
         mouse_event wheel{
-            .x = 50,
-            .y = 50,
+            .x = 50.0_lu,
+            .y = 50.0_lu,
             .btn = mouse_event::button::none,
             .act = mouse_event::action::wheel_up,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -385,8 +385,8 @@ TEST_CASE("route_event_custom() - Custom phase order") {
     path.push(&child);
 
     mouse_event evt{
-        .x = 10,
-        .y = 10,
+        .x = 10.0_lu,
+        .y = 10.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}

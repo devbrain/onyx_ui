@@ -23,11 +23,11 @@ public:
     // Returns true if click was handled
     bool simulate_click_at(int x, int y) {
         // Simulate press
-        mouse_event press{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        mouse_event press{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
         this->handle_mouse(press);
 
         // Simulate release (generates click)
-        mouse_event release{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+        mouse_event release{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
         return this->handle_mouse(release);
     }
 };

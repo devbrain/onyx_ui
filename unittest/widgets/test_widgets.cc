@@ -66,12 +66,12 @@ TEST_CASE("Widget - Base widget functionality") {
         w.mouse_exited.connect([&]() { exit_count++; });
 
         // Trigger mouse enter by moving inside bounds
-        mouse_event enter{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        mouse_event enter{.x = 50.0_lu, .y = 25.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
         w.handle_event(ui_event{enter}, event_phase::target);
         CHECK(enter_count == 1);
 
         // Trigger mouse exit by moving outside bounds
-        mouse_event exit{.x = 200, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        mouse_event exit{.x = 200.0_lu, .y = 25.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
         w.handle_event(ui_event{exit}, event_phase::target);
         CHECK(exit_count == 1);
     }

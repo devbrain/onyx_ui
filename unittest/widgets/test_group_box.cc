@@ -110,7 +110,7 @@ TEST_SUITE("group_box") {
         // Setup ui_context with theme for measurement
         ui_theme<Backend> theme;
         theme.name = "Test";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test");
 

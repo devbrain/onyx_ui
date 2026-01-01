@@ -297,30 +297,44 @@ namespace onyxui::yaml {
                 }
                 // Format 3: Object {r: R, g: G, b: B, a: A (optional)}
                 else if (node.is_mapping()) {
-                    // Use exception-based field access instead of deprecated contains()
-                    try {
-                        r = static_cast<uint8_t>(node["r"].get_value<int>());
-                        g = static_cast<uint8_t>(node["g"].get_value<int>());
-                        b = static_cast<uint8_t>(node["b"].get_value<int>());
-                        // Check if alpha is present
-                        try {
-                            uint8_t alpha = static_cast<uint8_t>(node["a"].get_value<int>());
-                            if constexpr (requires { T{r, g, b, alpha}; }) {
-                                return T{r, g, b, alpha};  // RGBA color
-                            } else {
-                                // RGB-only color, ignore alpha channel
-                                return T{r, g, b};
-                            }
-                        } catch (...) {
-                            // No alpha present
-                            if constexpr (requires { T{r, g, b}; }) {
-                                return T{r, g, b};  // RGB color
-                            } else {
-                                return T{r, g, b, a};  // RGBA color with default alpha
+                    // Check for required fields using iterator-based lookup
+                    // fkYAML's operator[] creates missing keys, so we must validate first
+                    auto has_key = [&node](const char* key) {
+                        for (auto it = node.begin(); it != node.end(); ++it) {
+                            if (it.key().get_value<std::string>() == key) {
+                                return true;
                             }
                         }
-                    } catch (const std::exception&) {
+                        return false;
+                    };
+
+                    if (!has_key("r") || !has_key("g") || !has_key("b")) {
                         throw std::runtime_error("Color object must have r, g, b fields (a is optional)");
+                    }
+
+                    // Now safe to access fields (we know they exist)
+                    // Use const_cast to get const node for read access without modification
+                    const auto& const_node = node;
+                    r = static_cast<uint8_t>(const_node.at("r").get_value<int>());
+                    g = static_cast<uint8_t>(const_node.at("g").get_value<int>());
+                    b = static_cast<uint8_t>(const_node.at("b").get_value<int>());
+
+                    // Check if alpha is present (optional)
+                    if (has_key("a")) {
+                        uint8_t alpha = static_cast<uint8_t>(const_node.at("a").get_value<int>());
+                        if constexpr (requires { T{r, g, b, alpha}; }) {
+                            return T{r, g, b, alpha};  // RGBA color
+                        } else {
+                            // RGB-only color, ignore alpha channel
+                            return T{r, g, b};
+                        }
+                    } else {
+                        // No alpha present
+                        if constexpr (requires { T{r, g, b}; }) {
+                            return T{r, g, b};  // RGB color
+                        } else {
+                            return T{r, g, b, a};  // RGBA color with default alpha
+                        }
                     }
                 }
                 else {

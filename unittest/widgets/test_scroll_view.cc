@@ -90,7 +90,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Scroll
 
     // Verify scrollbar synced
     auto const info = view.vertical_scrollbar()->get_scroll_info();
-    CHECK(point_utils::get_y(info.scroll_offset) == 50);
+    CHECK(info.scroll_y == 50);
 }
 
 // =============================================================================
@@ -353,7 +353,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Comple
 
     // Verify scrollbar updated
     auto const scrollbar_info = view.vertical_scrollbar()->get_scroll_info();
-    CHECK(point_utils::get_y(scrollbar_info.scroll_offset) == 50);
+    CHECK(scrollbar_info.scroll_y == 50);
 
     // Simulate scrollbar drag
     view.vertical_scrollbar()->scroll_requested.emit(100);

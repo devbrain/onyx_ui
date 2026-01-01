@@ -268,7 +268,7 @@ namespace onyxui {
 
             scrollbar_style const style = theme->scrollbar.style;
 
-            // Calculate component layout (returns RELATIVE coordinates)
+            // Calculate component layout (returns RELATIVE logical coordinates)
             auto const layout = calculate_layout(style);
 
             // Calculate thumb bounds for legacy API compatibility (using old method)
@@ -277,28 +277,13 @@ namespace onyxui {
 
             // Arrange children at calculated positions
             // Note: arrange() expects RELATIVE bounds (which calculate_layout provides)
-            // Convert backend rect_type to logical_rect
-            m_thumb->arrange(logical_rect{
-                logical_unit(static_cast<double>(rect_utils::get_x(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_y(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_width(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_height(layout.thumb)))
-            });
+            // Layout is now in logical_rect - can pass directly
+            m_thumb->arrange(layout.thumb);
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(logical_rect{
-                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_decrement)))
-                });
-                m_arrow_inc->arrange(logical_rect{
-                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_increment)))
-                });
+                m_arrow_dec->arrange(layout.arrow_decrement);
+                m_arrow_inc->arrange(layout.arrow_increment);
 
                 // Make arrows visible
                 m_arrow_dec->set_visible(true);
@@ -338,55 +323,55 @@ namespace onyxui {
                         scrollbar_style const style = theme->scrollbar.style;
                         auto const layout = calculate_layout(style);
 
-                        // Convert to scrollbar-relative coordinates
-                        auto const abs_bounds = this->get_absolute_bounds();
-                        int const rel_x = mouse->x - abs_bounds.x();
-                        int const rel_y = mouse->y - abs_bounds.y();
-                        point_type const rel_point{rel_x, rel_y};
+                        // Convert to scrollbar-relative logical coordinates
+                        auto const abs_bounds = this->get_absolute_logical_bounds();
+                        double const rel_x = mouse->x.value - abs_bounds.x.value;
+                        double const rel_y = mouse->y.value - abs_bounds.y.value;
 
                         if (mouse->act == mouse_event::action::press) {
-                            // Check if press is on arrow first
-                            if (handle_arrow_click(mouse->x, mouse->y)) {
+                            // Check if press is on arrow first (pass logical coordinates directly)
+                            if (handle_arrow_click(mouse->x.value, mouse->y.value)) {
                                 return true;
                             }
 
                             // Check if press is on track (including thumb area)
-                            if (point_in_rect(rel_point, layout.track)) {
-                                // Calculate scroll position based on click location
-                                int const track_start = (m_orientation == orientation::vertical)
-                                    ? rect_utils::get_y(layout.track)
-                                    : rect_utils::get_x(layout.track);
-                                int const track_size = (m_orientation == orientation::vertical)
-                                    ? rect_utils::get_height(layout.track)
-                                    : rect_utils::get_width(layout.track);
-                                int const thumb_size = (m_orientation == orientation::vertical)
-                                    ? rect_utils::get_height(layout.thumb)
-                                    : rect_utils::get_width(layout.thumb);
-                                int const click_pos = (m_orientation == orientation::vertical)
+                            if (point_in_logical_rect(rel_x, rel_y, layout.track)) {
+                                // Calculate scroll position based on click location (all in logical)
+                                double const track_start = (m_orientation == orientation::vertical)
+                                    ? layout.track.y.value
+                                    : layout.track.x.value;
+                                double const track_size = (m_orientation == orientation::vertical)
+                                    ? layout.track.height.value
+                                    : layout.track.width.value;
+                                double const thumb_size = (m_orientation == orientation::vertical)
+                                    ? layout.thumb.height.value
+                                    : layout.thumb.width.value;
+                                double const click_pos = (m_orientation == orientation::vertical)
                                     ? rel_y : rel_x;
 
-                                int const content_size = (m_orientation == orientation::vertical)
-                                    ? size_utils::get_height(m_scroll_info.content_size)
-                                    : size_utils::get_width(m_scroll_info.content_size);
-                                int const viewport_size = (m_orientation == orientation::vertical)
-                                    ? size_utils::get_height(m_scroll_info.viewport_size)
-                                    : size_utils::get_width(m_scroll_info.viewport_size);
+                                // Content/viewport now use logical units (double)
+                                double const content_size = (m_orientation == orientation::vertical)
+                                    ? m_scroll_info.content_height
+                                    : m_scroll_info.content_width;
+                                double const viewport_size = (m_orientation == orientation::vertical)
+                                    ? m_scroll_info.viewport_height
+                                    : m_scroll_info.viewport_width;
 
-                                int const max_scroll = content_size - viewport_size;
-                                int const max_thumb_travel = track_size - thumb_size;
+                                double const max_scroll = content_size - viewport_size;
+                                double const max_thumb_travel = track_size - thumb_size;
 
-                                if (max_thumb_travel > 0 && max_scroll > 0) {
+                                if (max_thumb_travel > 0.0 && max_scroll > 0.0) {
                                     // Center thumb on click position
-                                    int const thumb_center_offset = click_pos - track_start - (thumb_size / 2);
-                                    int const clamped_offset = std::clamp(thumb_center_offset, 0, max_thumb_travel);
-                                    int const new_scroll = (clamped_offset * max_scroll) / max_thumb_travel;
+                                    double const thumb_center_offset = click_pos - track_start - (thumb_size / 2.0);
+                                    double const clamped_offset = std::clamp(thumb_center_offset, 0.0, max_thumb_travel);
+                                    int const new_scroll = static_cast<int>((clamped_offset * max_scroll) / max_thumb_travel);
 
                                     scroll_requested.emit(new_scroll);
 
-                                    // Start dragging from new position
+                                    // Start dragging from new position (use logical coordinates)
                                     m_dragging = true;
-                                    m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse->y : mouse->x;
-                                    m_drag_start_scroll = new_scroll;
+                                    m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse->y.value : mouse->x.value;
+                                    m_drag_start_scroll = static_cast<double>(new_scroll);
 
                                     m_thumb->set_state(thumb_state::pressed);
 
@@ -414,29 +399,35 @@ namespace onyxui {
                             scrollbar_style const style = theme->scrollbar.style;
                             auto const layout = calculate_layout(style);
 
-                            int const mouse_pos = (m_orientation == orientation::vertical) ? mouse->y : mouse->x;
-                            int const mouse_delta = mouse_pos - m_drag_start_mouse;
+                            // Use logical coordinates for mouse position
+                            double const mouse_pos = (m_orientation == orientation::vertical)
+                                ? mouse->y.value : mouse->x.value;
+                            double const mouse_delta = mouse_pos - m_drag_start_mouse;
 
-                            int const content_size = (m_orientation == orientation::vertical)
-                                ? size_utils::get_height(m_scroll_info.content_size)
-                                : size_utils::get_width(m_scroll_info.content_size);
-                            int const viewport_size = (m_orientation == orientation::vertical)
-                                ? size_utils::get_height(m_scroll_info.viewport_size)
-                                : size_utils::get_width(m_scroll_info.viewport_size);
+                            // Content/viewport now use logical units (double)
+                            double const content_size = (m_orientation == orientation::vertical)
+                                ? m_scroll_info.content_height
+                                : m_scroll_info.content_width;
+                            double const viewport_size = (m_orientation == orientation::vertical)
+                                ? m_scroll_info.viewport_height
+                                : m_scroll_info.viewport_width;
 
-                            int const track_size = (m_orientation == orientation::vertical)
-                                ? rect_utils::get_height(layout.track)
-                                : rect_utils::get_width(layout.track);
-                            int const thumb_size = (m_orientation == orientation::vertical)
-                                ? rect_utils::get_height(layout.thumb)
-                                : rect_utils::get_width(layout.thumb);
+                            // Layout is now in logical coordinates
+                            double const track_size = (m_orientation == orientation::vertical)
+                                ? layout.track.height.value
+                                : layout.track.width.value;
+                            double const thumb_size = (m_orientation == orientation::vertical)
+                                ? layout.thumb.height.value
+                                : layout.thumb.width.value;
 
-                            int const max_scroll = content_size - viewport_size;
-                            int const max_thumb_travel = track_size - thumb_size;
+                            double const max_scroll = content_size - viewport_size;
+                            double const max_thumb_travel = track_size - thumb_size;
 
-                            if (max_thumb_travel > 0 && max_scroll > 0) {
-                                int const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
-                                int const new_scroll = std::clamp(m_drag_start_scroll + scroll_delta, 0, max_scroll);
+                            if (max_thumb_travel > 0.0 && max_scroll > 0.0) {
+                                double const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                                int const new_scroll = std::clamp(
+                                    static_cast<int>(m_drag_start_scroll + scroll_delta),
+                                    0, static_cast<int>(max_scroll));
                                 scroll_requested.emit(new_scroll);
                             }
                         }
@@ -468,7 +459,7 @@ namespace onyxui {
          *
          * @note Called from both handle_click (tests) and handle_event (CAPTURE phase)
          */
-        bool handle_arrow_click(int x, int y) {
+        bool handle_arrow_click(double x, double y) {
             // Get theme to determine scrollbar style
             auto const* themes = ui_services<Backend>::themes();
             if (!themes) {
@@ -482,43 +473,40 @@ namespace onyxui {
 
             scrollbar_style const style = theme->scrollbar.style;
 
-            // Calculate layout to get arrow button bounds
+            // Calculate layout to get arrow button bounds (now in logical coordinates)
             auto const layout = calculate_layout(style);
 
-            // Use systematic API to get absolute bounds
-            rect_type const abs_bounds = this->get_absolute_bounds().get();
-            int const abs_x = rect_utils::get_x(abs_bounds);
-            int const abs_y = rect_utils::get_y(abs_bounds);
+            // Use logical bounds to get absolute position
+            auto const abs_bounds = this->get_absolute_logical_bounds();
 
-            // Convert absolute click coords to scrollbar-relative coords
-            int const rel_x = x - abs_x;
-            int const rel_y = y - abs_y;
-            point_type const rel_point{rel_x, rel_y};
+            // Convert absolute click coords to scrollbar-relative coords (in logical units)
+            double const rel_x = x - abs_bounds.x.value;
+            double const rel_y = y - abs_bounds.y.value;
 
             // Check if click is in decrement arrow
-            if (layout.has_arrows() && point_in_rect(rel_point, layout.arrow_decrement)) {
+            if (layout.has_arrows() && point_in_logical_rect(rel_x, rel_y, layout.arrow_decrement)) {
                 // CRITICAL FIX: scroll_requested expects ABSOLUTE position, not delta!
                 // Get current scroll position and adjust it
                 int const line_increment = theme->scrollbar.line_increment;
-                int current_pos = m_orientation == orientation::vertical
-                    ? point_utils::get_y(m_scroll_info.scroll_offset)
-                    : point_utils::get_x(m_scroll_info.scroll_offset);
+                double current_pos = m_orientation == orientation::vertical
+                    ? m_scroll_info.scroll_y
+                    : m_scroll_info.scroll_x;
 
-                int new_pos = current_pos - line_increment;  // Decrement
+                int new_pos = static_cast<int>(current_pos) - line_increment;  // Decrement
                 scroll_requested.emit(new_pos);
                 return true;
             }
 
             // Check if click is in increment arrow
-            if (layout.has_arrows() && point_in_rect(rel_point, layout.arrow_increment)) {
+            if (layout.has_arrows() && point_in_logical_rect(rel_x, rel_y, layout.arrow_increment)) {
                 // CRITICAL FIX: scroll_requested expects ABSOLUTE position, not delta!
                 // Get current scroll position and adjust it
                 int const line_increment = theme->scrollbar.line_increment;
-                int current_pos = m_orientation == orientation::vertical
-                    ? point_utils::get_y(m_scroll_info.scroll_offset)
-                    : point_utils::get_x(m_scroll_info.scroll_offset);
+                double current_pos = m_orientation == orientation::vertical
+                    ? m_scroll_info.scroll_y
+                    : m_scroll_info.scroll_x;
 
-                int new_pos = current_pos + line_increment;  // Increment
+                int new_pos = static_cast<int>(current_pos) + line_increment;  // Increment
                 scroll_requested.emit(new_pos);
                 return true;
             }
@@ -562,46 +550,49 @@ namespace onyxui {
             auto const layout = calculate_layout(style);
 
             // Convert absolute mouse coordinates to scrollbar-relative coordinates
-            // CRITICAL: Use get_absolute_bounds() since mouse.x/y are absolute screen coords
-            auto const abs_bounds = this->get_absolute_bounds();
-            int const abs_x = abs_bounds.x();
-            int const abs_y = abs_bounds.y();
-            int const rel_x = mouse.x - abs_x;
-            int const rel_y = mouse.y - abs_y;
-            point_type const rel_point{rel_x, rel_y};
+            // Use get_absolute_logical_bounds() to preserve precision
+            auto const abs_bounds = this->get_absolute_logical_bounds();
+            double const abs_x = abs_bounds.x.value;
+            double const abs_y = abs_bounds.y.value;
+            double const mouse_x = mouse.x.value;
+            double const mouse_y = mouse.y.value;
+            double const rel_x = mouse_x - abs_x;
+            double const rel_y = mouse_y - abs_y;
 
             // Dispatch based on action type
             switch (mouse.act) {
                 case mouse_event::action::move:
                     // Handle thumb dragging
                     if (m_dragging) {
-                        // Calculate new scroll position based on mouse movement
-                        int const mouse_pos = (m_orientation == orientation::vertical) ? mouse.y : mouse.x;
-                        int const mouse_delta = mouse_pos - m_drag_start_mouse;
+                        // Calculate new scroll position based on mouse movement (in logical coords)
+                        double const mouse_pos = (m_orientation == orientation::vertical) ? mouse_y : mouse_x;
+                        double const mouse_delta = mouse_pos - m_drag_start_mouse;
 
-                        // Get track size and content/viewport info
-                        int const content_size = (m_orientation == orientation::vertical)
-                            ? size_utils::get_height(m_scroll_info.content_size)
-                            : size_utils::get_width(m_scroll_info.content_size);
-                        int const viewport_size = (m_orientation == orientation::vertical)
-                            ? size_utils::get_height(m_scroll_info.viewport_size)
-                            : size_utils::get_width(m_scroll_info.viewport_size);
+                        // Get track size and content/viewport info (now use logical units directly)
+                        double const content_size = (m_orientation == orientation::vertical)
+                            ? m_scroll_info.content_height
+                            : m_scroll_info.content_width;
+                        double const viewport_size = (m_orientation == orientation::vertical)
+                            ? m_scroll_info.viewport_height
+                            : m_scroll_info.viewport_width;
 
-                        int const track_size = (m_orientation == orientation::vertical)
-                            ? rect_utils::get_height(layout.track)
-                            : rect_utils::get_width(layout.track);
-                        int const thumb_size = (m_orientation == orientation::vertical)
-                            ? rect_utils::get_height(layout.thumb)
-                            : rect_utils::get_width(layout.thumb);
+                        // Layout is now in logical coordinates
+                        double const track_size = (m_orientation == orientation::vertical)
+                            ? layout.track.height.value
+                            : layout.track.width.value;
+                        double const thumb_size = (m_orientation == orientation::vertical)
+                            ? layout.thumb.height.value
+                            : layout.thumb.width.value;
 
-                        int const max_scroll = content_size - viewport_size;
-                        int const max_thumb_travel = track_size - thumb_size;
+                        double const max_scroll = content_size - viewport_size;
+                        double const max_thumb_travel = track_size - thumb_size;
 
-                        if (max_thumb_travel > 0 && max_scroll > 0) {
-                            // Convert mouse delta to scroll delta
-                            // scroll_delta / max_scroll = mouse_delta / max_thumb_travel
-                            int const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
-                            int const new_scroll = std::clamp(m_drag_start_scroll + scroll_delta, 0, max_scroll);
+                        if (max_thumb_travel > 0.0 && max_scroll > 0.0) {
+                            // Convert mouse delta to scroll delta (mouse_delta is already double)
+                            double const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                            int const new_scroll = std::clamp(
+                                static_cast<int>(m_drag_start_scroll + scroll_delta),
+                                0, static_cast<int>(max_scroll));
 
                             scroll_requested.emit(new_scroll);
                         }
@@ -609,8 +600,8 @@ namespace onyxui {
                     }
 
                     if (now_hovered) {
-                        // Update thumb hover state
-                        if (point_in_rect(rel_point, layout.thumb)) {
+                        // Update thumb hover state (rel_x, rel_y are already double)
+                        if (point_in_logical_rect(rel_x, rel_y, layout.thumb)) {
                             if (m_thumb->get_state() != thumb_state::pressed) {
                                 m_thumb->set_state(thumb_state::hover);
                             }
@@ -620,8 +611,8 @@ namespace onyxui {
 
                         // Update arrow hover states
                         if (layout.has_arrows()) {
-                            bool const dec_hover = point_in_rect(rel_point, layout.arrow_decrement);
-                            bool const inc_hover = point_in_rect(rel_point, layout.arrow_increment);
+                            bool const dec_hover = point_in_logical_rect(rel_x, rel_y, layout.arrow_decrement);
+                            bool const inc_hover = point_in_logical_rect(rel_x, rel_y, layout.arrow_increment);
 
                             if (m_arrow_dec->get_state() != arrow_state::pressed) {
                                 m_arrow_dec->set_state(dec_hover ? arrow_state::hover : arrow_state::normal);
@@ -634,24 +625,24 @@ namespace onyxui {
                     break;
 
                 case mouse_event::action::press:
-                    // Update thumb pressed state and start dragging
-                    if (point_in_rect(rel_point, layout.thumb)) {
+                    // Update thumb pressed state and start dragging (rel_x, rel_y are double)
+                    if (point_in_logical_rect(rel_x, rel_y, layout.thumb)) {
                         m_thumb->set_state(thumb_state::pressed);
 
-                        // Start thumb dragging
+                        // Start thumb dragging (store logical coordinate)
                         m_dragging = true;
-                        m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse.y : mouse.x;
+                        m_drag_start_mouse = (m_orientation == orientation::vertical) ? mouse_y : mouse_x;
                         m_drag_start_scroll = (m_orientation == orientation::vertical)
-                            ? point_utils::get_y(m_scroll_info.scroll_offset)
-                            : point_utils::get_x(m_scroll_info.scroll_offset);
+                            ? m_scroll_info.scroll_y
+                            : m_scroll_info.scroll_x;
                     }
 
                     // Update arrow pressed states
                     if (layout.has_arrows()) {
-                        if (point_in_rect(rel_point, layout.arrow_decrement)) {
+                        if (point_in_logical_rect(rel_x, rel_y, layout.arrow_decrement)) {
                             m_arrow_dec->set_state(arrow_state::pressed);
                         }
-                        if (point_in_rect(rel_point, layout.arrow_increment)) {
+                        if (point_in_logical_rect(rel_x, rel_y, layout.arrow_increment)) {
                             m_arrow_inc->set_state(arrow_state::pressed);
                         }
                     }
@@ -676,7 +667,7 @@ namespace onyxui {
 
                     // Handle arrow clicks (release inside generates click)
                     if (handled) {  // Click was generated by base class
-                        handle_arrow_click(mouse.x, mouse.y);
+                        handle_arrow_click(mouse_x, mouse_y);
                     }
                     break;
 
@@ -719,32 +710,63 @@ namespace onyxui {
                 return;
             }
 
+            // Get physical position from render context
+            int const base_x = point_utils::get_x(ctx.position());
+            int const base_y = point_utils::get_y(ctx.position());
+
+            // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+            auto const logical_bounds = this->bounds();
+            auto const [width, height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
             // CRITICAL FIX: Don't render if scrollbar is too small
-            auto const bounds = this->bounds();
-            int const width = bounds.width.to_int();
-            int const height = bounds.height.to_int();
+            // min_render_size is in logical units, compare against logical bounds
+            int const logical_w = logical_bounds.width.to_int();
+            int const logical_h = logical_bounds.height.to_int();
             int const min_size = theme->scrollbar.min_render_size;
 
-            if (m_orientation == orientation::vertical && height < min_size) {
+            if (m_orientation == orientation::vertical && logical_h < min_size) {
                 return;
             }
-            if (m_orientation == orientation::horizontal && width < min_size) {
+            if (m_orientation == orientation::horizontal && logical_w < min_size) {
                 return;
             }
 
             scrollbar_style const style = theme->scrollbar.style;
-            auto const layout = calculate_layout(style);
 
-            // Convert track from relative to absolute coordinates
+            // Calculate track bounds in physical coordinates
+            // Track is the scrollbar bounds minus arrow space (for non-minimal styles)
             rect_type abs_track;
-            int const base_x = point_utils::get_x(ctx.position());
-            int const base_y = point_utils::get_y(ctx.position());
+            int const arrow_size_logical = theme->scrollbar.arrow_size;
 
-            rect_utils::set_bounds(abs_track,
-                base_x + rect_utils::get_x(layout.track),
-                base_y + rect_utils::get_y(layout.track),
-                rect_utils::get_width(layout.track),
-                rect_utils::get_height(layout.track));
+            // Calculate scale factor from logical to physical
+            double const scale_x = (logical_w > 0) ? static_cast<double>(width) / logical_w : 1.0;
+            double const scale_y = (logical_h > 0) ? static_cast<double>(height) / logical_h : 1.0;
+            int const arrow_size_phys = (m_orientation == orientation::horizontal)
+                ? static_cast<int>(arrow_size_logical * scale_x)
+                : static_cast<int>(arrow_size_logical * scale_y);
+
+            if (m_orientation == orientation::horizontal) {
+                if (style == scrollbar_style::minimal) {
+                    rect_utils::set_bounds(abs_track, base_x, base_y, width, height);
+                } else if (style == scrollbar_style::compact) {
+                    int const track_width = std::max(0, width - arrow_size_phys);
+                    rect_utils::set_bounds(abs_track, base_x, base_y, track_width, height);
+                } else { // classic
+                    int const track_width = std::max(0, width - 2 * arrow_size_phys);
+                    rect_utils::set_bounds(abs_track, base_x + arrow_size_phys, base_y, track_width, height);
+                }
+            } else {
+                if (style == scrollbar_style::minimal) {
+                    rect_utils::set_bounds(abs_track, base_x, base_y, width, height);
+                } else if (style == scrollbar_style::compact) {
+                    int const track_height = std::max(0, height - arrow_size_phys);
+                    rect_utils::set_bounds(abs_track, base_x, base_y, width, track_height);
+                } else { // classic
+                    int const track_height = std::max(0, height - 2 * arrow_size_phys);
+                    rect_utils::set_bounds(abs_track, base_x, base_y + arrow_size_phys, width, track_height);
+                }
+            }
 
             // Only draw track background - children render themselves!
             ctx.draw_rect(abs_track, theme->scrollbar.track_normal.box_style);
@@ -772,28 +794,42 @@ namespace onyxui {
         }
 
         /**
+         * @brief Check if a point (in logical units) is within a logical rectangle
+         * @param x Logical X coordinate
+         * @param y Logical Y coordinate
+         * @param rect Logical rectangle to check against
+         * @return true if point is inside rectangle
+         */
+        [[nodiscard]] static bool point_in_logical_rect(double x, double y, const logical_rect& rect) noexcept {
+            return x >= rect.x.value && x < rect.x.value + rect.width.value &&
+                   y >= rect.y.value && y < rect.y.value + rect.height.value;
+        }
+
+        /**
          * @struct scrollbar_layout
-         * @brief Layout information for scrollbar components
+         * @brief Layout information for scrollbar components (in logical coordinates)
          *
          * @details
          * Holds calculated rectangles for all scrollbar components based on style:
          * - minimal: Only track and thumb (no arrows)
          * - compact: Track, thumb, and arrows at one end
          * - classic: Track, thumb, and arrows at both ends
+         *
+         * All rectangles are in logical coordinates (DPI-independent).
          */
         struct scrollbar_layout {
-            rect_type track{};           ///< Background track rectangle
-            rect_type thumb{};           ///< Draggable thumb rectangle
-            rect_type arrow_decrement{}; ///< Up/Left arrow button (empty for minimal)
-            rect_type arrow_increment{}; ///< Down/Right arrow button (empty for minimal)
+            logical_rect track{};           ///< Background track rectangle (logical)
+            logical_rect thumb{};           ///< Draggable thumb rectangle (logical)
+            logical_rect arrow_decrement{}; ///< Up/Left arrow button (empty for minimal)
+            logical_rect arrow_increment{}; ///< Down/Right arrow button (empty for minimal)
 
             /**
              * @brief Check if layout has arrow buttons
              * @return true if arrows are present (non-zero size)
              */
             [[nodiscard]] bool has_arrows() const noexcept {
-                return rect_utils::get_width(arrow_decrement) > 0 ||
-                       rect_utils::get_height(arrow_decrement) > 0;
+                return arrow_decrement.width.value > 0 ||
+                       arrow_decrement.height.value > 0;
             }
         };
 
@@ -815,115 +851,119 @@ namespace onyxui {
             // CRITICAL FIX: Use (0,0) origin for layout - coordinates should be relative
             // to the scrollbar widget itself, NOT relative to parent grid!
             // do_render() will add ctx.position() to convert to absolute screen coords
-            int const x = 0;
-            int const y = 0;
-            int const w = bounds.width.to_int();
-            int const h = bounds.height.to_int();
+            logical_unit const x{0.0};
+            logical_unit const y{0.0};
+            logical_unit const w = bounds.width;
+            logical_unit const h = bounds.height;
 
-            int const content_w = size_utils::get_width(m_scroll_info.content_size);
-            int const content_h = size_utils::get_height(m_scroll_info.content_size);
-            int const viewport_w = size_utils::get_width(m_scroll_info.viewport_size);
-            int const viewport_h = size_utils::get_height(m_scroll_info.viewport_size);
-            int const scroll_x = point_utils::get_x(m_scroll_info.scroll_offset);
-            int const scroll_y = point_utils::get_y(m_scroll_info.scroll_offset);
+            // Scroll info values (now stored as logical units - double)
+            double const content_w = m_scroll_info.content_width;
+            double const content_h = m_scroll_info.content_height;
+            double const viewport_w = m_scroll_info.viewport_width;
+            double const viewport_h = m_scroll_info.viewport_height;
+            double const scroll_x = m_scroll_info.scroll_x;
+            double const scroll_y = m_scroll_info.scroll_y;
 
-            // Get dimensions from theme
+            // Get dimensions from theme (as logical units)
             auto const* themes = ui_services<Backend>::themes();
             auto const* theme = themes ? themes->get_current_theme() : nullptr;
 
-            int const min_thumb_size = theme ? theme->scrollbar.min_thumb_size : ui_constants::DEFAULT_SCROLLBAR_MIN_THUMB_SIZE;
-            int const arrow_size = theme ? theme->scrollbar.arrow_size : ui_constants::DEFAULT_SCROLLBAR_ARROW_SIZE;
+            logical_unit const min_thumb_size{static_cast<double>(
+                theme ? theme->scrollbar.min_thumb_size : ui_constants::DEFAULT_SCROLLBAR_MIN_THUMB_SIZE)};
+            logical_unit const arrow_size{static_cast<double>(
+                theme ? theme->scrollbar.arrow_size : ui_constants::DEFAULT_SCROLLBAR_ARROW_SIZE)};
 
             if (m_orientation == orientation::horizontal) {
                 // Horizontal scrollbar layout
 
                 if (style == scrollbar_style::minimal) {
                     // No arrows - track fills entire bounds
-                    rect_utils::set_bounds(layout.track, x, y, w, h);
+                    layout.track = logical_rect{x, y, w, h};
                 } else if (style == scrollbar_style::compact) {
                     // Arrows at right end only
-                    int const track_width = std::max(0, w - arrow_size);
-                    rect_utils::set_bounds(layout.arrow_decrement, x + w - arrow_size, y, arrow_size, h);
-                    rect_utils::set_bounds(layout.track, x, y, track_width, h);
+                    logical_unit const track_width = (w > arrow_size) ? (w - arrow_size) : 0.0_lu;
+                    layout.arrow_decrement = logical_rect{x + w - arrow_size, y, arrow_size, h};
+                    layout.track = logical_rect{x, y, track_width, h};
                 } else { // classic
                     // Arrows at both ends
-                    int const track_width = std::max(0, w - 2 * arrow_size);
-                    rect_utils::set_bounds(layout.arrow_decrement, x, y, arrow_size, h);
-                    rect_utils::set_bounds(layout.arrow_increment, x + w - arrow_size, y, arrow_size, h);
-                    rect_utils::set_bounds(layout.track, x + arrow_size, y, track_width, h);
+                    logical_unit const double_arrow = arrow_size + arrow_size;
+                    logical_unit const track_width = (w > double_arrow) ? (w - double_arrow) : 0.0_lu;
+                    layout.arrow_decrement = logical_rect{x, y, arrow_size, h};
+                    layout.arrow_increment = logical_rect{x + w - arrow_size, y, arrow_size, h};
+                    layout.track = logical_rect{x + arrow_size, y, track_width, h};
                 }
 
                 // Calculate thumb within track
-                int const track_x = rect_utils::get_x(layout.track);
-                int const track_w = rect_utils::get_width(layout.track);
+                logical_unit const track_x = layout.track.x;
+                double const track_w = layout.track.width.value;
 
-                if (content_w <= viewport_w || track_w == 0 || viewport_w == 0) {
+                if (content_w <= viewport_w || track_w <= 0.0 || viewport_w <= 0.0) {
                     // No scrolling needed - zero-sized thumb
-                    rect_utils::set_bounds(layout.thumb, track_x, y, 0, h);
+                    layout.thumb = logical_rect{track_x, y, 0.0_lu, h};
                 } else {
                     // Calculate proportional thumb size
-                    int thumb_length = std::max(min_thumb_size,
-                        static_cast<int>((static_cast<float>(viewport_w) / static_cast<float>(content_w)) * static_cast<float>(track_w)));
+                    double thumb_length = std::max(min_thumb_size.value,
+                        (viewport_w / content_w) * track_w);
                     thumb_length = std::min(thumb_length, track_w);
 
                     // Calculate thumb position
-                    int const max_scroll = content_w - viewport_w;
-                    int const max_thumb_pos = track_w - thumb_length;
-                    int thumb_pos = 0;
+                    double const max_scroll = content_w - viewport_w;
+                    double const max_thumb_pos = track_w - thumb_length;
+                    double thumb_pos = 0.0;
 
-                    if (max_scroll > 0) {
-                        int const clamped_scroll = std::clamp(scroll_x, 0, max_scroll);
-                        thumb_pos = static_cast<int>((static_cast<float>(clamped_scroll) / static_cast<float>(max_scroll)) * static_cast<float>(max_thumb_pos));
+                    if (max_scroll > 0.0) {
+                        double const clamped_scroll = std::clamp(scroll_x, 0.0, max_scroll);
+                        thumb_pos = (clamped_scroll / max_scroll) * max_thumb_pos;
                     }
 
-                    thumb_pos = std::clamp(thumb_pos, 0, max_thumb_pos);
-                    rect_utils::set_bounds(layout.thumb, track_x + thumb_pos, y, thumb_length, h);
+                    thumb_pos = std::clamp(thumb_pos, 0.0, max_thumb_pos);
+                    layout.thumb = logical_rect{track_x + logical_unit{thumb_pos}, y, logical_unit{thumb_length}, h};
                 }
             } else {
                 // Vertical scrollbar layout
-                // arrow_size already obtained from theme above
 
                 if (style == scrollbar_style::minimal) {
                     // No arrows - track fills entire bounds
-                    rect_utils::set_bounds(layout.track, x, y, w, h);
+                    layout.track = logical_rect{x, y, w, h};
                 } else if (style == scrollbar_style::compact) {
                     // Arrows at bottom end only
-                    int const track_height = std::max(0, h - arrow_size);
-                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - arrow_size, w, arrow_size);
-                    rect_utils::set_bounds(layout.track, x, y, w, track_height);
+                    logical_unit const track_height = (h > arrow_size) ? (h - arrow_size) : 0.0_lu;
+                    layout.arrow_increment = logical_rect{x, y + h - arrow_size, w, arrow_size};
+                    layout.track = logical_rect{x, y, w, track_height};
                 } else { // classic
                     // Arrows at both ends
-                    int const track_height = std::max(0, h - 2 * arrow_size);
-                    rect_utils::set_bounds(layout.arrow_decrement, x, y, w, arrow_size);
-                    rect_utils::set_bounds(layout.arrow_increment, x, y + h - arrow_size, w, arrow_size);
-                    rect_utils::set_bounds(layout.track, x, y + arrow_size, w, track_height);
+                    logical_unit const double_arrow = arrow_size + arrow_size;
+                    logical_unit const track_height = (h > double_arrow) ? (h - double_arrow) : 0.0_lu;
+                    layout.arrow_decrement = logical_rect{x, y, w, arrow_size};
+                    layout.arrow_increment = logical_rect{x, y + h - arrow_size, w, arrow_size};
+                    layout.track = logical_rect{x, y + arrow_size, w, track_height};
                 }
 
                 // Calculate thumb within track
-                int const track_y = rect_utils::get_y(layout.track);
-                int const track_h = rect_utils::get_height(layout.track);
+                logical_unit const track_y = layout.track.y;
+                double const track_h = layout.track.height.value;
 
-                if (content_h <= viewport_h || track_h == 0 || viewport_h == 0) {
+                if (content_h <= viewport_h || track_h <= 0.0 || viewport_h <= 0.0) {
                     // No scrolling needed - zero-sized thumb
-                    rect_utils::set_bounds(layout.thumb, x, track_y, w, 0);
+                    layout.thumb = logical_rect{x, track_y, w, 0.0_lu};
                 } else {
                     // Calculate proportional thumb size
-                    int thumb_length = std::max(min_thumb_size,
-                        static_cast<int>((static_cast<float>(viewport_h) / static_cast<float>(content_h)) * static_cast<float>(track_h)));
+                    double thumb_length = std::max(min_thumb_size.value,
+                        (viewport_h / content_h) * track_h);
                     thumb_length = std::min(thumb_length, track_h);
 
                     // Calculate thumb position
-                    int const max_scroll = content_h - viewport_h;
-                    int const max_thumb_pos = track_h - thumb_length;
-                    int thumb_pos = 0;
+                    double const max_scroll = content_h - viewport_h;
+                    double const max_thumb_pos = track_h - thumb_length;
+                    double thumb_pos = 0.0;
 
-                    if (max_scroll > 0) {
-                        int const clamped_scroll = std::clamp(scroll_y, 0, max_scroll);
-                        thumb_pos = static_cast<int>((static_cast<float>(clamped_scroll) / static_cast<float>(max_scroll)) * static_cast<float>(max_thumb_pos));
+                    if (max_scroll > 0.0) {
+                        double const clamped_scroll = std::clamp(scroll_y, 0.0, max_scroll);
+                        thumb_pos = (clamped_scroll / max_scroll) * max_thumb_pos;
                     }
 
-                    thumb_pos = std::clamp(thumb_pos, 0, max_thumb_pos);
-                    rect_utils::set_bounds(layout.thumb, x, track_y + thumb_pos, w, thumb_length);
+                    thumb_pos = std::clamp(thumb_pos, 0.0, max_thumb_pos);
+                    layout.thumb = logical_rect{x, track_y + logical_unit{thumb_pos}, w, logical_unit{thumb_length}};
                 }
             }
 
@@ -942,12 +982,13 @@ namespace onyxui {
             int const w = bounds.width.to_int();
             int const h = bounds.height.to_int();
 
-            int const content_w = size_utils::get_width(m_scroll_info.content_size);
-            int const content_h = size_utils::get_height(m_scroll_info.content_size);
-            int const viewport_w = size_utils::get_width(m_scroll_info.viewport_size);
-            int const viewport_h = size_utils::get_height(m_scroll_info.viewport_size);
-            int const scroll_x = point_utils::get_x(m_scroll_info.scroll_offset);
-            int const scroll_y = point_utils::get_y(m_scroll_info.scroll_offset);
+            // Use double for calculations, convert to int for final rect
+            double const content_w = m_scroll_info.content_width;
+            double const content_h = m_scroll_info.content_height;
+            double const viewport_w = m_scroll_info.viewport_width;
+            double const viewport_h = m_scroll_info.viewport_height;
+            double const scroll_x = m_scroll_info.scroll_x;
+            double const scroll_y = m_scroll_info.scroll_y;
 
             // Get min thumb size from theme
             auto const* themes = ui_services<Backend>::themes();
@@ -957,66 +998,66 @@ namespace onyxui {
 
             if (m_orientation == orientation::horizontal) {
                 // Horizontal scrollbar
-                int const track_length = w;  // Full width is track
+                double const track_length = static_cast<double>(w);  // Full width is track
 
-                if (content_w <= viewport_w || track_length == 0 || viewport_w == 0) {
+                if (content_w <= viewport_w || track_length <= 0.0 || viewport_w <= 0.0) {
                     // No scrolling needed, invalid track, or invalid viewport
                     return rect_type{x, y, 0, 0};  // Zero-sized thumb
                 }
 
                 // Calculate thumb size (proportional to viewport/content ratio)
-                int thumb_length = std::max(min_thumb_size,
-                    static_cast<int>((static_cast<float>(viewport_w) / static_cast<float>(content_w)) * static_cast<float>(track_length)));
+                double thumb_length = std::max(static_cast<double>(min_thumb_size),
+                    (viewport_w / content_w) * track_length);
 
                 // Clamp thumb to track
                 thumb_length = std::min(thumb_length, track_length);
 
                 // Calculate thumb position (proportional to scroll offset)
-                int const max_scroll = content_w - viewport_w;
-                int const max_thumb_pos = track_length - thumb_length;
+                double const max_scroll = content_w - viewport_w;
+                double const max_thumb_pos = track_length - thumb_length;
 
-                int thumb_pos = 0;
-                if (max_scroll > 0) {
+                double thumb_pos = 0.0;
+                if (max_scroll > 0.0) {
                     // Clamp scroll offset to valid range
-                    int const clamped_scroll = std::clamp(scroll_x, 0, max_scroll);
-                    thumb_pos = static_cast<int>((static_cast<float>(clamped_scroll) / static_cast<float>(max_scroll)) * static_cast<float>(max_thumb_pos));
+                    double const clamped_scroll = std::clamp(scroll_x, 0.0, max_scroll);
+                    thumb_pos = (clamped_scroll / max_scroll) * max_thumb_pos;
                 }
 
                 // Ensure thumb position stays within track bounds
-                thumb_pos = std::clamp(thumb_pos, 0, max_thumb_pos);
+                thumb_pos = std::clamp(thumb_pos, 0.0, max_thumb_pos);
 
-                return rect_type{x + thumb_pos, y, thumb_length, h};
+                return rect_type{x + static_cast<int>(thumb_pos), y, static_cast<int>(thumb_length), h};
             } else {
                 // Vertical scrollbar
-                int const track_length = h;  // Full height is track
+                double const track_length = static_cast<double>(h);  // Full height is track
 
-                if (content_h <= viewport_h || track_length == 0 || viewport_h == 0) {
+                if (content_h <= viewport_h || track_length <= 0.0 || viewport_h <= 0.0) {
                     // No scrolling needed, invalid track, or invalid viewport
                     return rect_type{x, y, 0, 0};  // Zero-sized thumb
                 }
 
                 // Calculate thumb size (proportional to viewport/content ratio)
-                int thumb_length = std::max(min_thumb_size,
-                    static_cast<int>((static_cast<float>(viewport_h) / static_cast<float>(content_h)) * static_cast<float>(track_length)));
+                double thumb_length = std::max(static_cast<double>(min_thumb_size),
+                    (viewport_h / content_h) * track_length);
 
                 // Clamp thumb to track
                 thumb_length = std::min(thumb_length, track_length);
 
                 // Calculate thumb position (proportional to scroll offset)
-                int const max_scroll = content_h - viewport_h;
-                int const max_thumb_pos = track_length - thumb_length;
+                double const max_scroll = content_h - viewport_h;
+                double const max_thumb_pos = track_length - thumb_length;
 
-                int thumb_pos = 0;
-                if (max_scroll > 0) {
+                double thumb_pos = 0.0;
+                if (max_scroll > 0.0) {
                     // Clamp scroll offset to valid range
-                    int const clamped_scroll = std::clamp(scroll_y, 0, max_scroll);
-                    thumb_pos = static_cast<int>((static_cast<float>(clamped_scroll) / static_cast<float>(max_scroll)) * static_cast<float>(max_thumb_pos));
+                    double const clamped_scroll = std::clamp(scroll_y, 0.0, max_scroll);
+                    thumb_pos = (clamped_scroll / max_scroll) * max_thumb_pos;
                 }
 
                 // Ensure thumb position stays within track bounds
-                thumb_pos = std::clamp(thumb_pos, 0, max_thumb_pos);
+                thumb_pos = std::clamp(thumb_pos, 0.0, max_thumb_pos);
 
-                return rect_type{x, y + thumb_pos, w, thumb_length};
+                return rect_type{x, y + static_cast<int>(thumb_pos), w, static_cast<int>(thumb_length)};
             }
         }
 
@@ -1035,35 +1076,20 @@ namespace onyxui {
 
             scrollbar_style const style = theme->scrollbar.style;
 
-            // Calculate component layout (returns RELATIVE coordinates)
+            // Calculate component layout (returns RELATIVE logical coordinates)
             auto const layout = calculate_layout(style);
 
             // Update thumb bounds for legacy API compatibility
             m_thumb_bounds = calculate_thumb_bounds();
 
             // Arrange children at calculated positions
-            // Convert backend rect_type to logical_rect
-            m_thumb->arrange(logical_rect{
-                logical_unit(static_cast<double>(rect_utils::get_x(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_y(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_width(layout.thumb))),
-                logical_unit(static_cast<double>(rect_utils::get_height(layout.thumb)))
-            });
+            // Layout is now in logical_rect - can pass directly
+            m_thumb->arrange(layout.thumb);
 
             // Only arrange arrows if they have non-zero size
             if (layout.has_arrows()) {
-                m_arrow_dec->arrange(logical_rect{
-                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_decrement))),
-                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_decrement)))
-                });
-                m_arrow_inc->arrange(logical_rect{
-                    logical_unit(static_cast<double>(rect_utils::get_x(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_y(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_width(layout.arrow_increment))),
-                    logical_unit(static_cast<double>(rect_utils::get_height(layout.arrow_increment)))
-                });
+                m_arrow_dec->arrange(layout.arrow_decrement);
+                m_arrow_inc->arrange(layout.arrow_increment);
                 m_arrow_dec->set_visible(true);
                 m_arrow_inc->set_visible(true);
             } else {
@@ -1084,8 +1110,8 @@ namespace onyxui {
 
         // Drag state for thumb dragging
         bool m_dragging = false;           ///< True while thumb is being dragged
-        int m_drag_start_mouse = 0;        ///< Mouse position at drag start (x or y based on orientation)
-        int m_drag_start_scroll = 0;       ///< Scroll position at drag start
+        double m_drag_start_mouse = 0.0;   ///< Mouse position at drag start (logical, x or y based on orientation)
+        double m_drag_start_scroll = 0.0;  ///< Scroll position at drag start
     };
 
 } // namespace onyxui

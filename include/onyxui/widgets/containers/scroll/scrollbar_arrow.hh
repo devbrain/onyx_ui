@@ -135,22 +135,23 @@ namespace onyxui {
          * @param ctx Render context (measurement or drawing)
          */
         void do_render(render_context<Backend>& ctx) const override {
-            auto const bounds = this->bounds();
             auto const* theme = ctx.theme();
 
-            int const width = bounds.width.to_int();
-            int const height = bounds.height.to_int();
+            // Get physical position from render context
+            int const base_x = point_utils::get_x(ctx.position());
+            int const base_y = point_utils::get_y(ctx.position());
+
+            // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+            auto logical_bounds = this->bounds();
+            auto const [width, height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
             // Don't render if arrow has no size
             if (width <= 0 || height <= 0 || !theme) {
                 return;
             }
 
-            // Get absolute position for rendering
-            int const base_x = point_utils::get_x(ctx.position());
-            int const base_y = point_utils::get_y(ctx.position());
-
-            // Create absolute bounds for rendering
+            // Create absolute bounds for rendering (physical coordinates)
             rect_type abs_bounds;
             rect_utils::set_bounds(abs_bounds, base_x, base_y, width, height);
 

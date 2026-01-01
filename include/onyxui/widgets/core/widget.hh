@@ -113,7 +113,7 @@ namespace onyxui {
         signal<> double_clicked;                ///< Emitted on double-click
         signal<> mouse_entered;                 ///< Emitted when mouse enters widget
         signal<> mouse_exited;                  ///< Emitted when mouse leaves widget
-        signal<int, int> mouse_moved;           ///< Emitted with x, y when mouse moves
+        signal<logical_unit, logical_unit> mouse_moved;  ///< Emitted with x, y in logical units when mouse moves
         signal<> focus_gained;                  ///< Emitted when focus is gained
         signal<> focus_lost;                    ///< Emitted when focus is lost
         signal<bool> enabled_changed;           ///< Emitted when enabled state changes
@@ -294,9 +294,12 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            auto const logical = this->bounds();
-            int x = logical.x.to_int();
-            int y = logical.y.to_int() + logical.height.to_int();
+            // Use absolute logical bounds to get full-precision position
+            // bounds() returns relative coordinates; get_absolute_logical_bounds() returns
+            // the widget's position relative to UI root with full double precision
+            auto const abs_logical = this->get_absolute_logical_bounds();
+            logical_unit x = abs_logical.x;
+            logical_unit y = abs_logical.y + abs_logical.height;  // Position below widget
 
             return layers->show_tooltip(content, x, y);
         }
@@ -320,10 +323,8 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            auto const logical = this->bounds();
-            typename Backend::rect_type physical;
-            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
-            return layers->show_popup(content, physical, placement, std::move(outside_click_callback));
+            // Pass logical bounds directly - layer_manager handles all coordinate logic
+            return layers->show_popup(content, this->bounds(), placement, std::move(outside_click_callback));
         }
 
         /**
@@ -344,11 +345,9 @@ namespace onyxui {
             auto* layers = ui_services<Backend>::layers();
             if (!layers) return layer_id::invalid();
 
-            auto const logical = this->bounds();
-            typename Backend::rect_type physical;
-            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
             // Phase 1.3: Pass callback to emit menu's closing signal on outside click
-            return layers->show_popup(menu_content, physical, popup_placement::auto_best,
+            // Pass logical bounds directly - layer_manager handles all coordinate logic
+            return layers->show_popup(menu_content, this->bounds(), popup_placement::auto_best,
                 [menu_content]() {
                     if (menu_content) {
                         menu_content->closing.emit();

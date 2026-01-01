@@ -26,13 +26,19 @@ static void setup_scrollbar_with_content(
 
     scroll_info<test_canvas_backend> info;
     if (orient == orientation::vertical) {
-        info.content_size = {100, content_size};
-        info.viewport_size = {100, viewport_size};
-        info.scroll_offset = {0, scroll_offset};
+        info.content_width = 100.0;
+        info.content_height = static_cast<double>(content_size);
+        info.viewport_width = 100.0;
+        info.viewport_height = static_cast<double>(viewport_size);
+        info.scroll_x = 0.0;
+        info.scroll_y = static_cast<double>(scroll_offset);
     } else {
-        info.content_size = {content_size, 100};
-        info.viewport_size = {viewport_size, 100};
-        info.scroll_offset = {scroll_offset, 0};
+        info.content_width = static_cast<double>(content_size);
+        info.content_height = 100.0;
+        info.viewport_width = static_cast<double>(viewport_size);
+        info.viewport_height = 100.0;
+        info.scroll_x = static_cast<double>(scroll_offset);
+        info.scroll_y = 0.0;
     }
 
     sb.set_scroll_info(info);

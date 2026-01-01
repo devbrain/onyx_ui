@@ -26,9 +26,9 @@ class TestTarget : public event_target <test_backend> {
         }
 
         // Implement pure virtual is_inside() method
-        bool is_inside(int x, int y) const override {
+        bool is_inside(logical_unit x, logical_unit y) const override {
             // Simple test bounds: 0,0 to 100,100
-            return x >= 0 && x < 100 && y >= 0 && y < 100;
+            return x >= 0_lu && x < 100_lu && y >= 0_lu && y < 100_lu;
         }
 
         // Optional is_visible() for focus_manager's compile-time check

@@ -9,6 +9,7 @@
 #include <onyxui/widgets/utils/range_helpers.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/rendering/draw_context.hh>
+#include <onyxui/services/ui_services.hh>
 
 namespace onyxui {
 
@@ -282,18 +283,29 @@ public:
 protected:
     /**
      * @brief Calculate natural content size based on orientation
+     *
+     * @details Uses theme's bar_thickness for the cross-dimension (height for
+     * horizontal, width for vertical). Falls back to sensible defaults if
+     * theme is unavailable.
      */
     [[nodiscard]] logical_size get_content_size() const override {
-        // Progress bar has a default size based on orientation
-        constexpr double DEFAULT_HORIZONTAL_WIDTH = 100.0;
-        constexpr double DEFAULT_HORIZONTAL_HEIGHT = 1.0;
-        constexpr double DEFAULT_VERTICAL_WIDTH = 1.0;
-        constexpr double DEFAULT_VERTICAL_HEIGHT = 20.0;
+        // Default sizes in logical units
+        constexpr double DEFAULT_BAR_LENGTH = 20.0;       // Default length
+        constexpr double DEFAULT_BAR_THICKNESS = 2.0;     // Fallback thickness
+
+        // Try to get bar thickness from theme
+        double bar_thickness = DEFAULT_BAR_THICKNESS;
+        auto* themes = ui_services<Backend>::themes();
+        if (themes) {
+            if (auto* theme = themes->get_current_theme()) {
+                bar_thickness = theme->progress_bar.bar_thickness;
+            }
+        }
 
         if (m_orientation == progress_bar_orientation::horizontal) {
-            return logical_size{logical_unit(DEFAULT_HORIZONTAL_WIDTH), logical_unit(DEFAULT_HORIZONTAL_HEIGHT)};
+            return logical_size{logical_unit(DEFAULT_BAR_LENGTH), logical_unit(bar_thickness)};
         } else {
-            return logical_size{logical_unit(DEFAULT_VERTICAL_WIDTH), logical_unit(DEFAULT_VERTICAL_HEIGHT)};
+            return logical_size{logical_unit(bar_thickness), logical_unit(DEFAULT_BAR_LENGTH)};
         }
     }
 
@@ -311,14 +323,16 @@ protected:
         auto const& filled_color = theme->progress_bar.filled_color;
         auto const& empty_color = theme->progress_bar.empty_color;
 
-        // Get absolute position and size from bounds
+        // Get physical position from render context
         const auto& pos = ctx.position();
-        const auto& bounds = this->bounds();
 
         int const track_x = point_utils::get_x(pos);
         int const track_y = point_utils::get_y(pos);
-        int const track_w = bounds.width.to_int();
-        int const track_h = bounds.height.to_int();
+
+        // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+        auto logical_bounds = this->bounds();
+        auto const [track_w, track_h] = ctx.get_final_dims(
+            logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
         // Render based on orientation
         if (m_orientation == progress_bar_orientation::horizontal) {
@@ -347,21 +361,6 @@ private:
     mutable int m_animation_offset = 0;
 
     // ===== Helper Methods =====
-
-    /**
-     * @brief Convert icon enum to character string
-     * @param icon Icon style enum
-     * @return Single-character string representation
-     */
-    [[nodiscard]] static std::string icon_to_char(typename Backend::renderer_type::icon_style icon) {
-        using icon_type = typename Backend::renderer_type::icon_style;
-
-        switch (icon) {
-            case icon_type::progress_filled:  return "#";
-            case icon_type::progress_empty:   return ".";
-            default:                          return " ";
-        }
-    }
 
     /**
      * @brief Format text with placeholders
@@ -422,46 +421,29 @@ private:
         color_type const& filled_color,
         color_type const& empty_color
     ) const {
-        // Get icons from theme
-        auto* theme = ctx.theme();
-        if (!theme) {
-            return;
-        }
-
-        // Convert icons to character strings
-        std::string const filled_char = icon_to_char(theme->progress_bar.filled_icon);
-        std::string const empty_char = icon_to_char(theme->progress_bar.empty_icon);
-
-        typename Backend::renderer_type::font track_font{};
-
         if (m_indeterminate) {
             // Indeterminate mode: fill with empty color (animated in future)
-            for (int row = 0; row < height; ++row) {
-                std::string empty_str(static_cast<std::size_t>(width), empty_char[0]);
-                point_type const pos{x, y + row};
-                ctx.draw_text(empty_str, pos, track_font, empty_color);
-            }
+            rect_type empty_rect;
+            rect_utils::set_bounds(empty_rect, x, y, width, height);
+            ctx.fill_rect(empty_rect, empty_color);
         } else {
-            // Determinate mode: render filled portion
+            // Determinate mode: render filled and empty portions as rectangles
             int const fill_length = range_helpers::calculate_fill_length(
                 m_value, m_min, m_max, width
             );
 
-            // Render filled and empty portions
-            for (int row = 0; row < height; ++row) {
-                // Filled portion (left side)
-                if (fill_length > 0) {
-                    std::string filled_str(static_cast<std::size_t>(fill_length), filled_char[0]);
-                    point_type const filled_pos{x, y + row};
-                    ctx.draw_text(filled_str, filled_pos, track_font, filled_color);
-                }
+            // Filled portion (left side)
+            if (fill_length > 0) {
+                rect_type filled_rect;
+                rect_utils::set_bounds(filled_rect, x, y, fill_length, height);
+                ctx.fill_rect(filled_rect, filled_color);
+            }
 
-                // Empty portion (right side)
-                if (fill_length < width) {
-                    std::string empty_str(static_cast<std::size_t>(width - fill_length), empty_char[0]);
-                    point_type const empty_pos{x + fill_length, y + row};
-                    ctx.draw_text(empty_str, empty_pos, track_font, empty_color);
-                }
+            // Empty portion (right side)
+            if (fill_length < width) {
+                rect_type empty_rect;
+                rect_utils::set_bounds(empty_rect, x + fill_length, y, width - fill_length, height);
+                ctx.fill_rect(empty_rect, empty_color);
             }
         }
     }
@@ -478,40 +460,30 @@ private:
         color_type const& filled_color,
         color_type const& empty_color
     ) const {
-        // Get icons from theme
-        auto* theme = ctx.theme();
-        if (!theme) {
-            return;
-        }
-
-        // Convert icons to character strings
-        std::string const filled_char = icon_to_char(theme->progress_bar.filled_icon);
-        std::string const empty_char = icon_to_char(theme->progress_bar.empty_icon);
-
-        typename Backend::renderer_type::font track_font{};
-
         if (m_indeterminate) {
             // Indeterminate mode: fill with empty color (animated in future)
-            for (int row = 0; row < height; ++row) {
-                std::string empty_str(static_cast<std::size_t>(width), empty_char[0]);
-                point_type const pos{x, y + row};
-                ctx.draw_text(empty_str, pos, track_font, empty_color);
-            }
+            rect_type empty_rect;
+            rect_utils::set_bounds(empty_rect, x, y, width, height);
+            ctx.fill_rect(empty_rect, empty_color);
         } else {
             // Determinate mode: render filled portion (bottom to top)
             int const fill_length = range_helpers::calculate_fill_length(
                 m_value, m_min, m_max, height
             );
 
-            // Render empty portion (top) and filled portion (bottom)
-            for (int row = 0; row < height; ++row) {
-                bool const is_filled = row >= (height - fill_length);
-                std::string const& row_char = is_filled ? filled_char : empty_char;
-                color_type const& color = is_filled ? filled_color : empty_color;
+            // Empty portion (top)
+            int const empty_height = height - fill_length;
+            if (empty_height > 0) {
+                rect_type empty_rect;
+                rect_utils::set_bounds(empty_rect, x, y, width, empty_height);
+                ctx.fill_rect(empty_rect, empty_color);
+            }
 
-                std::string row_str(static_cast<std::size_t>(width), row_char[0]);
-                point_type const pos{x, y + row};
-                ctx.draw_text(row_str, pos, track_font, color);
+            // Filled portion (bottom)
+            if (fill_length > 0) {
+                rect_type filled_rect;
+                rect_utils::set_bounds(filled_rect, x, y + empty_height, width, fill_length);
+                ctx.fill_rect(filled_rect, filled_color);
             }
         }
     }

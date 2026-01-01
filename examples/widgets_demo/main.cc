@@ -45,7 +45,7 @@ using Backend = onyxui::conio::conio_backend;
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     try {
         // Create UI context (registers themes, services)
-        onyxui::scoped_ui_context<Backend> ui_ctx;
+        onyxui::scoped_ui_context<Backend> ui_ctx{onyxui::make_terminal_metrics<Backend>()};
 
         // Create main widget
         auto widget = std::make_unique<widgets_demo<Backend>>();

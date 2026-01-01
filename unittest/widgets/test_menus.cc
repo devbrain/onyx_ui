@@ -205,7 +205,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus first item") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -223,7 +223,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus first skips separators") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -240,7 +240,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus next navigates forward") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -259,7 +259,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus next wraps to start") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -278,7 +278,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus previous navigates backward") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -299,7 +299,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Focus previous wraps to end") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -317,7 +317,7 @@ TEST_SUITE("menu") {
     }
 
     TEST_CASE("Activate focused item triggers action") {
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto menu_widget = std::make_unique<menu<Backend>>();
 
@@ -367,7 +367,7 @@ TEST_SUITE("menu_bar") {
     }
 
     TEST_CASE("menu_bar reads spacing from theme") {
-        scoped_ui_context<test_canvas_backend> ctx;
+        scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
 
         // Create theme with custom spacing
         auto builder = theme_builder<test_canvas_backend>::create("Test", "Test")
@@ -623,7 +623,7 @@ TEST_SUITE("menu_integration") {
 
     TEST_CASE("Menu navigation workflow") {
         // Setup focus manager
-        scoped_ui_context<Backend> const ctx;
+        scoped_ui_context<Backend> const ctx(make_terminal_metrics<Backend>());
 
         auto bar = std::make_unique<menu_bar<Backend>>();
 
@@ -660,7 +660,7 @@ TEST_SUITE("menu_integration") {
         using Backend = test_backend;
 
         // Setup context (provides both layer and focus managers)
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         // Create menu bar with a menu
         auto bar = std::make_unique<menu_bar<Backend>>();
@@ -688,7 +688,7 @@ TEST_SUITE("menu_integration") {
         using Backend = test_backend;
 
         // Setup context (provides both layer and focus managers)
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         // Create menu bar with a menu
         auto bar = std::make_unique<menu_bar<Backend>>();
@@ -713,7 +713,7 @@ TEST_SUITE("menu_integration") {
         using Backend = test_backend;
 
         // Setup context (provides both layer and focus managers)
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         // Create menu bar with two menus
         auto bar = std::make_unique<menu_bar<Backend>>();
@@ -746,7 +746,7 @@ TEST_SUITE("menu_integration") {
         using Backend = test_canvas_backend;
 
         // Setup context (provides both layer and focus managers)
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         // Create menu bar with two menus
         auto bar = std::make_unique<menu_bar<Backend>>();

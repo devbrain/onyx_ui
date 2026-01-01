@@ -152,8 +152,10 @@ struct strong_rect {
 // ====================
 
 /**
- * @brief Point in absolute screen coordinates
- * @details Origin at root element's top-left (0, 0)
+ * @brief Point in absolute coordinates (relative to UI root)
+ * @details Origin at root element's top-left (0, 0).
+ *          "Absolute" means root-relative, NOT physical screen pixels.
+ *          Values are logical units snapped to integers.
  */
 template<UIBackend Backend>
 using absolute_point = strong_point<Backend, absolute_tag>;
@@ -166,13 +168,17 @@ template<UIBackend Backend>
 using relative_point = strong_point<Backend, relative_tag>;
 
 /**
- * @brief Rectangle in absolute screen coordinates
+ * @brief Rectangle in absolute coordinates (relative to UI root)
+ * @details "Absolute" means root-relative, NOT physical screen pixels.
+ *          Values are logical units snapped to integers.
+ *          For physical screen coordinates, use get_screen_bounds(metrics).
  */
 template<UIBackend Backend>
 using absolute_rect = strong_rect<Backend, absolute_tag>;
 
 /**
- * @brief Rectangle in relative coordinates
+ * @brief Rectangle in relative coordinates (parent's content area)
+ * @details Origin at parent's content area top-left (0, 0)
  */
 template<UIBackend Backend>
 using relative_rect = strong_rect<Backend, relative_tag>;

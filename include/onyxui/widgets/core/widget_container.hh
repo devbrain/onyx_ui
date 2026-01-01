@@ -180,13 +180,22 @@ namespace onyxui {
          */
         void do_render(render_context_type& ctx) const override {
             if (m_has_border) {
-                // RELATIVE COORDINATES: Reconstruct absolute bounds from context position
-                // bounds() returns logical_rect, need to convert to physical for rendering
-                typename Backend::rect_type absolute_bounds;
+                // Use context position (already DPI-scaled physical coordinates)
+                // The render() method in element.hh already converts logical bounds to physical
+                // via metrics.snap_rect(), so ctx.position() is physical
+                auto const& pos = ctx.position();
+
+                // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+                // During measurement: available_size is {0,0}, use logical bounds as fallback
+                // During rendering: available_size has physical dimensions
                 auto logical_bounds = this->bounds();
-                rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(),
-                    typename Backend::rect_type{logical_bounds.x.to_int(), logical_bounds.y.to_int(),
-                                                logical_bounds.width.to_int(), logical_bounds.height.to_int()});
+                auto const [final_width, final_height] = ctx.get_final_dims(
+                    logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
+                typename Backend::rect_type absolute_bounds;
+                rect_utils::set_bounds(absolute_bounds,
+                    point_utils::get_x(pos), point_utils::get_y(pos),
+                    final_width, final_height);
 
                 // Create box_style with border enabled
                 // Extract value from wrapper (make copy), modify, then use

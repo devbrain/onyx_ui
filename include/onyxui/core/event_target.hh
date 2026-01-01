@@ -357,13 +357,16 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             /**
-             * @brief Check if a point is inside this target
+             * @brief Check if a point is inside this target (logical coordinates)
              *
              * Derived classes must implement this to define their hit area.
              * This is kept abstract so event_target doesn't need to know about
              * rectangles, bounds, or any geometric types.
+             *
+             * @param x X coordinate in logical units
+             * @param y Y coordinate in logical units
              */
-            [[nodiscard]] virtual bool is_inside(int x, int y) const = 0;
+            [[nodiscard]] virtual bool is_inside(logical_unit x, logical_unit y) const = 0;
 
             /**
              * @brief Set whether Enter/Space keys trigger click events
@@ -490,9 +493,8 @@ namespace onyxui {
 
     template<UIBackend Backend>
     bool event_target<Backend>::handle_mouse(const mouse_event& mouse) {
-        int const x = mouse.x;
-        int const y = mouse.y;
-        bool const in_bounds = is_inside(x, y);
+        // Mouse coordinates are now in logical units
+        bool const in_bounds = is_inside(mouse.x, mouse.y);
 
         // Track hover state for visual feedback
         m_is_hovered = in_bounds;

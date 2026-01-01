@@ -23,7 +23,7 @@ TEST_SUITE("Panel - Layout Integration (CRITICAL)") {
 
     // Create UI context to register themes
     struct test_fixture {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         // Helper to apply default theme to a widget
         template<typename Widget>

@@ -23,18 +23,18 @@ public:
 
     // Simulation helpers for new mouse event API
     void simulate_mouse_move(int x, int y) {
-        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
         this->handle_mouse(evt);
     }
 
     void simulate_mouse_down(int x, int y) {
-        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
         this->handle_mouse(evt);
     }
 
     void simulate_mouse_leave() {
         // Simulate move to position outside bounds
-        mouse_event evt{.x = -1000, .y = -1000, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(-1000.0), .y = logical_unit(-1000.0), .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
         this->handle_mouse(evt);
     }
 };
@@ -95,9 +95,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: T
 
     auto layout = sb.calculate_layout(theme->scrollbar.style);
 
-    // Track should have non-zero size
-    CHECK(rect_utils::get_width(layout.track) > 0);
-    CHECK(rect_utils::get_height(layout.track) > 0);
+    // Track should have non-zero size (layout is now in logical_rect)
+    CHECK(layout.track.width.value > 0.0);
+    CHECK(layout.track.height.value > 0.0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: Thumb uses thumb_normal style by default") {
@@ -117,9 +117,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: T
     auto const* theme = themes->get_current_theme();
     auto layout = sb.calculate_layout(theme->scrollbar.style);
 
-    // Thumb should exist
-    CHECK(rect_utils::get_width(layout.thumb) > 0);
-    CHECK(rect_utils::get_height(layout.thumb) > 0);
+    // Thumb should exist (layout is now in logical_rect)
+    CHECK(layout.thumb.width.value > 0.0);
+    CHECK(layout.thumb.height.value > 0.0);
 }
 
 // =============================================================================
@@ -329,10 +329,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     auto const* theme = themes->get_current_theme();
     auto layout = sb.calculate_layout(theme->scrollbar.style);
 
-    // If style has arrows, they should have size
+    // If style has arrows, they should have size (layout is now in logical_rect)
     if (layout.has_arrows()) {
-        CHECK((rect_utils::get_width(layout.arrow_decrement) > 0 ||
-               rect_utils::get_height(layout.arrow_decrement) > 0));
+        CHECK((layout.arrow_decrement.width.value > 0.0 ||
+               layout.arrow_decrement.height.value > 0.0));
     }
 }
 
@@ -355,9 +355,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     auto layout = sb.calculate_layout(theme->scrollbar.style);
 
     if (layout.has_arrows()) {
-        // Hover over arrow
-        int arrow_x = layout.arrow_decrement.x + 1;
-        int arrow_y = layout.arrow_decrement.y + 1;
+        // Hover over arrow (layout is now in logical_rect)
+        int arrow_x = static_cast<int>(layout.arrow_decrement.x.value) + 1;
+        int arrow_y = static_cast<int>(layout.arrow_decrement.y.value) + 1;
         sb.simulate_mouse_move(arrow_x, arrow_y);
 
         // Render - should use arrow_hover colors
@@ -396,9 +396,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Theme: A
     auto layout = sb.calculate_layout(theme->scrollbar.style);
 
     if (layout.has_arrows()) {
-        // Press arrow
-        int arrow_x = layout.arrow_increment.x + 1;
-        int arrow_y = layout.arrow_increment.y + 1;
+        // Press arrow (layout is now in logical_rect)
+        int arrow_x = static_cast<int>(layout.arrow_increment.x.value) + 1;
+        int arrow_y = static_cast<int>(layout.arrow_increment.y.value) + 1;
         sb.simulate_mouse_down(arrow_x, arrow_y);
 
         // Render - should use arrow_pressed colors

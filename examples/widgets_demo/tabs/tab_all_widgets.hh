@@ -225,11 +225,11 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
 
     // Slider
     input_section->template emplace_child<onyxui::label>("");  // Spacer
-    input_section->template emplace_child<onyxui::label>("Slider (0-100, track=25):");
+    input_section->template emplace_child<onyxui::label>("Slider (0-100):");
     auto* slider = input_section->template emplace_child<onyxui::slider>(onyxui::slider_orientation::horizontal);
     slider->set_range(0, 100);
     slider->set_value(50);
-    slider->set_track_length(25);  // Backend-agnostic track sizing
+    slider->set_track_length(20);  // Width in logical units (height defaults to 1)
 
     auto* slider_label = input_section->template emplace_child<onyxui::label>("Value: 50");
     slider->value_changed.connect([slider_label, status_label](int value) {

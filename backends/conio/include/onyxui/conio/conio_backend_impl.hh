@@ -15,8 +15,8 @@ template<template<typename> class Widget>
 int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
 {
     try {
-        // Create UI context (registers themes, services)
-        scoped_ui_context<conio_backend> ui_ctx;
+        // Create UI context with terminal metrics (1 logical unit = 1 char)
+        scoped_ui_context<conio_backend> ui_ctx(make_terminal_metrics<conio_backend>());
 
         // Create widget
         auto widget = std::make_unique<Widget<conio_backend>>();

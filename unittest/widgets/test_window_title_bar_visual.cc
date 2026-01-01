@@ -145,8 +145,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual render
         auto* theme = ui_services<Backend>::themes()->get_current_theme();
         REQUIRE(theme != nullptr);
 
-        win1->render(renderer, theme);
-        win2->render(renderer, theme);
+        win1->render(renderer, theme, make_terminal_metrics<Backend>());
+        win2->render(renderer, theme, make_terminal_metrics<Backend>());
 
         std::string output = canvas->render_ascii();
 

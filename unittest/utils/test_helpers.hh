@@ -36,7 +36,9 @@ using namespace onyxui;
  */
 template<UIBackend Backend>
 struct ui_context_fixture {
-    ui_context_fixture() {
+    ui_context_fixture()
+        : ctx(make_terminal_metrics<Backend>())  // Tests use 1:1 mapping for simplicity
+    {
         // Setup theme with minimal required properties
         ui_theme<Backend> theme;
         theme.name = "TestTheme";
@@ -201,7 +203,10 @@ namespace onyxui::testing {
         if (!theme_ptr) {
             throw std::runtime_error("No current theme set!");
         }
-        element.render(renderer, theme_ptr);
+
+        // Get metrics (tests use terminal metrics - 1:1 mapping)
+        auto metrics = make_terminal_metrics<test_canvas_backend>();
+        element.render(renderer, theme_ptr, metrics);
 
         return canvas;
     }

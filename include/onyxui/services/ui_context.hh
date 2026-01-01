@@ -508,6 +508,7 @@
 #pragma once
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/core/backend_metrics.hh>
 #include <onyxui/services/layer_manager.hh>
 #include <onyxui/services/input_manager.hh>
 #include <onyxui/theming/theme_registry.hh>
@@ -619,21 +620,29 @@ namespace onyxui {
         using hotkey_scheme_registry_type = hotkey_scheme_registry;
         using background_renderer_type = background_renderer<Backend>;
         using window_manager_type = window_manager<Backend>;
+        using metrics_type = backend_metrics<Backend>;
 
         /**
-         * @brief Construct a new UI context with default-initialized services
+         * @brief Construct a new UI context with backend metrics
+         *
+         * @param metrics Backend metrics for logical-to-physical coordinate conversion
          *
          * @details
          * Per-context services (layer_manager, focus_manager) are created fresh.
          * Shared services (theme_registry, hotkey_manager) are initialized once
          * and shared across all contexts.
          *
+         * **Backend metrics are REQUIRED:**
+         * Use make_terminal_metrics<Backend>() for terminal/conio backends.
+         * Use make_gui_metrics<Backend>() for SDL/pixel-based backends.
+         *
          * **Automatic theme/background synchronization:**
          * Connects background_renderer to theme_changed signal, ensuring background
          * color automatically updates when themes are switched.
          */
-        ui_context()
-            : m_theme_connection(get_theme_signal(), [this](const theme_type* theme) {
+        explicit ui_context(metrics_type metrics)
+            : m_metrics(metrics)
+            , m_theme_connection(get_theme_signal(), [this](const theme_type* theme) {
                 m_background_renderer.on_theme_changed(theme);
             })
         {
@@ -789,7 +798,22 @@ namespace onyxui {
             return m_window_manager;
         }
 
+        /**
+         * @brief Get the backend metrics
+         * @return Const reference to backend metrics
+         *
+         * @details
+         * Backend metrics provide conversion between logical and physical coordinates.
+         * Use snap_rect(), snap_size() etc. to convert logical bounds to physical
+         * coordinates for rendering.
+         */
+        [[nodiscard]] const metrics_type& metrics() const noexcept {
+            return m_metrics;
+        }
+
     private:
+        // Backend metrics (required - determines coordinate scaling)
+        metrics_type m_metrics;
         // Per-context services (isolated per UI instance)
         layer_manager_type m_layer_manager;
         input_manager_type m_input_manager;
@@ -1028,14 +1052,34 @@ namespace onyxui {
     template<UIBackend Backend>
     class scoped_ui_context {
     public:
+        using metrics_type = backend_metrics<Backend>;
+
         /**
-         * @brief Construct and push a new context
+         * @brief Construct and push a new context with backend metrics
+         *
+         * @param metrics Backend metrics for logical-to-physical coordinate conversion
          *
          * @details
          * Creates a ui_context and pushes it onto the ui_services stack,
          * making it the current context for this thread.
+         *
+         * **Backend metrics are REQUIRED:**
+         * - Use make_terminal_metrics<Backend>() for terminal/conio backends
+         * - Use make_gui_metrics<Backend>() for SDL/pixel-based backends
+         *
+         * @example
+         * @code
+         * // Terminal backend (1 logical unit = 1 char)
+         * scoped_ui_context<conio_backend> ctx(make_terminal_metrics<conio_backend>());
+         *
+         * // GUI backend (1 logical unit = 8 pixels)
+         * scoped_ui_context<sdlpp_backend> ctx(make_gui_metrics<sdlpp_backend>());
+         *
+         * // GUI backend with HiDPI (1 logical unit = 16 pixels)
+         * scoped_ui_context<sdlpp_backend> ctx(make_gui_metrics<sdlpp_backend>(2.0));
+         * @endcode
          */
-        scoped_ui_context();
+        explicit scoped_ui_context(metrics_type metrics);
 
         /**
          * @brief Destructor - pops the context
@@ -1114,7 +1158,16 @@ namespace onyxui {
             return m_context.hotkey_schemes();
         }
 
+        /**
+         * @brief Convenience accessor for backend metrics
+         * @return Const reference to backend metrics
+         */
+        [[nodiscard]] const auto& metrics() const noexcept {
+            return m_context.metrics();
+        }
+
     private:
+        metrics_type m_metrics;  // Store metrics to pass to context
         ui_context<Backend> m_context;
     };
 

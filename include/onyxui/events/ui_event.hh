@@ -41,6 +41,7 @@
 #include <optional>
 #include <onyxui/hotkeys/key_code.hh>
 #include <onyxui/hotkeys/key_sequence.hh>
+#include <onyxui/core/geometry.hh>
 
 namespace onyxui {
 
@@ -142,10 +143,10 @@ namespace onyxui {
      *
      * @example Left Button Click
      * @code
-     * // User clicks left mouse button at (10, 20)
+     * // User clicks left mouse button at (10, 20) logical units
      * mouse_event {
-     *     .x = 10,
-     *     .y = 20,
+     *     .x = 10.0_lu,
+     *     .y = 20.0_lu,
      *     .btn = button::left,
      *     .act = action::press,
      *     .modifiers = { .ctrl = false, .alt = false, .shift = false }
@@ -154,10 +155,10 @@ namespace onyxui {
      *
      * @example Mouse Wheel Scroll
      * @code
-     * // User scrolls wheel up at (50, 60) while holding Ctrl
+     * // User scrolls wheel up at (50, 60) logical units while holding Ctrl
      * mouse_event {
-     *     .x = 50,
-     *     .y = 60,
+     *     .x = 50.0_lu,
+     *     .y = 60.0_lu,
      *     .btn = button::none,
      *     .act = action::wheel_up,
      *     .modifiers = { .ctrl = true, .alt = false, .shift = false }
@@ -166,10 +167,10 @@ namespace onyxui {
      *
      * @example Mouse Move
      * @code
-     * // Mouse moved to (100, 150) without any button pressed
+     * // Mouse moved to (100, 150) logical units without any button pressed
      * mouse_event {
-     *     .x = 100,
-     *     .y = 150,
+     *     .x = 100.0_lu,
+     *     .y = 150.0_lu,
      *     .btn = button::none,
      *     .act = action::move,
      *     .modifiers = { .ctrl = false, .alt = false, .shift = false }
@@ -198,8 +199,8 @@ namespace onyxui {
             wheel_down  ///< Wheel scrolled down
         };
 
-        int x;          ///< Mouse X coordinate (relative to viewport, top-left = 0)
-        int y;          ///< Mouse Y coordinate (relative to viewport, top-left = 0)
+        logical_unit x;  ///< Mouse X coordinate in logical units (relative to viewport, top-left = 0)
+        logical_unit y;  ///< Mouse Y coordinate in logical units (relative to viewport, top-left = 0)
         button btn;     ///< Button involved (none for move/wheel)
         action act;     ///< Action type
 

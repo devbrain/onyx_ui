@@ -93,13 +93,14 @@ public:
      * Performs hit testing by walking through item positions.
      * Only considers visible items for performance.
      */
-    [[nodiscard]] model_index index_at(int x, int y) const override {
+    [[nodiscard]] model_index index_at(logical_unit x, logical_unit y) const override {
         if (!this->m_model || m_item_rects.empty()) {
             return {};
         }
 
-        // Convert to view-relative coordinates (if parent scrolled)
-        // For now, assume x/y are already view-relative
+        // Use logical coordinates directly (double precision)
+        double const px = x.value;
+        double const py = y.value;
 
         // Find item at y position (binary search would be faster for large lists)
         int row_count = this->m_model->row_count();
@@ -109,7 +110,8 @@ public:
             }
 
             const auto& rect = m_item_rects[static_cast<std::size_t>(row)];
-            if (point_in_rect(x, y, rect)) {
+            // Compare logical coordinates against cached rects (promote rect to double)
+            if (point_in_rect_logical(px, py, rect)) {
                 return this->m_model->index(row, 0);
             }
         }
@@ -211,7 +213,26 @@ public:
             return;  // Nothing to render
         }
 
-        auto bounds = this->bounds();
+        // Use context position and size (already DPI-scaled physical coordinates)
+        // The render() method in element.hh already converts logical bounds to physical
+        auto const& pos = ctx.position();
+        int const base_x = point_utils::get_x(pos);
+        int const base_y = point_utils::get_y(pos);
+
+        // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+        auto logical_bounds = this->bounds();
+        auto const [physical_width, physical_height] = ctx.get_final_dims(
+            logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
+        // Get metrics for proper DPI scaling of item rectangles
+        auto const* metrics = ui_services<Backend>::metrics();
+
+        // Compute scale factor from logical to physical
+        // Item rects are computed in logical space during update_geometries()
+        // Use Y-axis scale for vertical positions/heights (may differ from X on non-square pixels)
+        double const scale_y = metrics
+            ? (metrics->logical_to_physical_y * metrics->dpi_scale) : 1.0;
+
         int row_count = this->m_model->row_count();
 
         for (int row = 0; row < row_count; ++row) {
@@ -230,11 +251,14 @@ public:
             bool is_selected = this->m_selection_model && this->m_selection_model->is_selected(idx);
             bool has_focus = this->m_selection_model && this->m_selection_model->current_index() == idx;
 
-            // Translate to absolute coordinates
-            int abs_x = bounds.x.to_int() + item_rect.x;
-            int abs_y = bounds.y.to_int() + item_rect.y;
-            int abs_w = item_rect.w;
-            int abs_h = item_rect.h;
+            // Convert item rect to physical coordinates
+            // - Base position from ctx.position() (already physical)
+            // - Item Y offset and height scaled by Y-axis DPI factor
+            // - Width uses full physical view width
+            int abs_x = base_x;
+            int abs_y = base_y + static_cast<int>(item_rect.y * scale_y);
+            int abs_w = physical_width;
+            int abs_h = static_cast<int>(item_rect.h * scale_y);
 
             rect_type abs_item_rect{abs_x, abs_y, abs_w, abs_h};
 
@@ -315,11 +339,24 @@ private:
     // ===================================================================
 
     /**
-     * @brief Check if point is inside rectangle
+     * @brief Check if point is inside rectangle (int version)
      */
     [[nodiscard]] static bool point_in_rect(int x, int y, const rect_type& rect) {
         return x >= rect.x && x < rect.x + rect.w &&
                y >= rect.y && y < rect.y + rect.h;
+    }
+
+    /**
+     * @brief Check if point is inside rectangle (logical/double version)
+     * @details Promotes int rect bounds to double for precise comparison
+     */
+    [[nodiscard]] static bool point_in_rect_logical(double x, double y, const rect_type& rect) {
+        double const rx = static_cast<double>(rect.x);
+        double const ry = static_cast<double>(rect.y);
+        double const rw = static_cast<double>(rect.w);
+        double const rh = static_cast<double>(rect.h);
+        return x >= rx && x < rx + rw &&
+               y >= ry && y < ry + rh;
     }
 };
 

@@ -8,7 +8,8 @@
 
 int main([[maybe_unused]] int argc,[[maybe_unused]]  char* argv[]) {
      try {
-        onyxui::scoped_ui_context<onyxui::conio::conio_backend> ui_ctx;
+        onyxui::scoped_ui_context<onyxui::conio::conio_backend> ui_ctx{
+            onyxui::make_terminal_metrics<onyxui::conio::conio_backend>()};
         auto widget = std::make_unique<main_widget<onyxui::conio::conio_backend>>();
         auto* widget_ptr = widget.get();
         onyxui::ui_handle<onyxui::conio::conio_backend> ui(std::move(widget));

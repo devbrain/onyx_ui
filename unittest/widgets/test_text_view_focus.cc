@@ -66,8 +66,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     SUBCASE("Click gives focus") {
         // Simulate mouse click at (10, 10)
         mouse_event click{
-            .x = 10,
-            .y = 10,
+            .x = 10.0_lu,
+            .y = 10.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -115,8 +115,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     SUBCASE("Click on text gives text_view focus (not label)") {
         // Click at (5, 5) - should hit a label child
         mouse_event click{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -139,8 +139,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
     SUBCASE("Multiple clicks maintain focus") {
         // First click
         mouse_event click1{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -157,8 +157,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
         // Second click at different location
         mouse_event click2{
-            .x = 10,
-            .y = 10,
+            .x = 10.0_lu,
+            .y = 10.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -215,8 +215,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
 
     SUBCASE("Click first text_view gives it focus") {
         mouse_event click{
-            .x = 5,
-            .y = 2,  // Should hit first text_view
+            .x = 5.0_lu,
+            .y = 2.0_lu,  // Should hit first text_view
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -236,8 +236,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
     SUBCASE("Click second text_view switches focus") {
         // First click on text_view1
         mouse_event click1{
-            .x = 5,
-            .y = 2,
+            .x = 5.0_lu,
+            .y = 2.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -258,8 +258,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         int text_view2_y = text_view2_bounds.y.to_int() + (text_view2_bounds.height.to_int() / 2);  // Middle of text_view2
 
         mouse_event click2{
-            .x = 5,
-            .y = text_view2_y,  // Click in middle of text_view2
+            .x = 5.0_lu,
+            .y = logical_unit(static_cast<double>(text_view2_y)),  // Click in middle of text_view2
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -335,8 +335,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Event co
     // but text_view itself returns false to allow event propagation.
 
     mouse_event press{
-        .x = 5,
-        .y = 5,
+        .x = 5.0_lu,
+        .y = 5.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -369,8 +369,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     SUBCASE("Mouse release doesn't give focus") {
         mouse_event release{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::release,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -390,8 +390,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     SUBCASE("Mouse move doesn't give focus") {
         mouse_event move{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::none,
             .act = mouse_event::action::move,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -411,8 +411,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
     SUBCASE("Mouse press DOES give focus") {
         mouse_event press{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -456,8 +456,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Capture 
         // 5. Event continues to label
 
         mouse_event click{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}
@@ -501,8 +501,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Non-focu
 
     SUBCASE("Click doesn't give focus to non-focusable widget") {
         mouse_event click{
-            .x = 5,
-            .y = 5,
+            .x = 5.0_lu,
+            .y = 5.0_lu,
             .btn = mouse_event::button::left,
             .act = mouse_event::action::press,
             .modifiers = {.ctrl = false, .alt = false, .shift = false}

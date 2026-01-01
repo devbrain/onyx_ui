@@ -544,17 +544,19 @@ namespace onyxui {
             };
 
             // Calculate available width for tabs
-            auto content_bounds = this->bounds();
-            int total_width = content_bounds.width.to_int();
-            int content_height = content_bounds.height.to_int();
+            // Use physical dimensions (from get_final_dims) for consistency with measure_text
+            // which returns pixels for SDL backend
+            auto logical_bounds = this->bounds();
+            auto const [total_width, content_height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
             // Calculate total width needed for all tabs
             int total_tabs_width = 0;
             int const max_label_len = tab_style.min_tab_width - 2;
 
-            // Measure close icon width from backend
+            // Measure close icon width from backend (physical pixels)
             auto close_icon_size = Backend::renderer_type::get_icon_size(tab_style.close_button_icon);
-            m_close_icon_width = size_utils::get_width(close_icon_size);
+            int const physical_close_icon_width = size_utils::get_width(close_icon_size);
 
             for (const auto& tab : m_tabs) {
                 std::string display_label = truncate_label(tab.label, max_label_len);
@@ -562,7 +564,7 @@ namespace onyxui {
                 auto label_size = Backend::renderer_type::measure_text(padded_label, tab_style.tab_font);
                 int tab_width = size_utils::get_width(label_size);
                 if (m_tabs_closable && tab.closeable) {
-                    tab_width += m_close_icon_width;
+                    tab_width += physical_close_icon_width;
                 }
                 total_tabs_width += tab_width + tab_style.tab_spacing;
             }
@@ -574,23 +576,36 @@ namespace onyxui {
             // Compute tab bar height from font metrics + padding
             auto font_size = Backend::renderer_type::measure_text("Xg", tab_style.tab_font);
             int font_height = size_utils::get_height(font_size);
-            m_tab_bar_height = font_height + 2 * tab_style.tab_padding_vertical;
+            int const physical_tab_bar_height = font_height + 2 * tab_style.tab_padding_vertical;
+
+            // Compute scale factor from physical to logical units for hit testing
+            // Mouse events are in logical units, but rendering uses physical pixels
+            int const logical_width = logical_bounds.width.to_int();
+            double const phys_to_logical = (total_width > 0 && logical_width > 0)
+                ? static_cast<double>(logical_width) / total_width
+                : 1.0;
+
+            // Store tab bar height in logical units for hit testing
+            m_tab_bar_height = physical_tab_bar_height * phys_to_logical;
+
+            // Store close icon width in logical units for hit testing
+            m_close_icon_width = physical_close_icon_width * phys_to_logical;
 
             // Draw tab bar based on position
-            auto draw_tabs_horizontal = [&](int tab_y) {
-                // Store relative Y for hit testing (tab_y and y are both absolute)
-                m_tab_bar_y = tab_y - y;
+            auto draw_tabs_horizontal = [&, phys_to_logical, physical_close_icon_width](int tab_y) {
+                // Store relative Y for hit testing in logical units
+                m_tab_bar_y = (tab_y - y) * phys_to_logical;
                 int tab_x = x;
 
-                // Clear tab bar background before drawing
-                typename Backend::rect_type tab_bar_rect{x, tab_y, total_width, m_tab_bar_height};
+                // Clear tab bar background before drawing (use physical dimensions for rendering)
+                typename Backend::rect_type tab_bar_rect{x, tab_y, total_width, physical_tab_bar_height};
                 ctx.fill_rect(tab_bar_rect, tab_style.tab_bar_background);
 
                 // Draw left scroll arrow if overflow
                 if (m_has_overflow) {
                     typename Backend::point_type arrow_pos{tab_x, tab_y};
                     ctx.draw_icon(tab_style.scroll_left_icon, arrow_pos);
-                    m_left_arrow_end = tab_x - x + arrow_width;  // Relative
+                    m_left_arrow_end = (tab_x - x + arrow_width) * phys_to_logical;  // Logical units
                     tab_x += arrow_width;
                 } else {
                     m_left_arrow_end = 0;
@@ -620,7 +635,7 @@ namespace onyxui {
                     // Calculate total tab width for overflow check
                     int tab_width = text_width;
                     if (m_tabs_closable && tab.closeable) {
-                        tab_width += m_close_icon_width;
+                        tab_width += physical_close_icon_width;
                     }
 
                     // Check if this tab would overflow
@@ -631,7 +646,7 @@ namespace onyxui {
                         continue;
                     }
 
-                    tab.x_start = tab_x - x;  // Store relative to widget
+                    tab.x_start = (tab_x - x) * phys_to_logical;  // Store in logical units
 
                     // Draw tab label text
                     typename Backend::point_type tab_pos{tab_x, tab_y};
@@ -641,15 +656,15 @@ namespace onyxui {
                     // Draw close button icon if enabled
                     if (m_tabs_closable && tab.closeable) {
                         int close_icon_x = text_end_x;
-                        tab.close_x = close_icon_x - x;  // Relative for hit testing
+                        tab.close_x = (close_icon_x - x) * phys_to_logical;  // Logical units
                         typename Backend::point_type icon_pos{close_icon_x, tab_y};
                         ctx.draw_icon(tab_style.close_button_icon, icon_pos);
-                        tab_x = close_icon_x + m_close_icon_width + tab_style.tab_spacing;
+                        tab_x = close_icon_x + physical_close_icon_width + tab_style.tab_spacing;
                     } else {
                         tab.close_x = -1;
                         tab_x = text_end_x + tab_style.tab_spacing;
                     }
-                    tab.x_end = tab_x - tab_style.tab_spacing - x;  // Store relative
+                    tab.x_end = (tab_x - tab_style.tab_spacing - x) * phys_to_logical;  // Logical units
                 }
 
                 // Mark tabs before scroll_offset as not visible
@@ -669,11 +684,11 @@ namespace onyxui {
                         }
                     }
                     int arrow_abs_x = x + total_width - arrow_width;
-                    m_right_arrow_start = total_width - arrow_width;  // Relative
+                    m_right_arrow_start = (total_width - arrow_width) * phys_to_logical;  // Logical units
                     typename Backend::point_type arrow_pos{arrow_abs_x, tab_y};
                     ctx.draw_icon(tab_style.scroll_right_icon, arrow_pos);
                 } else {
-                    m_right_arrow_start = total_width;  // Off-screen
+                    m_right_arrow_start = logical_width;  // Off-screen (use logical width)
                 }
             };
 
@@ -707,10 +722,10 @@ namespace onyxui {
                     return base::handle_event(event, phase);
                 }
 
-                // Convert mouse coords to relative (widget-local)
-                auto abs_bounds = this->get_absolute_bounds();
-                int mouse_x = mouse_evt->x - abs_bounds.x();
-                int mouse_y = mouse_evt->y - abs_bounds.y();
+                // Convert mouse coords to relative (widget-local) using logical coordinates
+                auto abs_bounds = this->get_absolute_logical_bounds();
+                double mouse_x = mouse_evt->x.value - abs_bounds.x.value;
+                double mouse_y = mouse_evt->y.value - abs_bounds.y.value;
 
                 // Use stored tab bar Y and height from rendering (set during do_render)
                 bool in_tab_bar = (mouse_y >= m_tab_bar_y && mouse_y < m_tab_bar_y + m_tab_bar_height);
@@ -824,9 +839,9 @@ namespace onyxui {
             std::string label;
             std::unique_ptr<ui_element<Backend>> widget;  // Temporarily holds widget before adding to children
             bool closeable = true;
-            mutable int x_start = 0;   // Tab start position (for hit testing)
-            mutable int x_end = 0;     // Tab end position (for hit testing)
-            mutable int close_x = -1;  // Close button X position (-1 = no close button)
+            mutable double x_start = 0.0;   // Tab start position (logical, for hit testing)
+            mutable double x_end = 0.0;     // Tab end position (logical, for hit testing)
+            mutable double close_x = -1.0;  // Close button X position (-1 = no close button)
         };
 
         std::vector<tab_info> m_tabs;
@@ -838,11 +853,11 @@ namespace onyxui {
         // Scroll state for overflow
         int m_scroll_offset = 0;       // First visible tab index
         mutable bool m_has_overflow = false;  // True if tabs overflow available width
-        mutable int m_left_arrow_end = 0;     // X position where left arrow ends
-        mutable int m_tab_bar_y = 0;          // Y position of tab bar (relative)
-        mutable int m_tab_bar_height = 1;     // Height of tab bar (for hit testing)
-        mutable int m_right_arrow_start = 0;  // X position where right arrow starts
-        mutable int m_close_icon_width = 0;   // Close button icon width (measured from backend)
+        mutable double m_left_arrow_end = 0.0;     // X position where left arrow ends (logical)
+        mutable double m_tab_bar_y = 0.0;          // Y position of tab bar (relative, logical)
+        mutable double m_tab_bar_height = 1.0;     // Height of tab bar (logical, for hit testing)
+        mutable double m_right_arrow_start = 0.0;  // X position where right arrow starts (logical)
+        mutable double m_close_icon_width = 0.0;   // Close button icon width (logical)
 
         /**
          * @brief Ensure a tab is visible by adjusting scroll offset

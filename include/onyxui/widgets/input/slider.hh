@@ -287,15 +287,42 @@ public:
     void set_track_length(int length) {
         if (length < 1) length = 1;
 
-        size_constraint constraint;
-        constraint.policy = size_policy::content;
-        constraint.preferred_size = logical_unit(static_cast<double>(length));
+        size_constraint length_constraint;
+        length_constraint.policy = size_policy::content;
+        length_constraint.preferred_size = logical_unit(static_cast<double>(length));
 
         // Set the appropriate dimension based on orientation
         if (m_orientation == slider_orientation::horizontal) {
-            this->set_width_constraint(constraint);
+            this->set_width_constraint(length_constraint);
         } else {
+            this->set_height_constraint(length_constraint);
+        }
+    }
+
+    /**
+     * @brief Set slider thickness (cross-dimension)
+     * @param thickness Thickness in logical units
+     *
+     * @details
+     * Sets the cross-dimension of the slider:
+     * - **Horizontal slider**: Sets height
+     * - **Vertical slider**: Sets width
+     *
+     * For pixel-based backends (SDL), typical values are 16-24.
+     * For character-based backends (conio), typical value is 1.
+     */
+    void set_thickness(int thickness) {
+        if (thickness < 1) thickness = 1;
+
+        size_constraint constraint;
+        constraint.policy = size_policy::content;
+        constraint.preferred_size = logical_unit(static_cast<double>(thickness));
+
+        // Set cross-dimension based on orientation
+        if (m_orientation == slider_orientation::horizontal) {
             this->set_height_constraint(constraint);
+        } else {
+            this->set_width_constraint(constraint);
         }
     }
 
@@ -316,18 +343,28 @@ public:
 protected:
     /**
      * @brief Calculate natural content size
+     *
+     * @details Uses theme's track_thickness for the cross-dimension.
+     * Falls back to sensible defaults if theme is unavailable.
      */
     [[nodiscard]] logical_size get_content_size() const override {
-        // Slider has a default size based on orientation
-        constexpr double DEFAULT_HORIZONTAL_WIDTH = 100.0;
-        constexpr double DEFAULT_HORIZONTAL_HEIGHT = 3.0;  // Track + thumb
-        constexpr double DEFAULT_VERTICAL_WIDTH = 3.0;
-        constexpr double DEFAULT_VERTICAL_HEIGHT = 20.0;
+        // Default sizes in logical units
+        constexpr double DEFAULT_TRACK_LENGTH = 20.0;     // Default length
+        constexpr double DEFAULT_TRACK_THICKNESS = 1.5;   // Fallback thickness
+
+        // Try to get track thickness from theme
+        double track_thickness = DEFAULT_TRACK_THICKNESS;
+        auto* themes = ui_services<Backend>::themes();
+        if (themes) {
+            if (auto* theme = themes->get_current_theme()) {
+                track_thickness = theme->slider.track_thickness;
+            }
+        }
 
         if (m_orientation == slider_orientation::horizontal) {
-            return logical_size{logical_unit(DEFAULT_HORIZONTAL_WIDTH), logical_unit(DEFAULT_HORIZONTAL_HEIGHT)};
+            return logical_size{logical_unit(DEFAULT_TRACK_LENGTH), logical_unit(track_thickness)};
         } else {
-            return logical_size{logical_unit(DEFAULT_VERTICAL_WIDTH), logical_unit(DEFAULT_VERTICAL_HEIGHT)};
+            return logical_size{logical_unit(track_thickness), logical_unit(DEFAULT_TRACK_LENGTH)};
         }
     }
 
@@ -339,51 +376,79 @@ protected:
             return base::handle_event(evt, phase);
         }
 
-        // Handle mouse click events
+        // Handle mouse events (click, drag, release)
         if (auto* mouse = std::get_if<mouse_event>(&evt)) {
             if (mouse->act == mouse_event::action::press) {
-                // Get absolute mouse position
-                int const mouse_x = mouse->x;
-                int const mouse_y = mouse->y;
+                // Get absolute mouse position (logical units, full precision)
+                double const mouse_x = mouse->x.value;
+                double const mouse_y = mouse->y.value;
 
-                // Get widget absolute position and size
-                auto const abs_bounds = this->get_absolute_bounds();
-                int const widget_x = rect_utils::get_x(abs_bounds);
-                int const widget_y = rect_utils::get_y(abs_bounds);
-                int const widget_w = rect_utils::get_width(abs_bounds);
-                int const widget_h = rect_utils::get_height(abs_bounds);
+                // Get widget absolute position and size (logical units, full precision)
+                auto const abs_bounds = this->get_absolute_logical_bounds();
+                double const widget_x = abs_bounds.x.value;
+                double const widget_y = abs_bounds.y.value;
+                double const widget_w = abs_bounds.width.value;
+                double const widget_h = abs_bounds.height.value;
 
                 // Calculate relative click position
-                int const rel_x = mouse_x - widget_x;
-                int const rel_y = mouse_y - widget_y;
+                double const rel_x = mouse_x - widget_x;
+                double const rel_y = mouse_y - widget_y;
 
                 // Check if click is within widget bounds
-                if (rel_x >= 0 && rel_x < widget_w && rel_y >= 0 && rel_y < widget_h) {
-                    // Calculate new value based on click position
-                    int new_value;
-                    if (m_orientation == slider_orientation::horizontal) {
-                        // Horizontal: map X position to value range
-                        new_value = range_helpers::position_to_value(rel_x, widget_w, m_min, m_max);
-                    } else {
-                        // Vertical: map Y position to value range (bottom = min, top = max)
-                        int const from_bottom = widget_h - rel_y;
-                        new_value = range_helpers::position_to_value(from_bottom, widget_h, m_min, m_max);
+                if (rel_x >= 0.0 && rel_x < widget_w && rel_y >= 0.0 && rel_y < widget_h) {
+                    // Start dragging
+                    m_dragging = true;
+
+                    // Capture mouse for drag tracking
+                    auto* input = ui_services<Backend>::input();
+                    if (input) {
+                        input->set_capture(this);
+                        if (this->is_focusable()) {
+                            input->set_focus(this);
+                        }
                     }
+
+                    // Calculate and set new value
+                    int const new_value = calculate_value_from_position(rel_x, rel_y, widget_w, widget_h);
 
                     // Emit pressed signal and update value
                     slider_pressed.emit();
                     set_value(new_value);
                     slider_moved.emit(m_value);
 
-                    // Request focus on click
-                    auto* input = ui_services<Backend>::input();
-                    if (input && this->is_focusable()) {
-                        input->set_focus(this);
-                    }
-
                     return true;
                 }
+            } else if (mouse->act == mouse_event::action::move && m_dragging) {
+                // Handle drag - update value based on mouse position
+                double const mouse_x = mouse->x.value;
+                double const mouse_y = mouse->y.value;
+
+                auto const abs_bounds = this->get_absolute_logical_bounds();
+                double const widget_x = abs_bounds.x.value;
+                double const widget_y = abs_bounds.y.value;
+                double const widget_w = abs_bounds.width.value;
+                double const widget_h = abs_bounds.height.value;
+
+                // Calculate relative position (can be outside widget during drag)
+                double const rel_x = mouse_x - widget_x;
+                double const rel_y = mouse_y - widget_y;
+
+                // Calculate and set new value (clamping happens in set_value)
+                int const new_value = calculate_value_from_position(rel_x, rel_y, widget_w, widget_h);
+                set_value(new_value);
+                slider_moved.emit(m_value);
+
+                return true;
             } else if (mouse->act == mouse_event::action::release) {
+                if (m_dragging) {
+                    m_dragging = false;
+
+                    // Release mouse capture
+                    auto* input = ui_services<Backend>::input();
+                    if (input) {
+                        input->release_capture();
+                    }
+                }
                 slider_released.emit();
                 return true;
             }
@@ -450,14 +515,15 @@ protected:
         auto const& empty_color = theme->slider.track_empty_color;
         auto const& thumb_color = theme->slider.thumb_color;
 
-        // Get absolute position and size
+        // Get physical position from render context
         const auto& pos = ctx.position();
-        const auto& bounds = this->bounds();
-
         int const x = point_utils::get_x(pos);
         int const y = point_utils::get_y(pos);
-        int const width = bounds.width.to_int();
-        int const height = bounds.height.to_int();
+
+        // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+        auto logical_bounds = this->bounds();
+        auto const [width, height] = ctx.get_final_dims(
+            logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
         if (m_orientation == slider_orientation::horizontal) {
             render_horizontal_slider(ctx, x, y, width, height, filled_color, empty_color, thumb_color);
@@ -476,8 +542,37 @@ private:
     slider_orientation m_orientation = slider_orientation::horizontal;
     tick_position m_tick_position = tick_position::none;
     int m_tick_interval = 0;
+    bool m_dragging = false;  ///< True when mouse is dragging the slider
 
     // ===== Helper Methods =====
+
+    /**
+     * @brief Calculate slider value from mouse position
+     * @param rel_x Relative X position within widget
+     * @param rel_y Relative Y position within widget
+     * @param widget_w Widget width
+     * @param widget_h Widget height
+     * @return Calculated value (may be outside min/max range - caller should clamp)
+     */
+    [[nodiscard]] int calculate_value_from_position(
+        double rel_x, double rel_y,
+        double widget_w, double widget_h
+    ) const {
+        if (m_orientation == slider_orientation::horizontal) {
+            // Horizontal: map X position to value range
+            // Clamp position to valid range for calculation
+            double const clamped_x = std::clamp(rel_x, 0.0, widget_w);
+            int const pos_int = static_cast<int>(clamped_x);
+            int const size_int = static_cast<int>(widget_w);
+            return range_helpers::position_to_value(pos_int, size_int, m_min, m_max);
+        } else {
+            // Vertical: map Y position to value range (bottom = min, top = max)
+            double const clamped_y = std::clamp(rel_y, 0.0, widget_h);
+            int const from_bottom = static_cast<int>(widget_h - clamped_y);
+            int const size_int = static_cast<int>(widget_h);
+            return range_helpers::position_to_value(from_bottom, size_int, m_min, m_max);
+        }
+    }
 
     /**
      * @brief Convert icon enum to character string
@@ -524,38 +619,31 @@ private:
             return;
         }
 
-        // Get icon characters from theme (use icon enums to get customizable characters)
-        auto const& filled_icon = theme->slider.filled_icon;
-        auto const& empty_icon = theme->slider.empty_icon;
-        auto const& thumb_icon = theme->slider.thumb_icon;
+        // Track uses full widget height for simplicity
+        int const track_height = height;
+        int const track_y = y;
+        int const thumb_width = std::max(1, std::min(height * 2, 16));  // Thumb width
 
-        // Convert icons to character strings
-        std::string const filled_char = icon_to_char(filled_icon);
-        std::string const empty_char = icon_to_char(empty_icon);
-        std::string const thumb_char = icon_to_char(thumb_icon);
+        // Draw empty portion of track (full width, behind filled)
+        rect_type empty_rect;
+        rect_utils::set_bounds(empty_rect, x, track_y, width, track_height);
+        ctx.fill_rect(empty_rect, empty_color);
 
-        // Render track (filled + empty portions) using theme icons
-        int const track_y = y + height / 2;  // Center track vertically
-        typename Backend::renderer_type::font track_font{};
-
-        // For filled portion
+        // Draw filled portion of track (from left to thumb position)
         if (fill_length > 0) {
-            std::string filled_str(static_cast<std::size_t>(fill_length), filled_char[0]);
-            point_type const filled_pos{x, track_y};
-            ctx.draw_text(filled_str, filled_pos, track_font, filled_color);
+            rect_type filled_rect;
+            rect_utils::set_bounds(filled_rect, x, track_y, fill_length, track_height);
+            ctx.fill_rect(filled_rect, filled_color);
         }
 
-        // For empty portion
-        if (fill_length < width) {
-            std::string empty_str(static_cast<std::size_t>(width - fill_length), empty_char[0]);
-            point_type const empty_pos{x + fill_length, track_y};
-            ctx.draw_text(empty_str, empty_pos, track_font, empty_color);
-        }
-
-        // Render thumb (bright marker at position)
+        // Draw thumb as rectangle
         if (thumb_pos >= 0 && thumb_pos < width) {
-            point_type const thumb_point{x + thumb_pos, track_y};
-            ctx.draw_text(thumb_char, thumb_point, track_font, thumb_color);
+            int thumb_x = x + thumb_pos - thumb_width / 2;
+            // Clamp thumb to track bounds
+            thumb_x = std::max(x, std::min(thumb_x, x + width - thumb_width));
+            rect_type thumb_rect;
+            rect_utils::set_bounds(thumb_rect, thumb_x, y, thumb_width, height);
+            ctx.fill_rect(thumb_rect, thumb_color);
         }
     }
 
@@ -582,41 +670,30 @@ private:
             m_value, m_min, m_max, height
         );
 
-        // Get icons from theme
-        auto* theme = ctx.theme();
-        if (!theme) {
-            return;
+        // Track uses full widget width for simplicity
+        int const track_width = width;
+        int const track_x = x;
+        int const thumb_height = std::max(1, std::min(width * 2, 16));  // Thumb height
+
+        // Draw empty portion of track (full height, behind filled)
+        rect_type empty_rect;
+        rect_utils::set_bounds(empty_rect, track_x, y, track_width, height);
+        ctx.fill_rect(empty_rect, empty_color);
+
+        // Draw filled portion of track (from bottom up to fill_length)
+        if (fill_length > 0) {
+            rect_type filled_rect;
+            rect_utils::set_bounds(filled_rect, track_x, y + height - fill_length, track_width, fill_length);
+            ctx.fill_rect(filled_rect, filled_color);
         }
 
-        // Get icon characters from theme
-        auto const& filled_icon = theme->slider.filled_icon;
-        auto const& empty_icon = theme->slider.empty_icon;
-        auto const& thumb_icon = theme->slider.thumb_icon;
-
-        // Convert icons to character strings
-        std::string const filled_char = icon_to_char(filled_icon);
-        std::string const empty_char = icon_to_char(empty_icon);
-        std::string const thumb_char = icon_to_char(thumb_icon);
-
-        // Render track (filled from bottom, empty from top) using theme icons
-        int const track_x = x + width / 2;  // Center track horizontally
-        typename Backend::renderer_type::font track_font{};
-
-        for (int i = 0; i < height; ++i) {
-            bool const is_filled = i >= (height - fill_length);
-            std::string const& track_char = is_filled ? filled_char : empty_char;
-            color_type const& color = is_filled ? filled_color : empty_color;
-
-            point_type const pos{track_x, y + i};
-            ctx.draw_text(track_char, pos, track_font, color);
-        }
-
-        // Render thumb (bright marker)
-        int const thumb_y = y + (height - thumb_pos);
-        if (thumb_y >= y && thumb_y < y + height) {
-            point_type const thumb_point{track_x, thumb_y};
-            ctx.draw_text(thumb_char, thumb_point, track_font, thumb_color);
-        }
+        // Draw thumb as rectangle
+        int thumb_y = y + height - thumb_pos - thumb_height / 2;
+        // Clamp thumb to track bounds
+        thumb_y = std::max(y, std::min(thumb_y, y + height - thumb_height));
+        rect_type thumb_rect;
+        rect_utils::set_bounds(thumb_rect, x, thumb_y, width, thumb_height);
+        ctx.fill_rect(thumb_rect, thumb_color);
     }
 };
 

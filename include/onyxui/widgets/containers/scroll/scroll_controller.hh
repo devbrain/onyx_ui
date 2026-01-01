@@ -192,10 +192,10 @@ namespace onyxui {
 
             m_updating_from_scrollbar = true;
 
-            auto const current_offset = m_scrollable->get_scroll_offset();
-            int const x = point_utils::get_x(current_offset);
+            // Use get_scroll_x() to preserve fractional precision on the X axis
+            double const x = m_scrollable->get_scroll_x();
 
-            m_scrollable->scroll_to(x, new_y_offset);
+            m_scrollable->scroll_to(x, static_cast<double>(new_y_offset));
 
             m_updating_from_scrollbar = false;
 
@@ -214,10 +214,10 @@ namespace onyxui {
 
             m_updating_from_scrollbar = true;
 
-            auto const current_offset = m_scrollable->get_scroll_offset();
-            int const y = point_utils::get_y(current_offset);
+            // Use get_scroll_y() to preserve fractional precision on the Y axis
+            double const y = m_scrollable->get_scroll_y();
 
-            m_scrollable->scroll_to(new_x_offset, y);
+            m_scrollable->scroll_to(static_cast<double>(new_x_offset), y);
 
             m_updating_from_scrollbar = false;
 

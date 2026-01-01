@@ -117,18 +117,18 @@ namespace onyxui {
         // Rendering order: do_render() is called BEFORE children by framework (element.hh:651)
         // This fill provides the background, children render on top automatically
 
-        // RELATIVE COORDINATES: Convert relative bounds to absolute for rendering
-        // ctx.position() contains absolute screen position (x,y)
-        // this->bounds() contains relative bounds (w,h from parent's content area)
-        typename Backend::rect_type absolute_bounds;
+        // Use context position (already DPI-scaled physical coordinates)
+        auto const& pos = ctx.position();
+
+        // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
         auto logical_bounds = this->bounds();
-        typename Backend::rect_type relative_bounds{};
-        rect_utils::set_bounds(relative_bounds,
-            logical_bounds.x.to_int(),
-            logical_bounds.y.to_int(),
-            logical_bounds.width.to_int(),
-            logical_bounds.height.to_int());
-        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), relative_bounds);
+        auto const [final_width, final_height] = ctx.get_final_dims(
+            logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
+        typename Backend::rect_type absolute_bounds;
+        rect_utils::set_bounds(absolute_bounds,
+            point_utils::get_x(pos), point_utils::get_y(pos),
+            final_width, final_height);
         ctx.fill_rect(absolute_bounds);
 
         // Draw border if enabled (via widget_container base class)

@@ -43,8 +43,8 @@ protected:
 // Test event target with tracking
 class test_event_target : public event_target<test_backend> {
 public:
-    bool is_inside(int x, int y) const override {
-        return x >= 0 && x < 100 && y >= 0 && y < 100;
+    bool is_inside(logical_unit x, logical_unit y) const override {
+        return x >= 0_lu && x < 100_lu && y >= 0_lu && y < 100_lu;
     }
 
     int click_count = 0;
@@ -313,7 +313,7 @@ TEST_SUITE("RuleOfFive") {
         source.set_tab_index(5);
 
         // Simulate mouse interaction to set pressed state
-        mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        mouse_event press{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
         source.handle_event(ui_event{press}, event_phase::target);
         CHECK(source.is_pressed());
 
@@ -329,7 +329,7 @@ TEST_SUITE("RuleOfFive") {
 
         SUBCASE("destination can handle events") {
             // Complete the click
-            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            mouse_event release{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             dest.handle_event(ui_event{release}, event_phase::target);
             CHECK(dest.click_count == 1);
         }
@@ -380,10 +380,10 @@ TEST_SUITE("RuleOfFive") {
             // Re-enable to allow event handling
             dest.set_enabled(true);
 
-            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            mouse_event press{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
 
-            mouse_event release{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            mouse_event release{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             dest.handle_event(ui_event{release}, event_phase::target);
 
             CHECK(dest.click_count == 1);
@@ -557,7 +557,7 @@ TEST_SUITE("RuleOfFive") {
             // Verify element can handle events
             // Need to set bounds first for hit testing with unified event API
             dest.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
-            mouse_event press{.x = 50, .y = 50, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            mouse_event press{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             dest.handle_event(ui_event{press}, event_phase::target);
             CHECK(dest.is_pressed());
         }

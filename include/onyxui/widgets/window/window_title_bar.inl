@@ -93,18 +93,18 @@ namespace onyxui {
         // 1. This fill_rect() draws background
         // 2. Children (label + buttons) render on top automatically
 
-        // ctx.position() already contains this widget's absolute screen position
-        // bounds() contains relative bounds (for width/height)
-        // make_absolute_bounds uses position for x,y and bounds for w,h
-        typename Backend::rect_type absolute_bounds;
+        // Use context position (already DPI-scaled physical coordinates)
+        auto const& pos = ctx.position();
+
+        // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
         auto logical_bounds = this->bounds();
-        typename Backend::rect_type relative_bounds{};
-        rect_utils::set_bounds(relative_bounds,
-            logical_bounds.x.to_int(),
-            logical_bounds.y.to_int(),
-            logical_bounds.width.to_int(),
-            logical_bounds.height.to_int());
-        rect_utils::make_absolute_bounds(absolute_bounds, ctx.position(), relative_bounds);
+        auto const [final_width, final_height] = ctx.get_final_dims(
+            logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
+        typename Backend::rect_type absolute_bounds;
+        rect_utils::set_bounds(absolute_bounds,
+            point_utils::get_x(pos), point_utils::get_y(pos),
+            final_width, final_height);
 
         ctx.fill_rect(absolute_bounds);
 
@@ -143,18 +143,22 @@ namespace onyxui {
         // This allows us to intercept clicks on icon children
         if (phase == event_phase::capture && mouse_evt && mouse_evt->act == mouse_event::action::release) {
             // Helper lambda to check if absolute mouse coordinates are within an icon's bounds
-            // Uses get_absolute_bounds() to convert relative icon bounds to screen coordinates
+            // Uses get_absolute_logical_bounds() to preserve full precision
             auto icon_contains = [mouse_evt](ui_element<Backend>* icon) -> bool {
                 if (!icon) return false;
 
-                // Get icon's absolute screen bounds
-                auto abs_bounds = icon->get_absolute_bounds();
+                // Get icon's absolute logical bounds (preserves double precision)
+                auto abs_bounds = icon->get_absolute_logical_bounds();
 
-                // Check if mouse is within icon bounds (use strong_rect accessors)
-                return (mouse_evt->x >= abs_bounds.x() &&
-                       mouse_evt->x < abs_bounds.x() + abs_bounds.width() &&
-                       mouse_evt->y >= abs_bounds.y() &&
-                       mouse_evt->y < abs_bounds.y() + abs_bounds.height());
+                // Use logical coordinates directly (double precision)
+                double const mouse_x = mouse_evt->x.value;
+                double const mouse_y = mouse_evt->y.value;
+
+                // Check if mouse is within icon bounds (logical precision)
+                return (mouse_x >= abs_bounds.x.value &&
+                       mouse_x < abs_bounds.x.value + abs_bounds.width.value &&
+                       mouse_y >= abs_bounds.y.value &&
+                       mouse_y < abs_bounds.y.value + abs_bounds.height.value);
             };
 
             // Check which icon was clicked and emit corresponding signal
@@ -189,24 +193,27 @@ namespace onyxui {
         // Handle mouse dragging (only if not clicking an icon)
         if (mouse_evt->btn == mouse_event::button::left && mouse_evt->act == mouse_event::action::press) {
             // Start dragging (unless clicking on an icon)
-            bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_menu_icon) ||
-                                 (m_minimize_icon && m_minimize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_minimize_icon) ||
-                                 (m_maximize_icon && m_maximize_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_maximize_icon) ||
-                                 (m_close_icon && m_close_icon->hit_test(mouse_evt->x, mouse_evt->y) == m_close_icon);
+            // Use hit_test_logical for full precision hit testing
+            hit_test_path<Backend> dummy_path;
+            bool clicking_icon = (m_menu_icon && m_menu_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_menu_icon) ||
+                                 (m_minimize_icon && m_minimize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_minimize_icon) ||
+                                 (m_maximize_icon && m_maximize_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_maximize_icon) ||
+                                 (m_close_icon && m_close_icon->hit_test_logical(mouse_evt->x, mouse_evt->y, dummy_path) == m_close_icon);
 
             if (!clicking_icon) {
                 m_is_dragging = true;
-                m_drag_start_x = mouse_evt->x;
-                m_drag_start_y = mouse_evt->y;
+                m_drag_start_x = mouse_evt->x.value;  // Store logical coordinate
+                m_drag_start_y = mouse_evt->y.value;  // Store logical coordinate
                 drag_started.emit();
                 return true;  // Event handled
             }
         }
 
         if (m_is_dragging && mouse_evt->act == mouse_event::action::move) {
-            // Continue dragging - emit delta from start position
-            int delta_x = mouse_evt->x - m_drag_start_x;
-            int delta_y = mouse_evt->y - m_drag_start_y;
+            // Continue dragging - emit delta from start position (logical precision)
+            // Note: dragging signal takes int for compatibility, floor the delta
+            int delta_x = static_cast<int>(mouse_evt->x.value - m_drag_start_x);
+            int delta_y = static_cast<int>(mouse_evt->y.value - m_drag_start_y);
             dragging.emit(delta_x, delta_y);
             return true;  // Event handled
         }

@@ -21,17 +21,17 @@ namespace onyxui {
      * @brief Snapping mode for logical→physical conversion
      */
     enum class snap_mode : std::uint8_t {
-        floor,   ///< Round down (for positions)
-        ceil,    ///< Round up (for far edges)
-        round,   ///< Round to nearest (for sizes computed directly)
-        none     ///< No snapping (preserve fractional for intermediate calculations)
+        floor,   ///< Round down towards negative infinity (for positions)
+        ceil,    ///< Round up towards positive infinity (for far edges)
+        round,   ///< Round to nearest integer (for sizes computed directly)
+        truncate ///< Truncate towards zero (legacy, prefer floor/ceil for consistency)
     };
 
     /**
      * @struct backend_metrics
      * @brief Metrics for converting logical units to physical backend coordinates
      *
-     * Encapsulates scaling factors, DPI, aspect ratio, and snapping strategies
+     * Encapsulates scaling factors, DPI, and snapping strategies
      * for a specific backend (terminal, SDL, etc.).
      *
      * @tparam Backend The UI backend type
@@ -41,9 +41,6 @@ namespace onyxui {
         // Conversion factors (logical → physical)
         double logical_to_physical_x = 1.0;  ///< X-axis scale (e.g., 1.0 for conio, 8.0 for SDL)
         double logical_to_physical_y = 1.0;  ///< Y-axis scale (e.g., 1.0 for conio, 8.0 for SDL)
-
-        // Aspect ratio compensation (for non-square units like char cells)
-        double aspect_ratio = 1.0;  ///< Width/height ratio (e.g., 0.5 for 8×16 chars, 1.0 for square pixels)
 
         // DPI scaling (for high-DPI displays)
         double dpi_scale = 1.0;  ///< DPI multiplier (1.0, 1.5, 2.0, 3.0, etc.)
@@ -57,12 +54,12 @@ namespace onyxui {
         [[nodiscard]] constexpr int snap_to_physical_x(logical_unit lu, snap_mode mode) const noexcept {
             const double physical = lu.value * logical_to_physical_x * dpi_scale;
             switch (mode) {
-                case snap_mode::floor: return static_cast<int>(std::floor(physical));
-                case snap_mode::ceil:  return static_cast<int>(std::ceil(physical));
-                case snap_mode::round: return static_cast<int>(std::round(physical));
-                case snap_mode::none:  return static_cast<int>(physical);
+                case snap_mode::floor:    return static_cast<int>(std::floor(physical));
+                case snap_mode::ceil:     return static_cast<int>(std::ceil(physical));
+                case snap_mode::round:    return static_cast<int>(std::round(physical));
+                case snap_mode::truncate: return static_cast<int>(physical);
             }
-            return static_cast<int>(physical);
+            return static_cast<int>(std::floor(physical));  // Default to floor
         }
 
         /**
@@ -74,12 +71,12 @@ namespace onyxui {
         [[nodiscard]] constexpr int snap_to_physical_y(logical_unit lu, snap_mode mode) const noexcept {
             const double physical = lu.value * logical_to_physical_y * dpi_scale;
             switch (mode) {
-                case snap_mode::floor: return static_cast<int>(std::floor(physical));
-                case snap_mode::ceil:  return static_cast<int>(std::ceil(physical));
-                case snap_mode::round: return static_cast<int>(std::round(physical));
-                case snap_mode::none:  return static_cast<int>(physical);
+                case snap_mode::floor:    return static_cast<int>(std::floor(physical));
+                case snap_mode::ceil:     return static_cast<int>(std::ceil(physical));
+                case snap_mode::round:    return static_cast<int>(std::round(physical));
+                case snap_mode::truncate: return static_cast<int>(physical);
             }
-            return static_cast<int>(physical);
+            return static_cast<int>(std::floor(physical));  // Default to floor
         }
 
         /**
@@ -204,7 +201,6 @@ namespace onyxui {
         return {
             .logical_to_physical_x = 1.0,   // 1 logical unit = 1 char column
             .logical_to_physical_y = 1.0,   // 1 logical unit = 1 char row
-            .aspect_ratio = 0.5,            // Char cells ~8×16 (width/height)
             .dpi_scale = 1.0                // No DPI scaling for terminal
         };
     }
@@ -219,7 +215,6 @@ namespace onyxui {
         return {
             .logical_to_physical_x = 8.0,   // 1 logical unit = 8 pixels
             .logical_to_physical_y = 8.0,   // 1 logical unit = 8 pixels
-            .aspect_ratio = 1.0,            // Square pixels
             .dpi_scale = dpi_scale          // DPI scaling (1x, 1.5x, 2x, etc.)
         };
     }

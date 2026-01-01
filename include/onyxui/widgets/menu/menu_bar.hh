@@ -301,13 +301,17 @@ namespace onyxui {
         }
 
         /**
-         * @brief Get the bounds of a menu button
+         * @brief Get the bounds of a menu button (relative, snapped logical)
          * @param index Menu index
-         * @return Button bounds, or default rect if invalid index
+         * @return Button bounds in snapped logical coordinates, or default rect if invalid index
          *
          * @details
-         * Returns the actual rendered bounds of the menu title button.
+         * Returns the menu title button's bounds relative to the menu bar,
+         * with logical coordinates rounded to integers. These are NOT physical
+         * screen coordinates - they need DPI scaling via backend_metrics for rendering.
          * Used for positioning dropdown menus below their buttons.
+         *
+         * @note For physical screen coordinates, use get_screen_bounds(metrics)
          */
         [[nodiscard]] rect_type get_menu_button_bounds(std::size_t index) const {
             if (index < m_menus.size() && m_menus[index].title_item) {
@@ -472,9 +476,18 @@ namespace onyxui {
 
             // Draw continuous background stripe (Norton Utilities 8 style)
             // This fills the entire menu bar width, creating a continuous colored bar
-            auto const logical = this->bounds();
+            // Use context position (already DPI-scaled physical coordinates)
+            auto const& pos = ctx.position();
+
+            // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+            auto logical_bounds = this->bounds();
+            auto const [final_width, final_height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
+
             rect_type physical;
-            rect_utils::set_bounds(physical, logical.x.to_int(), logical.y.to_int(), logical.width.to_int(), logical.height.to_int());
+            rect_utils::set_bounds(physical,
+                point_utils::get_x(pos), point_utils::get_y(pos),
+                final_width, final_height);
             ctx.fill_rect(physical);
 
             // Render children on top of background

@@ -118,7 +118,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Signals not 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Mouse click checks unchecked button") {
     test_radio_button<Backend> rb;
 
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
 
     const bool handled = rb.handle_event(ui_event{mouse_evt}, event_phase::target);
@@ -130,7 +130,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Mouse click 
 TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Mouse click on checked button does nothing") {
     test_radio_button<Backend> rb("Test", true);
 
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
 
     // Click on already checked button - should do nothing
@@ -162,7 +162,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "radio_button - Events ignor
     rb.set_enabled(false);
 
     // Try mouse click
-    mouse_event mouse_evt{.x = 0, .y = 0, .btn = mouse_event::button::left,
+    mouse_event mouse_evt{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left,
                           .act = mouse_event::action::press, .modifiers = {}};
     rb.handle_event(ui_event{mouse_evt}, event_phase::target);
 

@@ -283,22 +283,28 @@ namespace onyxui {
                 // Notify renderer to resize its buffers
                 m_renderer.on_resize();
 
-                // Get new window dimensions from typed event
-                int new_width = resize_evt->width;
-                int new_height = resize_evt->height;
+                // Get new window dimensions from typed event (physical pixels)
+                const int new_width = resize_evt->width;
+                const int new_height = resize_evt->height;
 
-                // Remeasure and rearrange UI for new dimensions
-                rect_type new_bounds;
-                rect_utils::set_bounds(new_bounds, 0, 0, new_width, new_height);
+                // Convert physical dimensions to logical using metrics (DPI-aware)
+                const auto* metrics = ui_services<Backend>::metrics();
+                if (!metrics) {
+                    // Fallback: assume 1:1 scaling if metrics unavailable
+                    [[maybe_unused]] auto measured_size = m_root->measure(
+                        logical_unit(static_cast<double>(new_width)),
+                        logical_unit(static_cast<double>(new_height)));
+                    m_root->arrange(logical_rect{0.0_lu, 0.0_lu,
+                        logical_unit(static_cast<double>(new_width)),
+                        logical_unit(static_cast<double>(new_height))});
+                } else {
+                    // Proper DPI-aware conversion
+                    const logical_unit logical_width = metrics->physical_to_logical_x(new_width);
+                    const logical_unit logical_height = metrics->physical_to_logical_y(new_height);
 
-                [[maybe_unused]] auto measured_size = m_root->measure(
-                    logical_unit(static_cast<double>(new_width)),
-                    logical_unit(static_cast<double>(new_height)));
-                m_root->arrange(logical_rect{
-                    logical_unit(0.0),
-                    logical_unit(0.0),
-                    logical_unit(static_cast<double>(new_width)),
-                    logical_unit(static_cast<double>(new_height))});
+                    [[maybe_unused]] auto measured_size = m_root->measure(logical_width, logical_height);
+                    m_root->arrange(logical_rect{0.0_lu, 0.0_lu, logical_width, logical_height});
+                }
 
                 return true;  // Resize handled
             }
@@ -383,9 +389,8 @@ namespace onyxui {
             if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
                 if (!input) return false;  // No input manager available
 
-                // Get mouse position from typed event
-                int mouse_x = mouse_evt->x;
-                int mouse_y = mouse_evt->y;
+                // Mouse coordinates are now in logical units (normalized at backend level)
+                // This preserves fractional precision for accurate hit testing
 
                 // Check if this is a button press/release event
                 bool is_button_event = (mouse_evt->act == mouse_event::action::press ||
@@ -414,8 +419,8 @@ namespace onyxui {
                     // Captured widget gets event directly (no three-phase routing)
                     target_widget = captured;
                 } else {
-                    // Hit test with path recording for three-phase event routing
-                    target_widget = m_root->hit_test(mouse_x, mouse_y, hit_path);
+                    // Hit test with logical coordinates for precision
+                    target_widget = m_root->hit_test_logical(mouse_evt->x, mouse_evt->y, hit_path);
                 }
 
                 // Handle hover changes (only when NOT captured)
@@ -435,9 +440,10 @@ namespace onyxui {
                         if (currently_captured && currently_captured != target_widget) {
                             // Send mouse release to previously captured widget to clean up its state
                             // With unified event API, construct proper mouse_event with action::release
+                            // Note: mouse_event uses physical coordinates from original event
                             mouse_event release{
-                                .x = mouse_x,
-                                .y = mouse_y,
+                                .x = mouse_evt->x,
+                                .y = mouse_evt->y,
                                 .btn = mouse_event::button::left,
                                 .act = mouse_event::action::release,
                                 .modifiers = {}
@@ -569,13 +575,24 @@ namespace onyxui {
          * Performs the complete layout and rendering pipeline.
          */
         void display_impl(const rect_type& bounds) {
+            // Get metrics for coordinate conversion (required)
+            const auto* metrics = ui_services<Backend>::metrics();
+            if (!metrics) {
+                throw std::runtime_error("Backend metrics not available! Ensure ui_context is created before rendering.");
+            }
+
             // Get dirty regions from previous frame
             auto dirty_regions = m_root->get_and_clear_dirty_regions();
 
             // Add dirty regions from removed layers (fixes menu switching artifacts)
+            // Layer manager stores logical coordinates; convert to physical using metrics (DPI-aware)
             if (auto* layers = ui_services<Backend>::layers()) {
                 const auto& removed_regions = layers->get_removed_layer_dirty_regions();
-                dirty_regions.insert(dirty_regions.end(), removed_regions.begin(), removed_regions.end());
+                for (const auto& logical_region : removed_regions) {
+                    // Use snap_rect for proper DPI-aware conversion
+                    rect_type physical_region = metrics->snap_rect(logical_region);
+                    dirty_regions.push_back(physical_region);
+                }
                 layers->clear_removed_layer_dirty_regions();
             }
 
@@ -584,16 +601,25 @@ namespace onyxui {
                 bg->render(m_renderer, bounds, dirty_regions);
             }
 
-            // Two-pass layout for root widget
+            // Convert physical viewport to logical coordinates
+            const logical_size logical_viewport = metrics->physical_to_logical_size(
+                typename Backend::size_type{
+                    rect_utils::get_width(bounds),
+                    rect_utils::get_height(bounds)
+                }
+            );
+
+
+            // Two-pass layout in logical coordinates
             [[maybe_unused]] auto measured_size = m_root->measure(
-                logical_unit(static_cast<double>(rect_utils::get_width(bounds))),
-                logical_unit(static_cast<double>(rect_utils::get_height(bounds))));
+                logical_viewport.width,
+                logical_viewport.height);
 
             m_root->arrange(logical_rect{
                 logical_unit(0.0),
                 logical_unit(0.0),
-                logical_unit(static_cast<double>(rect_utils::get_width(bounds))),
-                logical_unit(static_cast<double>(rect_utils::get_height(bounds)))});
+                logical_viewport.width,
+                logical_viewport.height});
 
             // Get global theme ONCE at rendering entry point (REQUIRED - theme cannot be null)
             auto* themes = ui_services<Backend>::themes();
@@ -608,11 +634,12 @@ namespace onyxui {
             // Render root widget to back buffer with dirty rectangle optimization
             // Only renders widgets that intersect with dirty regions
             // Theme is passed down through the widget tree by pointer
-            m_root->render(m_renderer, theme_ptr);
+            // Metrics are used for logical → physical coordinate conversion
+            m_root->render(m_renderer, theme_ptr, *metrics);
 
             // Render all overlay layers from current context (pass theme for popup menus, dialogs)
             if (auto* layers = ui_services<Backend>::layers()) {
-                layers->render_all_layers(m_renderer, bounds, theme_ptr);
+                layers->render_all_layers(m_renderer, bounds, theme_ptr, *metrics);
             }
         }
     };

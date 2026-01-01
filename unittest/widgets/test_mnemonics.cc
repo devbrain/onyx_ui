@@ -400,7 +400,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button set_mnemonic_text with theme") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -417,7 +417,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button mnemonic with different positions") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -439,7 +439,7 @@ TEST_SUITE("button::mnemonics") {
     TEST_CASE("Button mnemonic with escape sequence") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -482,7 +482,7 @@ TEST_SUITE("label::mnemonics") {
     TEST_CASE("Label set_mnemonic_text with theme") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -498,7 +498,7 @@ TEST_SUITE("label::mnemonics") {
     TEST_CASE("Label form field labels") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -523,7 +523,7 @@ TEST_SUITE("mnemonics::scenarios") {
     TEST_CASE("File menu with mnemonics") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -549,7 +549,7 @@ TEST_SUITE("mnemonics::scenarios") {
     TEST_CASE("Form with labeled inputs") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -573,7 +573,7 @@ TEST_SUITE("mnemonics::scenarios") {
     TEST_CASE("Buttons with literal ampersands") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -588,7 +588,7 @@ TEST_SUITE("mnemonics::scenarios") {
     TEST_CASE("Mixed plain text and mnemonic text") {
         ui_theme<Backend> theme{};
         theme.name = "Test Theme";
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 

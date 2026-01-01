@@ -20,8 +20,8 @@ using namespace onyxui;
 // Helper to convert test backend events to ui_event
 inline ui_event make_mouse_event(int x, int y, bool pressed, int button = 1) {
     mouse_event evt;
-    evt.x = x;
-    evt.y = y;
+    evt.x = logical_unit(static_cast<double>(x));
+    evt.y = logical_unit(static_cast<double>(y));
     evt.btn = (button == 1) ? mouse_event::button::left :
               (button == 2) ? mouse_event::button::middle :
               (button == 3) ? mouse_event::button::right :
@@ -33,8 +33,8 @@ inline ui_event make_mouse_event(int x, int y, bool pressed, int button = 1) {
 // Helper for mouse move events
 inline ui_event make_mouse_move(int x, int y) {
     mouse_event evt;
-    evt.x = x;
-    evt.y = y;
+    evt.x = logical_unit(static_cast<double>(x));
+    evt.y = logical_unit(static_cast<double>(y));
     evt.btn = mouse_event::button::none;
     evt.act = mouse_event::action::move;
     return ui_event{evt};
@@ -55,18 +55,18 @@ public:
     int click_count = 0;
 
     // Last event details
-    int last_x = -1;
-    int last_y = -1;
+    logical_unit last_x = -1.0_lu;
+    logical_unit last_y = -1.0_lu;
     int last_button = -1;
 
     // Define hit testing bounds
-    int bounds_x = 0;
-    int bounds_y = 0;
-    int bounds_w = 100;
-    int bounds_h = 50;
+    logical_unit bounds_x = 0.0_lu;
+    logical_unit bounds_y = 0.0_lu;
+    logical_unit bounds_w = 100.0_lu;
+    logical_unit bounds_h = 50.0_lu;
 
     // Implement required abstract method
-    [[nodiscard]] bool is_inside(int x, int y) const override {
+    [[nodiscard]] bool is_inside(logical_unit x, logical_unit y) const override {
         return x >= bounds_x && x < (bounds_x + bounds_w) &&
                y >= bounds_y && y < (bounds_y + bounds_h);
     }
@@ -412,10 +412,10 @@ TEST_SUITE("EventTarget - Edge Cases") {
 
     TEST_CASE("Boundary coordinates") {
         test_event_target_comprehensive target;
-        target.bounds_x = 0;
-        target.bounds_y = 0;
-        target.bounds_w = 100;
-        target.bounds_h = 50;
+        target.bounds_x = 0.0_lu;
+        target.bounds_y = 0.0_lu;
+        target.bounds_w = 100.0_lu;
+        target.bounds_h = 50.0_lu;
 
         SUBCASE("Top-left corner") {
             target.handle_event(make_mouse_event(0, 0, true), event_phase::target);

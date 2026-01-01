@@ -397,10 +397,10 @@ namespace onyxui {
                         if (!scroll_horizontal) {
                             // Check if we can scroll vertically
                             auto scroll_info = m_content_ptr->get_scroll_info();
-                            int const content_h = size_utils::get_height(scroll_info.content_size);
-                            int const viewport_h = size_utils::get_height(scroll_info.viewport_size);
-                            int const content_w = size_utils::get_width(scroll_info.content_size);
-                            int const viewport_w = size_utils::get_width(scroll_info.viewport_size);
+                            double const content_h = scroll_info.content_height;
+                            double const viewport_h = scroll_info.viewport_height;
+                            double const content_w = scroll_info.content_width;
+                            double const viewport_w = scroll_info.viewport_width;
 
                             bool const can_scroll_v = content_h > viewport_h;
                             bool const can_scroll_h = content_w > viewport_w;

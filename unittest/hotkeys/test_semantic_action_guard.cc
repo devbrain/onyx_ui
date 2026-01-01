@@ -37,7 +37,7 @@ TEST_SUITE("semantic_action_guard") {
     }
 
     TEST_CASE("Constructor with params creates valid guard and registers action") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         bool handler_called = false;
@@ -61,7 +61,7 @@ TEST_SUITE("semantic_action_guard") {
     }
 
     TEST_CASE("Destructor automatically unregisters action") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         bool handler_called = false;
@@ -93,7 +93,7 @@ TEST_SUITE("semantic_action_guard") {
     }
 
     TEST_CASE("action() returns the guarded action") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         semantic_action_guard<Backend> guard(
@@ -106,7 +106,7 @@ TEST_SUITE("semantic_action_guard") {
     }
 
     TEST_CASE("release() prevents unregistration on destruction") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         {
@@ -139,7 +139,7 @@ TEST_SUITE("semantic_action_guard") {
 TEST_SUITE("semantic_action_guard::move_semantics") {
 
     TEST_CASE("Move constructor transfers ownership") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         semantic_action_guard<Backend> guard1(
@@ -172,7 +172,7 @@ TEST_SUITE("semantic_action_guard::move_semantics") {
     }
 
     TEST_CASE("Move assignment transfers ownership") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         semantic_action_guard<Backend> guard1(
@@ -195,7 +195,7 @@ TEST_SUITE("semantic_action_guard::move_semantics") {
     }
 
     TEST_CASE("Move assignment unregisters previous action") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         semantic_action_guard<Backend> guard1(
@@ -221,7 +221,7 @@ TEST_SUITE("semantic_action_guard::move_semantics") {
     }
 
     TEST_CASE("Self-move assignment is safe") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         semantic_action_guard<Backend> guard(
@@ -249,7 +249,7 @@ TEST_SUITE("semantic_action_guard::move_semantics") {
 TEST_SUITE("semantic_action_guard::vector_storage") {
 
     TEST_CASE("Can store guards in vector") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         std::vector<semantic_action_guard<Backend>> guards;
@@ -272,7 +272,7 @@ TEST_SUITE("semantic_action_guard::vector_storage") {
     }
 
     TEST_CASE("Vector reallocation preserves guards") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         std::vector<semantic_action_guard<Backend>> guards;
@@ -294,7 +294,7 @@ TEST_SUITE("semantic_action_guard::vector_storage") {
     }
 
     TEST_CASE("Replacing vector contents unregisters old guards") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         std::vector<semantic_action_guard<Backend>> guards;
@@ -327,7 +327,7 @@ TEST_SUITE("semantic_action_guard::vector_storage") {
 TEST_SUITE("semantic_action_guard::exception_safety") {
 
     TEST_CASE("Guard unregisters even if exception thrown") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         try {
@@ -350,7 +350,7 @@ TEST_SUITE("semantic_action_guard::exception_safety") {
     }
 
     TEST_CASE("Vector of guards is exception-safe") {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
         auto& hotkeys = ctx.hotkeys();
 
         try {

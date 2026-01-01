@@ -196,14 +196,15 @@ namespace onyxui {
          * @brief Render the separator line
          */
         void do_render(render_context<Backend>& ctx) const override {
-            // Get bounds from context
+            // Use context position (already DPI-scaled physical coordinates)
             auto const& pos = ctx.position();
             int const x = point_utils::get_x(pos);
             int const y = point_utils::get_y(pos);
 
-            auto bounds = this->bounds();
-            int const width = bounds.width.to_int();
-            int const height = bounds.height.to_int();
+            // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+            auto logical_bounds = this->bounds();
+            auto const [width, height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
             typename Backend::rect_type line_rect;
             rect_utils::set_bounds(line_rect, x, y, width, height);

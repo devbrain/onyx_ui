@@ -456,6 +456,12 @@ namespace onyxui {
                 return false;  // Not a keyboard event
             }
 
+            // Only process key press events, not key release
+            // This prevents hotkeys from triggering twice (once on press, once on release)
+            if (!kbd->pressed) {
+                return false;  // Ignore key release events
+            }
+
             // Convert keyboard_event to key_sequence
             if (kbd->key == key_code::none) {
                 return false;  // Not a hotkey candidate
@@ -611,6 +617,11 @@ namespace onyxui {
          * @endcode
          */
         [[nodiscard]] bool matches_action(const keyboard_event& kbd, hotkey_action action) const {
+            // Only match on key press, not key release
+            if (!kbd.pressed) {
+                return false;
+            }
+
             if (!m_scheme_registry) {
                 return false;  // No scheme registry, can't check bindings
             }

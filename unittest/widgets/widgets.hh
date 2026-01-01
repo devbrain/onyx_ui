@@ -32,10 +32,10 @@ namespace onyxui {
                     this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
                 }
 
-                mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+                mouse_event press{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
                 this->handle_event(ui_event{press}, event_phase::target);
 
-                mouse_event release{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+                mouse_event release{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
                 this->handle_event(ui_event{release}, event_phase::target);
             }
     };
@@ -54,10 +54,10 @@ namespace onyxui {
                     this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
                 }
 
-                mouse_event press{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+                mouse_event press{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
                 this->handle_event(ui_event{press}, event_phase::target);
 
-                mouse_event release{.x = 0, .y = 0, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+                mouse_event release{.x = 0.0_lu, .y = 0.0_lu, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
                 this->handle_event(ui_event{release}, event_phase::target);
             }
 

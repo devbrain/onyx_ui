@@ -259,6 +259,7 @@ namespace onyxui {
             font_type text_font;         ///< Font for text overlay
             icon_style_type filled_icon{};  ///< Icon for filled portion (default: progress_filled)
             icon_style_type empty_icon{};   ///< Icon for empty portion (default: progress_empty)
+            double bar_thickness = 2.0;     ///< Thickness in logical units (default 2 = 16px for GUI)
         };
 
         /**
@@ -273,6 +274,7 @@ namespace onyxui {
             icon_style_type filled_icon{};   ///< Icon for filled track portion (default: slider_filled)
             icon_style_type empty_icon{};    ///< Icon for empty track portion (default: slider_empty)
             icon_style_type thumb_icon{};    ///< Icon for slider thumb (default: slider_thumb)
+            double track_thickness = 1.5;    ///< Track thickness in logical units (default 1.5 = 12px for GUI)
         };
 
         /**

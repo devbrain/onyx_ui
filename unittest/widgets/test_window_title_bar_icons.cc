@@ -202,8 +202,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Create a mouse click event at absolute coordinates (44, 3)
         mouse_event click;
-        click.x = 44;
-        click.y = 3;
+        click.x = 44.0_lu;
+        click.y = 3.0_lu;
         click.btn = mouse_event::button::none;  // termbox2 sets btn=none on release
         click.act = mouse_event::action::release;
         ui_event evt = click;
@@ -263,8 +263,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Minimize icon should be at x=29 relative to title bar
         // Use relative coordinates for hit testing (window is at 0,0 with size 30x10)
         mouse_event click;
-        click.x = 29;  // Relative to window (icon at right edge)
-        click.y = 0;   // Title bar is at y=0
+        click.x = 29.0_lu;  // Relative to window (icon at right edge)
+        click.y = 0.0_lu;   // Title bar is at y=0
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
@@ -305,8 +305,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Maximize icon should be at x=29 relative to title bar
         // Use relative coordinates for hit testing (window is at 0,0 with size 30x10)
         mouse_event click;
-        click.x = 29;  // Relative to window (icon at right edge)
-        click.y = 0;   // Title bar is at y=0
+        click.x = 29.0_lu;  // Relative to window (icon at right edge)
+        click.y = 0.0_lu;   // Title bar is at y=0
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
@@ -376,17 +376,17 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         // Get absolute bounds of maximize icon
         auto abs_icon_bounds = maximize_icon->get_absolute_bounds();
 
-        // Click on the icon
+        // Click on the icon (convert int bounds to logical_unit)
         mouse_event click;
-        click.x = abs_icon_bounds.x();
-        click.y = abs_icon_bounds.y();
+        click.x = logical_unit(static_cast<double>(abs_icon_bounds.x()));
+        click.y = logical_unit(static_cast<double>(abs_icon_bounds.y()));
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
         ui_event evt = click;
 
         // Route through event system
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test(click.x, click.y, path);
+        auto* target = parent->hit_test(abs_icon_bounds.x(), abs_icon_bounds.y(), path);
 
         if (target) {
             route_event(evt, path);
@@ -456,13 +456,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         auto max_bounds = maximize_icon->get_absolute_bounds();
 
         mouse_event click;
-        click.x = max_bounds.x();
-        click.y = max_bounds.y();
+        click.x = logical_unit(static_cast<double>(max_bounds.x()));
+        click.y = logical_unit(static_cast<double>(max_bounds.y()));
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
 
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test(click.x, click.y, path);
+        auto* target = parent->hit_test(max_bounds.x(), max_bounds.y(), path);
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 
@@ -538,15 +538,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         // Get absolute bounds of maximize icon
         auto abs_icon_bounds = maximize_icon->get_absolute_bounds();
 
-        // Click maximize button
+        // Click maximize button (convert int bounds to logical_unit)
         mouse_event click;
-        click.x = abs_icon_bounds.x();
-        click.y = abs_icon_bounds.y();
+        click.x = logical_unit(static_cast<double>(abs_icon_bounds.x()));
+        click.y = logical_unit(static_cast<double>(abs_icon_bounds.y()));
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
 
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(click.x, click.y, path);
+        auto* target = win->hit_test(abs_icon_bounds.x(), abs_icon_bounds.y(), path);
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 
@@ -556,7 +556,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
             auto const* themes = ui_services<Backend>::themes();
             auto const* theme = themes ? themes->get_current_theme() : nullptr;
             if (theme) {
-                parent->render(renderer, theme);
+                parent->render(renderer, theme, make_terminal_metrics<Backend>());
             }
         }
 

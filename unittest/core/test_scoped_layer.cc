@@ -277,7 +277,7 @@ TEST_SUITE("scoped_layer - Integration") {
         layer_manager<Backend> mgr;
         auto elem = std::make_shared<TestElement>();
 
-        TestRect const anchor{100, 100, 50, 20};
+        logical_rect const anchor{100.0_lu, 100.0_lu, 50.0_lu, 20.0_lu};
 
         {
             // Note: Will need to add show_popup overload that returns scoped_layer
@@ -335,13 +335,13 @@ TEST_SUITE("scoped_layer - Integration") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
         }
 
         // Layer removed, rendering should still work
         TestRenderer renderer;
         TestRect const viewport{0, 0, 800, 600};
-        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+        CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
     }
 }
 

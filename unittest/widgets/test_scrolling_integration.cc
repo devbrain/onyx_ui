@@ -50,7 +50,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
 
     // Verify scrollbar is synced with whatever offset we got
     auto scrollbar_info = view->vertical_scrollbar()->get_scroll_info();
-    CHECK(point_utils::get_y(scrollbar_info.scroll_offset) == offset);
+    CHECK(scrollbar_info.scroll_y == offset);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll_view with grid of 5x5 buttons") {
@@ -213,7 +213,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
 
     // Scroll to bottom
     auto info = view->content()->get_scroll_info();
-    int max_scroll = size_utils::get_height(info.content_size) - size_utils::get_height(info.viewport_size);
+    int max_scroll = info.content_height - info.viewport_height;
     view->scroll_to(0, max_scroll);
 
     // Remove half the items
@@ -228,7 +228,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
     // Scroll should clamp to new max (which may be 0 if content fits in viewport)
     auto new_offset = point_utils::get_y(view->content()->get_scroll_offset());
     auto new_info = view->content()->get_scroll_info();
-    int new_max_scroll = std::max(0, size_utils::get_height(new_info.content_size) - size_utils::get_height(new_info.viewport_size));
+    double new_max_scroll = std::max(0.0, new_info.content_height - new_info.viewport_height);
     CHECK(new_offset >= 0);  // Offset should never be negative
     CHECK(new_offset <= new_max_scroll);  // Offset should not exceed max
 }

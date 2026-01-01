@@ -67,7 +67,7 @@ namespace {
         }
 
         // Required pure virtual methods
-        bool is_inside(int, int) const override {
+        bool is_inside(logical_unit, logical_unit) const override {
             return true;
         }
     };
@@ -144,8 +144,8 @@ TEST_CASE("event_target::handle_event - Mouse events") {
 
     SUBCASE("Left button press") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
         mouse.modifiers = {.ctrl = false, .alt = false, .shift = false};
@@ -155,16 +155,16 @@ TEST_CASE("event_target::handle_event - Mouse events") {
 
         CHECK(handled);
         CHECK(target.mouse_count == 1);
-        CHECK(target.last_mouse.x == 10);
-        CHECK(target.last_mouse.y == 20);
+        CHECK(target.last_mouse.x == 10.0_lu);
+        CHECK(target.last_mouse.y == 20.0_lu);
         CHECK(target.last_mouse.btn == mouse_event::button::left);
         CHECK(target.last_mouse.act == mouse_event::action::press);
     }
 
     SUBCASE("Right button press") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::right;
         mouse.act = mouse_event::action::press;
 
@@ -178,8 +178,8 @@ TEST_CASE("event_target::handle_event - Mouse events") {
 
     SUBCASE("Mouse move") {
         mouse_event mouse{};
-        mouse.x = 100;
-        mouse.y = 150;
+        mouse.x = 100.0_lu;
+        mouse.y = 150.0_lu;
         mouse.btn = mouse_event::button::none;
         mouse.act = mouse_event::action::move;
 
@@ -193,8 +193,8 @@ TEST_CASE("event_target::handle_event - Mouse events") {
 
     SUBCASE("Mouse wheel up") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::none;
         mouse.act = mouse_event::action::wheel_up;
 
@@ -208,8 +208,8 @@ TEST_CASE("event_target::handle_event - Mouse events") {
 
     SUBCASE("Mouse wheel down") {
         mouse_event mouse{};
-        mouse.x = 50;
-        mouse.y = 60;
+        mouse.x = 50.0_lu;
+        mouse.y = 60.0_lu;
         mouse.btn = mouse_event::button::none;
         mouse.act = mouse_event::action::wheel_down;
 
@@ -289,7 +289,7 @@ TEST_CASE("event_target::handle_event - Backward compatibility") {
             return event_target<test_canvas_backend>::handle_mouse(mouse);
         }
 
-        bool is_inside(int, int) const override {
+        bool is_inside(logical_unit, logical_unit) const override {
             return true;
         }
     };
@@ -313,8 +313,8 @@ TEST_CASE("event_target::handle_event - Backward compatibility") {
 
     SUBCASE("Mouse event forwards to handle_mouse_down") {
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
 
@@ -376,8 +376,8 @@ TEST_CASE("event_target::handle_event - Variant dispatch") {
 
         // Mouse event
         mouse_event mouse{};
-        mouse.x = 10;
-        mouse.y = 20;
+        mouse.x = 10.0_lu;
+        mouse.y = 20.0_lu;
         mouse.btn = mouse_event::button::left;
         mouse.act = mouse_event::action::press;
         target.handle_event(ui_event{mouse}, event_phase::target);

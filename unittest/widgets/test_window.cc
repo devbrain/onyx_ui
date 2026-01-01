@@ -629,14 +629,14 @@ TEST_CASE("Window - Resize event handling") {
         win.resized_sig.connect([&]() { resized_count++; });
 
         // Press on south-east corner
-        mouse_event press{398, 298, mouse_event::button::left,
-                         mouse_event::action::press, {false, false, false}};
+        mouse_event press{.x = 398.0_lu, .y = 298.0_lu, .btn = mouse_event::button::left,
+                         .act = mouse_event::action::press, .modifiers = {}};
         ui_event press_evt = press;
         win.handle_event(press_evt, event_phase::bubble);
 
         // Drag to expand
-        mouse_event move{450, 350, mouse_event::button::none,
-                        mouse_event::action::move, {false, false, false}};
+        mouse_event move{.x = 450.0_lu, .y = 350.0_lu, .btn = mouse_event::button::none,
+                        .act = mouse_event::action::move, .modifiers = {}};
         ui_event move_evt = move;
         win.handle_event(move_evt, event_phase::bubble);
 
@@ -652,14 +652,14 @@ TEST_CASE("Window - Resize event handling") {
         win.set_size(300, 200);
 
         // Press on north-west corner
-        mouse_event press{101, 101, mouse_event::button::left,
-                         mouse_event::action::press, {false, false, false}};
+        mouse_event press{.x = 101.0_lu, .y = 101.0_lu, .btn = mouse_event::button::left,
+                         .act = mouse_event::action::press, .modifiers = {}};
         ui_event press_evt = press;
         win.handle_event(press_evt, event_phase::bubble);
 
         // Drag up and left (expand)
-        mouse_event move{50, 50, mouse_event::button::none,
-                        mouse_event::action::move, {false, false, false}};
+        mouse_event move{.x = 50.0_lu, .y = 50.0_lu, .btn = mouse_event::button::none,
+                        .act = mouse_event::action::move, .modifiers = {}};
         ui_event move_evt = move;
         win.handle_event(move_evt, event_phase::bubble);
 
@@ -682,13 +682,13 @@ TEST_CASE("Window - Resize event handling") {
         win.resized_sig.connect([&]() { resized_count++; });
 
         // Try to resize from corner
-        mouse_event press{398, 298, mouse_event::button::left,
-                         mouse_event::action::press, {false, false, false}};
+        mouse_event press{.x = 398.0_lu, .y = 298.0_lu, .btn = mouse_event::button::left,
+                         .act = mouse_event::action::press, .modifiers = {}};
         ui_event press_evt = press;
         win.handle_event(press_evt, event_phase::bubble);
 
-        mouse_event move{450, 350, mouse_event::button::none,
-                        mouse_event::action::move, {false, false, false}};
+        mouse_event move{.x = 450.0_lu, .y = 350.0_lu, .btn = mouse_event::button::none,
+                        .act = mouse_event::action::move, .modifiers = {}};
         ui_event move_evt = move;
         win.handle_event(move_evt, event_phase::bubble);
 

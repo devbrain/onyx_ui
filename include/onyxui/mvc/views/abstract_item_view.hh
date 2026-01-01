@@ -259,7 +259,7 @@ public:
      * Used for hit testing during mouse clicks.
      * Subclasses implement based on their layout strategy.
      */
-    [[nodiscard]] virtual model_index index_at(int x, int y) const = 0;
+    [[nodiscard]] virtual model_index index_at(logical_unit x, logical_unit y) const = 0;
 
     /**
      * @brief Get visual rectangle for an item
@@ -430,11 +430,11 @@ protected:
 
     /**
      * @brief Handle mouse click
-     * @param x Mouse X (view-relative)
-     * @param y Mouse Y (view-relative)
+     * @param x Mouse X (view-relative, logical coordinates)
+     * @param y Mouse Y (view-relative, logical coordinates)
      * @return true if handled
      */
-    virtual bool handle_mouse_click(int x, int y) {
+    virtual bool handle_mouse_click(logical_unit x, logical_unit y) {
         model_index index = index_at(x, y);
 
         if (index.is_valid()) {
@@ -454,11 +454,11 @@ protected:
 
     /**
      * @brief Handle mouse double-click
-     * @param x Mouse X (view-relative)
-     * @param y Mouse Y (view-relative)
+     * @param x Mouse X (view-relative, logical coordinates)
+     * @param y Mouse Y (view-relative, logical coordinates)
      * @return true if handled
      */
-    virtual bool handle_mouse_double_click(int x, int y) {
+    virtual bool handle_mouse_double_click(logical_unit x, logical_unit y) {
         model_index index = index_at(x, y);
 
         if (index.is_valid()) {

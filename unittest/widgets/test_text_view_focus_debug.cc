@@ -48,8 +48,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "DEBUG - text_view fo
 
     // Create mouse event
     mouse_event click{
-        .x = 5,
-        .y = 5,
+        .x = 5.0_lu,
+        .y = 5.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}

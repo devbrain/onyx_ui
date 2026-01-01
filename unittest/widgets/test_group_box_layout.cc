@@ -23,7 +23,7 @@ TEST_SUITE("Group Box - Layout Integration") {
     using Backend = test_canvas_backend;
 
     struct test_fixture {
-        scoped_ui_context<Backend> ctx;
+        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
 
         template<typename Widget>
         void apply_default_theme([[maybe_unused]] Widget& w) {

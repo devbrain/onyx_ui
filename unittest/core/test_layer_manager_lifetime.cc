@@ -133,7 +133,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRect const viewport{0, 0, 800, 600};
 
             // Phase 1.2: Automatic cleanup of expired layers
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
 
             // Verify layer was removed
             CHECK(mgr.layer_count() == 0);
@@ -254,7 +254,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();
 
-            TestRect const anchor{10, 10, 50, 20};
+            logical_rect const anchor{10.0_lu, 10.0_lu, 50.0_lu, 20.0_lu};
             (void)mgr.show_popup(elem.get(), anchor, popup_placement::below);
 
             elem.reset();
@@ -264,7 +264,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             // Should handle gracefully (skip expired layer)
             // Currently: EXPECTED TO FAIL
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
         }
 
         SUBCASE("Modal dialog after destruction") {
@@ -277,7 +277,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
         }
     }
 
@@ -290,7 +290,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         layer_manager<Backend> mgr;
         auto tooltip = std::make_shared<TestElement>();
 
-        layer_id const id = mgr.show_tooltip(tooltip.get(), 100, 100);
+        layer_id const id = mgr.show_tooltip(tooltip.get(), 100.0_lu, 100.0_lu);
         tooltip.reset();
 
         SUBCASE("Route event after tooltip destroyed") {
@@ -301,7 +301,7 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         SUBCASE("Render after tooltip destroyed") {
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
-            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme));
+            CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
         }
 
         SUBCASE("Hide after tooltip destroyed") {

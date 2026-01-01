@@ -158,19 +158,6 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Calculate content size
-         *
-         * @details
-         * Status bar always returns:
-         * - Width: Fill available width (expands)
-         * - Height: 1 (single line)
-         */
-        [[nodiscard]] logical_size get_content_size() const override {
-            // Status bar fills width, single line height
-            return logical_size{0_lu, 1_lu};  // 0 width = expand to fill
-        }
-
-        /**
          * @brief Render the status bar
          *
          * @details
@@ -178,16 +165,20 @@ namespace onyxui {
          * Background fills the entire width.
          */
         void do_render(render_context<Backend>& ctx) const override {
-            const auto& bounds = this->bounds();
+            // Get physical position from render context
             const auto& pos = ctx.position();
 
             int x = point_utils::get_x(pos);
             int y = point_utils::get_y(pos);
-            int width = bounds.width.to_int();
+
+            // Get dimensions using get_final_dims pattern (handles measurement vs rendering)
+            auto logical_bounds = this->bounds();
+            auto const [width, height] = ctx.get_final_dims(
+                logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
             // Fill background with status bar color
             typename Backend::rect_type abs_bounds;
-            rect_utils::set_bounds(abs_bounds, x, y, width, 1);
+            rect_utils::set_bounds(abs_bounds, x, y, width, height);
             ctx.fill_rect(abs_bounds);
 
             // Draw left text

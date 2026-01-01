@@ -24,8 +24,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Default 
     CHECK(sb.get_orientation() == orientation::vertical);
 
     auto info = sb.get_scroll_info();
-    CHECK(size_utils::get_width(info.content_size) == 0);
-    CHECK(size_utils::get_height(info.content_size) == 0);
+    CHECK(info.content_width == 0);
+    CHECK(info.content_height == 0);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollbar - Construction with orientation") {
@@ -263,8 +263,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     auto thumb_bounds = sb.get_thumb_bounds();
 
     INFO("Scrollbar bounds: " << sb.bounds().width.to_int() << "x" << sb.bounds().height.to_int());
-    INFO("Content: " << size_utils::get_width(info.content_size) << "x" << size_utils::get_height(info.content_size));
-    INFO("Viewport: " << size_utils::get_width(info.viewport_size) << "x" << size_utils::get_height(info.viewport_size));
+    INFO("Content: " << info.content_width << "x" << info.content_height);
+    INFO("Viewport: " << info.viewport_width << "x" << info.viewport_height);
     INFO("Thumb bounds: " << rect_utils::get_width(thumb_bounds) << "x" << rect_utils::get_height(thumb_bounds));
 
     // With 200 content and 100 viewport, thumb should be ~50 tall
@@ -277,7 +277,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     auto const* theme = themes ? themes->get_current_theme() : nullptr;
     REQUIRE(theme != nullptr);
 
-    sb.render(renderer, theme);
+    sb.render(renderer, theme, make_terminal_metrics<test_canvas_backend>());
 
     // Count non-space characters (thumb should render as '#')
     int non_space_count = 0;

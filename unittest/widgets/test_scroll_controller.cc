@@ -123,7 +123,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
 
     // Verify scrollbar received updated scroll_info
     auto const info = vscrollbar.get_scroll_info();
-    CHECK(point_utils::get_y(info.scroll_offset) == 50);
+    CHECK(info.scroll_y == 50);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Scrollable scroll_by() updates scrollbar thumb") {
@@ -145,7 +145,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
 
     // Verify scrollbar updated
     auto const info = vscrollbar.get_scroll_info();
-    CHECK(point_utils::get_y(info.scroll_offset) == 50);
+    CHECK(info.scroll_y == 50);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Content size change updates scrollbar visibility") {
@@ -462,7 +462,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
 
     // Verify scrollbar updated
     auto const info = vscrollbar.get_scroll_info();
-    CHECK(point_utils::get_y(info.scroll_offset) == 30);
+    CHECK(info.scroll_y == 30);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - No infinite loop on scrollbar drag") {
@@ -516,7 +516,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
     auto const scrollbar_info = vscrollbar.get_scroll_info();
 
     CHECK(point_utils::get_y(scroll_offset) == 80);
-    CHECK(point_utils::get_y(scrollbar_info.scroll_offset) == 80);
+    CHECK(scrollbar_info.scroll_y == 80);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - Mixed scroll sources stay in sync") {
@@ -547,6 +547,6 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_controller - 
 
     CHECK(point_utils::get_x(scroll_offset) == 65);  // 75 - 10
     CHECK(point_utils::get_y(scroll_offset) == 130); // 150 - 20
-    CHECK(point_utils::get_x(hscroll_info.scroll_offset) == 65);
-    CHECK(point_utils::get_y(vscroll_info.scroll_offset) == 130);
+    CHECK(hscroll_info.scroll_x == 65);
+    CHECK(vscroll_info.scroll_y == 130);
 }

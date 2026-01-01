@@ -79,7 +79,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         auto* theme_ptr = themes_registry->get_current_theme();
         REQUIRE(theme_ptr != nullptr);
 
-        win->render(renderer, theme_ptr);
+        win->render(renderer, theme_ptr, make_terminal_metrics<Backend>());
 
         // CRITICAL: Title bar should be at row 5 (y=5), column 10 (x=10)
         // Semantic assertion: Check that title text exists at correct position

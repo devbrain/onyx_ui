@@ -434,8 +434,8 @@ TEST_CASE("window_list_dialog - Keyboard event handling") {
         test_window_list_dialog<test_backend> dialog;
 
         // Mouse event should not be handled by dialog
-        mouse_event mouse{10, 10, mouse_event::button::left,
-                         mouse_event::action::press, {false, false, false}};
+        mouse_event mouse{.x = 10.0_lu, .y = 10.0_lu, .btn = mouse_event::button::left,
+                         .act = mouse_event::action::press, .modifiers = {}};
         ui_event mouse_evt = mouse;
         bool handled = dialog.handle_event(mouse_evt, event_phase::bubble);
 

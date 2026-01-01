@@ -28,19 +28,19 @@ using Backend = test_canvas_backend;
 namespace {
     template<typename Widget>
     void simulate_mouse_press(Widget& w, int x, int y) {
-        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
         w.handle_event(ui_event{evt}, event_phase::target);
     }
 
     template<typename Widget>
     void simulate_mouse_release(Widget& w, int x, int y) {
-        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
         w.handle_event(ui_event{evt}, event_phase::target);
     }
 
     template<typename Widget>
     void simulate_mouse_move(Widget& w, int x, int y) {
-        mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+        mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
         w.handle_event(ui_event{evt}, event_phase::target);
     }
 }

@@ -66,7 +66,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - VISUA
     }
 
     // Render the widget tree to canvas
-    demo_widget->render(renderer, theme);
+    demo_widget->render(renderer, theme, make_terminal_metrics<test_canvas_backend>());
 
     // NOTE: test_canvas backend does not render box_style graphics (borders/fills)
     // These visual assertions cannot pass with the current test infrastructure

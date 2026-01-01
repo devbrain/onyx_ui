@@ -32,8 +32,8 @@ public:
     int event_count = 0;
 
     // Required override
-    [[nodiscard]] bool is_inside(int x, int y) const override {
-        return x >= 0 && x < 100 && y >= 0 && y < 100;
+    [[nodiscard]] bool is_inside(logical_unit x, logical_unit y) const override {
+        return x >= 0_lu && x < 100_lu && y >= 0_lu && y < 100_lu;
     }
 
     using event_target<test_backend>::handle_event;
@@ -83,8 +83,8 @@ public:
     bool capture_handled = false;
     bool other_phase_called = false;
 
-    [[nodiscard]] bool is_inside(int x, int y) const override {
-        return x >= 0 && x < 100 && y >= 0 && y < 100;
+    [[nodiscard]] bool is_inside(logical_unit x, logical_unit y) const override {
+        return x >= 0_lu && x < 100_lu && y >= 0_lu && y < 100_lu;
     }
 
     using event_target<test_backend>::handle_event;
@@ -123,8 +123,8 @@ TEST_CASE("event_target - Phase-aware event handling") {
 
     // Create a mouse press event
     mouse_event evt{
-        .x = 50,
-        .y = 50,
+        .x = 50.0_lu,
+        .y = 50.0_lu,
         .btn = mouse_event::button::left,
         .act = mouse_event::action::press,
         .modifiers = {.ctrl = false, .alt = false, .shift = false}

@@ -217,8 +217,8 @@ namespace onyxui {
 
         // Phase 2: Drag state tracking
         bool m_is_dragging = false;
-        int m_drag_start_x = 0;
-        int m_drag_start_y = 0;
+        double m_drag_start_x = 0.0;  ///< Logical X coordinate at drag start
+        double m_drag_start_y = 0.0;  ///< Logical Y coordinate at drag start
 
         // Helper: Create control icon widgets (minimize, maximize, close) on right side
         void create_control_icons(const window_flags& flags);

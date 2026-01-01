@@ -91,25 +91,25 @@ namespace {
             // First set bounds so is_inside works
             this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
             // First send mouse move outside to ensure we're not already inside
-            mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event outside{.x = 200.0_lu, .y = 200.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
             // Now send mouse move inside to trigger enter
-            mouse_event evt{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event evt{.x = 50.0_lu, .y = 25.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_leave() {
-            mouse_event evt{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event evt{.x = 200.0_lu, .y = 200.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_down(int x, int y) {
-            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_up(int x, int y) {
-            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
@@ -137,25 +137,25 @@ namespace {
             // First set bounds so is_inside works
             this->arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
             // First send mouse move outside to ensure we're not already inside
-            mouse_event outside{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event outside{.x = 200.0_lu, .y = 200.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(outside);
             // Now send mouse move inside to trigger enter
-            mouse_event evt{.x = 50, .y = 25, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event evt{.x = 50.0_lu, .y = 25.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_leave() {
-            mouse_event evt{.x = 200, .y = 200, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
+            mouse_event evt{.x = 200.0_lu, .y = 200.0_lu, .btn = mouse_event::button::none, .act = mouse_event::action::move, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_down(int x, int y) {
-            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
+            mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::press, .modifiers = {}};
             base::handle_mouse(evt);
         }
 
         void simulate_mouse_up(int x, int y) {
-            mouse_event evt{.x = x, .y = y, .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
+            mouse_event evt{.x = logical_unit(static_cast<double>(x)), .y = logical_unit(static_cast<double>(y)), .btn = mouse_event::button::left, .act = mouse_event::action::release, .modifiers = {}};
             base::handle_mouse(evt);
         }
     };
@@ -816,7 +816,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Button integration with automatic state syncing") {
     test_button<Backend> btn("Test");
-    scoped_ui_context<Backend> local_ctx;
+    scoped_ui_context<Backend> local_ctx{make_terminal_metrics<Backend>()};
     local_ctx.themes().register_theme(create_state_test_theme());
 //     btn.apply_theme("State Test", local_ctx.themes());  // No longer needed - widgets use global theme
 
@@ -862,8 +862,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Press using NEW API
     mouse_event press;
-    press.x = 5;
-    press.y = 5;
+    press.x = 5.0_lu;
+    press.y = 5.0_lu;
     press.btn = mouse_event::button::left;
     press.act = mouse_event::action::press;
     press.modifiers = {.ctrl = false, .alt = false, .shift = false};
@@ -874,8 +874,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Release using NEW API
     mouse_event release;
-    release.x = 5;
-    release.y = 5;
+    release.x = 5.0_lu;
+    release.y = 5.0_lu;
     release.btn = mouse_event::button::none;  // Platform may not report button on release
     release.act = mouse_event::action::release;
     release.modifiers = {.ctrl = false, .alt = false, .shift = false};
@@ -897,8 +897,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Move event doesn't change state
     mouse_event move;
-    move.x = 10;
-    move.y = 10;
+    move.x = 10.0_lu;
+    move.y = 10.0_lu;
     move.btn = mouse_event::button::none;
     move.act = mouse_event::action::move;
     move.modifiers = {.ctrl = false, .alt = false, .shift = false};
@@ -908,8 +908,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Wheel event doesn't change state
     mouse_event wheel;
-    wheel.x = 10;
-    wheel.y = 10;
+    wheel.x = 10.0_lu;
+    wheel.y = 10.0_lu;
     wheel.btn = mouse_event::button::none;
     wheel.act = mouse_event::action::wheel_up;
     wheel.modifiers = {.ctrl = false, .alt = false, .shift = false};
@@ -926,8 +926,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Press via ui_event (the complete unified event system)
     mouse_event press_evt;
-    press_evt.x = 5;
-    press_evt.y = 5;
+    press_evt.x = 5.0_lu;
+    press_evt.y = 5.0_lu;
     press_evt.btn = mouse_event::button::left;
     press_evt.act = mouse_event::action::press;
 
@@ -937,8 +937,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - NE
 
     // Release via ui_event
     mouse_event release_evt;
-    release_evt.x = 5;
-    release_evt.y = 5;
+    release_evt.x = 5.0_lu;
+    release_evt.y = 5.0_lu;
     release_evt.btn = mouse_event::button::none;
     release_evt.act = mouse_event::action::release;
 
