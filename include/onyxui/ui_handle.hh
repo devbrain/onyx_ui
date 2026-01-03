@@ -387,7 +387,9 @@ namespace onyxui {
             // ============================================================
             // Use variant dispatch to handle mouse events
             if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
-                if (!input) return false;  // No input manager available
+                if (!input) {
+                    return false;  // No input manager available
+                }
 
                 // Mouse coordinates are now in logical units (normalized at backend level)
                 // This preserves fractional precision for accurate hit testing

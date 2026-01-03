@@ -6,6 +6,8 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
+#include <cmath>
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>
@@ -40,8 +42,8 @@ namespace onyxui {
  *
  * @par Ownership:
  * - Model: NOT owned (views can share models)
- * - Delegate: Owned via shared_ptr (views can share delegates)
- * - Selection Model: Owned or shared (configurable)
+ * - Delegate: Shared via shared_ptr (views can share delegates)
+ * - Selection Model: Shared via shared_ptr (views can share selection state)
  *
  * @par Thread Safety:
  * NOT thread-safe. Access only from UI thread.
@@ -70,8 +72,7 @@ public:
     abstract_item_view()
         : m_model(nullptr)
         , m_delegate(std::make_shared<default_item_delegate<Backend>>())
-        , m_selection_model(std::make_unique<selection_model_type>())
-        , m_owns_selection_model(true) {
+        , m_selection_model(std::make_shared<selection_model_type>()) {
 
         // Connect selection signals
         connect_selection_signals();
@@ -108,6 +109,9 @@ public:
         disconnect_model_signals();
 
         m_model = model;
+
+        // Reset selection anchor (old indices are invalid for new model)
+        m_selection_anchor = {};
 
         // Update selection model (clears selection since old indices are invalid)
         if (m_selection_model) {
@@ -151,7 +155,7 @@ public:
         }
 
         m_delegate = std::move(delegate);
-        this->invalidate_paint();
+        this->mark_dirty();
     }
 
     /**
@@ -168,21 +172,28 @@ public:
 
     /**
      * @brief Set selection model
-     * @param selection Pointer to selection model (can be nullptr)
-     * @param take_ownership If true, view owns the model (default: false)
+     * @param selection Shared pointer to selection model
      *
      * @details
-     * Selection models can be owned or shared:
-     * - Owned: View deletes model on destruction
-     * - Shared: Multiple views share same selection (synchronized selection)
+     * Selection models are shared via shared_ptr, allowing multiple views
+     * to share the same selection state (synchronized selection).
+     *
+     * Pass nullptr to create a new default selection model.
      *
      * When selection model changes, view:
      * 1. Disconnects from old selection signals
-     * 2. Connects to new selection signals
-     * 3. Repaints to show new selection state
+     * 2. Sets the new selection model
+     * 3. Synchronizes selection model with this view's model
+     *    (calls set_model(), which clears any stale selections)
+     * 4. Connects to new selection signals
+     * 5. Repaints to show new selection state
+     *
+     * @note The selection model's model reference is always set to this
+     * view's model. Cross-model selection (where selection model tracks
+     * a different model than the view displays) is not supported.
      */
-    void set_selection_model(selection_model_type* selection, bool take_ownership = false) {
-        if (m_selection_model.get() == selection) {
+    void set_selection_model(std::shared_ptr<selection_model_type> selection) {
+        if (m_selection_model == selection) {
             return;  // No change
         }
 
@@ -190,21 +201,22 @@ public:
         m_selection_changed_conn.disconnect();
         m_current_changed_conn.disconnect();
 
-        // Handle ownership
-        if (m_owns_selection_model && take_ownership) {
-            m_selection_model.reset(selection);
-        } else {
-            m_selection_model.release();
-            m_selection_model.reset(selection);
-        }
-        m_owns_selection_model = take_ownership;
+        // Set new selection model (or create default if nullptr)
+        m_selection_model = selection ? std::move(selection)
+                                      : std::make_shared<selection_model_type>();
+
+        // Synchronize selection model with this view's model
+        // This ensures the selection model tracks the same model we're displaying,
+        // and clears any stale selections from a previous model
+        m_selection_model->set_model(m_model);
+
+        // Reset selection anchor (old anchor may reference different model/state)
+        m_selection_anchor = {};
 
         // Connect new selection signals
-        if (m_selection_model) {
-            connect_selection_signals();
-        }
+        connect_selection_signals();
 
-        this->invalidate_paint();
+        this->mark_dirty();
     }
 
     /**
@@ -353,31 +365,95 @@ protected:
         // Handle keyboard events
         if (auto* kbd_evt = std::get_if<keyboard_event>(&evt)) {
             if (kbd_evt->pressed) {
-                return handle_key_press(static_cast<int>(kbd_evt->key), 0);
+                return handle_key_press(
+                    static_cast<int>(kbd_evt->key),
+                    static_cast<int>(kbd_evt->modifiers)
+                );
             }
         }
 
         // Handle mouse events
         if (auto* mouse_evt = std::get_if<mouse_event>(&evt)) {
-            if (mouse_evt->act == mouse_event::action::press) {
-                return handle_mouse_click(mouse_evt->x, mouse_evt->y);
+            if (mouse_evt->act == mouse_event::action::press &&
+                mouse_evt->btn == mouse_event::button::left) {
+                return handle_mouse_press(*mouse_evt);
             }
-            // TODO: Add double-click handling when event system supports it
         }
 
         return base::handle_event(evt, phase);
     }
 
     /**
+     * @brief Handle mouse press with double-click detection
+     * @param evt Mouse event
+     * @return true if handled
+     */
+    bool handle_mouse_press(const mouse_event& evt) {
+        auto now = std::chrono::steady_clock::now();
+
+        // Check for double-click: same position within time threshold
+        bool is_double_click = false;
+        if (m_last_click_time.time_since_epoch().count() > 0) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now - m_last_click_time).count();
+
+            // Double-click threshold: 500ms and within 4 logical units
+            constexpr long DOUBLE_CLICK_MS = 500;
+            constexpr double DOUBLE_CLICK_DISTANCE = 4.0;
+
+            if (elapsed < DOUBLE_CLICK_MS) {
+                double dx = std::abs(evt.x.value - m_last_click_x.value);
+                double dy = std::abs(evt.y.value - m_last_click_y.value);
+                if (dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE) {
+                    is_double_click = true;
+                }
+            }
+        }
+
+        // Store click state for next comparison
+        m_last_click_time = now;
+        m_last_click_x = evt.x;
+        m_last_click_y = evt.y;
+
+        if (is_double_click) {
+            // Reset tracking to avoid triple-click being treated as double
+            m_last_click_time = std::chrono::steady_clock::time_point{};
+            return handle_mouse_double_click(evt.x, evt.y);
+        } else {
+            return handle_mouse_click(evt.x, evt.y, evt.modifiers.ctrl, evt.modifiers.shift);
+        }
+    }
+
+    /**
      * @brief Handle key press for navigation
      * @param key Key code
-     * @param modifiers Key modifiers
+     * @param modifiers Key modifiers (bitmask with ctrl, shift, alt flags)
      * @return true if handled, false otherwise
+     *
+     * @details
+     * Keyboard behavior varies by selection mode:
+     *
+     * - **no_selection**: Arrow keys move focus only
+     * - **single_selection**: Arrow keys move and select
+     * - **multi_selection**: Arrow keys move focus, Space toggles selection
+     * - **extended_selection**:
+     *   - Arrow: Move and select (clears others)
+     *   - Shift+Arrow: Extend selection from anchor
+     *   - Ctrl+Arrow: Move focus only
+     *   - Space: Toggle current item
+     * - **contiguous_selection**:
+     *   - Arrow: Move and select (clears others)
+     *   - Shift+Arrow: Extend selection from anchor
+     *   - Space: No effect (only contiguous ranges allowed)
      */
     virtual bool handle_key_press(int key, int modifiers) {
         if (!m_model || !m_selection_model) {
             return false;
         }
+
+        // Extract modifier flags
+        bool const ctrl_held = (modifiers & static_cast<int>(key_modifier::ctrl)) != 0;
+        bool const shift_held = (modifiers & static_cast<int>(key_modifier::shift)) != 0;
 
         model_index current = m_selection_model->current_index();
         model_index next;
@@ -402,22 +478,83 @@ protected:
             }
             return true;
         } else if (key == static_cast<int>(key_code::space)) {
-            // Toggle selection in multi-selection mode
-            if (current.is_valid() && m_selection_model->get_selection_mode() == selection_mode::multi_selection) {
-                m_selection_model->toggle(current);
+            // Toggle selection in multi/extended selection modes
+            if (current.is_valid()) {
+                auto mode = m_selection_model->get_selection_mode();
+                if (mode == selection_mode::multi_selection ||
+                    mode == selection_mode::extended_selection) {
+                    m_selection_model->toggle(current);
+                }
             }
             return true;
         } else {
             return false;  // Not handled
         }
 
-        // Apply navigation
+        // Apply navigation with selection behavior based on mode
         if (next.is_valid()) {
-            m_selection_model->set_current_index(next);
+            auto mode = m_selection_model->get_selection_mode();
 
-            // In single-selection mode, current item is automatically selected
-            if (m_selection_model->get_selection_mode() == selection_mode::single_selection) {
-                m_selection_model->select(next);
+            switch (mode) {
+                case selection_mode::no_selection:
+                    // Only move focus, no selection changes
+                    m_selection_model->set_current_index(next);
+                    break;
+
+                case selection_mode::single_selection:
+                    // Arrow keys always move and select
+                    m_selection_model->set_current_index(next);
+                    m_selection_model->select(next);
+                    m_selection_anchor = next;
+                    break;
+
+                case selection_mode::multi_selection:
+                    // Arrow keys only move focus (Space toggles selection)
+                    m_selection_model->set_current_index(next);
+                    break;
+
+                case selection_mode::extended_selection:
+                    // Standard desktop keyboard navigation:
+                    // - Ctrl+Arrow: Move focus only
+                    // - Shift+Arrow: Extend selection from anchor
+                    // - Arrow: Move and select (clears others)
+                    if (ctrl_held && !shift_held) {
+                        // Ctrl+Arrow: Move focus only
+                        m_selection_model->set_current_index(next);
+                    } else if (shift_held) {
+                        // Shift+Arrow: Extend selection from anchor
+                        // Ctrl+Shift: Add range to existing selection
+                        if (!m_selection_anchor.is_valid()) {
+                            m_selection_anchor = current.is_valid() ? current : next;
+                        }
+                        select_range(m_selection_anchor, next, !ctrl_held);
+                        m_selection_model->set_current_index(next);
+                    } else {
+                        // Normal arrow: Move and select (like single_selection)
+                        m_selection_model->clear_selection();
+                        m_selection_model->select(next);
+                        m_selection_model->set_current_index(next);
+                        m_selection_anchor = next;
+                    }
+                    break;
+
+                case selection_mode::contiguous_selection:
+                    // Similar to extended, but no Ctrl support
+                    if (shift_held) {
+                        // Shift+Arrow: Extend selection from anchor
+                        if (!m_selection_anchor.is_valid()) {
+                            m_selection_anchor = current.is_valid() ? current : next;
+                        }
+                        select_range(m_selection_anchor, next, true);  // Always clear for contiguous
+                        m_selection_model->set_current_index(next);
+                    } else {
+                        // Normal arrow: Move and select
+                        m_selection_model->clear_selection();
+                        m_selection_model->select(next);
+                        m_selection_model->set_current_index(next);
+                        m_selection_anchor = next;
+                    }
+                    break;
             }
 
             // Scroll to ensure visible
@@ -429,27 +566,126 @@ protected:
     }
 
     /**
-     * @brief Handle mouse click
+     * @brief Handle mouse click with modifier support
      * @param x Mouse X (view-relative, logical coordinates)
      * @param y Mouse Y (view-relative, logical coordinates)
+     * @param ctrl_held true if Ctrl key is held
+     * @param shift_held true if Shift key is held
      * @return true if handled
+     *
+     * @details
+     * Click behavior depends on modifiers and selection mode:
+     * - **No modifiers**: Select only this item, set as current
+     * - **Ctrl+Click** (multi-selection only): Toggle selection of this item
+     * - **Shift+Click** (multi-selection only): Extend selection from anchor to this item
      */
-    virtual bool handle_mouse_click(logical_unit x, logical_unit y) {
+    virtual bool handle_mouse_click(logical_unit x, logical_unit y,
+                                    bool ctrl_held = false, bool shift_held = false) {
         model_index index = index_at(x, y);
 
         if (index.is_valid()) {
             clicked.emit(index);
 
             if (m_selection_model) {
-                // TODO: Handle Ctrl/Shift modifiers for extended selection
-                m_selection_model->set_current_index(index);
-                m_selection_model->select(index);
+                auto mode = m_selection_model->get_selection_mode();
+
+                // Handle based on selection mode
+                switch (mode) {
+                    case selection_mode::no_selection:
+                        // Only update current, no selection
+                        m_selection_model->set_current_index(index);
+                        break;
+
+                    case selection_mode::single_selection:
+                        // Always select only this item
+                        m_selection_model->clear_selection();
+                        m_selection_model->select(index);
+                        m_selection_model->set_current_index(index);
+                        m_selection_anchor = index;
+                        break;
+
+                    case selection_mode::multi_selection:
+                        // Click toggles, modifiers ignored (each click toggles)
+                        m_selection_model->toggle(index);
+                        m_selection_model->set_current_index(index);
+                        m_selection_anchor = index;
+                        break;
+
+                    case selection_mode::extended_selection:
+                        // Standard desktop behavior with modifiers
+                        if (ctrl_held && !shift_held) {
+                            // Ctrl+Click: Toggle this item
+                            m_selection_model->toggle(index);
+                            m_selection_model->set_current_index(index);
+                            m_selection_anchor = index;
+                        } else if (shift_held && m_selection_anchor.is_valid()) {
+                            // Shift+Click: Range selection
+                            // Ctrl+Shift+Click: Add range to existing selection
+                            select_range(m_selection_anchor, index, !ctrl_held);
+                            m_selection_model->set_current_index(index);
+                        } else {
+                            // Normal click: Select only this item
+                            m_selection_model->clear_selection();
+                            m_selection_model->select(index);
+                            m_selection_model->set_current_index(index);
+                            m_selection_anchor = index;
+                        }
+                        break;
+
+                    case selection_mode::contiguous_selection:
+                        // Only contiguous ranges allowed
+                        if (shift_held && m_selection_anchor.is_valid()) {
+                            // Shift+Click: Range selection (always clears for contiguous)
+                            select_range(m_selection_anchor, index, true);
+                            m_selection_model->set_current_index(index);
+                        } else {
+                            // Normal click: Select only this item (sets new anchor)
+                            m_selection_model->clear_selection();
+                            m_selection_model->select(index);
+                            m_selection_model->set_current_index(index);
+                            m_selection_anchor = index;
+                        }
+                        break;
+                }
             }
 
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * @brief Select range of items between two indices
+     * @param from Start index (anchor)
+     * @param to End index (target)
+     * @param clear_first If true, clear existing selection before selecting range.
+     *                    If false, add range to existing selection (for Ctrl+Shift).
+     *
+     * @details
+     * Selects all items in the row range [from.row, to.row] (inclusive).
+     * This is a simple row-based range selection suitable for list_view.
+     * Subclasses can override for different selection patterns (e.g., table_view).
+     */
+    virtual void select_range(const model_index& from, const model_index& to, bool clear_first = true) {
+        if (!m_model || !m_selection_model) {
+            return;
+        }
+
+        // Optionally clear existing selection
+        if (clear_first) {
+            m_selection_model->clear_selection();
+        }
+
+        int start_row = std::min(from.row, to.row);
+        int end_row = std::max(from.row, to.row);
+
+        for (int row = start_row; row <= end_row; ++row) {
+            if (row >= 0 && row < m_model->row_count()) {
+                model_index idx = m_model->index(row, 0);
+                m_selection_model->select(idx);
+            }
+        }
     }
 
     /**
@@ -658,8 +894,15 @@ protected:
 
     model_type* m_model;
     std::shared_ptr<delegate_type> m_delegate;
-    std::unique_ptr<selection_model_type> m_selection_model;
-    bool m_owns_selection_model;
+    std::shared_ptr<selection_model_type> m_selection_model;
+
+    // Double-click detection
+    std::chrono::steady_clock::time_point m_last_click_time{};
+    logical_unit m_last_click_x{0.0};
+    logical_unit m_last_click_y{0.0};
+
+    // Selection anchor for shift+click range selection
+    model_index m_selection_anchor{};
 
     // Signal connections
     scoped_connection m_data_changed_conn;

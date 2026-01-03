@@ -1,7 +1,6 @@
 //
-// OnyxUI - Simple Combo Box Widget
-// Created: 2025-11-22
-// Refactored: 2025-01-01 (Phase 6 - wraps combo_box_view)
+// OnyxUI - Simple List Box Widget
+// Created: 2025-01-01 (Phase 7 - wraps list_view)
 //
 
 #pragma once
@@ -13,61 +12,69 @@
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/mvc/models/list_model.hh>
-#include <onyxui/mvc/views/combo_box_view.hh>
+#include <onyxui/mvc/views/list_view.hh>
+#include <onyxui/mvc/selection/item_selection_model.hh>
 #include <onyxui/widgets/core/widget.hh>
 
 namespace onyxui {
 
 /**
- * @brief A simple dropdown combo box widget
+ * @brief A simple list box widget
  *
  * @tparam Backend The UI backend type
  *
  * @details
- * combo_box is the easy-to-use combo box widget with a simple string-based API.
- * It internally uses combo_box_view with an owned list_model for the full MVC
+ * list_box is the easy-to-use list widget with a simple string-based API.
+ * It internally uses list_view with an owned list_model for the full MVC
  * implementation, but exposes a simplified interface.
  *
  * For advanced use cases requiring custom models, delegates, or selection models,
- * use combo_box_view directly instead.
+ * use list_view directly instead.
  *
  * Features:
  * - **Simple API**: add_item(), remove_item(), clear(), set_items()
  * - **Self-Contained**: Owns its data internally
  * - **No MVC Knowledge Required**: Just use strings
- * - **Full Functionality**: Inherits all combo_box_view features
+ * - **Selection Modes**: Single or multi-selection support
+ * - **Scrolling**: Inherits list_view scrolling support
  *
  * @par Example Usage:
  * @code
- * // Create combo box with simple API
- * auto combo = std::make_unique<combo_box<Backend>>();
- * combo->add_item("Small");
- * combo->add_item("Medium");
- * combo->add_item("Large");
- * combo->set_current_index(1);  // Select "Medium"
+ * // Create list box with simple API
+ * auto list = std::make_unique<list_box<Backend>>();
+ * list->add_item("Apple");
+ * list->add_item("Banana");
+ * list->add_item("Cherry");
+ * list->set_current_index(1);  // Select "Banana"
  *
  * // Or set all items at once
- * combo->set_items({"Apple", "Banana", "Cherry"});
+ * list->set_items({"Red", "Green", "Blue"});
  *
  * // Listen for selection changes
- * combo->current_index_changed.connect([](int index) {
+ * list->current_index_changed.connect([](int index) {
  *     std::cout << "Selected index: " << index << "\n";
+ * });
+ *
+ * // Listen for item activation (double-click or Enter)
+ * list->activated.connect([](int index) {
+ *     std::cout << "Activated: " << index << "\n";
  * });
  * @endcode
  *
- * @see combo_box_view for advanced MVC usage
+ * @see list_view for advanced MVC usage
  */
 template<UIBackend Backend>
-class combo_box : public widget<Backend> {
+class list_box : public widget<Backend> {
 public:
     using base = widget<Backend>;
     using model_type = list_model<std::string, Backend>;
-    using view_type = combo_box_view<Backend>;
+    using view_type = list_view<Backend>;
+    using selection_model_type = item_selection_model<Backend>;
 
     /**
-     * @brief Construct an empty combo box
+     * @brief Construct an empty list box
      */
-    combo_box()
+    list_box()
         : m_model(std::make_shared<model_type>())
     {
         // Create the view
@@ -77,23 +84,53 @@ public:
         // Configure the view with our internal model
         m_view->set_model(m_model.get());
 
+        // Get selection model from view
+        m_selection_model = m_view->selection_model();
+
         // Forward signals from view to our simple signals
-        m_current_changed_conn = scoped_connection(
-            m_view->current_changed,
-            [this](const model_index& idx) {
-                int row = idx.is_valid() ? idx.row : -1;
-                current_index_changed.emit(row);
-                if (row >= 0) {
-                    current_text_changed.emit(item_text(row));
+        if (m_selection_model) {
+            m_current_changed_conn = scoped_connection(
+                m_selection_model->current_changed,
+                [this](const model_index& current, const model_index& /*previous*/) {
+                    int row = current.is_valid() ? current.row : -1;
+                    current_index_changed.emit(row);
+                    if (row >= 0) {
+                        current_text_changed.emit(item_text(row));
+                    }
                 }
-            }
-        );
+            );
+
+            m_selection_changed_conn = scoped_connection(
+                m_selection_model->selection_changed,
+                [this](const std::vector<model_index>&, const std::vector<model_index>&) {
+                    selection_changed.emit();
+                }
+            );
+        }
 
         m_activated_conn = scoped_connection(
             m_view->activated,
             [this](const model_index& idx) {
                 if (idx.is_valid()) {
                     activated.emit(idx.row);
+                }
+            }
+        );
+
+        m_clicked_conn = scoped_connection(
+            m_view->clicked,
+            [this](const model_index& idx) {
+                if (idx.is_valid()) {
+                    clicked.emit(idx.row);
+                }
+            }
+        );
+
+        m_double_clicked_conn = scoped_connection(
+            m_view->double_clicked,
+            [this](const model_index& idx) {
+                if (idx.is_valid()) {
+                    double_clicked.emit(idx.row);
                 }
             }
         );
@@ -106,17 +143,17 @@ public:
      * @brief Construct with initial items
      * @param items Initial list of items
      */
-    explicit combo_box(std::vector<std::string> items)
-        : combo_box()
+    explicit list_box(std::vector<std::string> items)
+        : list_box()
     {
         set_items(std::move(items));
     }
 
     // Non-copyable, movable
-    combo_box(const combo_box&) = delete;
-    combo_box& operator=(const combo_box&) = delete;
-    combo_box(combo_box&&) noexcept = default;
-    combo_box& operator=(combo_box&&) noexcept = default;
+    list_box(const list_box&) = delete;
+    list_box& operator=(const list_box&) = delete;
+    list_box(list_box&&) noexcept = default;
+    list_box& operator=(list_box&&) noexcept = default;
 
     // ===================================================================
     // Simple Item Management API
@@ -158,15 +195,14 @@ public:
         if (current == index) {
             // Removed the selected item - clear selection
             if (m_view) {
-                m_view->set_current_row(-1);
+                m_view->set_current_index(model_index{});
             }
         } else if (current > index) {
             // Selection was after removed item - adjust index
-            if (m_view) {
-                m_view->set_current_row(current - 1);
+            if (m_view && m_model) {
+                m_view->set_current_index(m_model->index(current - 1, 0));
             }
         }
-        // If current < index, selection doesn't need adjustment
     }
 
     /**
@@ -175,7 +211,7 @@ public:
     void clear() {
         // Clear selection first
         if (m_view) {
-            m_view->set_current_row(-1);
+            m_view->set_current_index(model_index{});
         }
         m_model->clear();
     }
@@ -251,16 +287,38 @@ public:
      * @return Current row index, or -1 if no selection
      */
     [[nodiscard]] int current_index() const noexcept {
-        return m_view ? m_view->current_row() : -1;
+        if (!m_view) return -1;
+        auto idx = m_view->current_index();
+        return idx.is_valid() ? idx.row : -1;
     }
 
     /**
      * @brief Set the current selection
      * @param index Row index to select, or -1 for no selection
+     *
+     * @details
+     * In single-selection mode, this also selects the item.
+     * In multi-selection mode, use select() to add to selection.
      */
     void set_current_index(int index) {
-        if (m_view) {
-            m_view->set_current_row(index);
+        if (!m_view || !m_model) return;
+
+        if (index < 0 || index >= count()) {
+            // Clear current and selection
+            if (m_selection_model) {
+                m_selection_model->set_current_index(model_index{});
+                m_selection_model->clear_selection();
+            }
+        } else {
+            auto idx = m_model->index(index, 0);
+            // Set current and select in single-selection mode
+            if (m_selection_model) {
+                m_selection_model->set_current_index(idx);
+                // In single selection, also select the current item
+                if (m_selection_model->get_selection_mode() == selection_mode::single_selection) {
+                    m_selection_model->select(idx, selection_flag::clear | selection_flag::select);
+                }
+            }
         }
     }
 
@@ -269,7 +327,8 @@ public:
      * @return Display text of current item, or empty if no selection
      */
     [[nodiscard]] std::string current_text() const {
-        return m_view ? m_view->current_text() : std::string{};
+        int idx = current_index();
+        return idx >= 0 ? item_text(idx) : std::string{};
     }
 
     /**
@@ -286,33 +345,128 @@ public:
         return false;
     }
 
-    // ===================================================================
-    // Popup Control
-    // ===================================================================
-
     /**
-     * @brief Check if the popup is currently open
-     * @return true if popup is visible
+     * @brief Check if an item is selected
+     * @param index Item index
+     * @return true if item is selected
      */
-    [[nodiscard]] bool is_popup_open() const noexcept {
-        return m_view && m_view->is_popup_visible();
+    [[nodiscard]] bool is_selected(int index) const {
+        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+            return false;
+        }
+        return m_selection_model->is_selected(m_model->index(index, 0));
     }
 
     /**
-     * @brief Open the dropdown popup
+     * @brief Get all selected indices
+     * @return Vector of selected row indices
      */
-    void open_popup() {
-        if (m_view) {
-            m_view->show_popup();
+    [[nodiscard]] std::vector<int> selected_indices() const {
+        std::vector<int> result;
+        if (!m_selection_model) return result;
+
+        for (const auto& idx : m_selection_model->selected_indices()) {
+            if (idx.is_valid()) {
+                result.push_back(idx.row);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @brief Select an item (add to selection in multi-select mode)
+     * @param index Item index
+     */
+    void select(int index) {
+        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+            return;
+        }
+        m_selection_model->select(m_model->index(index, 0));
+    }
+
+    /**
+     * @brief Deselect an item
+     * @param index Item index
+     */
+    void deselect(int index) {
+        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+            return;
+        }
+        m_selection_model->deselect(m_model->index(index, 0));
+    }
+
+    /**
+     * @brief Clear all selections
+     */
+    void clear_selection() {
+        if (m_selection_model) {
+            m_selection_model->clear_selection();
         }
     }
 
     /**
-     * @brief Close the dropdown popup
+     * @brief Select all items
      */
-    void close_popup() {
+    void select_all() {
+        if (!m_selection_model || !m_model) return;
+
+        for (int i = 0; i < count(); ++i) {
+            m_selection_model->select(m_model->index(i, 0));
+        }
+    }
+
+    // ===================================================================
+    // Selection Mode
+    // ===================================================================
+
+    /**
+     * @brief Set selection mode
+     * @param mode Selection mode (single or multi)
+     */
+    void set_selection_mode(selection_mode mode) {
+        if (m_selection_model) {
+            m_selection_model->set_selection_mode(mode);
+        }
+    }
+
+    /**
+     * @brief Get current selection mode
+     */
+    [[nodiscard]] selection_mode get_selection_mode() const {
+        return m_selection_model ? m_selection_model->get_selection_mode()
+                                  : selection_mode::single_selection;
+    }
+
+    // ===================================================================
+    // Scrolling
+    // ===================================================================
+
+    /**
+     * @brief Scroll to make an item visible
+     * @param index Item index to scroll to
+     */
+    void scroll_to(int index) {
+        if (!m_view || !m_model || index < 0 || index >= count()) {
+            return;
+        }
+        m_view->scroll_to(m_model->index(index, 0));
+    }
+
+    /**
+     * @brief Get current scroll offset
+     * @return Scroll offset in logical units
+     */
+    [[nodiscard]] double scroll_offset() const {
+        return m_view ? m_view->scroll_offset() : 0.0;
+    }
+
+    /**
+     * @brief Set scroll offset
+     * @param offset New scroll offset
+     */
+    void set_scroll_offset(double offset) {
         if (m_view) {
-            m_view->hide_popup();
+            m_view->set_scroll_offset(offset);
         }
     }
 
@@ -323,10 +477,6 @@ public:
     /**
      * @brief Get the internal model (read-only)
      * @return Pointer to internal list_model
-     *
-     * @details
-     * Use this for advanced operations like connecting to model signals.
-     * Do NOT modify the model directly - use the simple API methods instead.
      */
     [[nodiscard]] const model_type* model() const noexcept {
         return m_model.get();
@@ -334,10 +484,7 @@ public:
 
     /**
      * @brief Get the internal view
-     * @return Pointer to internal combo_box_view
-     *
-     * @details
-     * Use this for advanced operations like setting a custom delegate.
+     * @return Pointer to internal list_view
      */
     [[nodiscard]] view_type* view() noexcept {
         return m_view;
@@ -352,8 +499,8 @@ public:
     // ===================================================================
 
     /**
-     * @brief Emitted when the current selection changes
-     * @param index New current index (-1 if no selection)
+     * @brief Emitted when the current (focused) item changes
+     * @param index New current index (-1 if no current)
      */
     signal<int> current_index_changed;
 
@@ -364,10 +511,27 @@ public:
     signal<const std::string&> current_text_changed;
 
     /**
+     * @brief Emitted when selection changes (any item selected/deselected)
+     */
+    signal<> selection_changed;
+
+    /**
      * @brief Emitted when an item is activated (double-click or Enter)
      * @param index Activated item index
      */
     signal<int> activated;
+
+    /**
+     * @brief Emitted when an item is clicked
+     * @param index Clicked item index
+     */
+    signal<int> clicked;
+
+    /**
+     * @brief Emitted when an item is double-clicked
+     * @param index Double-clicked item index
+     */
+    signal<int> double_clicked;
 
 protected:
     // ===================================================================
@@ -386,14 +550,8 @@ protected:
 
     void do_arrange(const logical_rect& final_bounds) override {
         base::do_arrange(final_bounds);
-
         if (m_view) {
-            // View is a child, so arrange relative to content area origin (0,0)
-            logical_rect view_bounds{
-                logical_unit(0), logical_unit(0),
-                final_bounds.width, final_bounds.height
-            };
-            m_view->arrange(view_bounds);
+            m_view->arrange(final_bounds);
         }
     }
 
@@ -406,12 +564,16 @@ protected:
     }
 
 private:
-    std::shared_ptr<model_type> m_model;  ///< Internal string list model (owned)
-    view_type* m_view = nullptr;          ///< Internal combo_box_view (child)
+    std::shared_ptr<model_type> m_model;        ///< Internal string list model (owned)
+    view_type* m_view = nullptr;                 ///< Internal list_view (child)
+    selection_model_type* m_selection_model = nullptr;  ///< Selection model from view
 
     // Signal connections
     scoped_connection m_current_changed_conn;
+    scoped_connection m_selection_changed_conn;
     scoped_connection m_activated_conn;
+    scoped_connection m_clicked_conn;
+    scoped_connection m_double_clicked_conn;
 };
 
 } // namespace onyxui

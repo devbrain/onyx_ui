@@ -330,6 +330,33 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.tab_widget.scroll_arrow_width = 2;         // 16 pixels
 
     // ========================================================================
+    // List/Table Items (MVC Phase 2) - values in LOGICAL UNITS
+    // ========================================================================
+    // Item backgrounds
+    t.list.item_background = window_bg;                  // Normal item background
+    t.list.item_background_alt = color{245, 245, 245};   // Alternating row (slightly darker)
+    t.list.selection_background = highlight;             // Navy blue selection
+    t.list.selection_background_inactive = button_shadow; // Gray when unfocused
+
+    // Item foregrounds
+    t.list.item_foreground = window_text;                // Black text
+    t.list.selection_foreground = highlight_text;        // White on selection
+    t.list.selection_foreground_inactive = window_text;  // Black when unfocused
+
+    // Focus styling
+    t.list.focus_border_color = window_text;             // Black focus border
+    t.list.focus_box_style = sdlpp_renderer::box_style{
+        sdlpp_renderer::border_style_type::flat, false}; // Not filled - just border
+
+    // Font
+    t.list.font = default_font;
+
+    // Layout - values in PIXELS (theme struct uses int)
+    t.list.padding_horizontal = 4;     // 4 pixels
+    t.list.padding_vertical = 2;       // 2 pixels
+    t.list.min_item_height = 20;       // 20 pixels - comfortable item height
+
+    // ========================================================================
     // Window (MDI style) - values in LOGICAL UNITS (1 logical unit = 8 pixels)
     // ========================================================================
     t.window.title_focused.background = highlight;

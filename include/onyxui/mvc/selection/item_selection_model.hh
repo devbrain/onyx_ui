@@ -10,12 +10,9 @@
 
 #include <onyxui/core/signal.hh>
 #include <onyxui/mvc/model_index.hh>
+#include <onyxui/mvc/models/abstract_item_model.hh>
 
 namespace onyxui {
-
-// Forward declarations
-template<UIBackend Backend>
-class abstract_item_model;
 
 /**
  * @brief Selection modes for item views
@@ -139,12 +136,15 @@ inline constexpr bool operator&(selection_flags lhs, selection_flag rhs) noexcep
  *
  * @par Example Usage:
  * @code
- * // Create selection model
- * auto selection = std::make_unique<item_selection_model>();
- * selection->set_selection_mode(selection_mode::single_selection);
+ * // Create selection model (shared via shared_ptr)
+ * auto selection = std::make_shared<item_selection_model<Backend>>();
+ * selection->set_selection_mode(selection_mode::extended_selection);
  *
- * // Connect to view
- * view->set_selection_model(selection.get());
+ * // Connect to view (pass shared_ptr directly)
+ * view->set_selection_model(selection);
+ *
+ * // Share across multiple views for synchronized selection
+ * other_view->set_selection_model(selection);
  *
  * // Listen for changes
  * selection->selection_changed.connect([](auto& selected, auto& deselected) {
@@ -435,14 +435,19 @@ public:
         }
 
         // Multi-selection: select all items in range
+        // Use the model to create proper indices (respects internal_id for tree/table models)
+        if (!m_model) {
+            return;  // Need a typed model reference to create proper indices
+        }
+
         std::vector<model_index> newly_selected;
 
-        int start_row = top_left.row < bottom_right.row ? top_left.row : bottom_right.row;
-        int end_row = top_left.row > bottom_right.row ? top_left.row : bottom_right.row;
+        int start_row = std::min(top_left.row, bottom_right.row);
+        int end_row = std::max(top_left.row, bottom_right.row);
 
         for (int row = start_row; row <= end_row; ++row) {
-            model_index idx{row, 0, nullptr, top_left.model};
-            if (m_selected_indices.insert(idx).second) {
+            model_index idx = m_model->index(row, 0);
+            if (idx.is_valid() && m_selected_indices.insert(idx).second) {
                 newly_selected.push_back(idx);
             }
         }

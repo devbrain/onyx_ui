@@ -13,6 +13,7 @@
 #include <onyxui/mvc/delegates/abstract_item_delegate.hh>
 #include <onyxui/mvc/model_index.hh>
 #include <onyxui/mvc/models/abstract_item_model.hh>
+#include <onyxui/services/ui_services.hh>
 #include <onyxui/theming/theme.hh>
 
 namespace onyxui {
@@ -105,14 +106,26 @@ public:
 
         auto* model = static_cast<const abstract_item_model<Backend>*>(index.model);
 
+        // Get theme for styling (use list theme if available)
+        auto* themes = ui_services<Backend>::themes();
+        auto const* theme = themes ? themes->get_current_theme() : nullptr;
+
         // ===============================================================
         // 1. Draw Background
         // ===============================================================
-        // TODO: Background rendering needs to be handled by the view
-        // The render_context API doesn't provide a way to draw filled rectangles
-        // with explicit colors without going through the style system.
-        // For now, we skip background - the view should handle selection highlight.
-        (void)is_selected;
+        if (is_selected) {
+            color_type bg_color = theme
+                ? theme->list.selection_background
+                : get_selection_background();
+            ctx.fill_rect(rect, bg_color);
+        } else {
+            // Check if model provides custom background for this item
+            auto bg_data = model->data(index, item_data_role::background);
+            if (std::holds_alternative<color_type>(bg_data)) {
+                ctx.fill_rect(rect, std::get<color_type>(bg_data));
+            }
+            // If no custom background, parent shows through (transparent)
+        }
 
         // ===============================================================
         // 2. Draw Text
@@ -128,31 +141,40 @@ public:
         // Determine text color
         color_type fg_color;
         if (is_selected) {
-            // Use selection foreground color (white on blue)
-            fg_color = get_selection_foreground();
+            fg_color = theme
+                ? theme->list.selection_foreground
+                : get_selection_foreground();
         } else {
             // Check if model provides custom foreground
             auto fg_data = model->data(index, item_data_role::foreground);
             if (std::holds_alternative<color_type>(fg_data)) {
                 fg_color = std::get<color_type>(fg_data);
             } else {
-                fg_color = get_normal_foreground();
+                fg_color = theme
+                    ? theme->list.item_foreground
+                    : get_normal_foreground();
             }
         }
 
-        // Calculate text position (with padding)
-        typename Backend::point_type text_pos{rect.x + PADDING_LEFT, rect.y + PADDING_TOP};
+        // Calculate text position (with padding from theme or defaults)
+        int const pad_left = theme ? theme->list.padding_horizontal : PADDING_LEFT;
+        int const pad_top = theme ? theme->list.padding_vertical : PADDING_TOP;
+        typename Backend::point_type text_pos{rect.x + pad_left, rect.y + pad_top};
 
-        // Draw text
-        auto font = get_font();
+        // Get font from theme or use default
+        auto font = theme ? theme->list.font : get_font();
         ctx.draw_text(text, text_pos, font, fg_color);
 
         // ===============================================================
         // 3. Draw Focus Rectangle
         // ===============================================================
-        // TODO: Focus rectangle also needs direct renderer access
-        // For now, we skip focus rendering
-        (void)has_focus;
+        if (has_focus) {
+            // Draw focus border using theme styling
+            auto focus_style = theme
+                ? theme->list.focus_box_style
+                : get_focus_border_style();
+            ctx.draw_rect(rect, focus_style);
+        }
     }
 
     /**
@@ -170,8 +192,13 @@ public:
      * May be called frequently. Consider caching if model data is expensive.
      */
     [[nodiscard]] size_type size_hint(const model_index& index) const override {
+        // Get theme for layout values
+        auto* themes = ui_services<Backend>::themes();
+        auto const* theme = themes ? themes->get_current_theme() : nullptr;
+        int const min_height = theme ? theme->list.min_item_height : MIN_HEIGHT;
+
         if (!index.is_valid()) {
-            return size_type{0, MIN_HEIGHT};
+            return size_type{0, min_height};
         }
 
         auto* model = static_cast<const abstract_item_model<Backend>*>(index.model);
@@ -180,21 +207,23 @@ public:
         auto text_data = model->data(index, item_data_role::display);
         if (!std::holds_alternative<std::string>(text_data)) {
             // No text - return minimum size
-            return size_type{0, MIN_HEIGHT};
+            return size_type{0, min_height};
         }
         std::string text = std::get<std::string>(text_data);
 
-        // Measure text
-        auto font = get_font();
+        // Measure text with theme font
+        auto font = theme ? theme->list.font : get_font();
         auto text_size = renderer_type::measure_text(text, font);
 
-        // Add padding
-        int width = text_size.w + PADDING_LEFT + PADDING_RIGHT;
-        int height = text_size.h + PADDING_TOP + PADDING_BOTTOM;
+        // Add padding from theme
+        int const pad_h = theme ? theme->list.padding_horizontal : PADDING_LEFT;
+        int const pad_v = theme ? theme->list.padding_vertical : PADDING_TOP;
+        int width = text_size.w + (pad_h * 2);
+        int height = text_size.h + (pad_v * 2);
 
         // Enforce minimum height for usability
-        if (height < MIN_HEIGHT) {
-            height = MIN_HEIGHT;
+        if (height < min_height) {
+            height = min_height;
         }
 
         return size_type{width, height};
@@ -269,12 +298,10 @@ private:
 
     /**
      * @brief Get border style for focus rectangle
-     * @return Dotted border (box_style with dotted border)
+     * @return Default box_style (backend defines actual appearance)
      */
     [[nodiscard]] typename renderer_type::box_style get_focus_border_style() const {
-        typename renderer_type::box_style style;
-        style.border = renderer_type::box_border_style::dotted;
-        return style;
+        return typename renderer_type::box_style{};
     }
 };
 

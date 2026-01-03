@@ -95,11 +95,11 @@ auto model = std::make_shared<list_model<std::string, Backend>>();
 model->set_items(data);
 
 auto view = std::make_unique<list_view<Backend>>();
-view->set_model(model);  // View displays model data
+view->set_model(model.get());  // View displays model data (raw pointer, not owned)
 
 // Multiple views can share the same model!
-auto view2 = std::make_unique<table_view<Backend>>();
-view2->set_model(model);  // Both views auto-update when model changes
+auto view2 = std::make_unique<list_view<Backend>>();
+view2->set_model(model.get());  // Both views auto-update when model changes
 ```
 
 ### Design Goals

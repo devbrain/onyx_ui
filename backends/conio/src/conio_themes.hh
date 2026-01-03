@@ -458,6 +458,7 @@ namespace onyxui::conio {
             theme.slider.filled_icon = conio_renderer::icon_style::slider_filled;  // =
             theme.slider.empty_icon = conio_renderer::icon_style::slider_empty;    // -
             theme.slider.thumb_icon = conio_renderer::icon_style::slider_thumb;    // O
+            theme.slider.track_thickness = 1.0;                          // 1 character for terminal UI
 
             // ====================================================================
             // Tab Widget Configuration
@@ -506,6 +507,35 @@ namespace onyxui::conio {
             theme.tab_widget.close_button_spacing = 2;
             theme.tab_widget.min_tab_width = 10;
             theme.tab_widget.scroll_arrow_width = 3;
+
+            // ====================================================================
+            // List/Table Item Configuration (MVC Phase 2)
+            // ====================================================================
+            // Configure list_view, table_view, tree_view item appearance
+            // NOTE: These are defaults - specific themes should override to match their colors
+
+            // Item backgrounds - use theme's window_bg (will be overridden by specific themes)
+            theme.list.item_background = theme.window_bg;
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.selection_background = bright_blue;                 // Blue selection background
+            theme.list.selection_background_inactive = dark_gray;          // Dimmer when unfocused
+
+            // Item foregrounds - use theme's text_fg
+            theme.list.item_foreground = theme.text_fg;
+            theme.list.selection_foreground = white;                       // White text on selection
+            theme.list.selection_foreground_inactive = light_gray;         // Dimmer when unfocused
+
+            // Focus styling
+            theme.list.focus_border_color = white;                         // White focus border
+            theme.list.focus_box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+
+            // Font - use default
+            theme.list.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+
+            // Layout (character-based for TUI)
+            theme.list.padding_horizontal = 1;   // 1 character padding
+            theme.list.padding_vertical = 0;     // No vertical padding (flush)
+            theme.list.min_item_height = 1;      // Minimum 1 character height
 
             // Return the fully configured base theme
             return theme;
@@ -662,6 +692,13 @@ namespace onyxui::conio {
             theme.window.shadow.offset_x = 2;
             theme.window.shadow.offset_y = 1;
 
+            // List colors - match window theme
+            theme.list.item_background = theme.window_bg;
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.item_foreground = theme.text_fg;
+            theme.list.selection_background = button_hover_bg;    // Bright blue selection
+            theme.list.selection_foreground = button_hover_fg;    // Yellow text
+
             return theme;
         }
 
@@ -760,6 +797,13 @@ namespace onyxui::conio {
             theme.window.shadow.offset_x = 2;
             theme.window.shadow.offset_y = 1;
 
+            // List colors - match window theme
+            theme.list.item_background = theme.window_bg;         // Cyan background
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.item_foreground = theme.text_fg;           // Black text
+            theme.list.selection_background = button_hover_bg;    // Dark cyan selection
+            theme.list.selection_foreground = button_hover_fg;    // White text
+
             return theme;
         }
 
@@ -853,6 +897,13 @@ namespace onyxui::conio {
             theme.window.shadow.enabled = true;
             theme.window.shadow.offset_x = 1;
             theme.window.shadow.offset_y = 1;
+
+            // List colors - match window theme
+            theme.list.item_background = theme.window_bg;         // Dark blue background
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.item_foreground = theme.text_fg;           // Light yellow text
+            theme.list.selection_background = button_bg;          // Cyan selection
+            theme.list.selection_foreground = button_fg;          // Black text
 
             return theme;
         }
@@ -949,12 +1000,19 @@ namespace onyxui::conio {
             theme.window.shadow.offset_x = 1;
             theme.window.shadow.offset_y = 1;
 
+            // List colors - match window theme
+            theme.list.item_background = theme.window_bg;         // Light gray background
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.item_foreground = theme.text_fg;           // Black text
+            theme.list.selection_background = button_hover_bg;    // Black selection
+            theme.list.selection_foreground = button_hover_fg;    // White text
+
             return theme;
         }
 
-            /**
-         * @brief Create "DOS Edit" theme
-         * @return Theme with MS-DOS Edit colors
+        /**
+         * @brief Create "NU8" theme (Norton Utilities 8)
+         * @return Theme with Norton Utilities 8 colors
          */
         static theme_type create_nu8() {
             auto theme = create_base_theme();
@@ -1086,6 +1144,13 @@ namespace onyxui::conio {
 
             // Title alignment - centered for modern look
             theme.window.title_alignment = horizontal_alignment::center;
+
+            // List colors - match window theme
+            theme.list.item_background = theme.window_bg;      // Blue background
+            theme.list.item_background_alt = theme.window_bg;
+            theme.list.item_foreground = white;                // White text
+            theme.list.selection_background = white;           // White selection (inverted)
+            theme.list.selection_foreground = black;           // Black text on selection
 
             return theme;
         }

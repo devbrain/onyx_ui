@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Theming Guide](docs/CLAUDE/THEMING.md) - Theme system v2.0, CSS inheritance, styling
 - [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) - Keyboard shortcuts, schemes, semantic actions
 - [Testing Guide](docs/CLAUDE/TESTING.md) - Test strategy, fixtures, best practices
+- [MVC Guide](docs/CLAUDE/MVC.md) - Model-View-Controller pattern, list/combo widgets
 - [Changelog](docs/CLAUDE/CHANGELOG.md) - Recent major changes, migration notes
 - [Scrolling Guide](docs/scrolling_guide.md) - Comprehensive scrolling system documentation
 - [SDL++ Backend Guide](docs/SDLPP_BACKEND_GUIDE.md) - Implementing SDL3/lib_sdlpp graphical backend
@@ -24,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Relative Coordinate System**: Children store bounds relative to parent's content area (0,0 origin) for efficient repositioning and clean architecture
 - **Layout System**: Two-pass measure/arrange algorithm with smart caching
 - **Widget Library**: Buttons, labels, menus, status bars, group boxes, scrolling, and more
+- **MVC Framework**: Qt-inspired dual-API pattern for data-driven widgets (list_box, combo_box)
 - **Scrolling System**: Three-layer architecture (scroll_view, scrollable, scrollbar) with presets
 - **Theming System**: CSS-style property inheritance for visual styling
 - **Event System**: Signal/slot pattern for decoupled communication
@@ -68,7 +70,7 @@ cmake --build build --target conio -j8
 ### Running Tests
 
 ```bash
-# Run all 1184 unit tests
+# Run all 1611 unit tests
 ./build/bin/ui_unittest
 
 # List all test cases
@@ -87,7 +89,7 @@ cmake --build build --target conio -j8
 # Run with clang-tidy (configure with ENABLE_CLANG_TIDY=ON first)
 cmake --build build 2>&1 | grep "warning:"
 
-# All 1184 tests should pass with zero warnings
+# All 1611 tests should pass with zero warnings
 ```
 
 ---
@@ -257,6 +259,43 @@ hotkeys.register_action(save_action);
 
 See [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md) for details.
 
+### MVC Pattern
+
+OnyxUI provides a Qt-inspired dual-API for data-driven widgets:
+
+```cpp
+// Simple API - no MVC knowledge needed
+auto combo = std::make_unique<combo_box<Backend>>();
+combo->add_item("Apple");
+combo->add_item("Banana");
+combo->set_current_index(0);
+
+combo->current_index_changed.connect([](int index) {
+    std::cout << "Selected: " << index << "\n";
+});
+
+// List with multi-selection
+auto list = std::make_unique<list_box<Backend>>();
+list->set_items({"Red", "Green", "Blue"});
+list->set_selection_mode(selection_mode::multi_selection);
+list->select(0);
+list->select(2);
+```
+
+For advanced usage with custom models and delegates:
+
+```cpp
+// Advanced API - full MVC control
+auto model = std::make_shared<list_model<std::string, Backend>>();
+model->set_items(large_data_set);
+
+auto view = std::make_unique<list_view<Backend>>();
+view->set_model(model.get());
+view->set_delegate(std::make_shared<my_custom_delegate<Backend>>());
+```
+
+See [MVC Guide](docs/CLAUDE/MVC.md) for details.
+
 ---
 
 ## Widget Library
@@ -295,6 +334,17 @@ See [Scrolling Guide](docs/scrolling_guide.md) for comprehensive scrolling docum
 - `radio_button` - Mutually exclusive options with button_group
 - `slider` - Numeric range input with keyboard and mouse support
 - `progress_bar` - Visual progress indicator (determinate/indeterminate)
+- `combo_box` - Dropdown selection (simple API, wraps combo_box_view)
+- `list_box` - Vertical list with single/multi-selection (simple API, wraps list_view)
+
+**MVC Widgets** (advanced, for custom models/delegates):
+- `list_view` - MVC list view with virtual scrolling
+- `combo_box_view` - MVC combo box with popup support
+- `list_model` - Simple list data model
+- `item_selection_model` - Selection state management
+- `default_item_delegate` - Default item rendering
+
+See [MVC Guide](docs/CLAUDE/MVC.md) for comprehensive MVC documentation.
 
 **Other:**
 - `status_bar` - Bottom status display
@@ -313,6 +363,7 @@ include/onyxui/
   events/                # Event system (ui_event)
   hotkeys/               # Keyboard shortcuts (hotkey_manager, key_sequence, hotkey_schemes)
   layout/                # Layout strategies (linear, grid, anchor, absolute)
+  mvc/                   # Model-View-Controller (models, views, delegates, selection)
   services/              # Framework services (ui_context, focus_manager, layer_manager, background_renderer)
   theming/               # Theme system (theme, themeable, theme_registry, theme_loader)
   utils/                 # Utilities (safe_math, fkyaml_adapter)
@@ -455,12 +506,13 @@ See [Testing Guide](docs/CLAUDE/TESTING.md) for comprehensive testing documentat
 **Version:** 2025-11 (November 2025)
 
 **Test Coverage:**
-- **1184 test cases** across 38 test files
-- **6764 assertions**
+- **1611 test cases** across 39 test files
+- **8173 assertions**
 - **Zero warnings**
 - **100% widget coverage**
 
 **Recent Major Features:**
+- **MVC Framework refactoring** (Jan 2026) - Qt-inspired dual-API pattern with simple widgets (combo_box, list_box) wrapping advanced MVC views
 - **Relative coordinate system refactoring** (Nov 2025) - Children store relative bounds for efficient repositioning and clean architecture
 - Comprehensive scrolling system (137 new tests)
 - Hotkey schemes (Windows vs Norton Commander)
@@ -476,6 +528,7 @@ For detailed information on specific topics:
 - **Architecture & Design Patterns** → [Architecture Guide](docs/CLAUDE/ARCHITECTURE.md)
 - **Theming & Styling** → [Theming Guide](docs/CLAUDE/THEMING.md)
 - **Keyboard Shortcuts** → [Hotkeys Guide](docs/CLAUDE/HOTKEYS.md)
+- **MVC & Data Widgets** → [MVC Guide](docs/CLAUDE/MVC.md)
 - **Writing Tests** → [Testing Guide](docs/CLAUDE/TESTING.md)
 - **Recent Changes** → [Changelog](docs/CLAUDE/CHANGELOG.md)
 - **Scrolling System** → [Scrolling Guide](docs/scrolling_guide.md)
@@ -485,6 +538,9 @@ For examples, see:
 - `backends/conio/main.cc` - Complete demo application
 - `unittest/widgets/test_*.cc` - Widget usage examples
 - `unittest/widgets/test_scrolling_integration.cc` - Real-world integration tests
+- `unittest/widgets/test_combo_box.cc` - Simple combo_box API examples
+- `unittest/widgets/test_list_box.cc` - Simple list_box API examples
+- `unittest/widgets/test_combo_box_view.cc` - Advanced MVC combo_box_view examples
 
 ---
 

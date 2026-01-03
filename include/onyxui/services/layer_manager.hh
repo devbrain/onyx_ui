@@ -790,9 +790,7 @@ namespace onyxui {
                     const logical_rect& logical_bounds = layer.bounds;
 
                     // Measure with logical size
-                    [[maybe_unused]] auto measured_size = root_ptr->measure(
-                        logical_bounds.width,
-                        logical_bounds.height);
+                    (void)root_ptr->measure(logical_bounds.width, logical_bounds.height);
 
                     // Arrange with logical coordinates
                     root_ptr->arrange(logical_bounds);
@@ -1111,14 +1109,21 @@ namespace onyxui {
         void position_popup(layer_data& layer, const logical_rect& viewport) {
             // Use safe weak_ptr access for positioning
             layer.with_root([&](element_type* root_ptr) {
-                // Measure to get desired size in logical units
-                auto size = root_ptr->measure(viewport.width, viewport.height);
-
-                // Get anchor position (already in logical coordinates)
+                // Get anchor dimensions (already in logical coordinates)
                 logical_unit const anchor_x = layer.anchor_bounds.x;
                 logical_unit const anchor_y = layer.anchor_bounds.y;
                 logical_unit const anchor_w = layer.anchor_bounds.width;
                 logical_unit const anchor_h = layer.anchor_bounds.height;
+
+                // Use the pre-arranged bounds from when show_popup was called
+                // This preserves the intended popup size set by the caller
+                // (e.g., combo_box_view sets a specific height based on item count)
+                logical_size size{layer.bounds.width, layer.bounds.height};
+
+                // If bounds weren't set, fall back to measuring with anchor width
+                if (size.width.value <= 0 || size.height.value <= 0) {
+                    size = root_ptr->measure(anchor_w, viewport.height);
+                }
 
                 // Calculate position based on placement
                 logical_unit x = anchor_x;

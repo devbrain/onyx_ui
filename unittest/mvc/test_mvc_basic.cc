@@ -457,19 +457,28 @@ TEST_CASE("item_selection_model - no_selection mode rejects selections") {
 }
 
 TEST_CASE("item_selection_model - select_range selects multiple items") {
+    // Create a real model with items
+    list_model<std::string, test_backend> model;
+    model.set_items({"Item 0", "Item 1", "Item 2", "Item 3", "Item 4"});
+
     item_selection_model<test_backend> sel;
     sel.set_selection_mode(selection_mode::multi_selection);
+    sel.set_model(&model);  // Must set model for select_range to work
 
-    int dummy = 1;
-    model_index idx1{1, 0, nullptr, &dummy};
-    model_index idx2{3, 0, nullptr, &dummy};
+    // Get valid indices from the model
+    model_index idx1 = model.index(1, 0);
+    model_index idx2 = model.index(3, 0);
 
     sel.select_range(idx1, idx2);
 
     // Should select rows 1, 2, 3
-    CHECK(sel.is_selected(model_index{1, 0, nullptr, &dummy}));
-    CHECK(sel.is_selected(model_index{2, 0, nullptr, &dummy}));
-    CHECK(sel.is_selected(model_index{3, 0, nullptr, &dummy}));
+    CHECK(sel.is_selected(model.index(1, 0)));
+    CHECK(sel.is_selected(model.index(2, 0)));
+    CHECK(sel.is_selected(model.index(3, 0)));
+
+    // Should NOT select rows 0 and 4
+    CHECK_FALSE(sel.is_selected(model.index(0, 0)));
+    CHECK_FALSE(sel.is_selected(model.index(4, 0)));
 }
 
 // =========================================================================

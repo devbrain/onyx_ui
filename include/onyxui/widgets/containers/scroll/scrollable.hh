@@ -488,8 +488,9 @@ namespace onyxui {
             // content_area's x,y offset is already accounted for during rendering
             // Child position = content area origin (0,0) - scroll offset
             // In relative coords, base is always (0,0) - padding is handled elsewhere
-            logical_unit const child_x = logical_unit(-m_scroll_x);
-            logical_unit const child_y = logical_unit(-m_scroll_y);
+            // ROUND to integers for terminal backends where mouse coords are integers
+            logical_unit const child_x = logical_unit(std::round(-m_scroll_x));
+            logical_unit const child_y = logical_unit(std::round(-m_scroll_y));
 
             // Arrange children ONCE with scroll offset baked in
             // This is the ONLY arrangement - no double-arrangement

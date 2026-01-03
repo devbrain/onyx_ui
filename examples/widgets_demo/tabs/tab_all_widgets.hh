@@ -245,21 +245,16 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     progress->set_value(75);
     progress->set_bar_width(30);  // Backend-agnostic bar sizing
 
-    // Combo Box
+    // Combo Box (using simple API - no MVC knowledge needed)
     input_section->template emplace_child<onyxui::label>("");  // Spacer
     input_section->template emplace_child<onyxui::label>("Combo Box (Dropdown):");
-    auto combo_model = std::make_shared<onyxui::list_model<std::string, Backend>>();
-    combo_model->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry"});
     auto* combo = input_section->template emplace_child<onyxui::combo_box>();
-    combo->set_model(combo_model.get());
+    combo->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry"});
     combo->set_current_index(0);
-    combo->current_index_changed.connect([status_label, combo_model](int index) {
-        if (index >= 0 && index < static_cast<int>(combo_model->row_count())) {
-            auto model_idx = combo_model->index(index, 0);
-            auto data_variant = combo_model->data(model_idx);
-            if (std::holds_alternative<std::string>(data_variant)) {
-                status_label->set_text("Combo box: " + std::get<std::string>(data_variant) + " selected");
-            }
+    combo->current_index_changed.connect([status_label, combo](int index) {
+        std::string text = combo->current_text();
+        if (!text.empty()) {
+            status_label->set_text("Combo box: " + text + " selected");
         }
     });
 

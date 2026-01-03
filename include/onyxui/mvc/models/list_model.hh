@@ -192,18 +192,20 @@ public:
     void set_items(container_type items) {
         // Remove old items
         if (!m_items.empty()) {
-            this->begin_remove_rows({}, 0, static_cast<int>(m_items.size()) - 1);
+            int const last_row = static_cast<int>(m_items.size()) - 1;  // Store before clear
+            this->begin_remove_rows({}, 0, last_row);
             m_items.clear();
             this->end_remove_rows();
-            this->rows_removed.emit({}, 0, static_cast<int>(m_items.size()) - 1);
+            this->rows_removed.emit({}, 0, last_row);
         }
 
         // Add new items
         if (!items.empty()) {
-            this->begin_insert_rows({}, 0, static_cast<int>(items.size()) - 1);
+            int const last_row = static_cast<int>(items.size()) - 1;
+            this->begin_insert_rows({}, 0, last_row);
             m_items = std::move(items);
             this->end_insert_rows();
-            this->rows_inserted.emit({}, 0, static_cast<int>(m_items.size()) - 1);
+            this->rows_inserted.emit({}, 0, last_row);
         }
     }
 
@@ -292,10 +294,13 @@ public:
             return;  // Already empty
         }
 
-        this->begin_remove_rows({}, 0, static_cast<int>(m_items.size()) - 1);
+        // Store count BEFORE clearing for correct signal emission
+        int const last_row = static_cast<int>(m_items.size()) - 1;
+
+        this->begin_remove_rows({}, 0, last_row);
         m_items.clear();
         this->end_remove_rows();
-        this->rows_removed.emit({}, 0, static_cast<int>(m_items.size()) - 1);
+        this->rows_removed.emit({}, 0, last_row);
     }
 
     // ===================================================================

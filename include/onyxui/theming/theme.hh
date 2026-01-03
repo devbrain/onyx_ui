@@ -278,6 +278,35 @@ namespace onyxui {
         };
 
         /**
+         * @brief List/table item styling
+         * @details Visual appearance for list_view, table_view, tree_view items
+         */
+        struct list_style {
+            // Item backgrounds
+            color_type item_background;           ///< Normal item background (often transparent)
+            color_type item_background_alt;       ///< Alternating row background (for striping)
+            color_type selection_background;      ///< Selected item background
+            color_type selection_background_inactive;  ///< Selected but unfocused
+
+            // Item foregrounds
+            color_type item_foreground;           ///< Normal item text color
+            color_type selection_foreground;      ///< Selected item text color
+            color_type selection_foreground_inactive;  ///< Selected but unfocused text
+
+            // Focus styling
+            color_type focus_border_color;        ///< Focus rectangle border color
+            box_style_type focus_box_style{};     ///< Focus rectangle style (dotted, solid, etc.)
+
+            // Font
+            font_type font{};                     ///< Font for item text
+
+            // Layout
+            int padding_horizontal = 4;           ///< Left/right padding inside items
+            int padding_vertical = 2;             ///< Top/bottom padding inside items
+            int min_item_height = 20;             ///< Minimum item height for usability
+        };
+
+        /**
          * @brief Tab widget styling
          * @details Visual appearance for tabbed containers
          */
@@ -479,6 +508,7 @@ namespace onyxui {
         progress_bar_style progress_bar{};// NEW: Progress bar widget
         slider_style slider{};            // NEW: Slider input widget
         tab_widget_style tab_widget{};    // NEW: Tab widget container
+        list_style list{};                // NEW: List/table item styling (MVC Phase 2)
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged
