@@ -110,6 +110,7 @@ namespace onyxui {
          *
          * @details
          * Called automatically by window destructor.
+         * Clears m_active_window if the unregistered window was active.
          * Emits window_unregistered signal.
          */
         void unregister_window(window<Backend>* win) {
@@ -117,6 +118,11 @@ namespace onyxui {
 
             auto it = std::find(m_windows.begin(), m_windows.end(), win);
             if (it != m_windows.end()) {
+                // Clear active window if this is it (prevents dangling pointer)
+                if (m_active_window == win) {
+                    m_active_window = nullptr;
+                }
+
                 m_windows.erase(it);
                 window_unregistered.emit(win);
             }

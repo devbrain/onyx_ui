@@ -165,13 +165,19 @@ namespace onyxui {
 
 #ifdef ONYXUI_THREAD_SAFE
             // Custom move operations (mutex and atomic are not moveable)
+            // IMPORTANT: Slots are NOT transferred - moved signal starts empty.
+            // This prevents invoking handlers whose scoped_connections can no longer disconnect.
             signal(signal&& other) noexcept
-                : m_alive_flag(std::move(other.m_alive_flag))
-                , m_next_id(other.m_next_id.load(std::memory_order_relaxed))
-                , m_slots(std::move(other.m_slots))
-                , m_emitting(other.m_emitting) {
+                : m_next_id(other.m_next_id.load(std::memory_order_relaxed))
+                , m_emitting(other.m_emitting.load(std::memory_order_relaxed)) {
+                // Invalidate source's alive flag so existing connections no-op on disconnect
+                if (other.m_alive_flag) {
+                    *other.m_alive_flag = false;
+                }
+                // Clear source's slots - they're not transferred (would be unsafe to invoke)
                 other.m_slots.clear();
-                other.m_emitting = false;
+                other.m_emitting.store(false, std::memory_order_relaxed);
+                // New signal starts with fresh alive_flag and empty m_slots (default initialized)
             }
 
             signal& operator=(signal&& other) noexcept {
@@ -180,24 +186,61 @@ namespace onyxui {
                     std::unique_lock lock2(other.m_mutex, std::defer_lock);
                     std::lock(lock1, lock2);
 
-                    // Mark current signal as destroyed before overwriting
+                    // Mark current signal as destroyed (invalidate our connections)
                     if (m_alive_flag) {
                         *m_alive_flag = false;
                     }
+                    // Invalidate source's connections
+                    if (other.m_alive_flag) {
+                        *other.m_alive_flag = false;
+                    }
 
-                    m_alive_flag = std::move(other.m_alive_flag);
-                    m_next_id.store(other.m_next_id.load(std::memory_order_relaxed), std::memory_order_relaxed);
-                    m_slots = std::move(other.m_slots);
-                    m_emitting = other.m_emitting;
+                    // Reset to fresh state - slots are NOT transferred
+                    m_alive_flag = std::make_shared<bool>(true);
+                    m_next_id.store(1, std::memory_order_relaxed);
+                    m_emitting.store(false, std::memory_order_relaxed);
+                    m_slots.clear();
 
+                    // Clear source
+                    other.m_slots.clear();
+                    other.m_emitting.store(false, std::memory_order_relaxed);
+                }
+                return *this;
+            }
+#else
+            // Non-thread-safe move: slots are NOT transferred (safety)
+            signal(signal&& other) noexcept
+                : m_next_id(other.m_next_id) {
+                // Invalidate source's alive flag so existing connections see it as dead
+                if (other.m_alive_flag) {
+                    *other.m_alive_flag = false;
+                }
+                other.m_slots.clear();
+                other.m_emitting = false;
+            }
+
+            signal& operator=(signal&& other) noexcept {
+                if (this != &other) {
+                    // Invalidate our alive flag
+                    if (m_alive_flag) {
+                        *m_alive_flag = false;
+                    }
+                    // Invalidate source's alive flag
+                    if (other.m_alive_flag) {
+                        *other.m_alive_flag = false;
+                    }
+                    // Reset to fresh state - slots are NOT transferred
+                    m_alive_flag = std::make_shared<bool>(true);
+                    m_next_id = 1;
+                    m_emitting = false;
+                    m_slots.clear();
+
+                    // Clear source
                     other.m_slots.clear();
                     other.m_emitting = false;
                 }
                 return *this;
             }
-#else
-            signal(signal&&) noexcept = default;
-            signal& operator=(signal&&) noexcept = default;
 #endif
 
         private:
@@ -208,11 +251,12 @@ namespace onyxui {
 #ifdef ONYXUI_THREAD_SAFE
             mutable std::shared_mutex m_mutex;
             std::atomic<connection_id> m_next_id{1};
+            std::atomic<bool> m_emitting{false};  ///< Re-entrancy guard (atomic for thread safety)
 #else
             connection_id m_next_id = 1;
+            bool m_emitting = false;  ///< Re-entrancy guard to detect nested emit() calls
 #endif
             std::unordered_map <connection_id, slot_type> m_slots;
-            bool m_emitting = false;  ///< Re-entrancy guard to detect nested emit() calls
 
         public:
             /**
@@ -350,9 +394,9 @@ namespace onyxui {
                 // Lock released here - callbacks can safely connect/disconnect
                 // No need to check if slots are still connected - our copies are valid
 
-                // Set re-entrancy guard
-                bool const was_emitting = m_emitting;
-                m_emitting = true;
+                // Set re-entrancy guard (explicit atomic operations for clarity)
+                bool const was_emitting = m_emitting.load(std::memory_order_relaxed);
+                m_emitting.store(true, std::memory_order_relaxed);
 
                 try {
                     // Call all slots without holding any locks
@@ -361,9 +405,9 @@ namespace onyxui {
                         slot(args...);
                     }
 
-                    m_emitting = was_emitting;
+                    m_emitting.store(was_emitting, std::memory_order_relaxed);
                 } catch (...) {
-                    m_emitting = was_emitting;
+                    m_emitting.store(was_emitting, std::memory_order_relaxed);
                     throw;
                 }
 #else
@@ -616,11 +660,12 @@ namespace onyxui {
              *
              * @details
              * Safe to call multiple times. After calling this, the destructor
-             * will have no effect.
+             * will have no effect and is_connected() returns false.
              *
              * Checks if the signal is still alive before attempting to disconnect.
-             * If the signal has been destroyed, the disconnect function is silently
-             * skipped (preventing dangling reference access).
+             * If the signal has been destroyed or moved, the disconnect function is
+             * silently skipped (preventing dangling reference access), but the
+             * connection is still marked as disconnected.
              *
              * @thread_safety Thread-safe with ONYXUI_THREAD_SAFE. Uses mutex.
              */
@@ -628,16 +673,27 @@ namespace onyxui {
 #ifdef ONYXUI_THREAD_SAFE
                 std::lock_guard const lock(m_mutex);
 #endif
-                if (m_disconnect && m_signal_alive && *m_signal_alive) {
-                    m_disconnect();
+                if (m_disconnect) {
+                    // Only call disconnect if signal is still alive
+                    if (m_signal_alive && *m_signal_alive) {
+                        m_disconnect();
+                    }
+                    // Always clear state so is_connected() returns false
                     m_disconnect = nullptr;
+                    m_signal_alive.reset();
                 }
             }
 
             /**
              * @brief Check if this holds an active connection
              *
-             * @return true if connected, false if empty or disconnected
+             * @return true if connected to a live signal, false otherwise
+             *
+             * @details
+             * Returns false if:
+             * - Never connected
+             * - Already disconnected
+             * - Signal was destroyed or moved
              *
              * @thread_safety Thread-safe with ONYXUI_THREAD_SAFE. Uses mutex.
              */
@@ -645,7 +701,8 @@ namespace onyxui {
 #ifdef ONYXUI_THREAD_SAFE
                 std::lock_guard const lock(m_mutex);
 #endif
-                return m_disconnect != nullptr;
+                // Connected only if we have a disconnect function AND signal is alive
+                return m_disconnect != nullptr && m_signal_alive && *m_signal_alive;
             }
 
         private:

@@ -50,6 +50,8 @@
 #pragma once
 
 #include <onyxui/core/event_target.hh>
+#include <onyxui/core/element.hh>  // for ui_element::destroying signal
+#include <onyxui/core/signal.hh>   // for scoped_connection
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>
 #include <utility>   // for std::exchange
@@ -97,22 +99,28 @@ namespace onyxui {
         input_manager& operator=(const input_manager&) = delete;
 
         /**
-         * @brief Move constructor - transfers all state
+         * @brief Move constructor - transfers all state and connections
          */
         input_manager(input_manager&& other) noexcept
             : m_focused(std::exchange(other.m_focused, nullptr))
             , m_captured(std::exchange(other.m_captured, nullptr))
-            , m_hovered(std::exchange(other.m_hovered, nullptr)) {
+            , m_hovered(std::exchange(other.m_hovered, nullptr))
+            , m_focused_conn(std::move(other.m_focused_conn))
+            , m_captured_conn(std::move(other.m_captured_conn))
+            , m_hovered_conn(std::move(other.m_hovered_conn)) {
         }
 
         /**
-         * @brief Move assignment - transfers all state
+         * @brief Move assignment - transfers all state and connections
          */
         input_manager& operator=(input_manager&& other) noexcept {
             if (this != &other) {
                 m_focused = std::exchange(other.m_focused, nullptr);
                 m_captured = std::exchange(other.m_captured, nullptr);
                 m_hovered = std::exchange(other.m_hovered, nullptr);
+                m_focused_conn = std::move(other.m_focused_conn);
+                m_captured_conn = std::move(other.m_captured_conn);
+                m_hovered_conn = std::move(other.m_hovered_conn);
             }
             return *this;
         }
@@ -155,8 +163,9 @@ namespace onyxui {
                 m_focused->set_focus(false);
             }
 
-            // Update focus
+            // Update focus and connect to destroying signal
             m_focused = target;
+            connect_destroying(target, m_focused_conn, m_focused);
 
             // Notify new focused widget
             if (m_focused) {
@@ -215,7 +224,9 @@ namespace onyxui {
                 return false;  // Already captured
             }
 
+            // Update capture and connect to destroying signal
             m_captured = target;
+            connect_destroying(target, m_captured_conn, m_captured);
 
             // Capture implies focus (if focusable)
             if (target && target->is_focusable() && target->is_enabled()) {
@@ -275,12 +286,14 @@ namespace onyxui {
             // particularly visible with sdlpp backend's continuous mouse move events.
             // The old widget won't receive a mouse event (it's not in the hit test path),
             // so we must explicitly clear its state here.
+            // Note: Safe to call - we're changing hover, not responding to destruction
             if (m_hovered) {
                 m_hovered->reset_hover_and_press_state();
             }
 
-            // Update hover
+            // Update hover and connect to destroying signal
             m_hovered = target;
+            connect_destroying(target, m_hovered_conn, m_hovered);
 
             return true;
         }
@@ -318,19 +331,12 @@ namespace onyxui {
          * @param target Widget being destroyed
          *
          * @details
-         * **CRITICAL**: Call this in widget destructor to prevent dangling pointers.
          * Clears focus, capture, and hover if widget holds any of these states.
-         *
          * Does NOT call callbacks - widget is being destroyed.
          *
-         * @example
-         * @code
-         * ~my_widget() {
-         *     if (auto* input = ui_services<Backend>::input()) {
-         *         input->release_widget(this);
-         *     }
-         * }
-         * @endcode
+         * **Note**: For ui_element targets, this is called automatically via the
+         * `destroying` signal - no manual call needed. Only required for non-ui_element
+         * event_target implementations (rare).
          */
         void release_widget(target_ptr target) noexcept {
             if (m_focused == target) {
@@ -345,9 +351,47 @@ namespace onyxui {
         }
 
     private:
+        using element_type = ui_element<Backend>;
+
+        /**
+         * @brief Connect to an element's destroying signal
+         * @param element Element to track (may be nullptr)
+         * @param conn Connection to update
+         * @param ptr_to_clear Pointer to set to nullptr when element is destroyed
+         *
+         * @details
+         * Uses the RTTI-free as_ui_element() virtual method to safely check if
+         * the target is a ui_element. If not (rare case of non-ui_element
+         * event_target), the connection is skipped and release_widget() must
+         * be called manually on destruction.
+         */
+        void connect_destroying(target_ptr element, scoped_connection& conn, target_ptr& ptr_to_clear) {
+            if (!element) {
+                conn = scoped_connection{};  // Disconnect any existing
+                return;
+            }
+
+            // Use RTTI-free as_ui_element() to check if target is a ui_element
+            // Non-ui_element targets (rare) fall back to manual release_widget() on destruction
+            auto* ui_elem = element->as_ui_element();
+            if (ui_elem) {
+                conn = scoped_connection(ui_elem->destroying, [&ptr_to_clear](element_type*) {
+                    // Element is being destroyed - clear our pointer WITHOUT calling methods
+                    ptr_to_clear = nullptr;
+                });
+            } else {
+                conn = scoped_connection{};  // No signal available
+            }
+        }
+
         target_ptr m_focused = nullptr;   ///< Widget with keyboard focus
         target_ptr m_captured = nullptr;  ///< Widget that captured mouse during drag
         target_ptr m_hovered = nullptr;   ///< Widget under mouse cursor
+
+        // Connections to destroying signals - automatically cleared when element dies
+        scoped_connection m_focused_conn;   ///< Connection to focused element's destroying signal
+        scoped_connection m_captured_conn;  ///< Connection to captured element's destroying signal
+        scoped_connection m_hovered_conn;   ///< Connection to hovered element's destroying signal
     };
 
     /**

@@ -57,6 +57,7 @@ namespace onyxui {
     template<UIBackend Backend> class layer_manager;
     template<UIBackend Backend> class ui_handle;
     template<UIBackend Backend> class ui_context;
+    template<UIBackend Backend> class ui_element;
 
     /**
      * @class event_target
@@ -233,6 +234,28 @@ namespace onyxui {
              * @note Exception safety: No-throw guarantee (noexcept)
              */
             [[nodiscard]] int tab_index() const noexcept { return m_tab_index; }
+
+            // -----------------------------------------------------------------------
+            // Type Identification (RTTI-free downcasting)
+            // -----------------------------------------------------------------------
+
+            /**
+             * @brief Safe downcast to ui_element without RTTI
+             * @return Pointer to this as ui_element, or nullptr if not a ui_element
+             *
+             * @details
+             * Provides RTTI-free type identification for services that need to access
+             * ui_element-specific features (like the destroying signal) from an
+             * event_target pointer. Override in ui_element to return this.
+             *
+             * This pattern avoids dynamic_cast which requires RTTI to be enabled.
+             */
+            [[nodiscard]] virtual ui_element<Backend>* as_ui_element() noexcept { return nullptr; }
+
+            /**
+             * @brief Safe const downcast to ui_element without RTTI
+             */
+            [[nodiscard]] virtual const ui_element<Backend>* as_ui_element() const noexcept { return nullptr; }
 
             // -----------------------------------------------------------------------
             // State Setters

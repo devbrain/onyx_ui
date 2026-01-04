@@ -75,6 +75,7 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/event_target.hh>
+#include <onyxui/core/signal.hh>
 #include <onyxui/core/types.hh>
 #include <onyxui/core/geometry.hh>
 #include <onyxui/events/hit_test_path.hh>
@@ -154,6 +155,40 @@ namespace onyxui {
             // Grant access to layout strategies
             friend class layout_strategy <Backend>;
 
+            // ================================================================
+            // Signals
+            // ================================================================
+
+            /**
+             * @brief Emitted when this element is about to be destroyed
+             *
+             * @details
+             * This signal is emitted at the very start of the destructor, BEFORE
+             * any child teardown or cleanup occurs. Services holding raw pointers
+             * to elements (e.g., input_manager, layer_manager) should connect to
+             * this signal and clear their pointers when notified.
+             *
+             * **Handler requirements:**
+             * - Must NOT call back into the element being destroyed
+             * - Must NOT assume children are still intact
+             * - Should only clear/null out pointers, not perform complex operations
+             *
+             * **Move semantics:**
+             * Moving a ui_element invalidates all existing connections to this
+             * signal (they will safely no-op on disconnect). The moved-to element
+             * gets a fresh signal with no connections - slots are NOT transferred.
+             * This ensures handlers with captured pointers to the old element
+             * cannot be invoked after the move. In practice, elements are
+             * heap-allocated via unique_ptr and never moved directly.
+             *
+             * @param ui_element* Pointer to the element being destroyed
+             */
+            signal<ui_element*> destroying;
+
+            // ================================================================
+            // Construction / Destruction
+            // ================================================================
+
             /**
              * @brief Construct a UI element
              * @param parent Pointer to the parent element (or nullptr for root)
@@ -164,13 +199,20 @@ namespace onyxui {
              * @brief Virtual destructor for proper cleanup
              *
              * @details
-             * Nulls out all children's parent pointers before destruction as a
-             * defensive measure. This helps catch bugs where code might hold raw
-             * pointers to children and access them after parent destruction.
+             * Emits the `destroying` signal FIRST, before any teardown, to notify
+             * services holding raw pointers to this element (e.g., input_manager,
+             * layer_manager). Then nulls out children's parent pointers as a
+             * defensive measure.
              *
              * @note Exception safety: No-throw guarantee (noexcept)
+             * @note Signal handlers must NOT call back into this element or assume
+             *       children are still intact - this is a finalization notification.
              */
             ~ui_element() noexcept override {
+                // Notify observers FIRST - before any teardown
+                // Services holding raw pointers must clear them here
+                destroying.emit(this);
+
                 // Defensive: null out children's parent pointers before destruction
                 // This catches bugs where someone holds a child pointer after parent dies
                 for (auto& child : m_children) {
@@ -980,6 +1022,20 @@ namespace onyxui {
              */
             [[nodiscard]] bool is_inside(logical_unit x, logical_unit y) const override {
                 return is_inside_logical(x, y);
+            }
+
+            /**
+             * @brief RTTI-free downcast - returns this since ui_element IS a ui_element
+             */
+            [[nodiscard]] ui_element<Backend>* as_ui_element() noexcept override {
+                return this;
+            }
+
+            /**
+             * @brief RTTI-free const downcast
+             */
+            [[nodiscard]] const ui_element<Backend>* as_ui_element() const noexcept override {
+                return this;
             }
 
             // -----------------------------------------------------------------------

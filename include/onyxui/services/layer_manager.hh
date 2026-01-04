@@ -62,6 +62,35 @@
  * // Widget can be shown again later
  * menu_id = layer_mgr.show_popup(menu_content.get(), ...);
  * ```
+ *
+ * ## Design Decisions
+ *
+ * ### Click-Outside Callbacks
+ * Click-outside callbacks (passed to show_popup) ARE allowed to call remove_layer()
+ * or any other layer-modifying method. The implementation defers callback invocation
+ * until after iteration completes, making this safe. This is the expected pattern
+ * for dismissible popups:
+ * ```cpp
+ * layer_mgr.show_popup(popup, anchor, placement, [&]() {
+ *     layer_mgr.remove_layer(popup_id);  // Safe - callback is deferred
+ * });
+ * ```
+ *
+ * ### Layer Cleanup
+ * Layers should be explicitly removed via remove_layer() when no longer needed.
+ * This ensures:
+ * - Dirty regions are accurately tracked for repaint
+ * - Outside-click callbacks can be invoked if applicable
+ * - Predictable lifecycle management
+ *
+ * Automatic cleanup via cleanup_expired_layers() (when weak_ptr expires) is a
+ * **safety net**, not the primary mechanism. It handles cases where the owning
+ * widget is destroyed without explicitly removing its layer. However:
+ * - Dirty region bounds may be stale if layer was repositioned
+ * - No callbacks are invoked
+ * - Cleanup happens lazily (during next event/render)
+ *
+ * **Best Practice**: Always use remove_layer() or scoped_layer RAII wrapper.
  */
 
 #pragma once
@@ -73,6 +102,7 @@
 #include <algorithm>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/event_like.hh>  // For event_traits
+#include <onyxui/core/signal.hh>          // For scoped_connection
 #include <onyxui/events/ui_event.hh>      // For ui_event, mouse_event, keyboard_event
 #include <onyxui/events/event_phase.hh>   // For event_phase
 #include <onyxui/events/hit_test_path.hh> // For hit_test_path
@@ -358,13 +388,9 @@ namespace onyxui {
 
                 m_removed_layer_dirty_regions.push_back(bounds_to_track);
 
-                // CRITICAL: Clear hover on element BEFORE removing the layer
-                // Otherwise the element stays highlighted even after layer is gone
-                // (e.g., submenu items when switching between menu bar items)
-                if (m_layer_hovered) {
-                    m_layer_hovered->reset_hover_and_press_state();
-                    m_layer_hovered = nullptr;
-                }
+                // CRITICAL: Clear hover state if hovered element is in this layer
+                // Check if m_layer_hovered is a descendant of this layer's root
+                clear_hover_if_in_layer(*it);
 
                 m_layers.erase(it);
                 m_layers_changed = true;  // Signal that layers were modified
@@ -378,6 +404,23 @@ namespace onyxui {
          */
         void clear_layers(layer_type type) {
             auto old_size = m_layers.size();
+
+            // First pass: clear hover state and track dirty regions for layers being removed
+            for (const auto& layer : m_layers) {
+                if (layer.type == type) {
+                    // Track bounds for dirty region
+                    logical_rect bounds_to_track = layer.bounds;
+                    constexpr double SHADOW_MARGIN = 2.0;
+                    bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
+                    bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
+                    m_removed_layer_dirty_regions.push_back(bounds_to_track);
+
+                    // Clear hover if it was in this layer
+                    clear_hover_if_in_layer(layer);
+                }
+            }
+
+            // Second pass: remove the layers
             m_layers.erase(
                 std::remove_if(m_layers.begin(), m_layers.end(),
                     [type](const layer_data& layer) {
@@ -385,13 +428,9 @@ namespace onyxui {
                     }),
                 m_layers.end()
             );
+
             if (m_layers.size() != old_size) {
                 m_layers_changed = true;  // Signal that layers were modified
-                // Clear hover on element before clearing pointer
-                if (m_layer_hovered) {
-                    m_layer_hovered->reset_hover_and_press_state();
-                    m_layer_hovered = nullptr;
-                }
             }
         }
 
@@ -426,10 +465,24 @@ namespace onyxui {
          * @brief Remove all layers except base UI
          */
         void clear_all_layers() {
+            // Track all layer bounds for dirty region marking
+            for (const auto& layer : m_layers) {
+                logical_rect bounds_to_track = layer.bounds;
+                constexpr double SHADOW_MARGIN = 2.0;
+                bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
+                bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
+                m_removed_layer_dirty_regions.push_back(bounds_to_track);
+            }
+
             // Clear hover on element before clearing pointer
+            // Safe to call: destroying signal clears m_layer_hovered when element dies
             if (m_layer_hovered) {
                 m_layer_hovered->reset_hover_and_press_state();
-                m_layer_hovered = nullptr;
+                set_layer_hover(nullptr, layer_id{});
+            }
+
+            if (!m_layers.empty()) {
+                m_layers_changed = true;
             }
             m_layers.clear();
         }
@@ -443,7 +496,13 @@ namespace onyxui {
          *
          * @param content Popup content (non-owning pointer)
          * @param anchor_bounds Bounds of anchor element (in logical coordinates)
-         * @param placement Desired placement
+         * @param placement Desired placement (default: below)
+         * @param outside_click_callback Optional callback invoked when clicking outside popup
+         *        (safe to call remove_layer() from this callback - invocation is deferred)
+         * @param preferred_size Optional explicit size for the popup (in logical units).
+         *        If provided, position_popup() uses this instead of measuring content
+         *        with viewport height, which can cause incorrect sizing for widgets
+         *        with expand policies.
          * @return Layer ID
          *
          * @details
@@ -649,7 +708,8 @@ namespace onyxui {
             }
 
             // Generic click-outside detection for dismissible layers
-            // We need to defer the callback to avoid modifying m_layers while iterating
+            // We MUST defer the callback to avoid modifying m_layers while iterating
+            // (the callback typically calls remove_layer which would invalidate iterators)
             std::function<void()> deferred_callback;
 
             // Check if this is a mouse click event using ui_event
@@ -665,13 +725,12 @@ namespace onyxui {
                                                mouse->y < (it->bounds.y + it->bounds.height);
 
                             if (!inside) {
-                                // Click outside popup - trigger callback but DON'T consume event
+                                // Click outside popup - capture callback to invoke AFTER iteration
                                 // This allows:
                                 // 1. Menu switching: Click Theme while File is open → File closes, Theme opens
                                 // 2. Normal clicks: Click anywhere → menu closes, click continues to target
                                 if (it->outside_click_callback) {
-                                    it->outside_click_callback();
-                                    // Don't set deferred_callback - event continues to underlying widget
+                                    deferred_callback = it->outside_click_callback;
                                 }
                             }
                             // Only check the topmost popup (whether inside or outside)
@@ -681,10 +740,11 @@ namespace onyxui {
                 }
             }
 
-            // Now invoke the deferred callback (after iteration is complete)
+            // Now invoke the deferred callback (AFTER iteration is complete)
+            // This is safe because we're no longer iterating m_layers
             if (deferred_callback) {
                 deferred_callback();
-                return true;  // We handled the click by triggering callback
+                // Don't return - let event continue to underlying widget for menu switching
             }
 
             // Route to layers (highest z first)
@@ -712,10 +772,11 @@ namespace onyxui {
                         // The old element won't receive a mouse event (not in hit test path),
                         // so we must explicitly clear its state here.
                         if (m_layer_hovered != target) {
+                            // Safe to call: destroying signal clears m_layer_hovered when element dies
                             if (m_layer_hovered) {
                                 m_layer_hovered->reset_hover_and_press_state();
                             }
-                            m_layer_hovered = target;
+                            set_layer_hover(target, it->id);
                         }
 
                         if (target) {
@@ -745,8 +806,9 @@ namespace onyxui {
 
             // Mouse moved out of all layers - clear layer hover
             if (std::holds_alternative<mouse_event>(ui_evt) && m_layer_hovered) {
+                // Safe to call: destroying signal clears m_layer_hovered when element dies
                 m_layer_hovered->reset_hover_and_press_state();
-                m_layer_hovered = nullptr;
+                set_layer_hover(nullptr, layer_id{});
             }
 
             return false;  // Event not handled by any layer
@@ -1032,6 +1094,8 @@ namespace onyxui {
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
         rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
         element_type* m_layer_hovered = nullptr;  ///< Currently hovered element within layers (for clearing stale hover)
+        layer_id m_hovered_layer_id = layer_id{};  ///< ID of the layer containing m_layer_hovered (for layer expiry checks)
+        scoped_connection m_hovered_conn;  ///< Connection to hovered element's destroying signal
         input_manager<Backend>* m_input_manager = nullptr;  ///< Input manager for capture handling
 
         // Helper methods
@@ -1057,6 +1121,50 @@ namespace onyxui {
         }
 
         /**
+         * @brief Set the layer-hovered element and connect to its destroying signal
+         * @param element New hovered element (may be nullptr)
+         * @param lid Layer ID containing the element
+         *
+         * @details
+         * Connects to the element's destroying signal so we're notified when it's
+         * destroyed. The signal handler clears m_layer_hovered WITHOUT calling
+         * any methods on it (the element is being destroyed).
+         */
+        void set_layer_hover(element_type* element, layer_id lid) {
+            m_layer_hovered = element;
+            m_hovered_layer_id = lid;
+
+            if (element) {
+                m_hovered_conn = scoped_connection(element->destroying, [this](element_type*) {
+                    // Element is being destroyed - clear pointer WITHOUT calling methods
+                    m_layer_hovered = nullptr;
+                    m_hovered_layer_id = layer_id{};
+                });
+            } else {
+                m_hovered_conn = scoped_connection{};  // Disconnect
+            }
+        }
+
+        /**
+         * @brief Clear hover state if the hovered element belongs to a layer
+         * @param layer Layer to check against
+         *
+         * @details
+         * Uses m_hovered_layer_id to efficiently check if the hover belongs to
+         * this layer. Safe to call: destroying signal clears m_layer_hovered
+         * when element dies.
+         */
+        void clear_hover_if_in_layer(const layer_data& layer) {
+            if (!m_layer_hovered || layer.id != m_hovered_layer_id) {
+                return;
+            }
+
+            // Safe to call: destroying signal clears m_layer_hovered when element dies
+            m_layer_hovered->reset_hover_and_press_state();
+            set_layer_hover(nullptr, layer_id{});
+        }
+
+        /**
          * @brief Remove layers whose elements have been destroyed
          *
          * @details
@@ -1064,10 +1172,31 @@ namespace onyxui {
          * Scans the layer list and removes any layers whose weak_ptr has expired.
          * Called automatically at strategic points (event routing, rendering).
          *
+         * **Safety**: The destroying signal on ui_element automatically clears
+         * m_layer_hovered when the hovered element dies. No need to check for
+         * dangling pointers here - the signal handles it.
+         *
+         * Marks dirty regions for proper redraw.
+         *
          * **Performance**: O(n) where n = number of layers. Typically very fast
          * since most layers remain valid.
          */
         void cleanup_expired_layers() {
+            auto const old_size = m_layers.size();
+
+            // First pass: collect bounds of expired layers for dirty tracking
+            for (const auto& layer : m_layers) {
+                if (!layer.is_valid()) {
+                    // Track bounds for dirty region
+                    logical_rect bounds_to_track = layer.bounds;
+                    constexpr double SHADOW_MARGIN = 2.0;
+                    bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
+                    bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
+                    m_removed_layer_dirty_regions.push_back(bounds_to_track);
+                }
+            }
+
+            // Second pass: remove expired layers
             m_layers.erase(
                 std::remove_if(m_layers.begin(), m_layers.end(),
                     [](const layer_data& layer) {
@@ -1075,6 +1204,13 @@ namespace onyxui {
                     }),
                 m_layers.end()
             );
+
+            // Note: m_layer_hovered is automatically cleared by the destroying signal
+            // when the hovered element dies, so no manual hover cleanup needed here
+
+            if (m_layers.size() != old_size) {
+                m_layers_changed = true;
+            }
         }
 
         /**
