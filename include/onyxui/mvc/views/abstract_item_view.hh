@@ -567,8 +567,8 @@ protected:
 
     /**
      * @brief Handle mouse click with modifier support
-     * @param x Mouse X (view-relative, logical coordinates)
-     * @param y Mouse Y (view-relative, logical coordinates)
+     * @param x Mouse X (absolute logical coordinates)
+     * @param y Mouse Y (absolute logical coordinates)
      * @param ctrl_held true if Ctrl key is held
      * @param shift_held true if Shift key is held
      * @return true if handled
@@ -578,10 +578,18 @@ protected:
      * - **No modifiers**: Select only this item, set as current
      * - **Ctrl+Click** (multi-selection only): Toggle selection of this item
      * - **Shift+Click** (multi-selection only): Extend selection from anchor to this item
+     *
+     * @note Coordinates are absolute (screen-relative) and are converted to
+     * view-relative before calling index_at().
      */
     virtual bool handle_mouse_click(logical_unit x, logical_unit y,
                                     bool ctrl_held = false, bool shift_held = false) {
-        model_index index = index_at(x, y);
+        // Convert absolute coordinates to view-relative for index_at()
+        auto abs_bounds = this->get_absolute_logical_bounds();
+        logical_unit const rel_x = x - abs_bounds.x;
+        logical_unit const rel_y = y - abs_bounds.y;
+
+        model_index index = index_at(rel_x, rel_y);
 
         if (index.is_valid()) {
             clicked.emit(index);
@@ -690,12 +698,20 @@ protected:
 
     /**
      * @brief Handle mouse double-click
-     * @param x Mouse X (view-relative, logical coordinates)
-     * @param y Mouse Y (view-relative, logical coordinates)
+     * @param x Mouse X (absolute logical coordinates)
+     * @param y Mouse Y (absolute logical coordinates)
      * @return true if handled
+     *
+     * @note Coordinates are absolute (screen-relative) and are converted to
+     * view-relative before calling index_at().
      */
     virtual bool handle_mouse_double_click(logical_unit x, logical_unit y) {
-        model_index index = index_at(x, y);
+        // Convert absolute coordinates to view-relative for index_at()
+        auto abs_bounds = this->get_absolute_logical_bounds();
+        logical_unit const rel_x = x - abs_bounds.x;
+        logical_unit const rel_y = y - abs_bounds.y;
+
+        model_index index = index_at(rel_x, rel_y);
 
         if (index.is_valid()) {
             double_clicked.emit(index);

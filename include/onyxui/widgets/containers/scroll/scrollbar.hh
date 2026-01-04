@@ -364,7 +364,8 @@ namespace onyxui {
                                     // Center thumb on click position
                                     double const thumb_center_offset = click_pos - track_start - (thumb_size / 2.0);
                                     double const clamped_offset = std::clamp(thumb_center_offset, 0.0, max_thumb_travel);
-                                    int const new_scroll = static_cast<int>((clamped_offset * max_scroll) / max_thumb_travel);
+                                    // Use lround to avoid truncation causing off-by-one at max scroll
+                                    int const new_scroll = static_cast<int>(std::lround((clamped_offset * max_scroll) / max_thumb_travel));
 
                                     scroll_requested.emit(new_scroll);
 
@@ -425,9 +426,10 @@ namespace onyxui {
 
                             if (max_thumb_travel > 0.0 && max_scroll > 0.0) {
                                 double const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                                // Use lround to avoid truncation causing off-by-one at max scroll
                                 int const new_scroll = std::clamp(
-                                    static_cast<int>(m_drag_start_scroll + scroll_delta),
-                                    0, static_cast<int>(max_scroll));
+                                    static_cast<int>(std::lround(m_drag_start_scroll + scroll_delta)),
+                                    0, static_cast<int>(std::lround(max_scroll)));
                                 scroll_requested.emit(new_scroll);
                             }
                         }
@@ -590,9 +592,10 @@ namespace onyxui {
                         if (max_thumb_travel > 0.0 && max_scroll > 0.0) {
                             // Convert mouse delta to scroll delta (mouse_delta is already double)
                             double const scroll_delta = (mouse_delta * max_scroll) / max_thumb_travel;
+                            // Use lround to avoid truncation causing off-by-one at max scroll
                             int const new_scroll = std::clamp(
-                                static_cast<int>(m_drag_start_scroll + scroll_delta),
-                                0, static_cast<int>(max_scroll));
+                                static_cast<int>(std::lround(m_drag_start_scroll + scroll_delta)),
+                                0, static_cast<int>(std::lround(max_scroll)));
 
                             scroll_requested.emit(new_scroll);
                         }

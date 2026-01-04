@@ -166,15 +166,13 @@ public:
         ctx.draw_text(text, text_pos, font, fg_color);
 
         // ===============================================================
-        // 3. Draw Focus Rectangle
+        // 3. Focus Indication
         // ===============================================================
-        if (has_focus) {
-            // Draw focus border using theme styling
-            auto focus_style = theme
-                ? theme->list.focus_box_style
-                : get_focus_border_style();
-            ctx.draw_rect(rect, focus_style);
-        }
+        // NOTE: Focus is indicated by the selection background color.
+        // Drawing an additional focus box causes visual artifacts in TUI backends
+        // where box-drawing characters overlap. The selection highlighting is
+        // sufficient for indicating which item has focus.
+        (void)has_focus;  // Focus shown via selection background, no separate box needed
     }
 
     /**

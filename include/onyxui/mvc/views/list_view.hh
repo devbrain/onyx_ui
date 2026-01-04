@@ -106,9 +106,12 @@ public:
             return {};
         }
 
-        // Convert view coordinates to content coordinates by adding scroll offset
-        double const px = x.value;
-        double const py = y.value + m_scroll_offset_y;
+        // Convert widget-relative coordinates to content-relative coordinates
+        // by subtracting border offset and adding scroll offset.
+        // Item rects are stored relative to content area (inside border).
+        constexpr double logical_border_width = 1.0;
+        double const px = x.value - logical_border_width;
+        double const py = y.value - logical_border_width + m_scroll_offset_y;
 
         // Find item at y position
         int row_count = this->m_model->row_count();
@@ -252,7 +255,9 @@ public:
      * @return Maximum valid scroll offset (content_height - view_height), or 0 if no scrolling needed
      */
     [[nodiscard]] double max_scroll_offset() const noexcept {
-        double const view_height = this->bounds().height.value;
+        // Visible height excludes the border (1 logical unit on each side)
+        constexpr double logical_border_width = 1.0;
+        double const view_height = this->bounds().height.value - (logical_border_width * 2);
         double const content_height_d = static_cast<double>(m_content_height);
         return std::max(0.0, content_height_d - view_height);
     }

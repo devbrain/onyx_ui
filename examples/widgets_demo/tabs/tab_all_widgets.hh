@@ -249,7 +249,9 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     input_section->template emplace_child<onyxui::label>("");  // Spacer
     input_section->template emplace_child<onyxui::label>("Combo Box (Dropdown):");
     auto* combo = input_section->template emplace_child<onyxui::combo_box>();
-    combo->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry"});
+    combo->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry",
+                       "Fig", "Grape", "Honeydew", "Jackfruit", "Kiwi",
+                       "Lemon", "Mango"});
     combo->set_current_index(0);
     combo->current_index_changed.connect([status_label, combo](int index) {
         std::string text = combo->current_text();

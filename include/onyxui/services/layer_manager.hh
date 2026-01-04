@@ -454,7 +454,8 @@ namespace onyxui {
         layer_id show_popup(element_type* content,
                            const logical_rect& anchor_bounds,
                            popup_placement placement = popup_placement::below,
-                           std::function<void()> outside_click_callback = nullptr) {
+                           std::function<void()> outside_click_callback = nullptr,
+                           std::optional<logical_size> preferred_size = std::nullopt) {
             // Create non-owning shared_ptr (caller owns the memory)
             auto non_owning = std::shared_ptr<element_type>(content, [](element_type*) {});
             layer_id id = add_layer(layer_type::popup, non_owning);
@@ -466,6 +467,12 @@ namespace onyxui {
                 it->placement = placement;
                 it->needs_positioning = true;
                 it->outside_click_callback = std::move(outside_click_callback);  // Optional click-outside handler
+
+                // Set preferred size if provided (prevents re-measuring with viewport height)
+                if (preferred_size) {
+                    it->bounds.width = preferred_size->width;
+                    it->bounds.height = preferred_size->height;
+                }
             }
 
             return id;

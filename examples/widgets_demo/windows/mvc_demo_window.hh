@@ -59,7 +59,11 @@ std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
         "Elderberry",
         "Fig",
         "Grape",
-        "Honeydew"
+        "Honeydew",
+        "Jackfruit",
+        "Kiwi",
+        "Lemon",
+        "Mango"
     });
 
     // Title section

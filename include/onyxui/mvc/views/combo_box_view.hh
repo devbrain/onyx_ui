@@ -22,6 +22,8 @@
 #include <onyxui/mvc/views/list_view.hh>
 #include <onyxui/services/layer_manager.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/widgets/containers/hbox.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar.hh>
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/ui_constants.hh>
 
@@ -274,15 +276,21 @@ public:
             return;
         }
 
+        int const row_count = m_model->row_count();
+        bool const needs_scrollbar = row_count > MAX_VISIBLE_ITEMS;
+
         // Create list_view for the popup
         m_popup_list = std::make_unique<list_view<Backend>>();
         m_popup_list->set_model(m_model);
         m_popup_list->set_delegate(m_delegate);
+        m_popup_list_ptr = m_popup_list.get();  // Store raw pointer for signals
 
         // Set current selection in popup
         auto cur = current_index();
         if (cur.is_valid()) {
             m_popup_list->set_current_index(cur);
+            // Scroll to show current item
+            m_popup_list->scroll_to(cur);
         }
 
         // Connect popup signals
@@ -304,31 +312,62 @@ public:
         auto combo_bounds = this->get_absolute_logical_bounds();
         int const popup_height = calculate_popup_height();
 
-        // Measure and arrange popup
-        [[maybe_unused]] auto popup_size = m_popup_list->measure(combo_bounds.width, logical_unit(static_cast<double>(popup_height)));
+        // Determine popup widget (container with scrollbar, or just list_view)
+        ui_element<Backend>* popup_widget = nullptr;
 
-        logical_rect popup_bounds{
-            combo_bounds.x,
-            combo_bounds.y + combo_bounds.height,
-            combo_bounds.width,
-            logical_unit(static_cast<double>(popup_height))
-        };
+        if (needs_scrollbar) {
+            // Create scrollbar
+            m_popup_scrollbar = std::make_unique<scrollbar<Backend>>(
+                orientation::vertical);
+            m_popup_scrollbar_ptr = m_popup_scrollbar.get();
 
-        m_popup_list->arrange(popup_bounds);
+            // Set list_view to expand to fill remaining width (after scrollbar)
+            size_constraint expand_width;
+            expand_width.policy = size_policy::expand;
+            m_popup_list->set_width_constraint(expand_width);
 
-        // Show popup via layer manager
+            // Create hbox container for list + scrollbar
+            m_popup_container = std::make_unique<hbox<Backend>>(spacing::none);
+            m_popup_container->set_visible(true);
+
+            // Connect scroll signals BEFORE moving unique_ptrs
+            connect_scroll_signals();
+
+            // Add children to container
+            m_popup_container->add_child(std::move(m_popup_list));
+            m_popup_container->add_child(std::move(m_popup_scrollbar));
+
+            // Initialize scrollbar with estimated values (will be updated on scroll)
+            initialize_scrollbar();
+
+            popup_widget = m_popup_container.get();
+        } else {
+            popup_widget = m_popup_list.get();
+        }
+
+        // Measure popup (let layer_manager handle arrangement)
+        logical_unit const popup_width = combo_bounds.width;
+        logical_unit const popup_height_lu{static_cast<double>(popup_height)};
+        auto measured_size = popup_widget->measure(popup_width, popup_height_lu);
+
+        // Use explicit popup dimensions (not measured width which may be small
+        // if list_view has expand policy - expand only works during arrange)
+        logical_size const preferred_size{popup_width, popup_height_lu};
+
+        // Show popup via layer manager with preferred size
         auto layer_id = layers->show_popup(
-            m_popup_list.get(),
+            popup_widget,
             combo_bounds,
             popup_placement::below,
-            [this]() { hide_popup(); }  // Close on outside click
+            [this]() { hide_popup(); },  // Close on outside click
+            preferred_size  // Use explicit size, not measured
         );
 
         m_popup_layer = scoped_layer<Backend>(layers, layer_id);
 
         // Focus the popup list
         if (auto* input = ui_services<Backend>::input()) {
-            input->set_focus(m_popup_list.get());
+            input->set_focus(m_popup_list_ptr);
         }
 
         popup_shown.emit();
@@ -345,12 +384,20 @@ public:
         // Disconnect popup signals
         m_popup_activated_conn.disconnect();
         m_popup_clicked_conn.disconnect();
+        m_scroll_offset_conn.disconnect();
+        m_scrollbar_scroll_conn.disconnect();
 
         // Reset layer (auto-removes from layer manager)
         m_popup_layer.reset();
 
-        // Destroy popup list
-        m_popup_list.reset();
+        // Clear raw pointers
+        m_popup_list_ptr = nullptr;
+        m_popup_scrollbar_ptr = nullptr;
+
+        // Destroy popup widgets (container owns children if scrollbar was used)
+        m_popup_container.reset();
+        m_popup_list.reset();  // May already be null if moved to container
+        m_popup_scrollbar.reset();  // May already be null if moved to container
 
         // Return focus to combo box
         if (auto* input = ui_services<Backend>::input()) {
@@ -577,6 +624,7 @@ private:
      * @details
      * Delegate size_hint() returns physical units. We convert to logical
      * for layout calculations since measure/arrange use logical coordinates.
+     * Height is limited to MAX_VISIBLE_ITEMS; scrollbar is shown for more items.
      */
     [[nodiscard]] int calculate_popup_height() const {
         if (!m_model || !m_delegate) {
@@ -592,9 +640,9 @@ private:
         auto const* metrics = ui_services<Backend>::metrics();
 
         // Sum item heights (delegate returns physical, convert to logical)
+        // Limit to MAX_VISIBLE_ITEMS - scrollbar shown for more
         double total_logical_height = 0.0;
-        int const max_visible = 10;  // Limit visible items
-        int visible_count = std::min(row_count, max_visible);
+        int visible_count = std::min(row_count, MAX_VISIBLE_ITEMS);
 
         for (int row = 0; row < visible_count; ++row) {
             auto idx = m_model->index(row, 0);
@@ -626,6 +674,98 @@ private:
         if (std::holds_alternative<std::string>(data)) {
             m_current_text = std::get<std::string>(data);
         }
+    }
+
+    /**
+     * @brief Connect bidirectional scroll signals between list and scrollbar
+     *
+     * @details
+     * Uses raw pointers (m_popup_list_ptr, m_popup_scrollbar_ptr) that are
+     * valid for the lifetime of the popup. Must be called BEFORE moving
+     * unique_ptrs to the container.
+     */
+    void connect_scroll_signals() {
+        if (!m_popup_list_ptr || !m_popup_scrollbar_ptr) {
+            return;
+        }
+
+        // List → Scrollbar: update scrollbar position when list scrolls
+        m_scroll_offset_conn = scoped_connection(
+            m_popup_list_ptr->scroll_offset_changed,
+            [this](double offset) {
+                if (m_popup_scrollbar_ptr) {
+                    // Get current scroll info from scrollbar and update position
+                    auto info = m_popup_scrollbar_ptr->get_scroll_info();
+                    info.scroll_y = offset;
+                    m_popup_scrollbar_ptr->set_scroll_info(info);
+                }
+            }
+        );
+
+        // Scrollbar → List: scroll list when scrollbar is dragged/arrows clicked
+        m_scrollbar_scroll_conn = scoped_connection(
+            m_popup_scrollbar_ptr->scroll_requested,
+            [this](int offset) {  // Note: signal is int, not double
+                if (m_popup_list_ptr) {
+                    m_popup_list_ptr->set_scroll_offset(static_cast<double>(offset));
+                }
+            }
+        );
+    }
+
+    /**
+     * @brief Initialize scrollbar with content/viewport dimensions
+     *
+     * @details
+     * Estimates dimensions before layout. The scrollbar will be updated
+     * dynamically as the list scrolls via connect_scroll_signals().
+     */
+    void initialize_scrollbar() {
+        if (!m_popup_scrollbar_ptr || !m_model || !m_delegate) {
+            return;
+        }
+
+        // Calculate total content height (all items)
+        auto const* metrics = ui_services<Backend>::metrics();
+        double total_content_height = 0.0;
+
+        for (int row = 0; row < m_model->row_count(); ++row) {
+            auto idx = m_model->index(row, 0);
+            auto size = m_delegate->size_hint(idx);  // Physical units
+
+            // Convert physical height to logical
+            double item_logical_height = metrics
+                ? metrics->physical_to_logical_y(size.h).value
+                : static_cast<double>(size.h);
+
+            total_content_height += item_logical_height;
+        }
+
+        // Calculate viewport height (MAX_VISIBLE_ITEMS only, no border)
+        // list_view now correctly uses content area height for max_scroll
+        double viewport_height = 0.0;
+        int visible_count = std::min(m_model->row_count(), MAX_VISIBLE_ITEMS);
+
+        for (int row = 0; row < visible_count; ++row) {
+            auto idx = m_model->index(row, 0);
+            auto size = m_delegate->size_hint(idx);
+
+            double item_logical_height = metrics
+                ? metrics->physical_to_logical_y(size.h).value
+                : static_cast<double>(size.h);
+
+            viewport_height += item_logical_height;
+        }
+
+        // Set scroll info - use list's current scroll position, not 0
+        // The list may have already scrolled to show the selected item
+        double current_scroll = m_popup_list_ptr ? m_popup_list_ptr->scroll_offset() : 0.0;
+
+        scroll_info<Backend> info{};
+        info.content_height = total_content_height;
+        info.viewport_height = viewport_height;
+        info.scroll_y = current_scroll;  // Sync with list's current position
+        m_popup_scrollbar_ptr->set_scroll_info(info);
     }
 
     // ===================================================================
@@ -666,6 +806,13 @@ private:
     }
 
     // ===================================================================
+    // Constants
+    // ===================================================================
+
+    /// Maximum visible items in popup (keyboard scrolling for more)
+    static constexpr int MAX_VISIBLE_ITEMS = 8;
+
+    // ===================================================================
     // Member Variables
     // ===================================================================
 
@@ -675,10 +822,18 @@ private:
     std::string m_current_text;
 
     // Popup
+    std::unique_ptr<hbox<Backend>> m_popup_container;
     std::unique_ptr<list_view<Backend>> m_popup_list;
+    std::unique_ptr<scrollbar<Backend>> m_popup_scrollbar;
     scoped_layer<Backend> m_popup_layer;
     scoped_connection m_popup_activated_conn;
     scoped_connection m_popup_clicked_conn;
+    scoped_connection m_scroll_offset_conn;
+    scoped_connection m_scrollbar_scroll_conn;
+
+    // Raw pointers for signal callbacks (valid while popup is open)
+    list_view<Backend>* m_popup_list_ptr = nullptr;
+    scrollbar<Backend>* m_popup_scrollbar_ptr = nullptr;
 
     // Model/selection connections
     scoped_connection m_model_layout_conn;

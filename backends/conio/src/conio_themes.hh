@@ -527,7 +527,9 @@ namespace onyxui::conio {
 
             // Focus styling
             theme.list.focus_border_color = white;                         // White focus border
-            theme.list.focus_box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, true};
+            // Use filled=false to draw border outline without filling over content
+            // This is used for BOTH the list container border AND focused item indicator
+            theme.list.focus_box_style = conio_renderer::box_style{conio_renderer::border_style::single_line, false};
 
             // Font - use default
             theme.list.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
