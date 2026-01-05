@@ -445,6 +445,15 @@ namespace onyxui {
         void do_render(render_context_type& ctx) const override;
 
         /**
+         * @brief Content area override to allow title bar to sit on the top border
+         *
+         * @details
+         * Shrinks for left/right/bottom border only. Top border is left for the
+         * title bar to overlap, avoiding an extra empty row in conio.
+         */
+        [[nodiscard]] logical_rect get_content_area() const noexcept override;
+
+        /**
          * @brief Handle events (for future drag/resize implementation)
          * @param event UI event
          * @param phase Event phase

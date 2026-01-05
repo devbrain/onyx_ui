@@ -164,8 +164,10 @@ namespace onyxui {
             this
         );
 
-        // Content area should have border (not the window itself)
-        content_area->set_has_border(true);
+        // Window should draw the border (not the content area)
+        this->m_has_border = true;
+        this->invalidate_measure();
+        content_area->set_has_border(false);
 
         // Content area should expand to fill remaining vertical space in window
         size_constraint height_constraint;
@@ -590,6 +592,9 @@ namespace onyxui {
 
         // Request focus for modal
         if (auto* focus_mgr = ui_services <Backend>::input()) {
+            // Clear any stale hover/capture from the underlying UI before modal input
+            focus_mgr->release_capture();
+            focus_mgr->clear_hover();
             focus_mgr->set_focus(this);
         }
     }
@@ -631,13 +636,54 @@ namespace onyxui {
     }
 
     template<UIBackend Backend>
-    void window <Backend>::do_render(render_context_type& /*ctx*/) const {
+    void window <Backend>::do_render(render_context_type& ctx) const {
         if (!this->is_visible()) {
             return;
         }
 
-        // No custom rendering needed - children (title bar and content area) render automatically
-        // Content area draws its own border (see window constructor where m_has_border is set)
+        // Draw window border (from widget_container) and let children render normally.
+        base::do_render(ctx);
+
+        // For 1-row title bars (conio), cover the top border line with title background
+        // so the title bar doesn't leave isolated corner glyphs.
+        if (m_title_bar && this->m_has_border) {
+            if (auto* theme = ctx.theme()) {
+                if (theme->window.title_bar_height == 1) {
+                    auto logical_bounds = this->bounds();
+                    auto const [final_width, final_height] = ctx.get_final_dims(
+                        logical_bounds.width.to_int(), logical_bounds.height.to_int());
+                    (void)final_height;
+
+                    typename Backend::rect_type top_row;
+                    rect_utils::set_bounds(top_row,
+                        point_utils::get_x(ctx.position()) + 1,
+                        point_utils::get_y(ctx.position()),
+                        std::max(0, final_width - 2), 1);
+
+                    auto const& title_state = m_has_focus
+                        ? theme->window.title_focused
+                        : theme->window.title_unfocused;
+                    ctx.fill_rect(top_row, title_state.background);
+                }
+            }
+        }
+    }
+
+    template<UIBackend Backend>
+    logical_rect window<Backend>::get_content_area() const noexcept {
+        // Start from ui_element base content area (margin + padding only).
+        logical_rect content = ui_element<Backend>::get_content_area();
+
+        if (this->m_has_border) {
+            // Shrink for left/right borders.
+            content.x = content.x + logical_unit(1.0);
+            content.width = max(logical_unit(0.0), content.width - logical_unit(2.0));
+
+            // Shrink for bottom border only (top border is reserved for title bar overlap).
+            content.height = max(logical_unit(0.0), content.height - logical_unit(1.0));
+        }
+
+        return content;
     }
 
     template<UIBackend Backend>

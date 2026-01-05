@@ -216,9 +216,10 @@ namespace onyxui::conio {
             // ===== Mouse Events =====
             if (native.type == TB_EVENT_MOUSE) {
                 mouse_event mouse{};
-                // Terminal coordinates are already logical (1 char = 1 logical unit)
-                mouse.x = logical_unit(static_cast<double>(native.x));
-                mouse.y = logical_unit(static_cast<double>(native.y));
+                // Terminal coordinates are cell-based; use cell centers to avoid half-pixel drift
+                // (centering fixes hit-testing when layouts land on .5 logical positions)
+                mouse.x = logical_unit(static_cast<double>(native.x) + 0.5);
+                mouse.y = logical_unit(static_cast<double>(native.y) + 0.5);
 
                 // Convert button/action
                 if (native.key == TB_KEY_MOUSE_LEFT) {
