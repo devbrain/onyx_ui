@@ -148,3 +148,35 @@ TEST_CASE("combo_box_view - Integer list model") {
     CHECK(combo->current_row() == 2);
     CHECK(combo->current_text() == "30");  // Converted to string by list_model
 }
+
+TEST_CASE("combo_box_view - Popup reopen after selection") {
+    // This test simulates the bug where reopening the combo box after
+    // selection shows an empty list
+    auto combo = std::make_unique<combo_box_view<Backend>>();
+    auto model = std::make_shared<list_model<std::string, Backend>>();
+    model->set_items({"Apple", "Banana", "Cherry", "Date", "Elderberry",
+                       "Fig", "Grape", "Honeydew", "Jackfruit", "Kiwi",
+                       "Lemon", "Mango"});
+    combo->set_model(model.get());
+
+    // Check model has items
+    CHECK(model->row_count() == 12);
+    CHECK(combo->model() != nullptr);
+    CHECK(combo->model()->row_count() == 12);
+
+    // Set current selection (simulating user selection)
+    combo->set_current_row(11);  // Select "Mango"
+    CHECK(combo->current_row() == 11);
+    CHECK(combo->current_text() == "Mango");
+
+    // Model should still have all items
+    CHECK(model->row_count() == 12);
+    CHECK(combo->model()->row_count() == 12);
+    
+    // Test that selection didn't corrupt the model
+    auto idx = model->index(0, 0);
+    CHECK(idx.is_valid());
+    auto data = model->data(idx);
+    CHECK(std::holds_alternative<std::string>(data));
+    CHECK(std::get<std::string>(data) == "Apple");
+}

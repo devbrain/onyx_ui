@@ -191,8 +191,16 @@ public:
             return;
         }
 
-        auto const& item_rect = m_item_rects[static_cast<std::size_t>(index.row)];
         double const view_height = this->bounds().height.value;
+
+        // Don't calculate scroll offset before bounds are set (e.g., before arrange)
+        // This prevents incorrect scroll positions when called from show_popup()
+        // before layer_manager has arranged the popup
+        if (view_height <= 0) {
+            return;
+        }
+
+        auto const& item_rect = m_item_rects[static_cast<std::size_t>(index.row)];
 
         // Item boundaries relative to content
         double const item_top = item_rect.y.value;
@@ -501,10 +509,25 @@ protected:
      * Updates item rectangles to use final width.
      */
     void do_arrange(const logical_rect& final_bounds) override {
+        // Track if this is a bounds change (not just a re-arrange)
+        bool const bounds_changed = (final_bounds != m_last_arranged_bounds);
+        m_last_arranged_bounds = final_bounds;
+
         base::do_arrange(final_bounds);
 
         // Update geometries with final width
         update_geometries();
+
+        // Scroll to show current item ONLY on initial arrangement or bounds change
+        // This handles the case where scroll_to() was called before arrangement
+        // (e.g., in combo_box_view::show_popup()) and returned early.
+        // We DON'T scroll on every frame because that would override user's scroll position.
+        if (bounds_changed && this->m_selection_model) {
+            auto current = this->m_selection_model->current_index();
+            if (current.is_valid()) {
+                scroll_to(current);
+            }
+        }
     }
 
 public:
@@ -533,6 +556,7 @@ private:
     int m_content_width = 0;                  ///< Total content width
     int m_content_height = 0;                 ///< Total content height
     double m_scroll_offset_y = 0.0;           ///< Current scroll offset (logical units)
+    logical_rect m_last_arranged_bounds{};    ///< Track bounds changes for scroll_to
 
     // ===================================================================
     // Utility Methods
