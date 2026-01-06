@@ -344,27 +344,17 @@ protected:
     /**
      * @brief Calculate natural content size
      *
-     * @details Uses theme's track_thickness for the cross-dimension.
-     * Falls back to sensible defaults if theme is unavailable.
+     * @details Uses theme's track_length and track_thickness for dimensions.
      */
     [[nodiscard]] logical_size get_content_size() const override {
-        // Default sizes in logical units
-        constexpr double DEFAULT_TRACK_LENGTH = 20.0;     // Default length
-        constexpr double DEFAULT_TRACK_THICKNESS = 1.5;   // Fallback thickness
-
-        // Try to get track thickness from theme
-        double track_thickness = DEFAULT_TRACK_THICKNESS;
-        auto* themes = ui_services<Backend>::themes();
-        if (themes) {
-            if (auto* theme = themes->get_current_theme()) {
-                track_thickness = theme->slider.track_thickness;
-            }
-        }
+        auto* theme = ui_services<Backend>::themes()->get_current_theme();
+        double const track_length = theme->slider.track_length;
+        double const track_thickness = theme->slider.track_thickness;
 
         if (m_orientation == slider_orientation::horizontal) {
-            return logical_size{logical_unit(DEFAULT_TRACK_LENGTH), logical_unit(track_thickness)};
+            return logical_size{logical_unit(track_length), logical_unit(track_thickness)};
         } else {
-            return logical_size{logical_unit(track_thickness), logical_unit(DEFAULT_TRACK_LENGTH)};
+            return logical_size{logical_unit(track_thickness), logical_unit(track_length)};
         }
     }
 

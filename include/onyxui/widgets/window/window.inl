@@ -254,12 +254,12 @@ namespace onyxui {
                     // Convert physical viewport to logical
                     maximized_bounds = metrics->physical_to_logical_rect(viewport);
                 } else {
-                    // Viewport not set - use conservative default (logical units)
-                    maximized_bounds = logical_rect{0.0_lu, 0.0_lu, 80.0_lu, 25.0_lu};
+                    // Viewport not set - use theme defaults
+                    auto* theme = ui_services<Backend>::themes()->get_current_theme();
+                    maximized_bounds = logical_rect{0.0_lu, 0.0_lu,
+                        logical_unit(theme->window.default_width),
+                        logical_unit(theme->window.default_height)};
                 }
-            } else {
-                // Services unavailable - use conservative default (logical units)
-                maximized_bounds = logical_rect{0.0_lu, 0.0_lu, 80.0_lu, 25.0_lu};
             }
         }
 
@@ -565,12 +565,15 @@ namespace onyxui {
             layers->set_layer_bounds(m_layer_id, this->bounds());
         }
 
+        // Clear modal flag (show() is non-modal, use show_modal() for modal)
+        m_flags.is_modal = false;
+
         this->set_visible(true);
     }
 
     template<UIBackend Backend>
     void window <Backend>::show_modal() {
-        // Phase 5: Integrate with layer_manager modal layer
+        // Integrate with layer_manager modal layer
         if (auto* layers = ui_services <Backend>::layers()) {
             // Remove existing layer if already shown
             if (m_layer_id.is_valid()) {
@@ -581,9 +584,12 @@ namespace onyxui {
             m_layer_id = layers->show_modal_dialog(this, dialog_position::center);
         }
 
+        // Set modal flag so is_modal() returns true
+        m_flags.is_modal = true;
+
         this->set_visible(true);
 
-        // Phase 5: Auto-focus modal window
+        // Auto-focus modal window
         // Save previous active window for restoration when modal closes
         if (auto* win_mgr = ui_services <Backend>::windows()) {
             m_previous_active_window = win_mgr->get_active_window();

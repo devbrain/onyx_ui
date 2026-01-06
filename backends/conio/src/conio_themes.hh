@@ -446,6 +446,10 @@ namespace onyxui::conio {
             theme.progress_bar.text_font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
             theme.progress_bar.filled_icon = conio_renderer::icon_style::progress_filled;  // #
             theme.progress_bar.empty_icon = conio_renderer::icon_style::progress_empty;    // .
+            theme.progress_bar.bar_thickness = 1.0;
+            theme.progress_bar.bar_length = 20.0;         // Default 20 chars for TUI
+            theme.progress_bar.padding_horizontal = 0;
+            theme.progress_bar.padding_vertical = 0;
 
             // ====================================================================
             // Slider Configuration
@@ -459,6 +463,9 @@ namespace onyxui::conio {
             theme.slider.empty_icon = conio_renderer::icon_style::slider_empty;    // -
             theme.slider.thumb_icon = conio_renderer::icon_style::slider_thumb;    // O
             theme.slider.track_thickness = 1.0;                          // 1 character for terminal UI
+            theme.slider.track_length = 20.0;                            // Default 20 chars for TUI
+            theme.slider.padding_horizontal = 0;
+            theme.slider.padding_vertical = 0;
 
             // ====================================================================
             // Tab Widget Configuration
@@ -538,6 +545,59 @@ namespace onyxui::conio {
             theme.list.padding_horizontal = 1;   // 1 character padding
             theme.list.padding_vertical = 0;     // No vertical padding (flush)
             theme.list.min_item_height = 1;      // Minimum 1 character height
+
+            // ====================================================================
+            // Table View Configuration (MVC table_view)
+            // ====================================================================
+            // Configure table_view headers, grid lines, and sorting indicators
+
+            // Header styling - typically inverse of normal text
+            theme.table.header_background = color{170, 170, 170};    // Light gray header background
+            theme.table.header_foreground = color{0, 0, 0};          // Black header text
+            theme.table.header_border = color{85, 85, 85};           // Dark gray header dividers
+            theme.table.header_font = conio_renderer::font{.bold = true, .underline = false, .reverse = false};
+            theme.table.header_height = 1;                           // 1 character height for TUI
+
+            // Grid lines
+            theme.table.grid_line_color = color{85, 85, 85};         // Subtle dark gray grid lines
+            theme.table.grid_line_width = 1;                         // 1 character width
+
+            // Sort indicators - use ASCII arrows for TUI compatibility
+            theme.table.sort_ascending_icon = conio_renderer::icon_style::arrow_up;
+            theme.table.sort_descending_icon = conio_renderer::icon_style::arrow_down;
+            theme.table.sort_indicator_color = theme.text_fg;
+
+            // Column resize handle
+            theme.table.column_resize_color = color{255, 255, 255};  // White resize handle
+            theme.table.column_resize_width = 1;                     // 1 character width
+
+            // ====================================================================
+            // Text View Configuration
+            // ====================================================================
+            // Configure text_view appearance for multiline text display
+            theme.text_view.background = theme.window_bg;
+            theme.text_view.foreground = theme.text_fg;
+            theme.text_view.focus_foreground = color{255, 255, 0};   // Norton yellow focus indicator
+            theme.text_view.focus_border = color{255, 255, 0};       // Yellow focus border
+            theme.text_view.selection_background = color{0, 0, 170}; // Dark blue selection
+            theme.text_view.selection_foreground = color{255, 255, 255}; // White selection text
+            theme.text_view.font = conio_renderer::font{.bold = false, .underline = false, .reverse = false};
+            theme.text_view.padding = 1;                             // 1 character padding
+            theme.text_view.line_spacing = 0;                        // No extra line spacing
+
+            // ====================================================================
+            // Panel/Container Configuration
+            // ====================================================================
+            theme.panel.border_thickness = 1.0;  // 1 character border for TUI
+
+            // ====================================================================
+            // Window Default Sizes
+            // ====================================================================
+            // Default sizes for windows and dialogs (in logical units / characters)
+            theme.window.default_width = 80;     // Standard terminal width
+            theme.window.default_height = 25;    // Standard terminal height
+            theme.window.dialog_width = 50;      // Typical dialog width
+            theme.window.dialog_height = 15;     // Typical dialog height
 
             // Return the fully configured base theme
             return theme;
@@ -1084,6 +1144,7 @@ namespace onyxui::conio {
 
             // Separator lines - black on white background
             theme.separator.foreground = black;
+            theme.separator.thickness = 1.0;  // 1 character for TUI
 
             // Menu item styling - white bg, black fg in normal state
             theme.menu_item.normal.background = white;

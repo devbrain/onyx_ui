@@ -75,6 +75,20 @@ namespace onyxui {
         bool m_has_border = false;  ///< Whether to draw border frame
 
         /**
+         * @brief Get border thickness from theme
+         * @return Border thickness in logical units (1.0 default if theme unavailable)
+         */
+        [[nodiscard]] double get_border_thickness() const noexcept {
+            auto* themes = ui_services<Backend>::themes();
+            if (themes) {
+                if (auto* theme = themes->get_current_theme()) {
+                    return theme->panel.border_thickness;
+                }
+            }
+            return 1.0;
+        }
+
+        /**
          * @brief Construct a widget container WITH a layout strategy (REQUIRED)
          * @param layout_strategy The layout strategy to use for positioning children
          * @param parent Parent element (nullptr for none)
@@ -140,10 +154,11 @@ namespace onyxui {
             // Let base class measure children via layout strategy
             auto measured = base::do_measure(available_width, available_height);
 
-            // Add border frame size (1px on each side = +2 total)
+            // Add border frame size (border on each side = +2*border total)
             if (m_has_border) {
-                measured.width = measured.width + logical_unit(2.0);
-                measured.height = measured.height + logical_unit(2.0);
+                double const border = get_border_thickness();
+                measured.width = measured.width + logical_unit(border * 2.0);
+                measured.height = measured.height + logical_unit(border * 2.0);
             }
 
             return measured;
@@ -160,12 +175,13 @@ namespace onyxui {
             // Start with base implementation (handles margin and padding)
             auto content_area = base::get_content_area();
 
-            // Shrink for border (1px on each side, inside padding)
+            // Shrink for border (border on each side, inside padding)
             if (m_has_border) {
-                content_area.x = content_area.x + logical_unit(1.0);
-                content_area.y = content_area.y + logical_unit(1.0);
-                content_area.width = max(logical_unit(0.0), content_area.width - logical_unit(2.0));
-                content_area.height = max(logical_unit(0.0), content_area.height - logical_unit(2.0));
+                double const border = get_border_thickness();
+                content_area.x = content_area.x + logical_unit(border);
+                content_area.y = content_area.y + logical_unit(border);
+                content_area.width = max(logical_unit(0.0), content_area.width - logical_unit(border * 2.0));
+                content_area.height = max(logical_unit(0.0), content_area.height - logical_unit(border * 2.0));
             }
 
             return content_area;

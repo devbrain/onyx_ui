@@ -284,28 +284,17 @@ protected:
     /**
      * @brief Calculate natural content size based on orientation
      *
-     * @details Uses theme's bar_thickness for the cross-dimension (height for
-     * horizontal, width for vertical). Falls back to sensible defaults if
-     * theme is unavailable.
+     * @details Uses theme's bar_length and bar_thickness for dimensions.
      */
     [[nodiscard]] logical_size get_content_size() const override {
-        // Default sizes in logical units
-        constexpr double DEFAULT_BAR_LENGTH = 20.0;       // Default length
-        constexpr double DEFAULT_BAR_THICKNESS = 2.0;     // Fallback thickness
-
-        // Try to get bar thickness from theme
-        double bar_thickness = DEFAULT_BAR_THICKNESS;
-        auto* themes = ui_services<Backend>::themes();
-        if (themes) {
-            if (auto* theme = themes->get_current_theme()) {
-                bar_thickness = theme->progress_bar.bar_thickness;
-            }
-        }
+        auto* theme = ui_services<Backend>::themes()->get_current_theme();
+        double const bar_length = theme->progress_bar.bar_length;
+        double const bar_thickness = theme->progress_bar.bar_thickness;
 
         if (m_orientation == progress_bar_orientation::horizontal) {
-            return logical_size{logical_unit(DEFAULT_BAR_LENGTH), logical_unit(bar_thickness)};
+            return logical_size{logical_unit(bar_length), logical_unit(bar_thickness)};
         } else {
-            return logical_size{logical_unit(bar_thickness), logical_unit(DEFAULT_BAR_LENGTH)};
+            return logical_size{logical_unit(bar_thickness), logical_unit(bar_length)};
         }
     }
 

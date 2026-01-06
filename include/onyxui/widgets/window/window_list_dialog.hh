@@ -88,8 +88,16 @@ namespace onyxui {
             m_content_vbox = content.get();
             this->set_content(std::move(content));
 
-            // Set reasonable default size
-            this->set_size(50, 15);
+            // Set default size from theme (or defaults during construction)
+            int dialog_w = 50, dialog_h = 15;
+            auto* themes = ui_services<Backend>::themes();
+            if (themes) {
+                if (auto* theme = themes->get_current_theme()) {
+                    dialog_w = theme->window.dialog_width;
+                    dialog_h = theme->window.dialog_height;
+                }
+            }
+            this->set_size(dialog_w, dialog_h);
         }
 
         /**

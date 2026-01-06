@@ -358,10 +358,14 @@ namespace onyxui {
                 }
             }
 
-            // Get padding from resolved style (use theme values, with defaults)
+            // Get padding from resolved style (already populated from theme)
             int const padding_horizontal = ctx.style().padding_horizontal.value.value_or(2);
             int const padding_vertical = ctx.style().padding_vertical.value.value_or(0);
-            constexpr int SHORTCUT_SPACING = 2;  // Space between text and shortcut
+            // Shortcut spacing from resolved style or theme
+            int shortcut_spacing = 2;
+            if (ctx.theme()) {
+                shortcut_spacing = ctx.theme()->menu_item.shortcut_spacing;
+            }
 
             // Use absolute screen position from context
             int const base_x = point_utils::get_x(pos);
@@ -369,7 +373,7 @@ namespace onyxui {
 
             // Calculate minimum width needed (includes submenu indicator if present)
             int const min_width = padding_horizontal + text_width +
-                                  (shortcut.empty() ? 0 : SHORTCUT_SPACING + shortcut_width) +
+                                  (shortcut.empty() ? 0 : shortcut_spacing + shortcut_width) +
                                   submenu_indicator_width +
                                   padding_horizontal;
 

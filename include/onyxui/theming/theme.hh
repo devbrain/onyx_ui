@@ -118,6 +118,7 @@ namespace onyxui {
             color_type border_color;
             box_style_type box_style{};  // Use {} to trigger default member initializers
             bool has_border = true;
+            double border_thickness = 1.0;  ///< Border thickness in logical units (default 1)
         };
 
         struct label_style {
@@ -162,6 +163,7 @@ namespace onyxui {
         struct separator_style {
             color_type foreground;          // Color for separator line
             line_style_type line_style{};   // Line drawing style for separators
+            double thickness = 1.0;         ///< Separator thickness in logical units (default 1)
         };
 
         /**
@@ -181,6 +183,7 @@ namespace onyxui {
             // Layout
             int padding_horizontal = 8;
             int padding_vertical = 1;
+            int shortcut_spacing = 2;    ///< Space between text and shortcut (default 2)
 
             // Submenu indicator icon (backend-specific)
             // Backends should use appropriate icons (arrow_right, triangle, etc.)
@@ -260,6 +263,9 @@ namespace onyxui {
             icon_style_type filled_icon{};  ///< Icon for filled portion (default: progress_filled)
             icon_style_type empty_icon{};   ///< Icon for empty portion (default: progress_empty)
             double bar_thickness = 2.0;     ///< Thickness in logical units (default 2 = 16px for GUI)
+            double bar_length = 20.0;       ///< Default length in logical units
+            int padding_horizontal = 0;     ///< Horizontal padding
+            int padding_vertical = 0;       ///< Vertical padding
         };
 
         /**
@@ -275,6 +281,26 @@ namespace onyxui {
             icon_style_type empty_icon{};    ///< Icon for empty track portion (default: slider_empty)
             icon_style_type thumb_icon{};    ///< Icon for slider thumb (default: slider_thumb)
             double track_thickness = 1.5;    ///< Track thickness in logical units (default 1.5 = 12px for GUI)
+            double track_length = 20.0;      ///< Default track length in logical units
+            int padding_horizontal = 0;      ///< Horizontal padding
+            int padding_vertical = 0;        ///< Vertical padding
+        };
+
+        /**
+         * @brief Text view styling
+         * @details Visual appearance for multiline text display widgets
+         */
+        struct text_view_style {
+            color_type background;           ///< Background color
+            color_type foreground;           ///< Normal text color
+            color_type focus_foreground;     ///< Text color when focused (for focus indicator)
+            color_type focus_border;         ///< Border color when focused
+            color_type selection_background; ///< Selection highlight background
+            color_type selection_foreground; ///< Selection text color
+            font_type font{};                ///< Text font
+            box_style_type box_style{};      ///< Box style for borders
+            int padding = 1;                 ///< Content padding in logical units
+            int line_spacing = 0;            ///< Space between lines
         };
 
         /**
@@ -304,6 +330,35 @@ namespace onyxui {
             int padding_horizontal = 4;           ///< Left/right padding inside items
             int padding_vertical = 2;             ///< Top/bottom padding inside items
             int min_item_height = 20;             ///< Minimum item height for usability
+        };
+
+        /**
+         * @brief Table view styling
+         * @details Visual appearance for table_view headers, grid lines, and sorting
+         */
+        struct table_style {
+            // Header styling
+            color_type header_background;         ///< Header row background
+            color_type header_foreground;         ///< Header text color
+            color_type header_border;             ///< Header border/divider color
+            font_type header_font{};              ///< Header text font (often bold)
+            int header_height = 24;               ///< Default header row height
+
+            // Grid lines
+            color_type grid_line_color;           ///< Grid line color (horizontal and vertical)
+            int grid_line_width = 1;              ///< Grid line width (usually 1 pixel/char)
+
+            // Sort indicators
+            icon_style_type sort_ascending_icon{};  ///< Arrow up indicator for ascending sort
+            icon_style_type sort_descending_icon{}; ///< Arrow down indicator for descending sort
+            color_type sort_indicator_color;        ///< Sort indicator color
+
+            // Column resize
+            color_type column_resize_color;       ///< Column resize handle color
+            int column_resize_width = 2;          ///< Width of resize handle area
+
+            // Cell styling inherits from list_style
+            // (item_background, selection_background, etc.)
         };
 
         /**
@@ -432,6 +487,12 @@ namespace onyxui {
             int border_width = 1;            ///< Width of window border
             horizontal_alignment title_alignment = horizontal_alignment::left; ///< Title text alignment (left/center/right)
 
+            // Default sizes
+            int default_width = 80;          ///< Default/maximized window width (logical units)
+            int default_height = 25;         ///< Default/maximized window height (logical units)
+            int dialog_width = 50;           ///< Default dialog width (logical units)
+            int dialog_height = 15;          ///< Default dialog height (logical units)
+
             // Title bar button icons (backend-specific)
             // Note: icon_style_type will be initialized to backend's default
             // Themes should set these to appropriate window management icons
@@ -507,8 +568,10 @@ namespace onyxui {
         radio_button_style radio_button{};// NEW: Radio button input widget (Phase 2)
         progress_bar_style progress_bar{};// NEW: Progress bar widget
         slider_style slider{};            // NEW: Slider input widget
+        text_view_style text_view{};      // NEW: Text view widget
         tab_widget_style tab_widget{};    // NEW: Tab widget container
         list_style list{};                // NEW: List/table item styling (MVC Phase 2)
+        table_style table{};              // NEW: Table view headers, grid lines, sorting
         panel_style panel{};              // Unchanged
         menu_style menu{};                // Unchanged
         menu_bar_style menu_bar{};        // Unchanged

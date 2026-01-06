@@ -398,12 +398,11 @@ namespace onyxui {
             // Get base resolved style
             auto style = base::resolve_style(theme, parent_style);
 
-            // FOCUS INDICATOR: Change foreground to yellow when focused (NU8 style)
+            // FOCUS INDICATOR: Change foreground to focus color when focused
             // draw_rect() uses foreground_color for borders, so we change that
             if (this->has_focus()) {
-                // Norton Utilities 8 yellow: RGB(255, 255, 0)
-                style.foreground_color = typename Backend::color_type{255, 255, 0};
-                style.border_color = typename Backend::color_type{255, 255, 0};
+                style.foreground_color = theme->text_view.focus_foreground;
+                style.border_color = theme->text_view.focus_border;
             }
 
             return style;
@@ -477,7 +476,8 @@ namespace onyxui {
                     horizontal_alignment::left,
                     vertical_alignment::top));
 
-            content_container_ptr->set_padding(logical_thickness(1_lu));  // Small padding
+            auto* theme = ui_services<Backend>::themes()->get_current_theme();
+            content_container_ptr->set_padding(logical_thickness(logical_unit(theme->text_view.padding)));
 
             // Add all labels to content before adding to scroll view
             for (const auto& line : m_lines) {

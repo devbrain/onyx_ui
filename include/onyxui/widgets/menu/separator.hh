@@ -83,29 +83,8 @@ namespace onyxui {
         explicit separator(orientation orient = orientation::horizontal, ui_element<Backend>* parent = nullptr)
             : base(parent), m_orientation(orient) {
             // Horizontal separators have fixed height, vertical separators have fixed width
-            if (m_orientation == orientation::horizontal) {
-                size_constraint height_constraint;
-                height_constraint.policy = size_policy::fixed;
-                height_constraint.preferred_size = 1_lu;
-                height_constraint.min_size = 1_lu;
-                height_constraint.max_size = 1_lu;
-                this->set_height_constraint(height_constraint);
-
-                size_constraint width_constraint;
-                width_constraint.policy = size_policy::expand;
-                this->set_width_constraint(width_constraint);
-            } else {
-                size_constraint width_constraint;
-                width_constraint.policy = size_policy::fixed;
-                width_constraint.preferred_size = 1_lu;
-                width_constraint.min_size = 1_lu;
-                width_constraint.max_size = 1_lu;
-                this->set_width_constraint(width_constraint);
-
-                size_constraint height_constraint;
-                height_constraint.policy = size_policy::expand;
-                this->set_height_constraint(height_constraint);
-            }
+            // Thickness comes from theme (with fallback for early initialization)
+            apply_constraints();
         }
 
         /**
@@ -126,30 +105,8 @@ namespace onyxui {
         void set_orientation(orientation orient) {
             if (m_orientation != orient) {
                 m_orientation = orient;
-                // Update size constraints
-                if (m_orientation == orientation::horizontal) {
-                    size_constraint height_constraint;
-                    height_constraint.policy = size_policy::fixed;
-                    height_constraint.preferred_size = logical_unit(1.0);
-                    height_constraint.min_size = logical_unit(1.0);
-                    height_constraint.max_size = logical_unit(1.0);
-                    this->set_height_constraint(height_constraint);
-
-                    size_constraint width_constraint;
-                    width_constraint.policy = size_policy::expand;
-                    this->set_width_constraint(width_constraint);
-                } else {
-                    size_constraint width_constraint;
-                    width_constraint.policy = size_policy::fixed;
-                    width_constraint.preferred_size = logical_unit(1.0);
-                    width_constraint.min_size = logical_unit(1.0);
-                    width_constraint.max_size = logical_unit(1.0);
-                    this->set_width_constraint(width_constraint);
-
-                    size_constraint height_constraint;
-                    height_constraint.policy = size_policy::expand;
-                    this->set_height_constraint(height_constraint);
-                }
+                // Update size constraints using theme thickness
+                apply_constraints();
                 this->invalidate_measure();
             }
         }
@@ -227,6 +184,50 @@ namespace onyxui {
 
     private:
         orientation m_orientation;  ///< Line orientation
+
+        /**
+         * @brief Get separator thickness from theme
+         * @return Thickness in logical units (1.0 default during construction)
+         */
+        [[nodiscard]] logical_unit get_thickness() const {
+            auto* themes = ui_services<Backend>::themes();
+            if (themes) {
+                if (auto* theme = themes->get_current_theme()) {
+                    return logical_unit(theme->separator.thickness);
+                }
+            }
+            return logical_unit(1.0);  // Default during construction
+        }
+
+        /**
+         * @brief Apply size constraints based on orientation and thickness
+         */
+        void apply_constraints() {
+            auto thickness = get_thickness();
+            if (m_orientation == orientation::horizontal) {
+                size_constraint height_constraint;
+                height_constraint.policy = size_policy::fixed;
+                height_constraint.preferred_size = thickness;
+                height_constraint.min_size = thickness;
+                height_constraint.max_size = thickness;
+                this->set_height_constraint(height_constraint);
+
+                size_constraint width_constraint;
+                width_constraint.policy = size_policy::expand;
+                this->set_width_constraint(width_constraint);
+            } else {
+                size_constraint width_constraint;
+                width_constraint.policy = size_policy::fixed;
+                width_constraint.preferred_size = thickness;
+                width_constraint.min_size = thickness;
+                width_constraint.max_size = thickness;
+                this->set_width_constraint(width_constraint);
+
+                size_constraint height_constraint;
+                height_constraint.policy = size_policy::expand;
+                this->set_height_constraint(height_constraint);
+            }
+        }
     };
 
 } // namespace onyxui
