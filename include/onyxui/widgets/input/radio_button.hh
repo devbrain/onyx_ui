@@ -9,6 +9,7 @@
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 #include <onyxui/widgets/core/widget.hh>
 #include <onyxui/widgets/input/button_group.hh>
 
@@ -210,11 +211,13 @@ protected:
             text_height = size_utils::get_height(text_size);
         }
 
-        // Get spacing from theme (defaults to 1 if no theme)
+        // Get spacing from theme (defaults to 0 if no text) - this is in logical units
         // Only include spacing if there's text to separate
-        const int spacing = (!m_text.empty() && theme) ? theme->radio_button.spacing : 0;
+        const int spacing_logical = (!m_text.empty() && theme) ? theme->radio_button.spacing : 0;
+        // Convert spacing to physical pixels to match measure_text() output
+        const int spacing = to_physical_x<Backend>(spacing_logical);
 
-        // Calculate natural size: icon + spacing + text
+        // Calculate natural size: icon + spacing + text (all values now in physical pixels/cells)
         // Height must accommodate both icon and text (including descenders)
         const int natural_width = icon_width + spacing + text_width;
         const int natural_height = std::max(icon_height, text_height);

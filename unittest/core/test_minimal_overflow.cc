@@ -40,7 +40,11 @@ TEST_CASE("Minimal - Create element with child") {
 TEST_CASE("Minimal - Create and arrange parent only") {
     auto root = std::make_unique<minimal_element>();
     root->arrange({0, 0, 100, 100});
-    CHECK(true);  // Did we survive arrange?
+    // Verify bounds were set correctly
+    CHECK(root->bounds().x == 0);
+    CHECK(root->bounds().y == 0);
+    CHECK(root->bounds().width == 100);
+    CHECK(root->bounds().height == 100);
 }
 
 TEST_CASE("Minimal - Create parent+child, arrange parent only") {
@@ -50,7 +54,10 @@ TEST_CASE("Minimal - Create parent+child, arrange parent only") {
     // HYPOTHESIS: Buffer overflow happens during arrange() when there are children
     root->arrange({0, 0, 100, 100});
 
-    CHECK(true);  // Did we survive?
+    // Verify parent bounds were set and child still exists
+    CHECK(root->bounds().width == 100);
+    CHECK(root->bounds().height == 100);
+    CHECK(root->children().size() == 1);
 }
 
 TEST_CASE("Minimal - Arrange parent then child") {
@@ -65,5 +72,11 @@ TEST_CASE("Minimal - Arrange parent then child") {
     // Then arrange child
     child->arrange({10, 10, 80, 80});
 
-    CHECK(true);
+    // Verify both parent and child bounds
+    CHECK(root->bounds().width == 100);
+    CHECK(root->bounds().height == 100);
+    CHECK(child->bounds().x == 10);
+    CHECK(child->bounds().y == 10);
+    CHECK(child->bounds().width == 80);
+    CHECK(child->bounds().height == 80);
 }

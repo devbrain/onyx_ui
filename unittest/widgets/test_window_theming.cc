@@ -175,7 +175,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
     }
 }
 
-TEST_CASE("window - Theme integration - Phase 8 implementation complete") {
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "window - Theme integration - Phase 8 implementation complete") {
     // Document Phase 8 requirements:
     //
     // ✅ 1. Add window_style to theme.hh
@@ -217,5 +218,12 @@ TEST_CASE("window - Theme integration - Phase 8 implementation complete") {
     // - theme.window.content_background
     // - theme.window.shadow (enabled for depth effect)
 
-    CHECK(true);  // Phase 8 successfully implemented!
+    // Verify basic theme integration works
+    window<test_canvas_backend>::window_flags flags;
+    window<test_canvas_backend> win("Theme Test", flags);
+
+    // Window should be constructible and measurable with theme support
+    auto size = win.measure(100_lu, 100_lu);
+    CHECK(size.width.to_int() > 0);
+    CHECK(size.height.to_int() > 0);
 }

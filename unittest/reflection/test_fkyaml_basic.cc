@@ -88,9 +88,8 @@ TEST_CASE("fkYAML Adapter - Round-trip preservation") {
 
 #else // !ONYXUI_ENABLE_YAML_THEMES
 
-TEST_CASE("fkYAML - YAML themes disabled") {
-    // When YAML themes are disabled, this test does nothing
-    CHECK(true);
+TEST_CASE("fkYAML - YAML themes disabled" * doctest::skip(true)) {
+    // Skipped: YAML theme support not enabled in this build
 }
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

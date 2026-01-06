@@ -88,13 +88,20 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto canvas = render_to_canvas(gb, 30, 6);
         INFO("Group box with title:\n", debug_canvas(*canvas));
 
-        // Border should be drawn
-        assert_border_at_rect(*canvas, 0, 0, 30, 6, "Group box border with title");
+        // Border corners and sides should be drawn (title breaks top edge, that's expected)
+        CHECK(canvas->has_border_at(0, 0));          // Top-left corner
+        CHECK(canvas->has_border_at(29, 0));         // Top-right corner
+        CHECK(canvas->has_border_at(0, 5));          // Bottom-left corner
+        CHECK(canvas->has_border_at(29, 5));         // Bottom-right corner
+        CHECK(canvas->has_vertical_border_line(0, 1, 4));   // Left side
+        CHECK(canvas->has_vertical_border_line(29, 1, 4));  // Right side
 
         // Child text at correct position
         assert_text_at(*canvas, "Option 1", 1, 1, "Child inside titled group box");
 
-        // TODO: When title rendering is implemented, verify title at top border
+        // Title should be rendered at top border with padding: " Settings "
+        // Position: x = 1 (skip corner) + 2 (default title_position) = 3
+        assert_text_at(*canvas, " Settings ", 3, 0, "Title in top border");
     }
 
     TEST_CASE_FIXTURE(test_fixture, "Group box with padding - child positioned inside border and padding") {
@@ -195,8 +202,14 @@ TEST_SUITE("Group Box - Layout Integration") {
         auto canvas = render_to_canvas(gb, 35, 12);
         INFO("Group box with multiple children:\n", debug_canvas(*canvas));
 
-        // Border should be drawn
-        assert_border_at_rect(*canvas, 0, 0, 35, 12, "Group box border");
+        // Border corners and sides should be drawn (title breaks top edge, that's expected)
+        CHECK(canvas->has_border_at(0, 0));          // Top-left corner
+        CHECK(canvas->has_border_at(34, 0));         // Top-right corner
+        CHECK(canvas->has_border_at(0, 11));         // Bottom-left corner
+        CHECK(canvas->has_border_at(34, 11));        // Bottom-right corner
+
+        // Title should be rendered
+        assert_text_at(*canvas, " Options ", 3, 0, "Title in top border");
 
         // Verify all three children are visible
         // Positions: border(1) + padding(2) = y starts at 3

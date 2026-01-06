@@ -73,6 +73,7 @@
 #include <onyxui/hotkeys/hotkey_action.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/core/rendering/render_context.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 #include <onyxui/ui_constants.hh>
 
 namespace onyxui {
@@ -634,22 +635,26 @@ namespace onyxui {
         void do_render(render_context<Backend>& ctx) const override {
             auto* theme = ctx.theme();
 
-            // Get padding and border from resolved style
-            const int padding_horizontal = ctx.style().padding_horizontal.value
+            // Get padding and border from resolved style - these are in logical units
+            const int padding_h_logical = ctx.style().padding_horizontal.value
                 .value_or(ui_constants::DEFAULT_BUTTON_PADDING_HORIZONTAL);
-            const int padding_vertical = ctx.style().padding_vertical.value
+            const int padding_v_logical = ctx.style().padding_vertical.value
                 .value_or(ui_constants::DEFAULT_BUTTON_PADDING_VERTICAL);
             const int border = m_has_border ? renderer_type::get_border_thickness(ctx.style().box_style) : 0;
+
+            // Convert padding to physical pixels to match measure_text() output
+            const int padding_h = to_physical_x<Backend>(padding_h_logical);
+            const int padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Measure text height (width will scroll)
             typename renderer_type::font const default_font{};
             const auto sample_text_size = renderer_type::measure_text("Ay", default_font);
             const int text_height = size_utils::get_height(sample_text_size);
 
-            // Calculate natural size (minimum width for comfortable editing)
+            // Calculate natural size (all values now in physical pixels/cells)
             const int min_width = 100;  // Reasonable minimum for text input
-            const int natural_width = min_width + (padding_horizontal * 2) + (border * 2);
-            const int natural_height = text_height + (padding_vertical * 2) + (border * 2);
+            const int natural_width = min_width + (padding_h * 2) + (border * 2);
+            const int natural_height = text_height + (padding_v * 2) + (border * 2);
 
             // Get final dimensions
             const auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
@@ -672,9 +677,9 @@ namespace onyxui {
 
             if (!theme) return;
 
-            // Calculate text area (inside padding and border)
-            const int text_x = x + border + padding_horizontal;
-            const int text_y = y + border + padding_vertical;
+            // Calculate text area (inside padding and border, all physical pixels)
+            const int text_x = x + border + padding_h;
+            const int text_y = y + border + padding_v;
 
             // Determine what text to display and color
             std::string display_text;
@@ -697,8 +702,8 @@ namespace onyxui {
             update_cursor_blink(theme);
 
             // ===== Horizontal Scrolling Logic =====
-            // Calculate available text width (content area minus padding and border)
-            const int available_text_width = final_width - (border * 2) - (padding_horizontal * 2);
+            // Calculate available text width (content area minus padding and border, all physical pixels)
+            const int available_text_width = final_width - (border * 2) - (padding_h * 2);
 
             // Adjust scroll offset to keep cursor visible
             if (!is_placeholder && !display_text.empty()) {

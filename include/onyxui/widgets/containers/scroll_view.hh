@@ -354,6 +354,11 @@ namespace onyxui {
             return measured_size;
         }
 
+    public:
+        // -----------------------------------------------------------------------
+        // Event handling (public override of base class methods)
+        // -----------------------------------------------------------------------
+
         /**
          * @brief Handle events including mouse wheel during bubble phase
          * @param evt Event to handle
@@ -424,6 +429,11 @@ namespace onyxui {
             // Let base class handle other events
             return base::handle_event(evt, phase);
         }
+
+    protected:
+        // -----------------------------------------------------------------------
+        // Protected event handlers (override base class protected methods)
+        // -----------------------------------------------------------------------
 
         /**
          * @brief Handle keyboard events for scrolling

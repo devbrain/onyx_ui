@@ -339,9 +339,8 @@ public:
      */
     signal<const model_index&> double_clicked;
 
-protected:
     // ===================================================================
-    // Event Handling
+    // Event Handling (public - part of event dispatch interface)
     // ===================================================================
 
     /**
@@ -382,6 +381,11 @@ protected:
 
         return base::handle_event(evt, phase);
     }
+
+protected:
+    // ===================================================================
+    // Protected Event Helpers
+    // ===================================================================
 
     /**
      * @brief Handle mouse press with double-click detection

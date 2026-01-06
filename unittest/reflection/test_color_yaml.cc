@@ -440,8 +440,8 @@ TEST_CASE("Color YAML - Mixed format compatibility") {
 
 #else // !ONYXUI_ENABLE_YAML_THEMES
 
-TEST_CASE("Color YAML - YAML themes disabled") {
-    CHECK(true);
+TEST_CASE("Color YAML - YAML themes disabled" * doctest::skip(true)) {
+    // Skipped: YAML theme support not enabled in this build
 }
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

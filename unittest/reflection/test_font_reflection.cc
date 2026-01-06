@@ -323,8 +323,8 @@ TEST_CASE("Font - to_yaml_string produces valid YAML") {
 
 #else // !ONYXUI_ENABLE_YAML_THEMES
 
-TEST_CASE("Font - YAML themes disabled") {
-    CHECK(true);
+TEST_CASE("Font - YAML themes disabled" * doctest::skip(true)) {
+    // Skipped: YAML theme support not enabled in this build
 }
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

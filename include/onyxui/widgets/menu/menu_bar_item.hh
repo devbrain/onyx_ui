@@ -19,6 +19,7 @@
 #include <string>
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 #include <onyxui/ui_constants.hh>  // For default padding values
 
 namespace onyxui {
@@ -196,11 +197,15 @@ namespace onyxui {
          * They use menu bar theme colors and compact padding.
          */
         void do_render(render_context<Backend>& ctx) const override {
-            // Get padding from resolved style (with defaults)
-            int const horizontal_padding = ctx.style().padding_horizontal.value
+            // Get padding from resolved style (with defaults) - these are in logical units
+            int const padding_h_logical = ctx.style().padding_horizontal.value
                 .value_or(ui_constants::DEFAULT_MENU_BAR_ITEM_PADDING_HORIZONTAL);
-            int const vertical_padding = ctx.style().padding_vertical.value
+            int const padding_v_logical = ctx.style().padding_vertical.value
                 .value_or(ui_constants::DEFAULT_MENU_BAR_ITEM_PADDING_VERTICAL);
+
+            // Convert padding to physical pixels to match measure_text() output
+            int const padding_h = to_physical_x<Backend>(padding_h_logical);
+            int const padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Get position from context
             auto const& pos = ctx.position();
@@ -216,9 +221,9 @@ namespace onyxui {
             int const text_width = size_utils::get_width(text_size);
             int const text_height = size_utils::get_height(text_size);
 
-            // Calculate full item bounds including padding
-            int const total_width = text_width + 2 * horizontal_padding;
-            int const total_height = text_height + 2 * vertical_padding;
+            // Calculate full item bounds including padding (all values now in physical pixels/cells)
+            int const total_width = text_width + 2 * padding_h;
+            int const total_height = text_height + 2 * padding_v;
 
             // Always draw background (creates continuous stripe in menu bar)
             // In Norton Utilities 8 style, all menu items contribute to the continuous white stripe
@@ -227,8 +232,8 @@ namespace onyxui {
             ctx.fill_rect(bg_rect);
 
             // Draw text with theme-configured padding
-            int const text_x = x + horizontal_padding;
-            int const text_y = y + vertical_padding;
+            int const text_x = x + padding_h;
+            int const text_y = y + padding_v;
             typename Backend::point_type const text_pos{text_x, text_y};
             ctx.draw_text(m_text, text_pos, text_font, fg);
         }

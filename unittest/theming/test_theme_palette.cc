@@ -356,8 +356,8 @@ button:
 
 #else // !ONYXUI_ENABLE_YAML_THEMES
 
-TEST_CASE("theme_palette - YAML themes disabled") {
-    CHECK(true);
+TEST_CASE("theme_palette - YAML themes disabled" * doctest::skip(true)) {
+    // Skipped: YAML theme support not enabled in this build
 }
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

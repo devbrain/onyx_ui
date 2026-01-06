@@ -1,7 +1,7 @@
 //
 // OnyxUI - Simple Combo Box Widget
 // Created: 2025-11-22
-// Refactored: 2025-01-01 (Phase 6 - wraps combo_box_view)
+// Refactored: 2026-01-05 (inherits from combo_box_view)
 //
 
 #pragma once
@@ -14,7 +14,6 @@
 #include <onyxui/core/signal.hh>
 #include <onyxui/mvc/models/list_model.hh>
 #include <onyxui/mvc/views/combo_box_view.hh>
-#include <onyxui/widgets/core/widget.hh>
 
 namespace onyxui {
 
@@ -25,8 +24,8 @@ namespace onyxui {
  *
  * @details
  * combo_box is the easy-to-use combo box widget with a simple string-based API.
- * It internally uses combo_box_view with an owned list_model for the full MVC
- * implementation, but exposes a simplified interface.
+ * It inherits from combo_box_view (privately) and owns a list_model,
+ * exposing a simplified interface.
  *
  * For advanced use cases requiring custom models, delegates, or selection models,
  * use combo_box_view directly instead.
@@ -58,11 +57,31 @@ namespace onyxui {
  * @see combo_box_view for advanced MVC usage
  */
 template<UIBackend Backend>
-class combo_box : public widget<Backend> {
+class combo_box : public combo_box_view<Backend> {
 public:
-    using base = widget<Backend>;
+    using base = combo_box_view<Backend>;
     using model_type = list_model<std::string, Backend>;
-    using view_type = combo_box_view<Backend>;
+
+    // Expose ui_element interface from base
+    using base::measure;
+    using base::arrange;
+    using base::bounds;
+    using base::render;
+    using base::handle_event;
+    using base::has_focus;
+    using base::is_focusable;
+    using base::set_focusable;
+    using base::parent;
+
+    // Expose combo_box_view popup methods
+    using base::is_popup_visible;
+    using base::show_popup;
+    using base::hide_popup;
+
+    // Expose combo_box_view selection methods
+    using base::current_row;
+    using base::set_current_row;
+    using base::current_text;
 
     /**
      * @brief Construct an empty combo box
@@ -70,16 +89,12 @@ public:
     combo_box()
         : m_model(std::make_shared<model_type>())
     {
-        // Create the view
-        auto view_ptr = std::make_unique<view_type>();
-        m_view = view_ptr.get();
-
         // Configure the view with our internal model
-        m_view->set_model(m_model.get());
+        base::set_model(m_model.get());
 
-        // Forward signals from view to our simple signals
+        // Forward signals from base view to our simple signals
         m_current_changed_conn = scoped_connection(
-            m_view->current_changed,
+            base::current_changed,
             [this](const model_index& idx) {
                 int row = idx.is_valid() ? idx.row : -1;
                 current_index_changed.emit(row);
@@ -90,16 +105,13 @@ public:
         );
 
         m_activated_conn = scoped_connection(
-            m_view->activated,
+            base::activated,
             [this](const model_index& idx) {
                 if (idx.is_valid()) {
                     activated.emit(idx.row);
                 }
             }
         );
-
-        // Add view as child (transfers ownership)
-        this->add_child(std::move(view_ptr));
     }
 
     /**
@@ -157,14 +169,10 @@ public:
         // Adjust selection based on what was removed
         if (current == index) {
             // Removed the selected item - clear selection
-            if (m_view) {
-                m_view->set_current_row(-1);
-            }
+            base::set_current_row(-1);
         } else if (current > index) {
             // Selection was after removed item - adjust index
-            if (m_view) {
-                m_view->set_current_row(current - 1);
-            }
+            base::set_current_row(current - 1);
         }
         // If current < index, selection doesn't need adjustment
     }
@@ -174,9 +182,7 @@ public:
      */
     void clear() {
         // Clear selection first
-        if (m_view) {
-            m_view->set_current_row(-1);
-        }
+        base::set_current_row(-1);
         m_model->clear();
     }
 
@@ -251,7 +257,7 @@ public:
      * @return Current row index, or -1 if no selection
      */
     [[nodiscard]] int current_index() const noexcept {
-        return m_view ? m_view->current_row() : -1;
+        return base::current_row();
     }
 
     /**
@@ -259,17 +265,7 @@ public:
      * @param index Row index to select, or -1 for no selection
      */
     void set_current_index(int index) {
-        if (m_view) {
-            m_view->set_current_row(index);
-        }
-    }
-
-    /**
-     * @brief Get the current selection text
-     * @return Display text of current item, or empty if no selection
-     */
-    [[nodiscard]] std::string current_text() const {
-        return m_view ? m_view->current_text() : std::string{};
+        base::set_current_row(index);
     }
 
     /**
@@ -295,25 +291,21 @@ public:
      * @return true if popup is visible
      */
     [[nodiscard]] bool is_popup_open() const noexcept {
-        return m_view && m_view->is_popup_visible();
+        return base::is_popup_visible();
     }
 
     /**
      * @brief Open the dropdown popup
      */
     void open_popup() {
-        if (m_view) {
-            m_view->show_popup();
-        }
+        base::show_popup();
     }
 
     /**
      * @brief Close the dropdown popup
      */
     void close_popup() {
-        if (m_view) {
-            m_view->hide_popup();
-        }
+        base::hide_popup();
     }
 
     // ===================================================================
@@ -334,17 +326,17 @@ public:
 
     /**
      * @brief Get the internal view
-     * @return Pointer to internal combo_box_view
+     * @return Pointer to internal combo_box_view (this)
      *
      * @details
      * Use this for advanced operations like setting a custom delegate.
      */
-    [[nodiscard]] view_type* view() noexcept {
-        return m_view;
+    [[nodiscard]] combo_box_view<Backend>* view() noexcept {
+        return this;
     }
 
-    [[nodiscard]] const view_type* view() const noexcept {
-        return m_view;
+    [[nodiscard]] const combo_box_view<Backend>* view() const noexcept {
+        return this;
     }
 
     // ===================================================================
@@ -369,45 +361,8 @@ public:
      */
     signal<int> activated;
 
-protected:
-    // ===================================================================
-    // Layout - Forward to view
-    // ===================================================================
-
-    [[nodiscard]] logical_size get_content_size() const override {
-        if (m_view) {
-            return m_view->measure(
-                this->bounds().width,
-                this->bounds().height
-            );
-        }
-        return {logical_unit(0), logical_unit(0)};
-    }
-
-    void do_arrange(const logical_rect& final_bounds) override {
-        base::do_arrange(final_bounds);
-
-        if (m_view) {
-            // View is a child, so arrange relative to content area origin (0,0)
-            logical_rect view_bounds{
-                logical_unit(0), logical_unit(0),
-                final_bounds.width, final_bounds.height
-            };
-            m_view->arrange(view_bounds);
-        }
-    }
-
-    // ===================================================================
-    // Rendering - Forward to view
-    // ===================================================================
-
-    void do_render(render_context<Backend>& ctx) const override {
-        // View renders itself as a child
-    }
-
 private:
     std::shared_ptr<model_type> m_model;  ///< Internal string list model (owned)
-    view_type* m_view = nullptr;          ///< Internal combo_box_view (child)
 
     // Signal connections
     scoped_connection m_current_changed_conn;

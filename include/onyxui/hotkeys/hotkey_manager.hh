@@ -97,6 +97,7 @@
 #include <onyxui/concepts/event_like.hh>
 #include <onyxui/actions/action.hh>
 #include <onyxui/core/element.hh>
+#include <onyxui/core/signal.hh>  // For scoped_connection
 #include <onyxui/events/ui_event.hh>
 // #include <failsafe/logger.hh>  // Not needed for dirty rectangle testing
 #include <map>
@@ -338,6 +339,40 @@ namespace onyxui {
         }
 
         /**
+         * @brief Unregister all hotkeys scoped to an element
+         *
+         * @param scope_target The element whose hotkeys should be removed
+         *
+         * @details
+         * Removes all hotkey registrations that are scoped to the given element.
+         * Called automatically when an element is destroyed (via destroying signal).
+         * Safe to call even if element has no registered hotkeys.
+         */
+        void unregister_scope(ui_element<Backend>* scope_target) {
+            if (!scope_target) return;
+
+            // Remove all registrations for this scope target
+            for (auto it = m_registrations.begin(); it != m_registrations.end();) {
+                it->second.erase(
+                    std::remove_if(it->second.begin(), it->second.end(),
+                        [scope_target](const hotkey_registration<Backend>& reg) {
+                            return reg.scope_target == scope_target;
+                        }),
+                    it->second.end()
+                );
+
+                if (it->second.empty()) {
+                    it = m_registrations.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            // Remove the destroying signal connection for this element
+            m_scope_connections.erase(scope_target);
+        }
+
+        /**
          * @brief Handle a keyboard event
          *
          * @param event The keyboard event (must satisfy HotkeyCapable concept)
@@ -462,9 +497,19 @@ namespace onyxui {
                 return false;  // Ignore key release events
             }
 
+            // PRIORITY 0: Check for modifier-only activation (QBasic-style)
+            // A modifier-only event has key_code::none with just modifiers set
+            if (kbd->key == key_code::none && kbd->modifiers != key_modifier::none) {
+                auto handler_it = m_modifier_handlers.find(kbd->modifiers);
+                if (handler_it != m_modifier_handlers.end()) {
+                    handler_it->second();  // Execute handler
+                    return true;
+                }
+            }
+
             // Convert keyboard_event to key_sequence
             if (kbd->key == key_code::none) {
-                return false;  // Not a hotkey candidate
+                return false;  // Not a hotkey candidate (modifier-only without handler)
             }
             key_sequence seq{kbd->key, kbd->modifiers};
 
@@ -760,6 +805,19 @@ namespace onyxui {
             reg.scope_target = scope_target;
 
             m_registrations[seq].push_back(reg);
+
+            // Connect to element's destroying signal for automatic cleanup
+            // This prevents dangling scope_target pointers when elements are destroyed
+            if (scope_target && m_scope_connections.find(scope_target) == m_scope_connections.end()) {
+                // First scoped hotkey for this element - connect to destroying signal
+                m_scope_connections[scope_target] = scoped_connection(
+                    scope_target->destroying,
+                    [this](ui_element<Backend>* element) {
+                        unregister_scope(element);
+                    }
+                );
+            }
+
             return true;
         }
 
@@ -989,6 +1047,10 @@ namespace onyxui {
         // Modifier-only activation support (QBasic-style)
         std::map<key_modifier, std::function<void()>> m_modifier_handlers;  ///< Handlers for modifier-only keys
         key_modifier m_last_modifier_state = key_modifier::none;    ///< Track modifier state for press/release
+
+        // Element lifetime tracking for scoped hotkeys
+        // When an element is destroyed, all hotkeys scoped to it are automatically unregistered
+        std::map<ui_element<Backend>*, scoped_connection> m_scope_connections;
 
     public:
         /**

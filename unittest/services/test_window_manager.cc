@@ -353,13 +353,51 @@ TEST_CASE("window_manager - Get modal windows") {
         CHECK(modal.empty());
     }
 
-    SUBCASE("Placeholder returns empty (Phase 5 TODO)") {
+    SUBCASE("Non-modal windows not returned") {
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
 
-        // Phase 5: Modal support not yet implemented
+        win1.show();
+        win2.show();
+
         auto modal = mgr->get_modal_windows();
         CHECK(modal.empty());
+    }
+
+    SUBCASE("Modal windows are returned") {
+        window<test_canvas_backend> win1("Window 1");
+        window<test_canvas_backend> win2("Modal Window");
+
+        win1.show();
+        win2.show_modal();
+
+        auto modal = mgr->get_modal_windows();
+        CHECK(modal.size() == 1);
+        CHECK(modal[0] == &win2);
+    }
+
+    SUBCASE("Multiple modal windows") {
+        window<test_canvas_backend> win1("Modal 1");
+        window<test_canvas_backend> win2("Modal 2");
+        window<test_canvas_backend> win3("Normal");
+
+        win1.show_modal();
+        win2.show_modal();
+        win3.show();
+
+        auto modal = mgr->get_modal_windows();
+        CHECK(modal.size() == 2);
+    }
+
+    SUBCASE("Modal window converted to normal not returned") {
+        window<test_canvas_backend> win("Window");
+
+        win.show_modal();
+        CHECK(mgr->get_modal_windows().size() == 1);
+
+        // Convert to normal
+        win.show();
+        CHECK(mgr->get_modal_windows().empty());
     }
 }
 

@@ -62,6 +62,7 @@
 #include <onyxui/widgets/menu/menu_item.hh>
 #include <onyxui/widgets/menu/separator.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 #include <onyxui/layout/linear_layout.hh>
 #include <onyxui/core/rendering/resolved_style.hh>
 
@@ -448,11 +449,10 @@ namespace onyxui {
                         point_utils::get_x(pos), point_utils::get_y(pos),
                         final_width, final_height);
 
-                    ctx.draw_shadow(
-                        absolute_bounds,
-                        theme->menu.shadow.offset_x,
-                        theme->menu.shadow.offset_y
-                    );
+                    // Convert logical shadow offsets to physical pixels for rendering
+                    int const shadow_x = to_physical_x<Backend>(theme->menu.shadow.offset_x);
+                    int const shadow_y = to_physical_y<Backend>(theme->menu.shadow.offset_y);
+                    ctx.draw_shadow(absolute_bounds, shadow_x, shadow_y);
                 }
             }
         }

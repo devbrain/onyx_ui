@@ -444,3 +444,98 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Performance
         }
     }
 }
+
+// ============================================================================
+// Modal Flag Integration
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - is_modal() flag") {
+    SUBCASE("show_modal() sets is_modal flag") {
+        window<test_canvas_backend> win("Test");
+
+        CHECK_FALSE(win.is_modal());
+
+        win.show_modal();
+
+        CHECK(win.is_modal());
+    }
+
+    SUBCASE("show() clears is_modal flag") {
+        window<test_canvas_backend> win("Test");
+
+        // First show as modal
+        win.show_modal();
+        CHECK(win.is_modal());
+
+        // Then show as normal
+        win.show();
+        CHECK_FALSE(win.is_modal());
+    }
+
+    SUBCASE("is_modal persists after hide") {
+        window<test_canvas_backend> win("Test");
+
+        win.show_modal();
+        CHECK(win.is_modal());
+
+        win.hide();
+        // Flag should persist after hide
+        CHECK(win.is_modal());
+    }
+
+    SUBCASE("show_modal() after show() sets modal flag") {
+        window<test_canvas_backend> win("Test");
+
+        // Normal show first
+        win.show();
+        CHECK_FALSE(win.is_modal());
+
+        // Then modal
+        win.show_modal();
+        CHECK(win.is_modal());
+    }
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Layer manager modal integration") {
+    auto* layers = ui_services<test_canvas_backend>::layers();
+    REQUIRE(layers != nullptr);
+
+    SUBCASE("show_modal() creates modal layer") {
+        window<test_canvas_backend> win("Modal Test");
+
+        CHECK_FALSE(layers->has_modal_layer());
+
+        win.show_modal();
+
+        CHECK(layers->has_modal_layer());
+    }
+
+    SUBCASE("hide() removes modal layer") {
+        window<test_canvas_backend> win("Modal Test");
+
+        win.show_modal();
+        CHECK(layers->has_modal_layer());
+
+        win.hide();
+        CHECK_FALSE(layers->has_modal_layer());
+    }
+
+    SUBCASE("Multiple modal windows create multiple layers") {
+        window<test_canvas_backend> win1("Modal 1");
+        window<test_canvas_backend> win2("Modal 2");
+
+        win1.show_modal();
+        CHECK(layers->has_modal_layer());
+
+        win2.show_modal();
+        CHECK(layers->has_modal_layer());
+
+        // Hide first - should still have modal
+        win1.hide();
+        CHECK(layers->has_modal_layer());
+
+        // Hide second - no more modals
+        win2.hide();
+        CHECK_FALSE(layers->has_modal_layer());
+    }
+}

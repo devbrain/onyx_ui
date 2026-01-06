@@ -1,6 +1,7 @@
 //
 // OnyxUI - Simple List Box Widget
-// Created: 2025-01-01 (Phase 7 - wraps list_view)
+// Created: 2025-01-01
+// Refactored: 2026-01-05 (inherits from list_view)
 //
 
 #pragma once
@@ -14,7 +15,6 @@
 #include <onyxui/mvc/models/list_model.hh>
 #include <onyxui/mvc/views/list_view.hh>
 #include <onyxui/mvc/selection/item_selection_model.hh>
-#include <onyxui/widgets/core/widget.hh>
 
 namespace onyxui {
 
@@ -25,8 +25,8 @@ namespace onyxui {
  *
  * @details
  * list_box is the easy-to-use list widget with a simple string-based API.
- * It internally uses list_view with an owned list_model for the full MVC
- * implementation, but exposes a simplified interface.
+ * It inherits from list_view (privately) and owns a list_model,
+ * exposing a simplified interface.
  *
  * For advanced use cases requiring custom models, delegates, or selection models,
  * use list_view directly instead.
@@ -64,12 +64,26 @@ namespace onyxui {
  * @see list_view for advanced MVC usage
  */
 template<UIBackend Backend>
-class list_box : public widget<Backend> {
+class list_box : private list_view<Backend> {
 public:
-    using base = widget<Backend>;
+    using base = list_view<Backend>;
     using model_type = list_model<std::string, Backend>;
-    using view_type = list_view<Backend>;
     using selection_model_type = item_selection_model<Backend>;
+
+    // Expose ui_element interface from base
+    using base::measure;
+    using base::arrange;
+    using base::bounds;
+    using base::render;
+    using base::handle_event;
+    using base::has_focus;
+    using base::is_focusable;
+    using base::set_focusable;
+    using base::parent;
+
+    // Expose list_view scrolling methods
+    using base::scroll_offset;
+    using base::set_scroll_offset;
 
     /**
      * @brief Construct an empty list box
@@ -77,20 +91,13 @@ public:
     list_box()
         : m_model(std::make_shared<model_type>())
     {
-        // Create the view
-        auto view_ptr = std::make_unique<view_type>();
-        m_view = view_ptr.get();
-
         // Configure the view with our internal model
-        m_view->set_model(m_model.get());
+        base::set_model(m_model.get());
 
-        // Get selection model from view
-        m_selection_model = m_view->selection_model();
-
-        // Forward signals from view to our simple signals
-        if (m_selection_model) {
+        // Forward signals from base view to our simple signals
+        if (auto* sel_model = base::selection_model()) {
             m_current_changed_conn = scoped_connection(
-                m_selection_model->current_changed,
+                sel_model->current_changed,
                 [this](const model_index& current, const model_index& /*previous*/) {
                     int row = current.is_valid() ? current.row : -1;
                     current_index_changed.emit(row);
@@ -101,15 +108,17 @@ public:
             );
 
             m_selection_changed_conn = scoped_connection(
-                m_selection_model->selection_changed,
+                sel_model->selection_changed,
                 [this](const std::vector<model_index>&, const std::vector<model_index>&) {
                     selection_changed.emit();
                 }
             );
+
+            m_selection_model = sel_model;
         }
 
         m_activated_conn = scoped_connection(
-            m_view->activated,
+            base::activated,
             [this](const model_index& idx) {
                 if (idx.is_valid()) {
                     activated.emit(idx.row);
@@ -118,7 +127,7 @@ public:
         );
 
         m_clicked_conn = scoped_connection(
-            m_view->clicked,
+            base::clicked,
             [this](const model_index& idx) {
                 if (idx.is_valid()) {
                     clicked.emit(idx.row);
@@ -127,16 +136,13 @@ public:
         );
 
         m_double_clicked_conn = scoped_connection(
-            m_view->double_clicked,
+            base::double_clicked,
             [this](const model_index& idx) {
                 if (idx.is_valid()) {
                     double_clicked.emit(idx.row);
                 }
             }
         );
-
-        // Add view as child (transfers ownership)
-        this->add_child(std::move(view_ptr));
     }
 
     /**
@@ -194,14 +200,10 @@ public:
         // Adjust selection based on what was removed
         if (current == index) {
             // Removed the selected item - clear selection
-            if (m_view) {
-                m_view->set_current_index(model_index{});
-            }
+            base::set_current_index(model_index{});
         } else if (current > index) {
             // Selection was after removed item - adjust index
-            if (m_view && m_model) {
-                m_view->set_current_index(m_model->index(current - 1, 0));
-            }
+            base::set_current_index(m_model->index(current - 1, 0));
         }
     }
 
@@ -210,9 +212,7 @@ public:
      */
     void clear() {
         // Clear selection first
-        if (m_view) {
-            m_view->set_current_index(model_index{});
-        }
+        base::set_current_index(model_index{});
         m_model->clear();
     }
 
@@ -287,8 +287,7 @@ public:
      * @return Current row index, or -1 if no selection
      */
     [[nodiscard]] int current_index() const noexcept {
-        if (!m_view) return -1;
-        auto idx = m_view->current_index();
+        auto idx = base::current_index();
         return idx.is_valid() ? idx.row : -1;
     }
 
@@ -301,8 +300,6 @@ public:
      * In multi-selection mode, use select() to add to selection.
      */
     void set_current_index(int index) {
-        if (!m_view || !m_model) return;
-
         if (index < 0 || index >= count()) {
             // Clear current and selection
             if (m_selection_model) {
@@ -351,7 +348,7 @@ public:
      * @return true if item is selected
      */
     [[nodiscard]] bool is_selected(int index) const {
-        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+        if (!m_selection_model || index < 0 || index >= count()) {
             return false;
         }
         return m_selection_model->is_selected(m_model->index(index, 0));
@@ -378,7 +375,7 @@ public:
      * @param index Item index
      */
     void select(int index) {
-        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+        if (!m_selection_model || index < 0 || index >= count()) {
             return;
         }
         m_selection_model->select(m_model->index(index, 0));
@@ -389,7 +386,7 @@ public:
      * @param index Item index
      */
     void deselect(int index) {
-        if (!m_selection_model || !m_model || index < 0 || index >= count()) {
+        if (!m_selection_model || index < 0 || index >= count()) {
             return;
         }
         m_selection_model->deselect(m_model->index(index, 0));
@@ -408,7 +405,7 @@ public:
      * @brief Select all items
      */
     void select_all() {
-        if (!m_selection_model || !m_model) return;
+        if (!m_selection_model) return;
 
         for (int i = 0; i < count(); ++i) {
             m_selection_model->select(m_model->index(i, 0));
@@ -446,28 +443,10 @@ public:
      * @param index Item index to scroll to
      */
     void scroll_to(int index) {
-        if (!m_view || !m_model || index < 0 || index >= count()) {
+        if (index < 0 || index >= count()) {
             return;
         }
-        m_view->scroll_to(m_model->index(index, 0));
-    }
-
-    /**
-     * @brief Get current scroll offset
-     * @return Scroll offset in logical units
-     */
-    [[nodiscard]] double scroll_offset() const {
-        return m_view ? m_view->scroll_offset() : 0.0;
-    }
-
-    /**
-     * @brief Set scroll offset
-     * @param offset New scroll offset
-     */
-    void set_scroll_offset(double offset) {
-        if (m_view) {
-            m_view->set_scroll_offset(offset);
-        }
+        base::scroll_to(m_model->index(index, 0));
     }
 
     // ===================================================================
@@ -484,14 +463,14 @@ public:
 
     /**
      * @brief Get the internal view
-     * @return Pointer to internal list_view
+     * @return Pointer to internal list_view (this)
      */
-    [[nodiscard]] view_type* view() noexcept {
-        return m_view;
+    [[nodiscard]] list_view<Backend>* view() noexcept {
+        return this;
     }
 
-    [[nodiscard]] const view_type* view() const noexcept {
-        return m_view;
+    [[nodiscard]] const list_view<Backend>* view() const noexcept {
+        return this;
     }
 
     // ===================================================================
@@ -533,39 +512,8 @@ public:
      */
     signal<int> double_clicked;
 
-protected:
-    // ===================================================================
-    // Layout - Forward to view
-    // ===================================================================
-
-    [[nodiscard]] logical_size get_content_size() const override {
-        if (m_view) {
-            return m_view->measure(
-                this->bounds().width,
-                this->bounds().height
-            );
-        }
-        return {logical_unit(0), logical_unit(0)};
-    }
-
-    void do_arrange(const logical_rect& final_bounds) override {
-        base::do_arrange(final_bounds);
-        if (m_view) {
-            m_view->arrange(final_bounds);
-        }
-    }
-
-    // ===================================================================
-    // Rendering - Forward to view
-    // ===================================================================
-
-    void do_render(render_context<Backend>& ctx) const override {
-        // View renders itself as a child
-    }
-
 private:
     std::shared_ptr<model_type> m_model;        ///< Internal string list model (owned)
-    view_type* m_view = nullptr;                 ///< Internal list_view (child)
     selection_model_type* m_selection_model = nullptr;  ///< Selection model from view
 
     // Signal connections

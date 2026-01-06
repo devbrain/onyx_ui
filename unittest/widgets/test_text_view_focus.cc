@@ -273,12 +273,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
             route_event(ui_evt2, path2);
         }
 
-        // TODO: This test needs updating due to text_view fill_parent policy changes
-        // With min_render_size enforcement, scrollbars take more space, affecting layout
-        // The test setup needs reworking to account for new scrollbar sizing
-        // For now, skip this specific assertion
-        // CHECK(input->get_focused() == text_view2);
-        WARN("text_view focus test disabled - needs layout rework for new scrollbar sizing");
+        CHECK(input->get_focused() == text_view2);
     }
 }
 

@@ -147,7 +147,9 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
     SUBCASE("Step 4: Arrange root only (no children)") {
         auto root = std::make_unique<TestElement>();
         root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
-        CHECK(true);
+        // Verify bounds were set correctly
+        CHECK(root->bounds().width.to_int() == 100);
+        CHECK(root->bounds().height.to_int() == 100);
     }
 
     SUBCASE("Step 5: Create root+child, then arrange root") {
@@ -156,7 +158,9 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
 
         // THIS IS WHERE THE OVERFLOW HAPPENS
         root->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
-        CHECK(true);
+        // Verify bounds were set and child still exists
+        CHECK(root->bounds().width.to_int() == 100);
+        CHECK(root->children().size() == 1);
     }
 
     SUBCASE("Step 6: Full test - arrange both") {

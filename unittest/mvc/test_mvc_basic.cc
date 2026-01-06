@@ -486,10 +486,12 @@ TEST_CASE("item_selection_model - select_range selects multiple items") {
 // =========================================================================
 
 TEST_CASE("default_item_delegate - Construction succeeds") {
-    default_item_delegate<Backend> delegate;
-
-    // Just check it constructs without throwing
-    CHECK(true);
+    // Verify delegate can be constructed and has expected initial state
+    CHECK_NOTHROW([]() {
+        default_item_delegate<Backend> delegate;
+        // Delegate should exist - we can't check much without a model,
+        // but the next test verifies size_hint works
+    }());
 }
 
 TEST_CASE("default_item_delegate - size_hint returns reasonable size") {

@@ -256,6 +256,25 @@ public:
                static_cast<item_flags>(item_flag::selectable);
     }
 
+    /**
+     * @brief Get header text for a column
+     * @param column Column index (0-based)
+     * @return Header text, or empty string if not available
+     *
+     * @details
+     * Default implementation returns empty string.
+     * Table models should override this to provide column headers.
+     *
+     * @par Example:
+     * @code
+     * std::string header = model->header(0);  // Get first column header
+     * @endcode
+     */
+    [[nodiscard]] virtual std::string header(int column) const {
+        (void)column;
+        return "";  // Default: no headers
+    }
+
     // ===================================================================
     // Sorting (Optional)
     // ===================================================================

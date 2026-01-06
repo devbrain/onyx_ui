@@ -51,7 +51,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // ========== ROW 1: Layout System | Scrolling System ==========
-    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
 
     // ========== LAYOUT SECTION (left column) ==========
     auto* layout_section = row1->template emplace_child<onyxui::group_box>();
@@ -119,7 +119,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
     scrolling_section->template emplace_child<onyxui::label>("  - Mouse Wheel: Vertical");
 
     // ========== ROW 2: Demos ==========
-    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
 
     // ========== NESTED LAYOUTS DEMO (left column) ==========
     auto* nested_section = row2->template emplace_child<onyxui::group_box>();

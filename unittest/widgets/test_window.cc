@@ -413,7 +413,7 @@ TEST_CASE("Window - Show and hide") {
 
         win.show_modal();
         CHECK(win.is_visible());
-        // TODO Phase 5: Test modal layer integration
+        CHECK(win.is_modal());  // show_modal() sets modal flag
     }
 
     SUBCASE("Multiple show calls idempotent") {

@@ -16,6 +16,8 @@
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/layout/spacer.hh>
 #include <onyxui/widgets/layout/spring.hh>
+#include <onyxui/layout/linear_layout.hh>
+#include <onyxui/services/ui_services.hh>
 #include <onyxui/widgets/input/line_edit.hh>
 #include <onyxui/widgets/input/checkbox.hh>
 #include <onyxui/widgets/input/radio_button.hh>
@@ -73,8 +75,8 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     auto* content = layout->template emplace_child<onyxui::grid>(
         2,                     // 2 columns
         -1,                    // auto rows
-        onyxui::spacing::small,  // column spacing
-        onyxui::spacing::small,  // row spacing
+        onyxui::spacing::medium,  // column spacing
+        onyxui::spacing::medium,  // row spacing
         true                   // auto-size based on content
     );
 
@@ -340,7 +342,20 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_all_widgets(WidgetsDemoType* 
     // ========== ACTIONS SECTION ==========
     auto* actions_section = content->template emplace_child<onyxui::group_box>();
     actions_section->set_title("Actions");
-    actions_section->set_hbox_layout(onyxui::spacing::small);
+    int actions_spacing = 0;
+    if (auto* themes = onyxui::ui_services<Backend>::themes()) {
+        if (auto* theme = themes->get_current_theme()) {
+            actions_spacing = theme->spacing.resolve(onyxui::spacing::small);
+        }
+    }
+    actions_section->set_layout_strategy(
+        std::make_unique<onyxui::linear_layout<Backend>>(
+            onyxui::direction::horizontal,
+            actions_spacing,
+            onyxui::horizontal_alignment::left,
+            onyxui::vertical_alignment::top
+        )
+    );
     actions_section->set_vertical_align(onyxui::vertical_alignment::top);  // Don't stretch vertically
 
     auto* screenshot_btn = actions_section->template emplace_child<onyxui::button>("Take Screenshot (F9)");

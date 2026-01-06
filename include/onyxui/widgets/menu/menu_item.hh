@@ -53,6 +53,7 @@
 #include <onyxui/actions/action.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 
 namespace onyxui {
 
@@ -358,28 +359,34 @@ namespace onyxui {
                 }
             }
 
-            // Get padding from resolved style (already populated from theme)
-            int const padding_horizontal = ctx.style().padding_horizontal.value.value_or(2);
-            int const padding_vertical = ctx.style().padding_vertical.value.value_or(0);
-            // Shortcut spacing from resolved style or theme
-            int shortcut_spacing = 2;
+            // Get padding from resolved style (already populated from theme) - these are in logical units
+            int const padding_h_logical = ctx.style().padding_horizontal.value.value_or(2);
+            int const padding_v_logical = ctx.style().padding_vertical.value.value_or(0);
+
+            // Convert padding to physical pixels to match measure_text() output
+            int const padding_h = to_physical_x<Backend>(padding_h_logical);
+            int const padding_v = to_physical_y<Backend>(padding_v_logical);
+
+            // Shortcut spacing from resolved style or theme - also needs conversion
+            int shortcut_spacing_logical = 2;
             if (ctx.theme()) {
-                shortcut_spacing = ctx.theme()->menu_item.shortcut_spacing;
+                shortcut_spacing_logical = ctx.theme()->menu_item.shortcut_spacing;
             }
+            int const shortcut_spacing = to_physical_x<Backend>(shortcut_spacing_logical);
 
             // Use absolute screen position from context
             int const base_x = point_utils::get_x(pos);
             int const base_y = point_utils::get_y(pos);
 
-            // Calculate minimum width needed (includes submenu indicator if present)
-            int const min_width = padding_horizontal + text_width +
+            // Calculate minimum width needed (all values now in physical pixels/cells)
+            int const min_width = padding_h + text_width +
                                   (shortcut.empty() ? 0 : shortcut_spacing + shortcut_width) +
                                   submenu_indicator_width +
-                                  padding_horizontal;
+                                  padding_h;
 
-            // Get text height and calculate total height with vertical padding
+            // Get text height and calculate total height with vertical padding (all physical pixels)
             int const text_height = size_utils::get_height(text_size);
-            int const natural_height = text_height + (padding_vertical * 2);
+            int const natural_height = text_height + (padding_v * 2);
 
             // Get final dimensions (context returns assigned size during rendering, natural size during measurement)
             auto const [effective_width, effective_height] = ctx.get_final_dims(min_width, natural_height);
@@ -390,11 +397,11 @@ namespace onyxui {
             rect_utils::set_bounds(bg_rect, base_x, base_y, effective_width, effective_height);
             ctx.fill_rect(bg_rect);
 
-            // Calculate text Y position (centered vertically with padding)
-            int const text_y = base_y + padding_vertical;
+            // Calculate text Y position (centered vertically with padding, physical pixels)
+            int const text_y = base_y + padding_v;
 
-            // Draw text with horizontal padding (with mnemonic support)
-            int const text_x = base_x + padding_horizontal;
+            // Draw text with horizontal padding (physical pixels)
+            int const text_x = base_x + padding_h;
             if (!m_mnemonic_markup.empty() && ctx.theme()) {
                 // Parse mnemonic on-the-fly (no mutable state modification!)
                 const auto mnemonic_info = parse_mnemonic<Backend>(
@@ -428,14 +435,14 @@ namespace onyxui {
             if (has_submenu() && ctx.theme()) {
                 const auto& submenu_icon_opt = ctx.style().submenu_icon.value;
                 if (submenu_icon_opt.has_value()) {
-                    // Position indicator to the right of shortcut (or text if no shortcut)
+                    // Position indicator to the right of shortcut (or text if no shortcut, all physical pixels)
                     int indicator_x;
                     if (!shortcut.empty()) {
                         // After shortcut
-                        indicator_x = base_x + effective_width - shortcut_width - padding_horizontal - 2;
+                        indicator_x = base_x + effective_width - shortcut_width - padding_h - 2;
                     } else {
                         // After text
-                        indicator_x = base_x + effective_width - padding_horizontal - 1;
+                        indicator_x = base_x + effective_width - padding_h - 1;
                     }
                     // Draw icon at calculated position
                     typename Backend::point_type const icon_pos{indicator_x, text_y};
@@ -443,9 +450,9 @@ namespace onyxui {
                 }
             }
 
-            // Draw shortcut if present (right-aligned within effective width)
+            // Draw shortcut if present (right-aligned within effective width, physical pixels)
             if (!shortcut.empty() && ctx.theme()) {
-                int const shortcut_x = base_x + effective_width - shortcut_width - padding_horizontal;
+                int const shortcut_x = base_x + effective_width - shortcut_width - padding_h;
                 typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
                 // Use shortcut color from theme (shortcuts use a dimmed color for subtlety)
                 auto shortcut_color = ctx.theme()->menu_item.shortcut.foreground;

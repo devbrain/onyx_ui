@@ -67,6 +67,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <vector>
 #include <algorithm>
 #include <limits>
@@ -1385,6 +1386,25 @@ namespace onyxui {
         h = max(h, logical_unit(0.0));
 
         logical_rect content_area{x, y, w, h};
+
+#ifndef NDEBUG
+        {
+            auto const actual_content = get_content_area();
+            constexpr double eps = 1e-6;
+            double const right = actual_content.x.value + actual_content.width.value;
+            double const bottom = actual_content.y.value + actual_content.height.value;
+            assert(actual_content.width.value >= -eps);
+            assert(actual_content.height.value >= -eps);
+            if (actual_content.width.value > eps) {
+                assert(actual_content.x.value >= -eps);
+                assert(right <= final_bounds.width.value + eps);
+            }
+            if (actual_content.height.value > eps) {
+                assert(actual_content.y.value >= -eps);
+                assert(bottom <= final_bounds.height.value + eps);
+            }
+        }
+#endif
 
         do_arrange(content_area);
         arrange_state = layout_state::valid;

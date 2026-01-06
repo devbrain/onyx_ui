@@ -532,6 +532,13 @@ namespace onyxui {
                     it->bounds.width = preferred_size->width;
                     it->bounds.height = preferred_size->height;
                 }
+
+                // Connect to element's destroying signal for automatic cleanup
+                // This handles the case where caller destroys element without removing layer
+                it->destroying_conn = scoped_connection(content->destroying,
+                    [this, id](element_type*) {
+                        remove_layer(id);
+                    });
             }
 
             return id;
@@ -562,6 +569,12 @@ namespace onyxui {
                 it->anchor_bounds = logical_rect{x, y, 0.0_lu, 0.0_lu};
                 it->placement = popup_placement::below;
                 it->needs_positioning = true;
+
+                // Connect to element's destroying signal for automatic cleanup
+                it->destroying_conn = scoped_connection(content->destroying,
+                    [this, id](element_type*) {
+                        remove_layer(id);
+                    });
             }
 
             return id;
@@ -589,6 +602,12 @@ namespace onyxui {
                 it->owner = non_owning;  // Store to keep weak_ptr valid
                 it->dialog_pos = pos;
                 it->needs_positioning = true;
+
+                // Connect to element's destroying signal for automatic cleanup
+                it->destroying_conn = scoped_connection(content->destroying,
+                    [this, id](element_type*) {
+                        remove_layer(id);
+                    });
             }
 
             return id;
@@ -671,32 +690,16 @@ namespace onyxui {
             // Clean up expired layers first (automatic lifetime management)
             cleanup_expired_layers();
 
+            // ================================================================
+            // CRITICAL FIX: Ensure layers are positioned/arranged before routing
+            // ================================================================
+            // Layers added between render() and route_event() won't have bounds set.
+            // Without this, hit testing fails because children have default (0,0,0,0) bounds.
+            // We must position and arrange layers with needs_positioning=true before routing.
+            ensure_layers_positioned();
+
             // No conversion needed - we already have ui_event!
             const ui_event& ui_evt = event;
-
-            // ================================================================
-            // CRITICAL: Check for captured widget FIRST
-            // ================================================================
-            // When a widget has captured the mouse (e.g., during window dragging),
-            // all mouse events should go directly to that widget regardless of
-            // hit-testing or layer hierarchy.
-            if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
-                if (m_input_manager) {
-                    auto* captured = m_input_manager->get_captured();
-                    if (captured) {
-                        // Route directly to captured widget
-                        bool handled = static_cast<element_type*>(captured)->handle_event(
-                            ui_evt, event_phase::target);
-
-                        // Release capture on mouse release
-                        if (mouse_evt->act == mouse_event::action::release) {
-                            m_input_manager->release_capture();
-                        }
-
-                        return handled;
-                    }
-                }
-            }
 
             // Check if modal is active
             std::optional<int> modal_z_index;
@@ -745,6 +748,71 @@ namespace onyxui {
             if (deferred_callback) {
                 deferred_callback();
                 // Don't return - let event continue to underlying widget for menu switching
+            }
+
+            // ================================================================
+            // CRITICAL: Check for captured widget (with missing release handling)
+            // ================================================================
+            // When a widget has captured the mouse (e.g., during window dragging),
+            // all mouse events should go directly to that widget regardless of
+            // hit-testing or layer hierarchy.
+            if (auto* mouse_evt = std::get_if<mouse_event>(&ui_evt)) {
+                if (m_input_manager) {
+                    auto* captured = m_input_manager->get_captured();
+                    if (captured) {
+                        // Terminals (termbox2) may not emit mouse release events.
+                        // If we press on a different target, synthesize release for the capture.
+                        if (mouse_evt->act == mouse_event::action::press) {
+                            element_type* top_target = nullptr;
+
+                            for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+                                if (!it->visible || !it->is_valid()) {
+                                    continue;
+                                }
+                                if (modal_z_index.has_value() && it->z_index < *modal_z_index) {
+                                    continue;
+                                }
+
+                                it->with_root([&](element_type* root_ptr) {
+                                    if (top_target) {
+                                        return;
+                                    }
+                                    hit_test_path<Backend> path;
+                                    top_target = root_ptr->hit_test_logical(
+                                        mouse_evt->x, mouse_evt->y, path);
+                                });
+
+                                if (top_target) {
+                                    break;
+                                }
+
+                                if (it->modal && it->blocks_events) {
+                                    break;
+                                }
+                            }
+
+                            if (top_target != captured) {
+                                mouse_event release{
+                                    .x = mouse_evt->x,
+                                    .y = mouse_evt->y,
+                                    .btn = mouse_event::button::left,
+                                    .act = mouse_event::action::release,
+                                    .modifiers = {}
+                                };
+                                captured->handle_event(ui_event{release}, event_phase::target);
+                                m_input_manager->release_capture();
+                            } else {
+                                return captured->handle_event(ui_evt, event_phase::target);
+                            }
+                        } else {
+                            bool handled = captured->handle_event(ui_evt, event_phase::target);
+                            if (mouse_evt->act == mouse_event::action::release) {
+                                m_input_manager->release_capture();
+                            }
+                            return handled;
+                        }
+                    }
+                }
             }
 
             // Route to layers (highest z first)
@@ -833,8 +901,9 @@ namespace onyxui {
          */
         void render_all_layers(renderer_type& renderer, const rect_type& viewport, const theme_type* theme,
                                const backend_metrics<Backend>& metrics) {
-            // Save viewport for workspace detection (Phase 4)
+            // Save viewport and metrics for event routing positioning
             m_viewport = viewport;
+            m_metrics = metrics;  // Copy metrics for later use in ensure_layers_positioned()
 
             // Convert physical viewport to logical once at boundary (DPI-aware)
             const logical_rect logical_viewport = metrics.physical_to_logical_rect(viewport);
@@ -1038,6 +1107,10 @@ namespace onyxui {
             // Click-outside callback for dismissible layers
             std::function<void()> outside_click_callback;
 
+            // Connection to element's destroying signal for automatic cleanup
+            // Used by show_popup/show_tooltip/show_modal_dialog which take raw pointers
+            scoped_connection destroying_conn;
+
             /**
              * @brief Check if the layer's element is still valid
              * @return true if element exists, false if destroyed
@@ -1093,6 +1166,7 @@ namespace onyxui {
         std::vector<logical_rect> m_removed_layer_dirty_regions;  ///< Bounds of removed layers (logical, caller converts to physical)
         bool m_layers_changed = false;  ///< Flag indicating layers were added/removed since last check
         rect_type m_viewport{};  ///< Last rendered viewport bounds (screen dimensions)
+        std::optional<backend_metrics<Backend>> m_metrics;  ///< Last used metrics (for event routing positioning)
         element_type* m_layer_hovered = nullptr;  ///< Currently hovered element within layers (for clearing stale hover)
         layer_id m_hovered_layer_id = layer_id{};  ///< ID of the layer containing m_layer_hovered (for layer expiry checks)
         scoped_connection m_hovered_conn;  ///< Connection to hovered element's destroying signal
@@ -1210,6 +1284,49 @@ namespace onyxui {
 
             if (m_layers.size() != old_size) {
                 m_layers_changed = true;
+            }
+        }
+
+        /**
+         * @brief Ensure all layers that need positioning are positioned and arranged
+         *
+         * @details
+         * This is called before event routing to ensure layers added between
+         * render() and route_event() have valid bounds for hit testing.
+         *
+         * Without this, modal dialogs that open and immediately receive clicks
+         * will fail hit testing because their children haven't been arranged yet.
+         *
+         * Uses the stored viewport from the last render_all_layers() call.
+         * If no render has happened yet (viewport is empty), skips positioning.
+         */
+        void ensure_layers_positioned() {
+            // Need viewport and metrics from previous render
+            // If no render has happened, we can't position layers properly
+            if (rect_utils::get_width(m_viewport) <= 0 ||
+                rect_utils::get_height(m_viewport) <= 0 ||
+                !m_metrics.has_value()) {
+                return;  // No valid viewport or metrics yet
+            }
+
+            // Convert physical viewport to logical
+            const logical_rect logical_viewport = m_metrics->physical_to_logical_rect(m_viewport);
+
+            // Position and arrange any layers that need it
+            for (auto& layer : m_layers) {
+                if (layer.needs_positioning && layer.visible && layer.is_valid()) {
+                    // Position the layer (calculates layer.bounds)
+                    position_layer(layer, logical_viewport);
+                    layer.needs_positioning = false;
+
+                    // Arrange the layer so children have valid bounds for hit testing
+                    layer.with_root([&](element_type* root_ptr) {
+                        // Measure first
+                        (void)root_ptr->measure(layer.bounds.width, layer.bounds.height);
+                        // Then arrange
+                        root_ptr->arrange(layer.bounds);
+                    });
+                }
             }
         }
 

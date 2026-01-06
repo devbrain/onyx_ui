@@ -1277,10 +1277,10 @@ model->sort(0, sort_order::ascending);  // [3, 17, 42, 56, 91]
 ### Phase 6: Table View (Week 8-9)
 **Goal**: Multi-column table support
 
-**Files to Create**:
+**Files Created**:
 - `include/onyxui/mvc/models/table_model.hh` - 2D table model
-- `include/onyxui/mvc/views/table_view.hh` - Table view with headers
-- `include/onyxui/mvc/views/table_header.hh` - Column headers
+- `include/onyxui/mvc/views/table_view.hh` - Table view with embedded headers
+- `include/onyxui/widgets/input/table.hh` - Simple table wrapper (like combo_box wraps combo_box_view)
 
 **Features**:
 - Column headers with click-to-sort

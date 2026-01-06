@@ -2,17 +2,20 @@
  * @file test_layer_manager_lifetime.cc
  * @brief Tests for layer manager lifetime safety and dangling pointer scenarios
  * @author Claude Code
- * @date October 19, 2025
+ * @date October 19, 2025 (Updated January 2026)
  *
  * @details
  * This test suite verifies that the layer manager handles widget lifetime correctly.
- * Many of these tests will FAIL initially and are expected to PASS after implementing
- * lifetime tracking with weak_ptr in Phase 1.2.
  *
- * EXPECTED FAILURES (Phase 1.1 Baseline):
- * - All "Dangling pointer" tests (expect segfaults)
- * - "Multiple removes" tests (may pass, but verify)
- * - "Invalid ID" tests (should pass, but verify error handling)
+ * LIFETIME SAFETY MECHANISMS:
+ * 1. add_layer(shared_ptr): Uses weak_ptr tracking. When shared_ptr is destroyed,
+ *    weak_ptr expires and cleanup_expired_layers() removes the layer.
+ *
+ * 2. show_popup/show_tooltip/show_modal_dialog(raw pointer): Connects to the
+ *    element's `destroying` signal. When element is destroyed, the signal fires
+ *    and remove_layer() is called automatically.
+ *
+ * All tests now pass - no more dangling pointers!
  */
 
 #include <doctest/doctest.h>
@@ -99,24 +102,24 @@ public:
 
 TEST_SUITE("Layer Manager - Lifetime Safety") {
 
-    TEST_CASE("Dangling pointer detection - basic case" * doctest::skip()) {
-        // Create minimal theme for testing (this test is skipped anyway)
+    TEST_CASE("Dangling pointer detection - basic case") {
+        // Tests automatic cleanup via weak_ptr expiration (add_layer with shared_ptr)
         ui_theme<Backend> test_theme;
         test_theme.name = "TestTheme";
 
         SUBCASE("Destroy widget then route event") {
             layer_manager<Backend> mgr;
-            auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
+            auto elem = std::make_shared<TestElement>();
 
-            (void)mgr.add_layer(layer_type::popup, elem);  // New safe API
+            (void)mgr.add_layer(layer_type::popup, elem);
             CHECK(mgr.layer_count() == 1);
 
             // Destroy element while layer exists
             elem.reset();
 
-            // Phase 1.2: Automatic cleanup of expired layers
+            // Automatic cleanup of expired layers via weak_ptr
             ui_event const event = make_ui_event();
-            CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup and not crash
+            CHECK_NOTHROW(mgr.route_event(event));
 
             // Verify layer was removed
             CHECK(mgr.layer_count() == 0);
@@ -124,15 +127,15 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
         SUBCASE("Destroy widget then render") {
             layer_manager<Backend> mgr;
-            auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
+            auto elem = std::make_shared<TestElement>();
 
-            (void)mgr.add_layer(layer_type::popup, elem);  // New safe API
+            (void)mgr.add_layer(layer_type::popup, elem);
             elem.reset();  // Destroy element
 
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            // Phase 1.2: Automatic cleanup of expired layers
+            // Automatic cleanup of expired layers
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
 
             // Verify layer was removed
@@ -141,15 +144,14 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
         SUBCASE("Destroy widget then query visibility") {
             layer_manager<Backend> mgr;
-            auto elem = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
+            auto elem = std::make_shared<TestElement>();
 
-            layer_id const id = mgr.add_layer(layer_type::popup, elem);  // New safe API
+            layer_id const id = mgr.add_layer(layer_type::popup, elem);
             elem.reset();
 
-            // Phase 1.2: Should handle gracefully (expired layer returns false)
+            // Expired layer returns false for visibility
             CHECK_FALSE(mgr.is_layer_visible(id));
 
-            // Query doesn't cleanup, but layer is logically expired
             // Cleanup happens on next route_event() or render_all_layers()
             ui_event const event = make_ui_event();
             mgr.route_event(event);
@@ -157,14 +159,15 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         }
     }
 
-    TEST_CASE("Dangling pointer - multiple widgets destroyed" * doctest::skip()) {
+    TEST_CASE("Dangling pointer - multiple widgets destroyed") {
+        // Tests automatic cleanup when multiple widgets are destroyed
         layer_manager<Backend> mgr;
 
-        auto elem1 = std::make_shared<TestElement>();  // Phase 1.2: Use shared_ptr
+        auto elem1 = std::make_shared<TestElement>();
         auto elem2 = std::make_shared<TestElement>();
         auto elem3 = std::make_shared<TestElement>();
 
-        mgr.add_layer(layer_type::popup, elem1);  // New safe API
+        mgr.add_layer(layer_type::popup, elem1);
         mgr.add_layer(layer_type::dialog, elem2);
         mgr.add_layer(layer_type::tooltip, elem3);
 
@@ -175,14 +178,15 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         elem3.reset();
 
         ui_event const event = make_ui_event();
-        // Phase 1.2: Should auto-cleanup expired layers, only route to elem2
+        // Should auto-cleanup expired layers, only route to elem2
         CHECK_NOTHROW(mgr.route_event(event));
 
         // Verify expired layers were removed (elem1 and elem3)
         CHECK(mgr.layer_count() == 1);
     }
 
-    TEST_CASE("Dangling pointer - during iteration" * doctest::skip()) {
+    TEST_CASE("Dangling pointer - during iteration") {
+        // Tests that destroying elements during event routing doesn't crash
         SUBCASE("First element destroyed") {
             layer_manager<Backend> mgr;
             auto elem1 = std::make_shared<EventCountingElement>();
@@ -198,8 +202,8 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
             ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
 
-            // After Phase 1.2, only elem2 and elem3 should receive event
-            // Currently: EXPECTED TO FAIL
+            // Verify destroyed layer was removed
+            CHECK(mgr.layer_count() == 2);
         }
 
         SUBCASE("Middle element destroyed") {
@@ -216,6 +220,9 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
+
+            // Verify destroyed layer was removed
+            CHECK(mgr.layer_count() == 2);
         }
 
         SUBCASE("Last element destroyed") {
@@ -232,47 +239,46 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
 
             ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
+
+            // Verify destroyed layer was removed
+            CHECK(mgr.layer_count() == 2);
         }
     }
 
-    TEST_CASE("Dangling pointer - rendering scenarios" * doctest::skip()) {
-        // Create minimal theme for testing (this test is skipped anyway)
+    TEST_CASE("Dangling pointer - rendering scenarios") {
+        // Tests automatic cleanup via destroying signal for show_popup/show_modal_dialog
         ui_theme<Backend> test_theme;
         test_theme.name = "TestTheme";
 
-
-        // SKIPPED: These tests document known limitations of non-owning pointers.
-        // show_popup/show_tooltip/show_modal_dialog use non-owning shared_ptr,
-        // so if the caller incorrectly destroys the element, we can't detect it.
-        //
-        // CORRECT USAGE:
-        // 1. Keep element alive while layer exists, OR
-        // 2. Remove layer before destroying element, OR
-        // 3. Use add_scoped_layer() for automatic lifetime management
-
-        SUBCASE("Positioning after destruction") {
+        SUBCASE("Popup destroyed before render") {
             layer_manager<Backend> mgr;
             auto elem = std::make_shared<TestElement>();
 
             logical_rect const anchor{10.0_lu, 10.0_lu, 50.0_lu, 20.0_lu};
             (void)mgr.show_popup(elem.get(), anchor, popup_placement::below);
+            CHECK(mgr.layer_count() == 1);
 
+            // Destroying element triggers destroying signal -> removes layer
             elem.reset();
+            CHECK(mgr.layer_count() == 0);  // Layer auto-removed
 
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
 
-            // Should handle gracefully (skip expired layer)
-            // Currently: EXPECTED TO FAIL
+            // Should handle gracefully (no layers to render)
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
         }
 
-        SUBCASE("Modal dialog after destruction") {
+        SUBCASE("Modal dialog destroyed before render") {
             layer_manager<Backend> mgr;
             auto dialog = std::make_shared<TestElement>();
 
             (void)mgr.show_modal_dialog(dialog.get(), dialog_position::center);
+            CHECK(mgr.layer_count() == 1);
+
+            // Destroying element triggers destroying signal -> removes layer
             dialog.reset();
+            CHECK(mgr.layer_count() == 0);  // Layer auto-removed
 
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
@@ -281,35 +287,51 @@ TEST_SUITE("Layer Manager - Lifetime Safety") {
         }
     }
 
-    TEST_CASE("Dangling pointer - tooltip scenarios" * doctest::skip()) {
-        // Create minimal theme for testing (this test is skipped anyway)
+    TEST_CASE("Dangling pointer - tooltip scenarios") {
+        // Tests automatic cleanup via destroying signal for show_tooltip
         ui_theme<Backend> test_theme;
         test_theme.name = "TestTheme";
 
+        SUBCASE("Tooltip destroyed - layer auto-removed") {
+            layer_manager<Backend> mgr;
+            auto tooltip = std::make_shared<TestElement>();
 
-        layer_manager<Backend> mgr;
-        auto tooltip = std::make_shared<TestElement>();
+            layer_id const id = mgr.show_tooltip(tooltip.get(), 100.0_lu, 100.0_lu);
+            CHECK(mgr.layer_count() == 1);
 
-        layer_id const id = mgr.show_tooltip(tooltip.get(), 100.0_lu, 100.0_lu);
-        tooltip.reset();
+            // Destroying tooltip triggers destroying signal -> removes layer
+            tooltip.reset();
+            CHECK(mgr.layer_count() == 0);  // Layer auto-removed
+
+            // Operations on removed layer should be safe
+            CHECK_NOTHROW(mgr.hide_layer(id));
+            CHECK_NOTHROW(mgr.show_layer(id));
+            CHECK_FALSE(mgr.is_layer_visible(id));
+        }
 
         SUBCASE("Route event after tooltip destroyed") {
+            layer_manager<Backend> mgr;
+            auto tooltip = std::make_shared<TestElement>();
+
+            (void)mgr.show_tooltip(tooltip.get(), 100.0_lu, 100.0_lu);
+            tooltip.reset();
+
             ui_event const event = make_ui_event();
             CHECK_NOTHROW(mgr.route_event(event));
+            CHECK(mgr.layer_count() == 0);
         }
 
         SUBCASE("Render after tooltip destroyed") {
+            layer_manager<Backend> mgr;
+            auto tooltip = std::make_shared<TestElement>();
+
+            (void)mgr.show_tooltip(tooltip.get(), 100.0_lu, 100.0_lu);
+            tooltip.reset();
+
             TestRenderer renderer;
             TestRect const viewport{0, 0, 800, 600};
             CHECK_NOTHROW(mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>()));
-        }
-
-        SUBCASE("Hide after tooltip destroyed") {
-            CHECK_NOTHROW(mgr.hide_layer(id));
-        }
-
-        SUBCASE("Show after tooltip destroyed") {
-            CHECK_NOTHROW(mgr.show_layer(id));
+            CHECK(mgr.layer_count() == 0);
         }
     }
 }
@@ -474,19 +496,20 @@ TEST_SUITE("Layer Manager - Cleanup Safety") {
     }
 
     TEST_CASE("Widgets destroyed before layer manager") {
+        // Tests automatic cleanup via weak_ptr expiration
         layer_manager<Backend> mgr;
 
         {
-            auto elem1 = std::make_shared<TestElement>();  // Use shared_ptr for Phase 1.2
+            auto elem1 = std::make_shared<TestElement>();
             auto elem2 = std::make_shared<TestElement>();
 
-            mgr.add_layer(layer_type::popup, elem1);  // New safe API
+            mgr.add_layer(layer_type::popup, elem1);
             mgr.add_layer(layer_type::modal, elem2);
         }  // Widgets destroyed here (shared_ptr goes out of scope)
 
-        // Phase 1.2: Automatic cleanup of expired layers
+        // Automatic cleanup of expired layers via weak_ptr
         ui_event const event = make_ui_event();
-        CHECK_NOTHROW(mgr.route_event(event));  // Should auto-cleanup expired layers
+        CHECK_NOTHROW(mgr.route_event(event));
 
         // Verify layers were cleaned up
         CHECK(mgr.layer_count() == 0);

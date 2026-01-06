@@ -69,6 +69,22 @@ namespace onyxui {
      * ## Thread Safety
      *
      * Not thread-safe. All operations must occur on the UI thread.
+     *
+     * ## Lifetime Requirements
+     *
+     * **CRITICAL**: The `hotkey_manager` must outlive all `semantic_action_guard`
+     * instances that reference it. The guard stores a raw (non-owning) pointer and
+     * will dereference it in the destructor. If the manager is destroyed while guards
+     * still exist, the destructor will access a dangling pointer (undefined behavior).
+     *
+     * Safe usage patterns:
+     * - Store guards as members of widgets that are children of the application root
+     * - Store guards in scope that ends before application shutdown
+     * - Use `release()` before destroying the manager if guards may outlive it
+     *
+     * Unsafe patterns to avoid:
+     * - Static/global guards (may outlive the UI context)
+     * - Guards stored in objects with unclear ownership relative to hotkey_manager
      */
     template<UIBackend Backend>
     class semantic_action_guard {
@@ -87,13 +103,16 @@ namespace onyxui {
         /**
          * @brief Construct and register semantic action
          *
-         * @param manager Hotkey manager (non-owning pointer)
+         * @param manager Hotkey manager (non-owning pointer). **Must outlive this guard.**
          * @param action Semantic action to register
          * @param handler Action handler function
          *
          * @details
          * Registers the semantic action immediately.
          * If manager is nullptr, guard is invalid but safe to destroy.
+         *
+         * @warning The manager must outlive this guard. See class documentation
+         *          for lifetime requirements.
          */
         semantic_action_guard(
             hotkey_manager_type* manager,
@@ -202,7 +221,7 @@ namespace onyxui {
         semantic_action_guard& operator=(const semantic_action_guard&) = delete;
 
     private:
-        hotkey_manager_type* m_manager = nullptr;  ///< Non-owning pointer to hotkey manager
+        hotkey_manager_type* m_manager = nullptr;  ///< Non-owning pointer to hotkey manager (must outlive guard)
         hotkey_action m_action = hotkey_action::activate_menu_bar;  ///< Semantic action being guarded (default value not used)
     };
 

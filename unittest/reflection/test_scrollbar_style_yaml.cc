@@ -90,8 +90,8 @@ TEST_CASE("scrollbar_style - YAML deserialization") {
 
 #else // !ONYXUI_ENABLE_YAML_THEMES
 
-TEST_CASE("scrollbar_style Serialization - YAML themes disabled") {
-    CHECK(true);
+TEST_CASE("scrollbar_style Serialization - YAML themes disabled" * doctest::skip(true)) {
+    // Skipped: YAML theme support not enabled in this build
 }
 
 #endif // ONYXUI_ENABLE_YAML_THEMES

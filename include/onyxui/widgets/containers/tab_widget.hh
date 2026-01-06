@@ -50,6 +50,7 @@
 #include "onyxui/core/rendering/render_context.hh"
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
 #include <onyxui/core/signal.hh>
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/concepts/point_like.hh>
@@ -484,9 +485,15 @@ namespace onyxui {
                     auto* themes = ui_services<Backend>::themes();
                     if (themes) {
                         if (auto* theme = themes->get_current_theme()) {
+                            // measure_text() returns physical pixels
                             auto font_size = Backend::renderer_type::measure_text("Xg", theme->tab_widget.tab_font);
-                            int font_height = size_utils::get_height(font_size);
-                            tab_bar_h = font_height + 2 * theme->tab_widget.tab_padding_vertical;
+                            int const font_height = size_utils::get_height(font_size);
+                            // Theme padding is in logical units - convert to physical
+                            int const padding_v = to_physical_y<Backend>(theme->tab_widget.tab_padding_vertical);
+                            // Compute tab bar height in physical pixels
+                            int const physical_tab_bar_h = font_height + 2 * padding_v;
+                            // Convert back to logical for layout calculations
+                            tab_bar_h = to_logical_y<Backend>(physical_tab_bar_h);
                         }
                     }
                     // Update cached value for next call
@@ -554,6 +561,15 @@ namespace onyxui {
             int total_tabs_width = 0;
             int const max_label_len = tab_style.min_tab_width - 2;
 
+            // Get spacing/padding from theme - these are in logical units
+            int const tab_spacing_logical = tab_style.tab_spacing;
+            int const arrow_width_logical = tab_style.scroll_arrow_width;
+            int const tab_padding_v_logical = tab_style.tab_padding_vertical;
+            // Convert to physical pixels to match measure_text() output
+            int const tab_spacing = to_physical_x<Backend>(tab_spacing_logical);
+            int const arrow_width = to_physical_x<Backend>(arrow_width_logical);
+            int const tab_padding_v = to_physical_y<Backend>(tab_padding_v_logical);
+
             // Measure close icon width from backend (physical pixels)
             auto close_icon_size = Backend::renderer_type::get_icon_size(tab_style.close_button_icon);
             int const physical_close_icon_width = size_utils::get_width(close_icon_size);
@@ -566,17 +582,16 @@ namespace onyxui {
                 if (m_tabs_closable && tab.closeable) {
                     tab_width += physical_close_icon_width;
                 }
-                total_tabs_width += tab_width + tab_style.tab_spacing;
+                total_tabs_width += tab_width + tab_spacing;
             }
 
-            // Determine if we need scroll arrows
-            int const arrow_width = tab_style.scroll_arrow_width;
+            // Determine if we need scroll arrows (arrow_width already converted above)
             m_has_overflow = (total_tabs_width > total_width);
 
-            // Compute tab bar height from font metrics + padding
+            // Compute tab bar height from font metrics + padding (all physical pixels now)
             auto font_size = Backend::renderer_type::measure_text("Xg", tab_style.tab_font);
             int font_height = size_utils::get_height(font_size);
-            int const physical_tab_bar_height = font_height + 2 * tab_style.tab_padding_vertical;
+            int const physical_tab_bar_height = font_height + 2 * tab_padding_v;
 
             // Compute scale factor from physical to logical units for hit testing
             // Mouse events are in logical units, but rendering uses physical pixels
@@ -659,12 +674,12 @@ namespace onyxui {
                         tab.close_x = (close_icon_x - x) * phys_to_logical;  // Logical units
                         typename Backend::point_type icon_pos{close_icon_x, tab_y};
                         ctx.draw_icon(tab_style.close_button_icon, icon_pos);
-                        tab_x = close_icon_x + physical_close_icon_width + tab_style.tab_spacing;
+                        tab_x = close_icon_x + physical_close_icon_width + tab_spacing;
                     } else {
                         tab.close_x = -1;
-                        tab_x = text_end_x + tab_style.tab_spacing;
+                        tab_x = text_end_x + tab_spacing;
                     }
-                    tab.x_end = (tab_x - tab_style.tab_spacing - x) * phys_to_logical;  // Logical units
+                    tab.x_end = (tab_x - tab_spacing - x) * phys_to_logical;  // Logical units
                 }
 
                 // Mark tabs before scroll_offset as not visible

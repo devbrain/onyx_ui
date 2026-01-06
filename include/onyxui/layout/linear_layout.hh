@@ -451,8 +451,12 @@ namespace onyxui {
                 logical_unit const percentage_h = logical_unit(content_h.value * static_cast<double>(child->h_constraint().percentage));
                 logical_unit const clamped_h = child->h_constraint().clamp(percentage_h);
                 total_fixed_height = total_fixed_height + clamped_h;
+            } else if (child->h_constraint().policy == size_policy::fixed) {
+                // Use preferred_size for fixed-policy children (clamp to min/max)
+                logical_unit const fixed_h = child->h_constraint().clamp(child->h_constraint().preferred_size);
+                total_fixed_height = total_fixed_height + fixed_h;
             } else {
-                // Only fixed-size children contribute to total_fixed_height
+                // content policy uses measured size
                 total_fixed_height = total_fixed_height + meas_h;
             }
         }
@@ -521,6 +525,9 @@ namespace onyxui {
                 // CRITICAL FIX: Constrain content-policy children to available space
                 // Without this, they can overflow (e.g., 116px child in 6px container)
                 child_height = min(meas_h, content_h);
+            } else if (child->h_constraint().policy == size_policy::fixed) {
+                // Use preferred_size for fixed-policy children
+                child_height = child->h_constraint().preferred_size;
             }
 
             // Apply height constraints (already applied for weighted, but needed for others)
@@ -582,8 +589,12 @@ namespace onyxui {
                 logical_unit const percentage_w = logical_unit(content_w.value * static_cast<double>(child->w_constraint().percentage));
                 logical_unit const clamped_w = child->w_constraint().clamp(percentage_w);
                 total_fixed_width = total_fixed_width + clamped_w;
+            } else if (child->w_constraint().policy == size_policy::fixed) {
+                // Use preferred_size for fixed-policy children (clamp to min/max)
+                logical_unit const fixed_w = child->w_constraint().clamp(child->w_constraint().preferred_size);
+                total_fixed_width = total_fixed_width + fixed_w;
             } else {
-                // Only fixed-size children contribute to total_fixed_width
+                // content policy uses measured size
                 total_fixed_width = total_fixed_width + meas_w;
             }
         }
@@ -652,6 +663,9 @@ namespace onyxui {
                 // CRITICAL FIX: Constrain content-policy children to available space
                 // Without this, they can overflow the container
                 child_width = min(meas_w, content_w);
+            } else if (child->w_constraint().policy == size_policy::fixed) {
+                // Use preferred_size for fixed-policy children
+                child_width = child->w_constraint().preferred_size;
             }
 
             // Apply width constraints (already applied for weighted, but needed for others)

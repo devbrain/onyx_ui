@@ -702,4 +702,49 @@ TEST_SUITE("Layer Manager") {
         mgr.clear_all_layers();
         CHECK(mgr.layer_count() == 0);
     }
+
+    TEST_CASE("Modal dialog event routing with deferred positioning") {
+        // This test verifies that modal dialogs added after initial render
+        // can receive mouse events properly (ensure_layers_positioned fix)
+        layer_manager<test_backend> mgr;
+
+        // First, simulate a render with viewport to set up metrics
+        test_backend::renderer_type renderer;
+        test_backend::rect_type viewport;
+        rect_utils::set_bounds(viewport, 0, 0, 80, 25);
+        ui_theme<test_backend> test_theme;
+        test_theme.name = "TestTheme";
+
+        auto base_layer = std::make_shared<TestLayer>();
+        mgr.add_layer(layer_type::base, base_layer);
+        mgr.render_all_layers(renderer, viewport, &test_theme, make_terminal_metrics<test_backend>());
+
+        // Now create a modal dialog (will be positioned on next render/event)
+        auto modal = std::make_shared<TestLayer>();
+        modal->set_preferred_size(40, 10);
+        modal->arrange(logical_rect{0_lu, 0_lu, 40_lu, 10_lu});
+        modal->event_handled = true;
+
+        mgr.show_modal_dialog(modal.get());
+        CHECK(mgr.layer_count() == 2);
+
+        // Create mouse event that should hit the modal (center of screen)
+        // The modal should be positioned in the center by ensure_layers_positioned()
+        mouse_event mouse{
+            .x = 40.0_lu,  // Center X
+            .y = 12.0_lu,  // Center Y
+            .btn = mouse_event::button::left,
+            .act = mouse_event::action::press,
+            .modifiers = {}
+        };
+        ui_event event{mouse};
+
+        // Route event - this should trigger ensure_layers_positioned() internally
+        // which positions and arranges the modal, allowing hit testing to work
+        bool handled = mgr.route_event(event);
+
+        // Modal should have received the event
+        CHECK(handled);
+        CHECK(modal->last_event_received);
+    }
 }

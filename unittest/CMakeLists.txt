@@ -58,6 +58,8 @@ add_executable(ui_unittest
         widgets/test_combo_box.cc
         widgets/test_combo_box_view.cc
         widgets/test_list_box.cc
+        widgets/test_table_view.cc
+        widgets/test_table.cc
         widgets/test_label.cc
         widgets/test_line_edit.cc
         widgets/test_progress_bar.cc
@@ -83,6 +85,7 @@ add_executable(ui_unittest
         widgets/test_group_box.cc
         widgets/test_panel_layout.cc
         widgets/test_group_box_layout.cc
+        widgets/test_content_area_bounds.cc
         widgets/test_layout_edge_cases.cc
         widgets/test_complex_layouts.cc
         widgets/test_theme_layout_integration.cc
@@ -146,6 +149,7 @@ add_executable(ui_unittest
         theming/test_theme_builder.cc
         # MVC system tests
         mvc/test_mvc_basic.cc
+        mvc/test_table_model.cc
 )
 # Apply warning flags from neutrino-cmake if available
 if(TARGET neutrino::warnings)
@@ -174,4 +178,3 @@ if(NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
     target_compile_definitions(ui_unittest PRIVATE NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO=1)
     message(STATUS "ui_unittest: Linked with conio_unittest DLL (doctest auto-discovery)")
 endif()
-

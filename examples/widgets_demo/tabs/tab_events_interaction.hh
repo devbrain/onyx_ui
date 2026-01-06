@@ -50,7 +50,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     content->template emplace_child<onyxui::label>("");  // Spacer
 
     // ========== ROW 1: Event System | Focus Management ==========
-    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* row1 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
 
     // ========== EVENT SYSTEM SECTION ==========
     auto* event_section = row1->template emplace_child<onyxui::group_box>();
@@ -158,7 +158,7 @@ std::unique_ptr<onyxui::panel<Backend>> create_tab_events_interaction() {
     });
 
     // ========== ROW 2: Hotkeys | Signal/Slot ==========
-    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::small);
+    auto* row2 = content->template emplace_child<onyxui::hbox>(onyxui::spacing::medium);
 
     // ========== HOTKEYS SECTION ==========
     auto* hotkeys_section = row2->template emplace_child<onyxui::group_box>();
