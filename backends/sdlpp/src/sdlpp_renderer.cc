@@ -102,7 +102,6 @@ public:
             // Width is sum of advances (pen position after all glyphs)
             auto* cache = cache_it->second.get();
             int pen_x = 0;
-            int height = static_cast<int>(fnt->line_height());
 
             for (char32_t cp : onyx_font::utf8_view(text)) {
                 const auto* glyph = cache->find_glyph(cp);
@@ -115,12 +114,21 @@ public:
                 }
             }
 
+            // Use font-wide metrics (ascent + descent) instead of measuring "X"
+            // which has no descenders. get_metrics() returns the full font height
+            // needed to display any character including those with descenders (g, p, y, etc.)
+            auto font_metrics = fnt->get_metrics();
+            int height = static_cast<int>(std::ceil(font_metrics.height));
+
             return {pen_x, height};
         }
 
         // No cache yet, use font measurement
+        // Use ceil() for height to ensure descenders are not clipped
+        // (same as cached path above)
         auto metrics = fnt->measure(text);
-        return {static_cast<int>(metrics.width), static_cast<int>(metrics.height)};
+        return {static_cast<int>(std::ceil(metrics.width)),
+                static_cast<int>(std::ceil(metrics.height))};
     }
 
 private:
