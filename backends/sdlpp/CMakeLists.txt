@@ -13,12 +13,14 @@ add_backend_library(
     SOURCES
         src/sdlpp_renderer.cc
         src/sdlpp_backend.cc
+        src/xpm_parser.cc
     PUBLIC_HEADERS
         include/onyxui/sdlpp/colors.hh
         include/onyxui/sdlpp/geometry.hh
         include/onyxui/sdlpp/sdlpp_backend.hh
         include/onyxui/sdlpp/sdlpp_events.hh
         include/onyxui/sdlpp/sdlpp_renderer.hh
+        include/onyxui/sdlpp/xpm_parser.hh
     DEPENDENCIES
         neutrino::sdlpp
 )

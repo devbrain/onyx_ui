@@ -241,13 +241,17 @@ protected:
         // Get colors from resolved style
         auto fg = ctx.style().foreground_color;
 
-        // Draw radio icon
-        const typename Backend::point_type icon_pos{x, y};
+        // Vertically center icon and text within widget bounds
+        const int icon_y = y + (final_height - icon_height) / 2;
+        const int text_y = y + (final_height - text_height) / 2;
+
+        // Draw radio icon (vertically centered)
+        const typename Backend::point_type icon_pos{x, icon_y};
         ctx.draw_icon(icon, icon_pos);
 
-        // Draw label text (if any)
+        // Draw label text (if any, vertically centered)
         if (!m_text.empty()) {
-            const typename Backend::point_type text_pos{x + icon_width + spacing, y};
+            const typename Backend::point_type text_pos{x + icon_width + spacing, text_y};
             ctx.draw_text(m_text, text_pos, default_font, fg);
         }
     }

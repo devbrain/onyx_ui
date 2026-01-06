@@ -1,6 +1,9 @@
 #include <onyxui/sdlpp/sdlpp_renderer.hh>
+#include <onyxui/sdlpp/xpm_parser.hh>
 
 #include <sdlpp/video/renderer.hh>
+#include <sdlpp/video/texture.hh>
+#include <sdlpp/video/surface.hh>
 #include <sdlpp/font/font.hh>
 #include <sdlpp/font/font_cache.hh>
 #include <sdlpp/image/image.hh>
@@ -215,6 +218,159 @@ private:
 };
 
 // =================================================================
+// XPM Icon Texture Cache
+// =================================================================
+
+/**
+ * @brief Cache for XPM-based icon textures
+ *
+ * Loads Windows 3.11 XPM icons on first use and caches them as SDL textures.
+ */
+class xpm_icon_cache {
+public:
+    /**
+     * @brief Icon types that have XPM versions
+     */
+    enum class xpm_icon_type {
+        // Window controls
+        close_active,
+        close_inactive,
+        minimize_active,
+        minimize_inactive,
+        maximize_active,
+        maximize_inactive,
+        restore_active,
+        restore_inactive,
+        menu_active,
+        menu_inactive,
+        // Checkboxes
+        checkbox_unchecked,
+        checkbox_checked,
+        checkbox_indeterminate,
+        checkbox_unchecked_disabled,
+        checkbox_checked_disabled,
+        // Radio buttons
+        radio_unchecked,
+        radio_checked,
+        radio_unchecked_disabled,
+        radio_checked_disabled,
+        // Scrollbar arrows
+        arrow_up,
+        arrow_down,
+        arrow_left,
+        arrow_right,
+        arrow_up_disabled,
+        arrow_down_disabled,
+        arrow_left_disabled,
+        arrow_right_disabled
+    };
+
+    /**
+     * @brief Get or create texture for an XPM icon
+     * @param renderer SDL renderer for texture creation
+     * @param type Icon type to get
+     * @return Pointer to cached texture, or nullptr on failure
+     */
+    ::sdlpp::texture* get_icon(::sdlpp::renderer& renderer, xpm_icon_type type) {
+        auto it = m_textures.find(type);
+        if (it != m_textures.end()) {
+            return &it->second;
+        }
+
+        // Get XPM data for this icon type
+        const char* const* xpm_data = get_xpm_data(type);
+        if (!xpm_data) {
+            return nullptr;
+        }
+
+        // Parse XPM
+        auto img_opt = xpm_image::parse(xpm_data);
+        if (!img_opt || img_opt->empty()) {
+            return nullptr;
+        }
+
+        auto& img = *img_opt;
+
+        // Create surface from pixel data
+        // XPM parser stores as {r, g, b, a} struct which on little-endian
+        // systems reads as ABGR when interpreted as 32-bit values
+        int pitch = img.width() * 4;
+        auto surf_result = ::sdlpp::surface::create_from_pixels(
+            const_cast<std::uint8_t*>(img.rgba_data()),
+            img.width(), img.height(), pitch,
+            ::sdlpp::pixel_format_enum::ABGR8888
+        );
+
+        if (!surf_result) {
+            return nullptr;
+        }
+
+        // Create texture from surface
+        auto tex_result = ::sdlpp::texture::create(renderer, *surf_result);
+        if (!tex_result) {
+            return nullptr;
+        }
+
+        // Enable alpha blending for transparency
+        tex_result->set_blend_mode(::sdlpp::blend_mode::blend);
+
+        // Cache and return
+        auto [inserted_it, success] = m_textures.emplace(type, std::move(*tex_result));
+        return success ? &inserted_it->second : nullptr;
+    }
+
+    void clear() {
+        m_textures.clear();
+    }
+
+private:
+    std::unordered_map<xpm_icon_type, ::sdlpp::texture> m_textures;
+
+    static const char* const* get_xpm_data(xpm_icon_type type) {
+        switch (type) {
+            // Window controls
+            case xpm_icon_type::close_active:      return win311_icons::close_active;
+            case xpm_icon_type::close_inactive:    return win311_icons::close_inactive;
+            case xpm_icon_type::minimize_active:   return win311_icons::minimize_active;
+            case xpm_icon_type::minimize_inactive: return win311_icons::minimize_inactive;
+            case xpm_icon_type::maximize_active:   return win311_icons::maximize_active;
+            case xpm_icon_type::maximize_inactive: return win311_icons::maximize_inactive;
+            case xpm_icon_type::restore_active:    return win311_icons::restore_active;
+            case xpm_icon_type::restore_inactive:  return win311_icons::restore_inactive;
+            case xpm_icon_type::menu_active:       return win311_icons::menu_active;
+            case xpm_icon_type::menu_inactive:     return win311_icons::menu_inactive;
+            // Checkboxes
+            case xpm_icon_type::checkbox_unchecked:          return win311_icons::checkbox_unchecked;
+            case xpm_icon_type::checkbox_checked:            return win311_icons::checkbox_checked;
+            case xpm_icon_type::checkbox_indeterminate:      return win311_icons::checkbox_indeterminate;
+            case xpm_icon_type::checkbox_unchecked_disabled: return win311_icons::checkbox_unchecked_disabled;
+            case xpm_icon_type::checkbox_checked_disabled:   return win311_icons::checkbox_checked_disabled;
+            // Radio buttons
+            case xpm_icon_type::radio_unchecked:          return win311_icons::radio_unchecked;
+            case xpm_icon_type::radio_checked:            return win311_icons::radio_checked;
+            case xpm_icon_type::radio_unchecked_disabled: return win311_icons::radio_unchecked_disabled;
+            case xpm_icon_type::radio_checked_disabled:   return win311_icons::radio_checked_disabled;
+            // Scrollbar arrows
+            case xpm_icon_type::arrow_up:             return win311_icons::arrow_up;
+            case xpm_icon_type::arrow_down:           return win311_icons::arrow_down;
+            case xpm_icon_type::arrow_left:           return win311_icons::arrow_left;
+            case xpm_icon_type::arrow_right:          return win311_icons::arrow_right;
+            case xpm_icon_type::arrow_up_disabled:    return win311_icons::arrow_up_disabled;
+            case xpm_icon_type::arrow_down_disabled:  return win311_icons::arrow_down_disabled;
+            case xpm_icon_type::arrow_left_disabled:  return win311_icons::arrow_left_disabled;
+            case xpm_icon_type::arrow_right_disabled: return win311_icons::arrow_right_disabled;
+        }
+        return nullptr;
+    }
+};
+
+// Global XPM icon cache (per-process)
+static xpm_icon_cache& get_xpm_cache() {
+    static xpm_icon_cache cache;
+    return cache;
+}
+
+// =================================================================
 // Renderer Implementation
 // =================================================================
 
@@ -323,6 +479,126 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
     auto& rend = *m_pimpl->renderer;
     const auto sdl_fg = ::sdlpp::color{fg.r, fg.g, fg.b, fg.a};
     const auto sdl_bg = ::sdlpp::color{bg.r, bg.g, bg.b, bg.a};
+
+    // Try to use XPM texture for window control icons
+    // These are the authentic Windows 3.11 button graphics
+    auto try_render_xpm = [&](xpm_icon_cache::xpm_icon_type active_type,
+                               xpm_icon_cache::xpm_icon_type inactive_type) -> bool {
+        // Determine if active based on background brightness
+        // Active buttons have gray background, inactive have different appearance
+        // For now, always use active icons (the title bar styling handles visual state)
+        auto& cache = get_xpm_cache();
+        auto* texture = cache.get_icon(rend, active_type);
+        if (!texture) {
+            return false;  // Fall back to procedural drawing
+        }
+
+        // Render the XPM texture scaled to fit the target rect
+        ::sdlpp::rect_i dst{r.x, r.y, r.w, r.h};
+        std::optional<::sdlpp::rect_i> src_opt = std::nullopt;
+        std::optional<::sdlpp::rect_i> dst_opt = dst;
+        rend.copy(*texture, src_opt, dst_opt);
+        return true;
+    };
+
+    // Helper to render a single XPM icon type
+    auto try_render_single_xpm = [&](xpm_icon_cache::xpm_icon_type type) -> bool {
+        auto& cache = get_xpm_cache();
+        auto* texture = cache.get_icon(rend, type);
+        if (!texture) {
+            return false;
+        }
+        ::sdlpp::rect_i dst{r.x, r.y, r.w, r.h};
+        std::optional<::sdlpp::rect_i> src_opt = std::nullopt;
+        std::optional<::sdlpp::rect_i> dst_opt = dst;
+        rend.copy(*texture, src_opt, dst_opt);
+        return true;
+    };
+
+    // Check for icons that have XPM versions
+    switch (style) {
+        // Window controls
+        case icon_style::close_x:
+            if (try_render_xpm(xpm_icon_cache::xpm_icon_type::close_active,
+                               xpm_icon_cache::xpm_icon_type::close_inactive)) {
+                return;
+            }
+            break;
+        case icon_style::minimize:
+            if (try_render_xpm(xpm_icon_cache::xpm_icon_type::minimize_active,
+                               xpm_icon_cache::xpm_icon_type::minimize_inactive)) {
+                return;
+            }
+            break;
+        case icon_style::maximize:
+            if (try_render_xpm(xpm_icon_cache::xpm_icon_type::maximize_active,
+                               xpm_icon_cache::xpm_icon_type::maximize_inactive)) {
+                return;
+            }
+            break;
+        case icon_style::restore:
+            if (try_render_xpm(xpm_icon_cache::xpm_icon_type::restore_active,
+                               xpm_icon_cache::xpm_icon_type::restore_inactive)) {
+                return;
+            }
+            break;
+        case icon_style::menu:
+            if (try_render_xpm(xpm_icon_cache::xpm_icon_type::menu_active,
+                               xpm_icon_cache::xpm_icon_type::menu_inactive)) {
+                return;
+            }
+            break;
+        // Checkboxes
+        case icon_style::checkbox_unchecked:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::checkbox_unchecked)) {
+                return;
+            }
+            break;
+        case icon_style::checkbox_checked:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::checkbox_checked)) {
+                return;
+            }
+            break;
+        case icon_style::checkbox_indeterminate:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::checkbox_indeterminate)) {
+                return;
+            }
+            break;
+        // Radio buttons
+        case icon_style::radio_unchecked:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::radio_unchecked)) {
+                return;
+            }
+            break;
+        case icon_style::radio_checked:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::radio_checked)) {
+                return;
+            }
+            break;
+        // Scrollbar arrows
+        case icon_style::arrow_up:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::arrow_up)) {
+                return;
+            }
+            break;
+        case icon_style::arrow_down:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::arrow_down)) {
+                return;
+            }
+            break;
+        case icon_style::arrow_left:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::arrow_left)) {
+                return;
+            }
+            break;
+        case icon_style::arrow_right:
+            if (try_render_single_xpm(xpm_icon_cache::xpm_icon_type::arrow_right)) {
+                return;
+            }
+            break;
+        default:
+            break;  // Use procedural drawing for other icons
+    }
 
     // Helper to draw filled triangle (for arrows)
     auto fill_triangle = [&rend](int x1, int y1, int x2, int y2, int x3, int y3) {
@@ -494,50 +770,62 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // Minimize (▁)
+        // Minimize - Windows 3.11 style: DOWN arrow/chevron
         // ═══════════════════════════════════════════════════════════════
         case icon_style::minimize: {
             rend.set_draw_color(sdl_fg);
-            int m = std::max(2, r.w / 4);
-            int y = r.y + r.h - m - 2;
-            for (int t = 0; t < 2; ++t) {
-                rend.draw_line(::sdlpp::point_i{r.x + m, y + t},
-                              ::sdlpp::point_i{r.x + r.w - m, y + t});
+            int cx = r.x + r.w / 2;
+            int cy = r.y + r.h / 2;
+            int size = std::min(r.w, r.h) / 3;
+            // Draw down-pointing chevron (Win3.11 minimize style)
+            // Widest row at top, narrowing to point at bottom
+            for (int row = 0; row <= size; ++row) {
+                int half_width = size - row;
+                rend.draw_line(::sdlpp::point_i{cx - half_width, cy - size/2 + row},
+                              ::sdlpp::point_i{cx + half_width, cy - size/2 + row});
             }
             break;
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // Maximize (□)
+        // Maximize - Windows 3.11 style: UP arrow/chevron
         // ═══════════════════════════════════════════════════════════════
         case icon_style::maximize: {
             rend.set_draw_color(sdl_fg);
-            int m = std::max(2, r.w / 4);
-            ::sdlpp::rect_i rect{r.x + m, r.y + m, r.w - 2*m, r.h - 2*m};
-            rend.draw_rect(rect);
-            // Top border thicker (Win3.11 style)
-            rend.draw_line(::sdlpp::point_i{r.x + m, r.y + m + 1},
-                          ::sdlpp::point_i{r.x + r.w - m, r.y + m + 1});
+            int cx = r.x + r.w / 2;
+            int cy = r.y + r.h / 2;
+            int size = std::min(r.w, r.h) / 3;
+            // Draw up-pointing chevron (Win3.11 maximize style)
+            // Point at top, widening to base at bottom
+            for (int row = 0; row <= size; ++row) {
+                int half_width = row;
+                rend.draw_line(::sdlpp::point_i{cx - half_width, cy - size/2 + row},
+                              ::sdlpp::point_i{cx + half_width, cy - size/2 + row});
+            }
             break;
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // Restore (⧉)
+        // Restore - Windows 3.11 style: UP + DOWN arrows
         // ═══════════════════════════════════════════════════════════════
         case icon_style::restore: {
             rend.set_draw_color(sdl_fg);
-            int m = std::max(2, r.w / 4);
-            int off = std::max(2, r.w / 6);
-            // Back window
-            ::sdlpp::rect_i back{r.x + m + off, r.y + m, r.w - 2*m - off, r.h - 2*m - off};
-            rend.draw_rect(back);
-            // Front window
-            ::sdlpp::rect_i front{r.x + m, r.y + m + off, r.w - 2*m - off, r.h - 2*m - off};
-            // Fill front background first
-            rend.set_draw_color(sdl_bg);
-            rend.fill_rect(front);
-            rend.set_draw_color(sdl_fg);
-            rend.draw_rect(front);
+            int cx = r.x + r.w / 2;
+            int cy = r.y + r.h / 2;
+            int size = std::min(r.w, r.h) / 4;
+            int gap = 1;
+            // Draw up arrow (top half)
+            for (int row = 0; row <= size; ++row) {
+                int half_width = row;
+                rend.draw_line(::sdlpp::point_i{cx - half_width, cy - gap - size + row},
+                              ::sdlpp::point_i{cx + half_width, cy - gap - size + row});
+            }
+            // Draw down arrow (bottom half)
+            for (int row = 0; row <= size; ++row) {
+                int half_width = size - row;
+                rend.draw_line(::sdlpp::point_i{cx - half_width, cy + gap + row},
+                              ::sdlpp::point_i{cx + half_width, cy + gap + row});
+            }
             break;
         }
 
@@ -566,17 +854,33 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
         // Checkbox Unchecked [ ]
         // ═══════════════════════════════════════════════════════════════
         case icon_style::checkbox_unchecked: {
-            int m = 2;
-            // Draw sunken border (Win3.11 style)
-            rend.set_draw_color(::sdlpp::color{128, 128, 128, 255}); // Dark gray
+            // Windows 3.11 style: 2-level sunken border
+            // Outer: dark gray (#7d7d7d) top-left, white bottom-right
+            // Inner: black top-left, button face bottom-right
+            constexpr ::sdlpp::color dark_gray{125, 125, 125, 255};  // #7d7d7d
+            constexpr ::sdlpp::color black{0, 0, 0, 255};
+            constexpr ::sdlpp::color white{255, 255, 255, 255};
+            constexpr ::sdlpp::color button_face{192, 192, 192, 255};  // #C0C0C0
+
+            // Outer bevel - dark gray top/left
+            rend.set_draw_color(dark_gray);
             rend.draw_line(::sdlpp::point_i{r.x, r.y}, ::sdlpp::point_i{r.x + r.w - 1, r.y});
             rend.draw_line(::sdlpp::point_i{r.x, r.y}, ::sdlpp::point_i{r.x, r.y + r.h - 1});
-            rend.set_draw_color(::sdlpp::color{255, 255, 255, 255}); // White
+            // Outer bevel - white bottom/right
+            rend.set_draw_color(white);
             rend.draw_line(::sdlpp::point_i{r.x + r.w - 1, r.y}, ::sdlpp::point_i{r.x + r.w - 1, r.y + r.h - 1});
             rend.draw_line(::sdlpp::point_i{r.x, r.y + r.h - 1}, ::sdlpp::point_i{r.x + r.w - 1, r.y + r.h - 1});
-            // Fill interior
+            // Inner bevel - black top/left
+            rend.set_draw_color(black);
+            rend.draw_line(::sdlpp::point_i{r.x + 1, r.y + 1}, ::sdlpp::point_i{r.x + r.w - 2, r.y + 1});
+            rend.draw_line(::sdlpp::point_i{r.x + 1, r.y + 1}, ::sdlpp::point_i{r.x + 1, r.y + r.h - 2});
+            // Inner bevel - button face bottom/right
+            rend.set_draw_color(button_face);
+            rend.draw_line(::sdlpp::point_i{r.x + r.w - 2, r.y + 1}, ::sdlpp::point_i{r.x + r.w - 2, r.y + r.h - 2});
+            rend.draw_line(::sdlpp::point_i{r.x + 1, r.y + r.h - 2}, ::sdlpp::point_i{r.x + r.w - 2, r.y + r.h - 2});
+            // Fill interior with white
             rend.set_draw_color(sdl_bg);
-            ::sdlpp::rect_i inner{r.x + 1, r.y + 1, r.w - 2, r.h - 2};
+            ::sdlpp::rect_i inner{r.x + 2, r.y + 2, r.w - 4, r.h - 4};
             rend.fill_rect(inner);
             break;
         }
@@ -587,14 +891,17 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
         case icon_style::checkbox_checked: {
             // Draw box first
             draw_icon(r, icon_style::checkbox_unchecked, fg, bg);
-            // Draw checkmark
+            // Draw checkmark - Windows 3.11 style thick checkmark
             rend.set_draw_color(sdl_fg);
             int m = 3;
+            // Draw checkmark with multiple passes for thickness
             for (int t = 0; t < 2; ++t) {
-                rend.draw_line(::sdlpp::point_i{r.x + m, r.y + r.h/2 + t},
-                              ::sdlpp::point_i{r.x + r.w/3, r.y + r.h - m + t});
-                rend.draw_line(::sdlpp::point_i{r.x + r.w/3, r.y + r.h - m + t},
-                              ::sdlpp::point_i{r.x + r.w - m, r.y + m + t});
+                // Left part of checkmark (going down)
+                rend.draw_line(::sdlpp::point_i{r.x + m + t, r.y + r.h/2},
+                              ::sdlpp::point_i{r.x + r.w/3 + t, r.y + r.h - m - 1});
+                // Right part of checkmark (going up)
+                rend.draw_line(::sdlpp::point_i{r.x + r.w/3 + t, r.y + r.h - m - 1},
+                              ::sdlpp::point_i{r.x + r.w - m + t, r.y + m});
             }
             break;
         }
@@ -616,16 +923,48 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
         // Radio Unchecked ( )
         // ═══════════════════════════════════════════════════════════════
         case icon_style::radio_unchecked: {
+            // Windows 3.11 style: circular 3D sunken border
+            constexpr ::sdlpp::color dark_gray{125, 125, 125, 255};  // #7d7d7d
+            constexpr ::sdlpp::color black{0, 0, 0, 255};
+            constexpr ::sdlpp::color white{255, 255, 255, 255};
+            constexpr ::sdlpp::color button_face{192, 192, 192, 255};
+
             int cx = r.x + r.w / 2;
             int cy = r.y + r.h / 2;
             int radius = std::min(r.w, r.h) / 2 - 1;
-            // Draw circle outline (simplified)
-            rend.set_draw_color(::sdlpp::color{128, 128, 128, 255});
-            for (int angle = 0; angle < 360; angle += 15) {
+
+            // Draw filled white circle for interior
+            rend.set_draw_color(sdl_bg);
+            for (int dy = -radius + 2; dy <= radius - 2; ++dy) {
+                for (int dx = -radius + 2; dx <= radius - 2; ++dx) {
+                    if (dx*dx + dy*dy <= (radius - 2) * (radius - 2)) {
+                        rend.draw_point(::sdlpp::point_i{cx + dx, cy + dy});
+                    }
+                }
+            }
+
+            // Draw 3D bevel effect on circle
+            // Top-left arc: dark gray outer, black inner
+            // Bottom-right arc: white outer, button face inner
+            for (int angle = 0; angle < 360; angle += 5) {
                 double rad = angle * 3.14159 / 180.0;
-                int x = cx + static_cast<int>(radius * std::cos(rad));
-                int y = cy + static_cast<int>(radius * std::sin(rad));
-                rend.draw_point(::sdlpp::point_i{x, y});
+                int x_outer = cx + static_cast<int>(radius * std::cos(rad));
+                int y_outer = cy + static_cast<int>(radius * std::sin(rad));
+                int x_inner = cx + static_cast<int>((radius - 1) * std::cos(rad));
+                int y_inner = cy + static_cast<int>((radius - 1) * std::sin(rad));
+
+                // Determine if we're in top-left or bottom-right half
+                if (angle >= 225 || angle < 45) {  // Right side - white/button_face
+                    rend.set_draw_color(white);
+                    rend.draw_point(::sdlpp::point_i{x_outer, y_outer});
+                    rend.set_draw_color(button_face);
+                    rend.draw_point(::sdlpp::point_i{x_inner, y_inner});
+                } else if (angle >= 45 && angle < 225) {  // Left side - dark_gray/black
+                    rend.set_draw_color(dark_gray);
+                    rend.draw_point(::sdlpp::point_i{x_outer, y_outer});
+                    rend.set_draw_color(black);
+                    rend.draw_point(::sdlpp::point_i{x_inner, y_inner});
+                }
             }
             break;
         }
@@ -635,11 +974,12 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
         // ═══════════════════════════════════════════════════════════════
         case icon_style::radio_checked: {
             draw_icon(r, icon_style::radio_unchecked, fg, bg);
-            // Draw filled center
-            rend.set_draw_color(sdl_fg);
+            // Draw filled black center dot - Windows 3.11 style
+            constexpr ::sdlpp::color black{0, 0, 0, 255};
+            rend.set_draw_color(black);
             int cx = r.x + r.w / 2;
             int cy = r.y + r.h / 2;
-            int radius = std::min(r.w, r.h) / 4;
+            int radius = std::min(r.w, r.h) / 5;  // Slightly smaller dot
             for (int dy = -radius; dy <= radius; ++dy) {
                 for (int dx = -radius; dx <= radius; ++dx) {
                     if (dx*dx + dy*dy <= radius*radius) {
@@ -892,16 +1232,9 @@ size sdlpp_renderer::get_icon_size(icon_style icon) noexcept
         case icon_style::checkbox_unchecked:
         case icon_style::checkbox_checked:
         case icon_style::checkbox_indeterminate:
-        case icon_style::radio_unchecked:
-        case icon_style::radio_checked:
-            return {16, 16};
+            return {13, 13};  // Windows 3.11 standard checkbox size
 
-        case icon_style::minimize:
-        case icon_style::maximize:
-        case icon_style::restore:
-        case icon_style::close_x:
-            return {12, 12};
-
+        // All other icons use 16x16 to match XPM artwork
         default:
             return {16, 16};
     }

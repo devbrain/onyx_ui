@@ -301,13 +301,17 @@ protected:
         // Get colors from resolved style
         auto fg = ctx.style().foreground_color;
 
-        // Draw checkbox icon
-        const typename Backend::point_type box_pos{x, y};
+        // Vertically center icon and text within widget bounds
+        const int box_y = y + (final_height - box_height) / 2;
+        const int text_y = y + (final_height - text_height) / 2;
+
+        // Draw checkbox icon (vertically centered)
+        const typename Backend::point_type box_pos{x, box_y};
         ctx.draw_icon(box_icon, box_pos);
 
-        // Draw label text (if any)
+        // Draw label text (if any, vertically centered)
         if (!m_text.empty()) {
-            const typename Backend::point_type text_pos{x + box_width + spacing, y};
+            const typename Backend::point_type text_pos{x + box_width + spacing, text_y};
             ctx.draw_text(m_text, text_pos, default_font, fg);
         }
     }

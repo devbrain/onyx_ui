@@ -569,6 +569,9 @@ namespace onyxui {
         m_flags.is_modal = false;
 
         this->set_visible(true);
+
+        // Set window focus so title bar shows as focused (blue)
+        set_window_focus(true);
     }
 
     template<UIBackend Backend>
@@ -603,6 +606,9 @@ namespace onyxui {
             focus_mgr->clear_hover();
             focus_mgr->set_focus(this);
         }
+
+        // Set window focus so title bar shows as focused (blue)
+        set_window_focus(true);
     }
 
     template<UIBackend Backend>

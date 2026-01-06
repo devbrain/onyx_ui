@@ -24,7 +24,9 @@ namespace onyxui {
         : base(
             std::make_unique<linear_layout<Backend>>(
                 direction::horizontal,
-                0  // No spacing - title and buttons are adjacent
+                0,  // No spacing - title and buttons are adjacent
+                horizontal_alignment::stretch,
+                vertical_alignment::center  // Center icons and text vertically
             ),
             parent
           )

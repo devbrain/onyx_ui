@@ -21,16 +21,18 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.name = "Windows 3.11";
     t.description = "Classic Windows 3.11 color scheme with 3D beveled controls";
 
-    // Windows 3.11 system colors
-    constexpr color button_face{192, 192, 192};      // btnface
-    constexpr color button_shadow{128, 128, 128};    // btnshadow
+    // Windows 3.11 system colors (authentic from B00merang Windows-3.11 theme)
+    constexpr color button_face{192, 192, 192};      // btnface #C0C0C0
+    constexpr color button_shadow{125, 125, 125};    // btnshadow #7d7d7d
     constexpr color button_highlight{255, 255, 255}; // btnhighlight
-    constexpr color window_bg{192, 192, 192};        // window background
-    constexpr color window_text{0, 0, 0};            // windowtext
-    constexpr color highlight{0, 0, 128};            // highlight (navy)
-    constexpr color highlight_text{255, 255, 255};   // highlighttext
+    constexpr color window_bg{192, 192, 192};        // window background #C0C0C0
+    constexpr color window_text{0, 0, 0};            // windowtext #000000
+    constexpr color highlight{0, 0, 170};            // highlight #0000AA (authentic Win3.11 blue)
+    constexpr color highlight_text{255, 255, 255};   // highlighttext #FFFFFF
     constexpr color white{255, 255, 255};
-    constexpr color gray_text{140, 140, 140};        // disabled/grayed text (darker for visibility)
+    constexpr color gray_text{96, 96, 96};           // disabled/grayed text #606060
+    constexpr color disabled_bg{182, 182, 182};      // disabled background #b6b6b6
+    constexpr color menu_bg{255, 255, 255};          // menu background (white in Win3.11)
 
     // Default font (will use system fallback, sized for Windows 3.11 look)
     // MS Sans Serif 8pt was typical; we use 14px as a reasonable approximation
@@ -95,21 +97,21 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.panel.background = window_bg;
     t.panel.border_color = button_shadow;
 
-    // Menu
-    t.menu.background = window_bg;
-    t.menu.border_color = button_shadow;
+    // Menu - white background in Windows 3.11
+    t.menu.background = menu_bg;
+    t.menu.border_color = window_text;  // Black border
 
     // Menu item
-    t.menu_item.normal.background = window_bg;
+    t.menu_item.normal.background = menu_bg;
     t.menu_item.normal.foreground = window_text;
     t.menu_item.highlighted.background = highlight;
     t.menu_item.highlighted.foreground = highlight_text;
-    t.menu_item.disabled.background = window_bg;
-    t.menu_item.disabled.foreground = button_shadow;
+    t.menu_item.disabled.background = menu_bg;
+    t.menu_item.disabled.foreground = gray_text;
 
     // Menu bar - values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
-    t.menu_bar.item_spacing = 2;             // 16 pixels - Space between File, Edit, etc.
-    t.menu_bar.item_padding_horizontal = 1.5;// 12 pixels - Horizontal padding inside each item
+    t.menu_bar.item_spacing = 0;             // No gap between items (Win3.11 style)
+    t.menu_bar.item_padding_horizontal = 1;  // 8 pixels - Horizontal padding inside each item
     t.menu_bar.item_padding_vertical = 0.5;  // 4 pixels - Vertical padding inside each item
 
     // Menu bar item
@@ -131,11 +133,11 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.menu_bar_item.mnemonic_font = default_font;
     t.menu_bar_item.mnemonic_font.underline = true;
 
-    // Line edit - 3D sunken style
+    // Line edit - 3D sunken style with black border (authentic Win3.11)
     t.line_edit.text = window_text;
     t.line_edit.background = white;
-    t.line_edit.border_color = button_shadow;
-    t.line_edit.placeholder_text = button_shadow;
+    t.line_edit.border_color = window_text;  // Black border in Win3.11
+    t.line_edit.placeholder_text = gray_text;
     t.line_edit.cursor = window_text;
     t.line_edit.box_style = sdlpp_renderer::box_style{
         sdlpp_renderer::border_style_type::sunken, true};
@@ -280,9 +282,9 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
 
     // Shortcut hints (Ctrl+S, etc.) - slightly dimmer than main text
     t.menu_item.shortcut.font = default_font;
-    t.menu_item.shortcut.foreground = button_shadow;           // Gray for normal
-    t.menu_item.shortcut.background = window_bg;
-    t.menu_item.shortcut.mnemonic_foreground = button_shadow;
+    t.menu_item.shortcut.foreground = gray_text;               // Gray for normal
+    t.menu_item.shortcut.background = menu_bg;
+    t.menu_item.shortcut.mnemonic_foreground = gray_text;
 
     // Mnemonic font (underlined character)
     t.menu_item.mnemonic_font = default_font;
@@ -296,29 +298,29 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     // ========================================================================
     // Separator
     // ========================================================================
-    t.separator.foreground = button_shadow;
+    t.separator.foreground = gray_text;  // Darker separator line
 
     // ========================================================================
-    // Tab Widget
+    // Tab Widget - Win3.11 style tabs
     // ========================================================================
     t.tab_widget.tab_bar_background = button_face;
     t.tab_widget.tab_normal_background = button_face;
     t.tab_widget.tab_normal_text = window_text;
-    t.tab_widget.tab_active_background = white;
+    t.tab_widget.tab_active_background = button_face;  // Active tab same as content in Win3.11
     t.tab_widget.tab_active_text = window_text;
     t.tab_widget.tab_hover_background = button_face;
     t.tab_widget.tab_hover_text = window_text;
-    t.tab_widget.tab_border = button_shadow;
+    t.tab_widget.tab_border = window_text;             // Black border
     t.tab_widget.tab_active_border = window_text;
     t.tab_widget.close_button_normal = button_shadow;
     t.tab_widget.close_button_hover = color{255, 0, 0};  // Red on hover
     t.tab_widget.close_button_icon = sdlpp_renderer::icon_style::close_x;
     t.tab_widget.tab_font = default_font;
     t.tab_widget.tab_active_font = bold_font;
-    t.tab_widget.scroll_arrow_normal = button_shadow;
+    t.tab_widget.scroll_arrow_normal = window_text;       // Black arrows
     t.tab_widget.scroll_arrow_hover = window_text;
     t.tab_widget.scroll_arrow_pressed = highlight;
-    t.tab_widget.scroll_arrow_disabled = color{160, 160, 160};
+    t.tab_widget.scroll_arrow_disabled = gray_text;      // Gray when disabled
     t.tab_widget.scroll_left_icon = sdlpp_renderer::icon_style::arrow_left;
     t.tab_widget.scroll_right_icon = sdlpp_renderer::icon_style::arrow_right;
     // Tab widget values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
@@ -332,10 +334,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     // ========================================================================
     // List/Table Items (MVC Phase 2) - values in LOGICAL UNITS
     // ========================================================================
-    // Item backgrounds
-    t.list.item_background = window_bg;                  // Normal item background
-    t.list.item_background_alt = color{245, 245, 245};   // Alternating row (slightly darker)
-    t.list.selection_background = highlight;             // Navy blue selection
+    // Item backgrounds - Win3.11 lists had white background
+    t.list.item_background = white;                      // White list background
+    t.list.item_background_alt = white;                  // No alternating rows in Win3.11
+    t.list.selection_background = highlight;             // Blue selection #0000AA
     t.list.selection_background_inactive = button_shadow; // Gray when unfocused
 
     // Item foregrounds
@@ -364,9 +366,9 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.window.title_focused.mnemonic_foreground = highlight_text;
     t.window.title_focused.font = bold_font;
 
-    // Unfocused: darker gray background with black text for visibility
-    t.window.title_unfocused.background = button_shadow;  // Darker gray (128,128,128)
-    t.window.title_unfocused.foreground = window_text;    // Black text for contrast
+    // Unfocused: white background with black text (authentic Win3.11)
+    t.window.title_unfocused.background = white;          // White title bar when unfocused
+    t.window.title_unfocused.foreground = window_text;    // Black text
     t.window.title_unfocused.mnemonic_foreground = window_text;
     t.window.title_unfocused.font = default_font;
 
@@ -379,8 +381,9 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.window.content_background = window_bg;
 
     // Title bar layout
-    t.window.title_bar_height = 3;    // 24 pixels - comfortable title bar height
-    t.window.border_width = 1;        // 8 pixels - standard border
+    t.window.title_bar_height = 2.5;  // 20 pixels - Win3.11 style (slightly larger than 16px icons)
+    t.window.border_width = 0.5;      // 4 pixels - thin border like Win3.11
+    t.window.title_alignment = horizontal_alignment::center;  // Win3.11 centers title text
 
     t.window.shadow.enabled = false;  // Win3.11 didn't have window shadows
 
