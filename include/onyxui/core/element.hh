@@ -88,6 +88,7 @@
 #include <onyxui/core/rendering/draw_context.hh>
 #include <onyxui/core/rendering/render_info.hh>
 #include <onyxui/core/backend_metrics.hh>
+#include <onyxui/core/physical_conversions.hh>
 
 namespace onyxui {
     /**
@@ -681,7 +682,8 @@ namespace onyxui {
 
                 // Convert logical bounds to physical using metrics
                 // m_bounds is in logical units, snap_rect converts to physical
-                rect_type physical_bounds = metrics.snap_rect(m_bounds);
+                physical_rect phys_bounds = metrics.snap_rect(m_bounds);
+                rect_type physical_bounds = to_backend_rect<Backend>(phys_bounds);
 
                 // Bounds are RELATIVE to parent's content area
                 // Add accumulated physical offset to get absolute screen position
@@ -719,7 +721,8 @@ namespace onyxui {
                 logical_rect const content_area_logical = get_content_area();
 
                 // Convert logical content area to physical
-                rect_type content_area_physical = metrics.snap_rect(content_area_logical);
+                physical_rect phys_content = metrics.snap_rect(content_area_logical);
+                rect_type content_area_physical = to_backend_rect<Backend>(phys_content);
 
                 // Calculate absolute clip rect
                 // content_area position is relative to widget's bounds origin, so add absolute_pos
@@ -877,7 +880,8 @@ namespace onyxui {
              * @see get_absolute_logical_bounds() for logical coordinates
              */
             [[nodiscard]] rect_type get_screen_bounds(const backend_metrics<Backend>& metrics) const noexcept {
-                return metrics.snap_rect(get_absolute_logical_bounds());
+                physical_rect phys = metrics.snap_rect(get_absolute_logical_bounds());
+                return to_backend_rect<Backend>(phys);
             }
 
             /**

@@ -275,11 +275,11 @@ protected:
         // Only include spacing if there's text to separate
         const int spacing_logical = (!m_text.empty() && theme) ? theme->checkbox.spacing : 0;
         // Convert spacing to physical pixels to match measure_text() output
-        const int spacing = to_physical_x<Backend>(spacing_logical);
+        const physical_x spacing = to_physical_x<Backend>(spacing_logical);
 
         // Calculate natural size: icon + spacing + text (all values now in physical pixels/cells)
         // Height must accommodate both icon and text (including descenders)
-        const int natural_width = box_width + spacing + text_width;
+        const int natural_width = box_width + spacing.value + text_width;
         const int natural_height = std::max(box_height, text_height);
 
         // Get final dimensions and position from context
@@ -311,7 +311,7 @@ protected:
 
         // Draw label text (if any, vertically centered)
         if (!m_text.empty()) {
-            const typename Backend::point_type text_pos{x + box_width + spacing, text_y};
+            const typename Backend::point_type text_pos{x + box_width + spacing.value, text_y};
             ctx.draw_text(m_text, text_pos, default_font, fg);
         }
     }

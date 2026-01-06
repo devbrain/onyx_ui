@@ -450,9 +450,9 @@ namespace onyxui {
                         final_width, final_height);
 
                     // Convert logical shadow offsets to physical pixels for rendering
-                    int const shadow_x = to_physical_x<Backend>(theme->menu.shadow.offset_x);
-                    int const shadow_y = to_physical_y<Backend>(theme->menu.shadow.offset_y);
-                    ctx.draw_shadow(absolute_bounds, shadow_x, shadow_y);
+                    physical_x const shadow_x = to_physical_x<Backend>(theme->menu.shadow.offset_x);
+                    physical_y const shadow_y = to_physical_y<Backend>(theme->menu.shadow.offset_y);
+                    ctx.draw_shadow(absolute_bounds, shadow_x.value, shadow_y.value);
                 }
             }
         }

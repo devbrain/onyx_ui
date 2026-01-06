@@ -3,11 +3,14 @@
  * @brief Backend metrics for converting logical units to physical coordinates
  * @author OnyxUI Framework
  * @date 2025-11-26
+ *
+ * @note Updated 2026-01 to return strong physical types (physical_x, physical_y, etc.)
  */
 
 #pragma once
 
 #include "geometry.hh"
+#include "physical_types.hh"
 #include "../concepts/backend.hh"
 #include "../concepts/rect_like.hh"
 #include "../concepts/size_like.hh"
@@ -49,68 +52,68 @@ namespace onyxui {
          * @brief Snap logical X coordinate to physical coordinate
          * @param lu Logical unit value
          * @param mode Snapping mode
-         * @return Physical coordinate (int)
+         * @return Physical X coordinate (strong type)
          */
-        [[nodiscard]] constexpr int snap_to_physical_x(logical_unit lu, snap_mode mode) const noexcept {
+        [[nodiscard]] constexpr physical_x snap_to_physical_x(logical_unit lu, snap_mode mode) const noexcept {
             const double physical = lu.value * logical_to_physical_x * dpi_scale;
             switch (mode) {
-                case snap_mode::floor:    return static_cast<int>(std::floor(physical));
-                case snap_mode::ceil:     return static_cast<int>(std::ceil(physical));
-                case snap_mode::round:    return static_cast<int>(std::round(physical));
-                case snap_mode::truncate: return static_cast<int>(physical);
+                case snap_mode::floor:    return physical_x(static_cast<int>(std::floor(physical)));
+                case snap_mode::ceil:     return physical_x(static_cast<int>(std::ceil(physical)));
+                case snap_mode::round:    return physical_x(static_cast<int>(std::round(physical)));
+                case snap_mode::truncate: return physical_x(static_cast<int>(physical));
             }
-            return static_cast<int>(std::floor(physical));  // Default to floor
+            return physical_x(static_cast<int>(std::floor(physical)));  // Default to floor
         }
 
         /**
          * @brief Snap logical Y coordinate to physical coordinate
          * @param lu Logical unit value
          * @param mode Snapping mode
-         * @return Physical coordinate (int)
+         * @return Physical Y coordinate (strong type)
          */
-        [[nodiscard]] constexpr int snap_to_physical_y(logical_unit lu, snap_mode mode) const noexcept {
+        [[nodiscard]] constexpr physical_y snap_to_physical_y(logical_unit lu, snap_mode mode) const noexcept {
             const double physical = lu.value * logical_to_physical_y * dpi_scale;
             switch (mode) {
-                case snap_mode::floor:    return static_cast<int>(std::floor(physical));
-                case snap_mode::ceil:     return static_cast<int>(std::ceil(physical));
-                case snap_mode::round:    return static_cast<int>(std::round(physical));
-                case snap_mode::truncate: return static_cast<int>(physical);
+                case snap_mode::floor:    return physical_y(static_cast<int>(std::floor(physical)));
+                case snap_mode::ceil:     return physical_y(static_cast<int>(std::ceil(physical)));
+                case snap_mode::round:    return physical_y(static_cast<int>(std::round(physical)));
+                case snap_mode::truncate: return physical_y(static_cast<int>(physical));
             }
-            return static_cast<int>(std::floor(physical));  // Default to floor
+            return physical_y(static_cast<int>(std::floor(physical)));  // Default to floor
         }
 
         /**
          * @brief Convert logical size to physical size
          * @param size Logical size
-         * @return Physical size
+         * @return Physical size (strong type)
          *
          * @note Uses round() for direct size conversion
          */
-        [[nodiscard]] constexpr typename Backend::size_type snap_size(const logical_size& size) const noexcept {
-            typename Backend::size_type result{};
-            const int w = snap_to_physical_x(size.width, snap_mode::round);
-            const int h = snap_to_physical_y(size.height, snap_mode::round);
-            size_utils::set_size(result, w, h);
-            return result;
+        [[nodiscard]] constexpr physical_size snap_size(const logical_size& size) const noexcept {
+            return {
+                snap_to_physical_x(size.width, snap_mode::round),
+                snap_to_physical_y(size.height, snap_mode::round)
+            };
         }
 
         /**
          * @brief Convert logical point to physical point
          * @param point Logical point
-         * @return Physical point
+         * @return Physical point (strong type)
          *
          * @note Uses floor() for position snapping
          */
-        [[nodiscard]] constexpr typename Backend::point_type snap_point(const logical_point& point) const noexcept {
-            const int x = snap_to_physical_x(point.x, snap_mode::floor);
-            const int y = snap_to_physical_y(point.y, snap_mode::floor);
-            return {x, y};  // Aggregate initialization
+        [[nodiscard]] constexpr physical_point snap_point(const logical_point& point) const noexcept {
+            return {
+                snap_to_physical_x(point.x, snap_mode::floor),
+                snap_to_physical_y(point.y, snap_mode::floor)
+            };
         }
 
         /**
          * @brief Convert logical rect to physical rect (edge-based snapping)
          * @param rect Logical rect
-         * @return Physical rect
+         * @return Physical rect (strong type)
          *
          * Snapping strategy:
          * 1. Floor position (left, top)
@@ -119,75 +122,115 @@ namespace onyxui {
          *
          * This prevents gaps and overlaps in tiled layouts.
          */
-        [[nodiscard]] constexpr typename Backend::rect_type snap_rect(const logical_rect& rect) const noexcept {
+        [[nodiscard]] constexpr physical_rect snap_rect(const logical_rect& rect) const noexcept {
             // Snap edges
-            const int px_left   = snap_to_physical_x(rect.left(), snap_mode::floor);
-            const int px_top    = snap_to_physical_y(rect.top(), snap_mode::floor);
-            const int px_right  = snap_to_physical_x(rect.right(), snap_mode::ceil);
-            const int px_bottom = snap_to_physical_y(rect.bottom(), snap_mode::ceil);
+            const physical_x px_left   = snap_to_physical_x(rect.left(), snap_mode::floor);
+            const physical_y px_top    = snap_to_physical_y(rect.top(), snap_mode::floor);
+            const physical_x px_right  = snap_to_physical_x(rect.right(), snap_mode::ceil);
+            const physical_y px_bottom = snap_to_physical_y(rect.bottom(), snap_mode::ceil);
 
             // Compute size from edges (not from logical size directly)
-            const int px_width  = px_right - px_left;
-            const int px_height = px_bottom - px_top;
+            const physical_x px_width  = px_right - px_left;
+            const physical_y px_height = px_bottom - px_top;
 
-            typename Backend::rect_type result{};
-            rect_utils::set_bounds(result, px_left, px_top, px_width, px_height);
-            return result;
+            return {px_left, px_top, px_width, px_height};
         }
 
         /**
-         * @brief Convert physical coordinate to logical X coordinate
-         * @param physical Physical coordinate
+         * @brief Convert physical X coordinate to logical X coordinate
+         * @param px Physical X coordinate (strong type)
          * @return Logical unit
          */
-        [[nodiscard]] constexpr logical_unit physical_to_logical_x(int physical) const noexcept {
-            return logical_unit(static_cast<double>(physical) / (logical_to_physical_x * dpi_scale));
+        [[nodiscard]] constexpr logical_unit physical_to_logical_x(physical_x px) const noexcept {
+            return logical_unit(static_cast<double>(px.value) / (logical_to_physical_x * dpi_scale));
         }
 
         /**
-         * @brief Convert physical coordinate to logical Y coordinate
-         * @param physical Physical coordinate
+         * @brief Convert physical Y coordinate to logical Y coordinate
+         * @param py Physical Y coordinate (strong type)
          * @return Logical unit
          */
-        [[nodiscard]] constexpr logical_unit physical_to_logical_y(int physical) const noexcept {
-            return logical_unit(static_cast<double>(physical) / (logical_to_physical_y * dpi_scale));
+        [[nodiscard]] constexpr logical_unit physical_to_logical_y(physical_y py) const noexcept {
+            return logical_unit(static_cast<double>(py.value) / (logical_to_physical_y * dpi_scale));
         }
 
         /**
          * @brief Convert physical size to logical size
-         * @param size Physical size
+         * @param size Physical size (strong type)
          * @return Logical size
          */
-        [[nodiscard]] constexpr logical_size physical_to_logical_size(const typename Backend::size_type& size) const noexcept {
+        [[nodiscard]] constexpr logical_size physical_to_logical_size(const physical_size& size) const noexcept {
             return {
-                physical_to_logical_x(size_utils::get_width(size)),
-                physical_to_logical_y(size_utils::get_height(size))
+                physical_to_logical_x(size.width),
+                physical_to_logical_y(size.height)
             };
         }
 
         /**
          * @brief Convert physical point to logical point
-         * @param point Physical point
+         * @param point Physical point (strong type)
          * @return Logical point
          */
-        [[nodiscard]] constexpr logical_point physical_to_logical_point(const typename Backend::point_type& point) const noexcept {
+        [[nodiscard]] constexpr logical_point physical_to_logical_point(const physical_point& point) const noexcept {
             return {
-                physical_to_logical_x(point_utils::get_x(point)),
-                physical_to_logical_y(point_utils::get_y(point))
+                physical_to_logical_x(point.x),
+                physical_to_logical_y(point.y)
             };
         }
 
         /**
          * @brief Convert physical rect to logical rect
-         * @param rect Physical rect
+         * @param rect Physical rect (strong type)
+         * @return Logical rect
+         */
+        [[nodiscard]] constexpr logical_rect physical_to_logical_rect(const physical_rect& rect) const noexcept {
+            return {
+                physical_to_logical_x(rect.x),
+                physical_to_logical_y(rect.y),
+                physical_to_logical_x(rect.width),
+                physical_to_logical_y(rect.height)
+            };
+        }
+
+        // ====================================================================
+        // Overloads accepting backend types (for convenience/interop)
+        // ====================================================================
+
+        /**
+         * @brief Convert backend size type to logical size
+         * @param size Backend-specific size type
+         * @return Logical size
+         */
+        [[nodiscard]] constexpr logical_size physical_to_logical_size(const typename Backend::size_type& size) const noexcept {
+            return {
+                physical_to_logical_x(physical_x(size_utils::get_width(size))),
+                physical_to_logical_y(physical_y(size_utils::get_height(size)))
+            };
+        }
+
+        /**
+         * @brief Convert backend point type to logical point
+         * @param point Backend-specific point type
+         * @return Logical point
+         */
+        [[nodiscard]] constexpr logical_point physical_to_logical_point(const typename Backend::point_type& point) const noexcept {
+            return {
+                physical_to_logical_x(physical_x(point_utils::get_x(point))),
+                physical_to_logical_y(physical_y(point_utils::get_y(point)))
+            };
+        }
+
+        /**
+         * @brief Convert backend rect type to logical rect
+         * @param rect Backend-specific rect type
          * @return Logical rect
          */
         [[nodiscard]] constexpr logical_rect physical_to_logical_rect(const typename Backend::rect_type& rect) const noexcept {
             return {
-                physical_to_logical_x(rect_utils::get_x(rect)),
-                physical_to_logical_y(rect_utils::get_y(rect)),
-                physical_to_logical_x(rect_utils::get_width(rect)),
-                physical_to_logical_y(rect_utils::get_height(rect))
+                physical_to_logical_x(physical_x(rect_utils::get_x(rect))),
+                physical_to_logical_y(physical_y(rect_utils::get_y(rect))),
+                physical_to_logical_x(physical_x(rect_utils::get_width(rect))),
+                physical_to_logical_y(physical_y(rect_utils::get_height(rect)))
             };
         }
     };
@@ -224,7 +267,7 @@ namespace onyxui {
      * @tparam Backend The UI backend type
      * @param value Theme value (small integer like 1, 2)
      * @param metrics Pointer to backend metrics (optional)
-     * @return Value in physical pixels
+     * @return Physical X coordinate (strong type)
      *
      * @details
      * Use this in do_render() to convert theme padding/spacing values
@@ -238,7 +281,7 @@ namespace onyxui {
      * by measuring a reference character.
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline int to_physical_x(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline physical_x to_physical_x(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
         if (metrics) {
             return metrics->snap_to_physical_x(logical_unit(value), snap_mode::round);
         }
@@ -249,7 +292,7 @@ namespace onyxui {
         // Use the reference character width as the scale factor
         // For terminal: ref_width = 1, so no scaling
         // For graphical: ref_width = ~8, so value * 8
-        return value * ref_width;
+        return physical_x(value * ref_width);
     }
 
     /**
@@ -257,7 +300,7 @@ namespace onyxui {
      * @tparam Backend The UI backend type
      * @param value Theme value (small integer like 1, 2)
      * @param metrics Pointer to backend metrics (optional)
-     * @return Value in physical pixels
+     * @return Physical Y coordinate (strong type)
      *
      * @details
      * Use this in do_render() to convert theme padding/spacing values
@@ -273,7 +316,7 @@ namespace onyxui {
      * font aspect ratio.
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline int to_physical_y(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline physical_y to_physical_y(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
         if (metrics) {
             return metrics->snap_to_physical_y(logical_unit(value), snap_mode::round);
         }
@@ -284,13 +327,13 @@ namespace onyxui {
         int const ref_width = size_utils::get_width(ref_size);
         // For terminal: ref_width = 1, so no scaling
         // For graphical: ref_width = ~8, so value * 8
-        return value * ref_width;
+        return physical_y(value * ref_width);
     }
 
     /**
      * @brief Convert physical pixels to logical units (Y-axis)
      * @tparam Backend The UI backend type
-     * @param value Physical pixel value
+     * @param py Physical Y coordinate (strong type)
      * @param metrics Pointer to backend metrics (optional)
      * @return Value in logical units (rounded up to avoid clipping)
      *
@@ -304,10 +347,10 @@ namespace onyxui {
      * to keep conversions consistent with to_physical_y().
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline int to_logical_y(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline int to_logical_y(physical_y py, backend_metrics<Backend> const* metrics = nullptr) noexcept {
         if (metrics) {
             return static_cast<int>(std::ceil(
-                metrics->physical_to_logical_y(value).value));
+                metrics->physical_to_logical_y(py).value));
         }
         // Runtime detection: measure reference character to estimate scale factor
         // Use WIDTH for both X and Y to keep conversions symmetric with to_physical_y()
@@ -317,7 +360,7 @@ namespace onyxui {
         // For terminal: ref_width = 1, so value / 1 = value (no change)
         // For graphical: ref_width = ~8, so value / 8 (e.g., 16 pixels -> 2 logical)
         // Round up to avoid clipping
-        return (value + ref_width - 1) / ref_width;
+        return (py.value + ref_width - 1) / ref_width;
     }
 
 } // namespace onyxui

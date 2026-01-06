@@ -650,7 +650,7 @@ private:
 
             // Convert physical height to logical
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(size.h).value
+                ? metrics->physical_to_logical_y(physical_y(size.h)).value
                 : static_cast<double>(size.h);  // Fallback 1:1
 
             total_logical_height += item_logical_height;
@@ -735,7 +735,7 @@ private:
 
             // Convert physical height to logical
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(size.h).value
+                ? metrics->physical_to_logical_y(physical_y(size.h)).value
                 : static_cast<double>(size.h);
 
             total_content_height += item_logical_height;
@@ -751,7 +751,7 @@ private:
             auto size = m_delegate->size_hint(idx);
 
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(size.h).value
+                ? metrics->physical_to_logical_y(physical_y(size.h)).value
                 : static_cast<double>(size.h);
 
             viewport_height += item_logical_height;

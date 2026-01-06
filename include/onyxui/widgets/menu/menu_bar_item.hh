@@ -204,8 +204,8 @@ namespace onyxui {
                 .value_or(ui_constants::DEFAULT_MENU_BAR_ITEM_PADDING_VERTICAL);
 
             // Convert padding to physical pixels to match measure_text() output
-            int const padding_h = to_physical_x<Backend>(padding_h_logical);
-            int const padding_v = to_physical_y<Backend>(padding_v_logical);
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Get position from context
             auto const& pos = ctx.position();
@@ -222,8 +222,8 @@ namespace onyxui {
             int const text_height = size_utils::get_height(text_size);
 
             // Calculate full item bounds including padding (all values now in physical pixels/cells)
-            int const total_width = text_width + 2 * padding_h;
-            int const total_height = text_height + 2 * padding_v;
+            int const total_width = text_width + 2 * padding_h.value;
+            int const total_height = text_height + 2 * padding_v.value;
 
             // Always draw background (creates continuous stripe in menu bar)
             // In Norton Utilities 8 style, all menu items contribute to the continuous white stripe
@@ -232,8 +232,8 @@ namespace onyxui {
             ctx.fill_rect(bg_rect);
 
             // Draw text with theme-configured padding
-            int const text_x = x + padding_h;
-            int const text_y = y + padding_v;
+            int const text_x = x + padding_h.value;
+            int const text_y = y + padding_v.value;
             typename Backend::point_type const text_pos{text_x, text_y};
             ctx.draw_text(m_text, text_pos, text_font, fg);
         }

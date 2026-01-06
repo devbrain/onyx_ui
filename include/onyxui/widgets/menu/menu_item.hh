@@ -364,29 +364,29 @@ namespace onyxui {
             int const padding_v_logical = ctx.style().padding_vertical.value.value_or(0);
 
             // Convert padding to physical pixels to match measure_text() output
-            int const padding_h = to_physical_x<Backend>(padding_h_logical);
-            int const padding_v = to_physical_y<Backend>(padding_v_logical);
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Shortcut spacing from resolved style or theme - also needs conversion
             int shortcut_spacing_logical = 2;
             if (ctx.theme()) {
                 shortcut_spacing_logical = ctx.theme()->menu_item.shortcut_spacing;
             }
-            int const shortcut_spacing = to_physical_x<Backend>(shortcut_spacing_logical);
+            physical_x const shortcut_spacing = to_physical_x<Backend>(shortcut_spacing_logical);
 
             // Use absolute screen position from context
             int const base_x = point_utils::get_x(pos);
             int const base_y = point_utils::get_y(pos);
 
             // Calculate minimum width needed (all values now in physical pixels/cells)
-            int const min_width = padding_h + text_width +
-                                  (shortcut.empty() ? 0 : shortcut_spacing + shortcut_width) +
+            int const min_width = padding_h.value + text_width +
+                                  (shortcut.empty() ? 0 : shortcut_spacing.value + shortcut_width) +
                                   submenu_indicator_width +
-                                  padding_h;
+                                  padding_h.value;
 
             // Get text height and calculate total height with vertical padding (all physical pixels)
             int const text_height = size_utils::get_height(text_size);
-            int const natural_height = text_height + (padding_v * 2);
+            int const natural_height = text_height + (padding_v.value * 2);
 
             // Get final dimensions (context returns assigned size during rendering, natural size during measurement)
             auto const [effective_width, effective_height] = ctx.get_final_dims(min_width, natural_height);
@@ -398,10 +398,10 @@ namespace onyxui {
             ctx.fill_rect(bg_rect);
 
             // Calculate text Y position (centered vertically with padding, physical pixels)
-            int const text_y = base_y + padding_v;
+            int const text_y = base_y + padding_v.value;
 
             // Draw text with horizontal padding (physical pixels)
-            int const text_x = base_x + padding_h;
+            int const text_x = base_x + padding_h.value;
             if (!m_mnemonic_markup.empty() && ctx.theme()) {
                 // Parse mnemonic on-the-fly (no mutable state modification!)
                 const auto mnemonic_info = parse_mnemonic<Backend>(
@@ -439,10 +439,10 @@ namespace onyxui {
                     int indicator_x;
                     if (!shortcut.empty()) {
                         // After shortcut
-                        indicator_x = base_x + effective_width - shortcut_width - padding_h - 2;
+                        indicator_x = base_x + effective_width - shortcut_width - padding_h.value - 2;
                     } else {
                         // After text
-                        indicator_x = base_x + effective_width - padding_h - 1;
+                        indicator_x = base_x + effective_width - padding_h.value - 1;
                     }
                     // Draw icon at calculated position
                     typename Backend::point_type const icon_pos{indicator_x, text_y};
@@ -452,7 +452,7 @@ namespace onyxui {
 
             // Draw shortcut if present (right-aligned within effective width, physical pixels)
             if (!shortcut.empty() && ctx.theme()) {
-                int const shortcut_x = base_x + effective_width - shortcut_width - padding_h;
+                int const shortcut_x = base_x + effective_width - shortcut_width - padding_h.value;
                 typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
                 // Use shortcut color from theme (shortcuts use a dimmed color for subtlety)
                 auto shortcut_color = ctx.theme()->menu_item.shortcut.foreground;

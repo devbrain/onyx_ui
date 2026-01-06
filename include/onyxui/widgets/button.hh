@@ -321,18 +321,18 @@ namespace onyxui {
             // Convert padding to physical pixels to match measure_text() output
             // For terminal backends: 1:1 mapping (no change)
             // For graphical backends: multiply by scale factor (e.g., 8x)
-            int const padding_h = to_physical_x<Backend>(padding_h_logical);
-            int const padding_v = to_physical_y<Backend>(padding_v_logical);
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Measure text size (returns physical pixels for graphical backends)
             typename renderer_type::font const default_font{};
             auto text_size = renderer_type::measure_text(m_text, default_font);
-            int const text_width = size_utils::get_width(text_size);
-            int const text_height = size_utils::get_height(text_size);
+            physical_x const text_width{size_utils::get_width(text_size)};
+            physical_y const text_height{size_utils::get_height(text_size)};
 
             // Calculate natural size (all values now in physical pixels/cells)
-            int const natural_width = text_width + (padding_h * 2) + (border * 2);
-            int const natural_height = text_height + (padding_v * 2) + (border * 2);
+            int const natural_width = text_width.value + (padding_h.value * 2) + (border * 2);
+            int const natural_height = text_height.value + (padding_v.value * 2) + (border * 2);
 
             // Get final dimensions (context returns assigned size during rendering, natural size during measurement)
             auto const [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
@@ -357,7 +357,7 @@ namespace onyxui {
             if (!theme) return;
 
             // Calculate available space for text within button (all physical pixels)
-            int const available_width = std::max(0, final_width - ((border + padding_h) * 2));
+            int const available_width = std::max(0, final_width - ((border + padding_h.value) * 2));
 
             // Calculate horizontal alignment offset
             int align_offset = 0;
@@ -366,10 +366,10 @@ namespace onyxui {
                     align_offset = 0;
                     break;
                 case horizontal_alignment::center:
-                    align_offset = (available_width - text_width) / 2;
+                    align_offset = (available_width - text_width.value) / 2;
                     break;
                 case horizontal_alignment::right:
-                    align_offset = available_width - text_width;
+                    align_offset = available_width - text_width.value;
                     break;
                 case horizontal_alignment::stretch:
                     align_offset = 0;
@@ -377,8 +377,8 @@ namespace onyxui {
             }
 
             // Calculate text position (offset by border + padding + alignment, all physical pixels)
-            int const text_x = x + border + padding_h + align_offset;
-            int const text_y = y + border + padding_v;
+            int const text_x = x + border + padding_h.value + align_offset;
+            int const text_y = y + border + padding_v.value;
 
             // Render text (mnemonic segments if available, otherwise plain text)
             if (!m_mnemonic_markup.empty()) {
@@ -416,10 +416,10 @@ namespace onyxui {
                 auto current_state = this->get_effective_state();
                 if (current_state != base::interaction_state::pressed) {
                     // Convert logical shadow offsets to physical pixels for rendering
-                    int const shadow_x = to_physical_x<Backend>(theme->button.shadow.offset_x);
-                    int const shadow_y = to_physical_y<Backend>(theme->button.shadow.offset_y);
+                    physical_x const shadow_x = to_physical_x<Backend>(theme->button.shadow.offset_x);
+                    physical_y const shadow_y = to_physical_y<Backend>(theme->button.shadow.offset_y);
                     // Draw shadow on right and bottom edges (darkens background OUTSIDE button)
-                    ctx.draw_shadow(button_rect, shadow_x, shadow_y);
+                    ctx.draw_shadow(button_rect, shadow_x.value, shadow_y.value);
                 }
             }
         }

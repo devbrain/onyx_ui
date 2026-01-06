@@ -11,8 +11,11 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/rendering/render_context.hh>
+#include <onyxui/core/physical_conversions.hh>
 #include <onyxui/mvc/views/abstract_item_view.hh>
 #include <onyxui/services/ui_services.hh>
+#include <onyxui/widgets/containers/scroll/scrollbar.hh>
+#include <onyxui/widgets/containers/scroll/scroll_info.hh>
 
 namespace onyxui {
 
@@ -78,9 +81,22 @@ public:
     using size_type = typename Backend::size_type;
 
     /**
-     * @brief Construct empty list view
+     * @brief Construct empty list view with integrated scrollbar
      */
-    list_view() = default;
+    list_view() {
+        // Create vertical scrollbar
+        auto vscrollbar = std::make_unique<scrollbar<Backend>>(orientation::vertical);
+        m_scrollbar = vscrollbar.get();
+        m_scrollbar->set_visible(false);  // Hidden until needed
+
+        // Connect scrollbar interaction to scroll offset
+        m_scrollbar->scroll_requested.connect([this](int new_offset) {
+            set_scroll_offset(static_cast<double>(new_offset));
+        });
+
+        // Add scrollbar as child
+        this->add_child(std::move(vscrollbar));
+    }
 
     // ===================================================================
     // Pure Virtual Methods from abstract_item_view
@@ -163,7 +179,8 @@ public:
 
         // Convert logical rect to physical using backend metrics
         if (auto const* metrics = ui_services<Backend>::metrics()) {
-            return metrics->snap_rect(logical);
+            auto physical = metrics->snap_rect(logical);
+            return to_backend_rect<Backend>(physical);
         }
 
         // Fallback: 1:1 mapping (e.g., conio backend)
@@ -254,6 +271,13 @@ public:
         m_scroll_offset_y = offset;
         this->mark_dirty();
 
+        // Update scrollbar position
+        if (m_scrollbar && m_scrollbar->is_visible()) {
+            auto info = m_scrollbar->get_scroll_info();
+            info.scroll_y = m_scroll_offset_y;
+            m_scrollbar->set_scroll_info(info);
+        }
+
         // Emit signal for scroll synchronization
         scroll_offset_changed.emit(m_scroll_offset_y);
     }
@@ -333,7 +357,7 @@ public:
 
             // Convert physical height to logical height
             double item_height = metrics
-                ? metrics->physical_to_logical_y(item_size.h).value
+                ? metrics->physical_to_logical_y(physical_y(item_size.h)).value
                 : static_cast<double>(item_size.h);  // Fallback 1:1
 
             double item_width = view_width;  // Use full width (already logical)
@@ -394,10 +418,10 @@ public:
         // Use separate X/Y scaling for non-square pixel backends
         constexpr double logical_border_width = 1.0;
         int const physical_border_x = metrics
-            ? metrics->snap_to_physical_x(logical_unit(logical_border_width), snap_mode::round)
+            ? metrics->snap_to_physical_x(logical_unit(logical_border_width), snap_mode::round).value
             : 1;
         int const physical_border_y = metrics
-            ? metrics->snap_to_physical_y(logical_unit(logical_border_width), snap_mode::round)
+            ? metrics->snap_to_physical_y(logical_unit(logical_border_width), snap_mode::round).value
             : 1;
 
         if (theme) {
@@ -415,7 +439,15 @@ public:
         // Adjust item rendering area to be inside the border (physical coordinates)
         int const content_x = base_x + physical_border_x;
         int const content_y = base_y + physical_border_y;
-        int const content_width = physical_width - (physical_border_x * 2);
+
+        // Account for scrollbar width if visible
+        int physical_scrollbar_width = 0;
+        if (m_scrollbar && m_scrollbar->is_visible()) {
+            physical_scrollbar_width = metrics
+                ? metrics->snap_to_physical_x(logical_unit(m_scrollbar_width), snap_mode::round).value
+                : static_cast<int>(m_scrollbar_width);
+        }
+        int const content_width = physical_width - (physical_border_x * 2) - physical_scrollbar_width;
 
         // Virtual scrolling: calculate visible region (all in logical units)
         // Account for border inset in the visible height
@@ -458,10 +490,10 @@ public:
 
             // Convert logical Y offset and height to physical
             int const scrolled_y_physical = metrics
-                ? metrics->snap_to_physical_y(logical_unit(scrolled_y_logical), snap_mode::floor)
+                ? metrics->snap_to_physical_y(logical_unit(scrolled_y_logical), snap_mode::floor).value
                 : static_cast<int>(scrolled_y_logical);
             int const item_height_physical = metrics
-                ? metrics->snap_to_physical_y(item_rect.height, snap_mode::round)
+                ? metrics->snap_to_physical_y(item_rect.height, snap_mode::round).value
                 : static_cast<int>(item_rect.height.value);
 
             int abs_x = content_x;
@@ -518,6 +550,9 @@ protected:
         // Update geometries with final width
         update_geometries();
 
+        // Update scrollbar visibility and position
+        update_scrollbar();
+
         // Scroll to show current item ONLY on initial arrangement or bounds change
         // This handles the case where scroll_to() was called before arrangement
         // (e.g., in combo_box_view::show_popup()) and returned early.
@@ -557,10 +592,69 @@ private:
     int m_content_height = 0;                 ///< Total content height
     double m_scroll_offset_y = 0.0;           ///< Current scroll offset (logical units)
     logical_rect m_last_arranged_bounds{};    ///< Track bounds changes for scroll_to
+    scrollbar<Backend>* m_scrollbar = nullptr; ///< Vertical scrollbar (owned as child)
+    double m_scrollbar_width = 0.0;           ///< Cached scrollbar width (logical units)
 
     // ===================================================================
     // Utility Methods
     // ===================================================================
+
+    /**
+     * @brief Update scrollbar visibility and scroll info
+     *
+     * @details
+     * Called after content height or viewport size changes.
+     * Shows scrollbar only when content exceeds viewport.
+     */
+    void update_scrollbar() {
+        if (!m_scrollbar) {
+            return;
+        }
+
+        // Get view dimensions (excluding border)
+        constexpr double logical_border_width = 1.0;
+        double const view_height = this->bounds().height.value - (logical_border_width * 2);
+        double const view_width = this->bounds().width.value - (logical_border_width * 2);
+
+        // Determine if scrollbar is needed
+        bool const needs_scroll = static_cast<double>(m_content_height) > view_height;
+
+        // Update visibility
+        m_scrollbar->set_visible(needs_scroll);
+
+        if (needs_scroll) {
+            // Get scrollbar thickness from theme
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            int const thickness = theme ? theme->scrollbar.width : 1;
+            m_scrollbar_width = static_cast<double>(thickness);
+
+            // Calculate content width excluding scrollbar
+            double const content_view_width = view_width - m_scrollbar_width;
+
+            // Update scroll_info
+            scroll_info<Backend> info{
+                content_view_width,                          // content_width
+                static_cast<double>(m_content_height),       // content_height
+                content_view_width,                          // viewport_width
+                view_height,                                 // viewport_height
+                0.0,                                         // scroll_x
+                m_scroll_offset_y                            // scroll_y
+            };
+            m_scrollbar->set_scroll_info(info);
+
+            // Position scrollbar on right side (relative to content area)
+            logical_rect scrollbar_bounds{
+                logical_unit(view_width - m_scrollbar_width + logical_border_width),
+                logical_unit(logical_border_width),
+                logical_unit(m_scrollbar_width),
+                logical_unit(view_height)
+            };
+            m_scrollbar->arrange(scrollbar_bounds);
+        } else {
+            m_scrollbar_width = 0.0;
+        }
+    }
 
     /**
      * @brief Check if point is inside rectangle (logical_rect version)

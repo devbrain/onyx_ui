@@ -501,10 +501,10 @@ public:
         auto const* metrics = ui_services<Backend>::metrics();
         if (metrics) {
             return rect_type{
-                metrics->snap_to_physical_x(logical_unit(scrolled_x), snap_mode::floor),
-                metrics->snap_to_physical_y(logical_unit(scrolled_y), snap_mode::floor),
-                metrics->snap_to_physical_x(logical_unit(cell_w), snap_mode::round),
-                metrics->snap_to_physical_y(logical_unit(cell_h), snap_mode::round)
+                metrics->snap_to_physical_x(logical_unit(scrolled_x), snap_mode::floor).value,
+                metrics->snap_to_physical_y(logical_unit(scrolled_y), snap_mode::floor).value,
+                metrics->snap_to_physical_x(logical_unit(cell_w), snap_mode::round).value,
+                metrics->snap_to_physical_y(logical_unit(cell_h), snap_mode::round).value
             };
         }
 
@@ -605,7 +605,7 @@ public:
             auto idx = this->m_model->index(0, 0);
             auto size_hint = this->m_delegate->size_hint(idx);
             m_row_height = metrics
-                ? static_cast<int>(metrics->physical_to_logical_y(size_hint.h).value)
+                ? static_cast<int>(metrics->physical_to_logical_y(physical_y(size_hint.h)).value)
                 : size_hint.h;
             m_row_height = std::max(m_row_height, 1);
         }
@@ -651,10 +651,10 @@ public:
         auto const* metrics = ui_services<Backend>::metrics();
 
         int const physical_border_x = metrics
-            ? metrics->snap_to_physical_x(logical_unit(BORDER_WIDTH), snap_mode::round)
+            ? metrics->snap_to_physical_x(logical_unit(BORDER_WIDTH), snap_mode::round).value
             : 1;
         int const physical_border_y = metrics
-            ? metrics->snap_to_physical_y(logical_unit(BORDER_WIDTH), snap_mode::round)
+            ? metrics->snap_to_physical_y(logical_unit(BORDER_WIDTH), snap_mode::round).value
             : 1;
 
         // Draw background and border
@@ -677,7 +677,7 @@ public:
         if (m_headers_visible) {
             render_headers(ctx, content_x, content_y, content_width, theme, metrics);
             int const physical_header_height = metrics
-                ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_header_height)), snap_mode::round)
+                ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_header_height)), snap_mode::round).value
                 : m_header_height;
             content_y += physical_header_height;
             content_height -= physical_header_height;
@@ -686,10 +686,10 @@ public:
         // Virtual scrolling: calculate visible region in logical units
         // content_height/width are in physical pixels, convert to logical
         double const visible_height = metrics
-            ? metrics->physical_to_logical_y(content_height).value
+            ? metrics->physical_to_logical_y(physical_y(content_height)).value
             : static_cast<double>(content_height);
         double const visible_width = metrics
-            ? metrics->physical_to_logical_x(content_width).value
+            ? metrics->physical_to_logical_x(physical_x(content_width)).value
             : static_cast<double>(content_width);
 
         // Find visible rows
@@ -723,16 +723,16 @@ public:
                 double const cell_x = col_x - m_scroll_offset_x;
 
                 int const abs_x = content_x + (metrics
-                    ? metrics->snap_to_physical_x(logical_unit(cell_x), snap_mode::floor)
+                    ? metrics->snap_to_physical_x(logical_unit(cell_x), snap_mode::floor).value
                     : static_cast<int>(cell_x));
                 int const abs_y = content_y + (metrics
-                    ? metrics->snap_to_physical_y(logical_unit(cell_y), snap_mode::floor)
+                    ? metrics->snap_to_physical_y(logical_unit(cell_y), snap_mode::floor).value
                     : static_cast<int>(cell_y));
                 int const abs_w = metrics
-                    ? metrics->snap_to_physical_x(logical_unit(col_w), snap_mode::round)
+                    ? metrics->snap_to_physical_x(logical_unit(col_w), snap_mode::round).value
                     : static_cast<int>(col_w);
                 int const abs_h = metrics
-                    ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_row_height)), snap_mode::round)
+                    ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_row_height)), snap_mode::round).value
                     : m_row_height;
 
                 rect_type cell_rect{abs_x, abs_y, abs_w, abs_h};
@@ -746,7 +746,7 @@ public:
                 double const line_y = static_cast<double>((row + 1) * m_row_height) - m_scroll_offset_y;
                 if (line_y > 0 && line_y < visible_height) {
                     int const abs_line_y = content_y + (metrics
-                        ? metrics->snap_to_physical_y(logical_unit(line_y), snap_mode::floor)
+                        ? metrics->snap_to_physical_y(logical_unit(line_y), snap_mode::floor).value
                         : static_cast<int>(line_y));
                     rect_type line_rect{content_x, abs_line_y, content_width, 1};
                     ctx.fill_rect(line_rect, theme->table.grid_line_color);
@@ -762,7 +762,7 @@ public:
                 double const line_x = col_x - m_scroll_offset_x;
                 if (line_x > 0 && line_x < visible_width) {
                     int const abs_line_x = content_x + (metrics
-                        ? metrics->snap_to_physical_x(logical_unit(line_x), snap_mode::floor)
+                        ? metrics->snap_to_physical_x(logical_unit(line_x), snap_mode::floor).value
                         : static_cast<int>(line_x));
                     rect_type line_rect{abs_line_x, content_y, 1, content_height};
                     ctx.fill_rect(line_rect, theme->table.grid_line_color);
@@ -1040,7 +1040,7 @@ private:
                     auto idx = this->m_model->index(row, col);
                     auto size = this->m_delegate->size_hint(idx);
                     int const logical_w = metrics
-                        ? static_cast<int>(metrics->physical_to_logical_x(size.w).value)
+                        ? static_cast<int>(metrics->physical_to_logical_x(physical_x(size.w)).value)
                         : size.w;
                     max_width = std::max(max_width, logical_w);
                 }
@@ -1279,7 +1279,7 @@ private:
         if (!this->m_model || !theme) return;
 
         int const physical_header_height = metrics
-            ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_header_height)), snap_mode::round)
+            ? metrics->snap_to_physical_y(logical_unit(static_cast<double>(m_header_height)), snap_mode::round).value
             : m_header_height;
 
         // Draw header background
@@ -1300,10 +1300,10 @@ private:
             }
 
             int const abs_x = content_x + (metrics
-                ? metrics->snap_to_physical_x(logical_unit(col_x), snap_mode::floor)
+                ? metrics->snap_to_physical_x(logical_unit(col_x), snap_mode::floor).value
                 : static_cast<int>(col_x));
             int const abs_w = metrics
-                ? metrics->snap_to_physical_x(logical_unit(col_w), snap_mode::round)
+                ? metrics->snap_to_physical_x(logical_unit(col_w), snap_mode::round).value
                 : static_cast<int>(col_w);
 
             // Get header text from model

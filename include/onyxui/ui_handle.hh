@@ -47,6 +47,7 @@
 #include <onyxui/events/event_router.hh>
 #include <onyxui/events/hit_test_path.hh>
 #include <onyxui/hotkeys/hotkey_action.hh>
+#include <onyxui/core/physical_conversions.hh>
 #include <onyxui/services/focus_manager.hh>
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/widgets/core/widget.hh>
@@ -299,8 +300,8 @@ namespace onyxui {
                         logical_unit(static_cast<double>(new_height))});
                 } else {
                     // Proper DPI-aware conversion
-                    const logical_unit logical_width = metrics->physical_to_logical_x(new_width);
-                    const logical_unit logical_height = metrics->physical_to_logical_y(new_height);
+                    const logical_unit logical_width = metrics->physical_to_logical_x(physical_x(new_width));
+                    const logical_unit logical_height = metrics->physical_to_logical_y(physical_y(new_height));
 
                     [[maybe_unused]] auto measured_size = m_root->measure(logical_width, logical_height);
                     m_root->arrange(logical_rect{0.0_lu, 0.0_lu, logical_width, logical_height});
@@ -592,7 +593,7 @@ namespace onyxui {
                 const auto& removed_regions = layers->get_removed_layer_dirty_regions();
                 for (const auto& logical_region : removed_regions) {
                     // Use snap_rect for proper DPI-aware conversion
-                    rect_type physical_region = metrics->snap_rect(logical_region);
+                    rect_type physical_region = to_backend_rect<Backend>(metrics->snap_rect(logical_region));
                     dirty_regions.push_back(physical_region);
                 }
                 layers->clear_removed_layer_dirty_regions();

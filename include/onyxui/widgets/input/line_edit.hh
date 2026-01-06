@@ -643,8 +643,8 @@ namespace onyxui {
             const int border = m_has_border ? renderer_type::get_border_thickness(ctx.style().box_style) : 0;
 
             // Convert padding to physical pixels to match measure_text() output
-            const int padding_h = to_physical_x<Backend>(padding_h_logical);
-            const int padding_v = to_physical_y<Backend>(padding_v_logical);
+            const physical_x padding_h = to_physical_x<Backend>(padding_h_logical);
+            const physical_y padding_v = to_physical_y<Backend>(padding_v_logical);
 
             // Measure text height (width will scroll)
             typename renderer_type::font const default_font{};
@@ -653,8 +653,8 @@ namespace onyxui {
 
             // Calculate natural size (all values now in physical pixels/cells)
             const int min_width = 100;  // Reasonable minimum for text input
-            const int natural_width = min_width + (padding_h * 2) + (border * 2);
-            const int natural_height = text_height + (padding_v * 2) + (border * 2);
+            const int natural_width = min_width + (padding_h.value * 2) + (border * 2);
+            const int natural_height = text_height + (padding_v.value * 2) + (border * 2);
 
             // Get final dimensions
             const auto [final_width, final_height] = ctx.get_final_dims(natural_width, natural_height);
@@ -678,8 +678,8 @@ namespace onyxui {
             if (!theme) return;
 
             // Calculate text area (inside padding and border, all physical pixels)
-            const int text_x = x + border + padding_h;
-            const int text_y = y + border + padding_v;
+            const int text_x = x + border + padding_h.value;
+            const int text_y = y + border + padding_v.value;
 
             // Determine what text to display and color
             std::string display_text;
@@ -703,7 +703,7 @@ namespace onyxui {
 
             // ===== Horizontal Scrolling Logic =====
             // Calculate available text width (content area minus padding and border, all physical pixels)
-            const int available_text_width = final_width - (border * 2) - (padding_h * 2);
+            const int available_text_width = final_width - (border * 2) - (padding_h.value * 2);
 
             // Adjust scroll offset to keep cursor visible
             if (!is_placeholder && !display_text.empty()) {

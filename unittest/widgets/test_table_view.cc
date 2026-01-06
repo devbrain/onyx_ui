@@ -21,14 +21,14 @@ using Backend = test_backend;
 // Uses metrics if available, otherwise assumes 1:1 mapping
 inline logical_unit physical_to_logical_x(int physical) {
     if (auto const* m = ui_services<Backend>::metrics()) {
-        return m->physical_to_logical_x(physical);
+        return m->physical_to_logical_x(physical_x(physical));
     }
     return logical_unit(static_cast<double>(physical));
 }
 
 inline logical_unit physical_to_logical_y(int physical) {
     if (auto const* m = ui_services<Backend>::metrics()) {
-        return m->physical_to_logical_y(physical);
+        return m->physical_to_logical_y(physical_y(physical));
     }
     return logical_unit(static_cast<double>(physical));
 }
