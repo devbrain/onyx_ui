@@ -129,7 +129,7 @@ public:
     explicit sdlpp_renderer(::sdlpp::renderer& sdl_renderer,
                             const std::filesystem::path& assets_path = {});
 
-    ~sdlpp_renderer();
+    virtual ~sdlpp_renderer();
 
     sdlpp_renderer(const sdlpp_renderer&) = delete;
     sdlpp_renderer& operator=(const sdlpp_renderer&) = delete;
@@ -143,8 +143,8 @@ public:
     void draw_box(const rect& r, const box_style& style,
                   const color& fg, const color& bg);
 
-    void draw_text(const rect& r, std::string_view text,
-                   const font& f, const color& fg, const color& bg);
+    virtual void draw_text(const rect& r, std::string_view text,
+                           const font& f, const color& fg, const color& bg);
 
     void draw_icon(const rect& r, icon_style style,
                    const color& fg, const color& bg);

@@ -6,6 +6,9 @@
 //
 
 #pragma once
+
+#include "backend_config.hh"  // Defines concrete Backend type
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -40,6 +43,9 @@
  * @brief Main application class for OnyxUI Widgets Demo
  *
  * @details
+ * Uses concrete Backend type (defined via CMake macro in backend_config.hh).
+ * This eliminates the need for ->template syntax throughout.
+ *
  * Demonstrates:
  * - Complete widget gallery (all widgets, all states)
  * - Layout and scrolling systems
@@ -50,7 +56,6 @@
  * - Screenshot functionality
  * - Performance metrics
  */
-template <onyxui::UIBackend Backend>
 class widgets_demo : public onyxui::main_window<Backend> {
 public:
     /**
@@ -108,7 +113,7 @@ public:
      * @brief Set renderer for screenshot functionality
      * @param renderer Pointer to the renderer
      */
-    void set_renderer(typename Backend::renderer_type* renderer) {
+    void set_renderer(Backend::renderer_type* renderer) {
         m_renderer = renderer;
     }
 
@@ -116,7 +121,7 @@ public:
      * @brief Get renderer for screenshot functionality
      * @return Pointer to the renderer (may be nullptr)
      */
-    typename Backend::renderer_type* get_renderer() const noexcept {
+    Backend::renderer_type* get_renderer() const noexcept {
         return m_renderer;
     }
 
@@ -172,7 +177,7 @@ public:
      */
     void show_mvc_demo() {
         // Create MVC demo window (factory function)
-        auto win = widgets_demo_windows::create_mvc_demo_window<Backend>();
+        auto win = widgets_demo_windows::create_mvc_demo_window();
 
         // Register for lifetime management
         widgets_demo_windows::register_window(win);
@@ -414,19 +419,23 @@ private:
             return;
         }
 
-        // Create tab widget
-        m_tab_widget = central->template emplace_child<onyxui::tab_widget>();
+        // No ->template needed! Backend is a concrete type
+        m_tab_widget = central->emplace_child<onyxui::tab_widget>();
 
         // Tab 1: All Widgets (complete implementation)
-        auto tab1 = widgets_demo_tabs::create_tab_all_widgets<Backend>(this);
+        auto tab1 = widgets_demo_tabs::create_tab_all_widgets(
+            [this]() { take_screenshot(); },
+            [this]() { show_theme_editor(); },
+            [this]() { show_mvc_demo(); }
+        );
         m_tab_widget->add_tab(std::move(tab1), "All Widgets");
 
         // Tab 2: Layout & Scrolling (complete implementation)
-        auto tab2 = widgets_demo_tabs::create_tab_layout_scrolling<Backend>();
+        auto tab2 = widgets_demo_tabs::create_tab_layout_scrolling();
         m_tab_widget->add_tab(std::move(tab2), "Layout & Scrolling");
 
         // Tab 3: Events & Interaction (complete implementation)
-        auto tab3 = widgets_demo_tabs::create_tab_events_interaction<Backend>();
+        auto tab3 = widgets_demo_tabs::create_tab_events_interaction();
         m_tab_widget->add_tab(std::move(tab3), "Events & Interaction");
 
         // Set default tab
@@ -456,7 +465,7 @@ private:
      */
     void show_modal_dialog() {
         // Create modal dialog
-        auto dialog = widgets_demo_windows::create_modal_dialog<Backend>(
+        auto dialog = widgets_demo_windows::create_modal_dialog(
             "This is a modal dialog!\n\n"
             "Try clicking the main window - it's blocked.\n"
             "Focus is trapped within this dialog."
@@ -474,7 +483,7 @@ private:
      */
     void show_modeless_dialog() {
         // Create modeless dialog
-        auto dialog = widgets_demo_windows::create_modeless_dialog<Backend>();
+        auto dialog = widgets_demo_windows::create_modeless_dialog();
 
         // Register for lifetime management
         widgets_demo_windows::register_window(dialog);
@@ -488,7 +497,7 @@ private:
      */
     void show_about_dialog() {
         // Create about dialog
-        auto dialog = widgets_demo_windows::create_about_dialog<Backend>();
+        auto dialog = widgets_demo_windows::create_about_dialog();
 
         // Register for lifetime management
         widgets_demo_windows::register_window(dialog);
@@ -503,7 +512,7 @@ private:
     bool m_should_quit;
 
     onyxui::tab_widget<Backend>* m_tab_widget = nullptr;
-    typename Backend::renderer_type* m_renderer = nullptr;  // For screenshots
+    Backend::renderer_type* m_renderer = nullptr;  // For screenshots
 
     // Actions - kept alive as shared_ptrs
     std::vector<std::shared_ptr<onyxui::action<Backend>>> m_actions;

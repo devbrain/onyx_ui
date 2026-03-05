@@ -489,11 +489,13 @@ namespace onyxui {
                             auto font_size = Backend::renderer_type::measure_text("Xg", theme->tab_widget.tab_font);
                             int const font_height = size_utils::get_height(font_size);
                             // Theme padding is in logical units - convert to physical
-                            physical_y const padding_v = to_physical_y<Backend>(theme->tab_widget.tab_padding_vertical);
+                            // Use ui_services::metrics() to get proper scaling
+                            auto const* metrics = ui_services<Backend>::metrics();
+                            physical_y const padding_v = to_physical_y<Backend>(theme->tab_widget.tab_padding_vertical, metrics);
                             // Compute tab bar height in physical pixels
                             int const physical_tab_bar_h = font_height + 2 * padding_v.value;
                             // Convert back to logical for layout calculations
-                            tab_bar_h = to_logical_y<Backend>(physical_y(physical_tab_bar_h));
+                            tab_bar_h = to_logical_y<Backend>(physical_y(physical_tab_bar_h), metrics);
                         }
                     }
                     // Update cached value for next call
@@ -566,9 +568,11 @@ namespace onyxui {
             int const arrow_width_logical = tab_style.scroll_arrow_width;
             int const tab_padding_v_logical = tab_style.tab_padding_vertical;
             // Convert to physical pixels to match measure_text() output
-            physical_x const tab_spacing = to_physical_x<Backend>(tab_spacing_logical);
-            physical_x const arrow_width = to_physical_x<Backend>(arrow_width_logical);
-            physical_y const tab_padding_v = to_physical_y<Backend>(tab_padding_v_logical);
+            // Use ui_services::metrics() to get proper scaling
+            auto const* metrics = ui_services<Backend>::metrics();
+            physical_x const tab_spacing = to_physical_x<Backend>(tab_spacing_logical, metrics);
+            physical_x const arrow_width = to_physical_x<Backend>(arrow_width_logical, metrics);
+            physical_y const tab_padding_v = to_physical_y<Backend>(tab_padding_v_logical, metrics);
 
             // Measure close icon width from backend (physical pixels)
             auto close_icon_size = Backend::renderer_type::get_icon_size(tab_style.close_button_icon);

@@ -7,8 +7,17 @@
 #include <concepts>
 #include <onyxui/concepts/common.hh>
 
+// Forward declaration for logical_unit support
+namespace onyxui {
+    class logical_unit;
+}
+
 namespace onyxui {
     namespace detail {
+        // Concept to detect logical_unit type
+        template<typename T>
+        concept is_logical_unit = std::same_as<std::remove_cvref_t<T>, logical_unit>;
+
         template<typename T>
         concept has_member_w = requires(T t)
         {
@@ -19,6 +28,13 @@ namespace onyxui {
         concept has_member_width = requires(T t)
         {
             { t.width } -> std::convertible_to <int>;
+        };
+
+        // Support for logical_unit width member
+        template<typename T>
+        concept has_logical_unit_width = requires(T t)
+        {
+            { t.width } -> is_logical_unit;
         };
 
         template<typename T>
@@ -45,6 +61,13 @@ namespace onyxui {
             { t.height } -> std::convertible_to <int>;
         };
 
+        // Support for logical_unit height member
+        template<typename T>
+        concept has_logical_unit_height = requires(T t)
+        {
+            { t.height } -> is_logical_unit;
+        };
+
         template<typename T>
         concept has_method_height = requires(T t)
         {
@@ -63,15 +86,17 @@ namespace onyxui {
      * @brief Concept for 2D size types with width and height
      *
      * Supports multiple naming conventions:
-     * - Data members: s.w/s.h or s.width/s.height
+     * - Data members: s.w/s.h or s.width/s.height (including logical_unit)
      * - Methods: s.width()/s.height() or s.w()/s.h()
      * - Getter methods: s.get_width()/s.get_height()
      */
     template<typename T>
     concept SizeLike =
         (detail::has_member_w <T> || detail::has_member_width <T> ||
+         detail::has_logical_unit_width <T> ||
          detail::has_method_width <T> || detail::has_method_get_width <T>) &&
         (detail::has_member_h <T> || detail::has_member_height <T> ||
+         detail::has_logical_unit_height <T> ||
          detail::has_method_height <T> || detail::has_method_get_height <T>);
 
     namespace size_utils {
@@ -82,6 +107,8 @@ namespace onyxui {
         [[nodiscard]] constexpr int get_width(const S& s) noexcept {
             if constexpr (detail::has_member_width <S>) {
                 return static_cast <int>(s.width);
+            } else if constexpr (detail::has_logical_unit_width <S>) {
+                return s.width.to_int();
             } else if constexpr (detail::has_member_w <S>) {
                 return static_cast <int>(s.w);
             } else if constexpr (detail::has_method_width <S>) {
@@ -100,6 +127,8 @@ namespace onyxui {
         [[nodiscard]] constexpr int get_height(const S& s) noexcept {
             if constexpr (detail::has_member_height <S>) {
                 return static_cast <int>(s.height);
+            } else if constexpr (detail::has_logical_unit_height <S>) {
+                return s.height.to_int();
             } else if constexpr (detail::has_member_h <S>) {
                 return static_cast <int>(s.h);
             } else if constexpr (detail::has_method_height <S>) {

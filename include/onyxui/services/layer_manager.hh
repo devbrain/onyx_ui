@@ -372,21 +372,8 @@ namespace onyxui {
         void remove_layer(layer_id id) {
             auto it = find_layer(id);
             if (it != m_layers.end()) {
-                // Track removed layer bounds for dirty region marking (in logical coordinates)
-                // Caller converts to physical using metrics when processing dirty regions
-                logical_rect bounds_to_track = it->bounds;
-
-                // Expand bounds to include potential shadow area
-                // NOTE: We don't have access to theme here to query actual shadow offset
-                // (theme is only available during rendering via render_context).
-                // Shadow defaults in theme.hh: offset_x=1, offset_y=1 (backend-specific units)
-                // We use 2 as a conservative estimate that covers typical themes.
-                // This may clear slightly more than necessary, but prevents artifacts.
-                constexpr double SHADOW_MARGIN = 2.0;  // Conservative estimate for shadow offset
-                bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
-                bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
-
-                m_removed_layer_dirty_regions.push_back(bounds_to_track);
+                // Track removed layer bounds for dirty region marking
+                m_removed_layer_dirty_regions.push_back(expand_for_shadow(it->bounds));
 
                 // CRITICAL: Clear hover state if hovered element is in this layer
                 // Check if m_layer_hovered is a descendant of this layer's root
@@ -409,11 +396,7 @@ namespace onyxui {
             for (const auto& layer : m_layers) {
                 if (layer.type == type) {
                     // Track bounds for dirty region
-                    logical_rect bounds_to_track = layer.bounds;
-                    constexpr double SHADOW_MARGIN = 2.0;
-                    bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
-                    bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
-                    m_removed_layer_dirty_regions.push_back(bounds_to_track);
+                    m_removed_layer_dirty_regions.push_back(expand_for_shadow(layer.bounds));
 
                     // Clear hover if it was in this layer
                     clear_hover_if_in_layer(layer);
@@ -435,28 +418,49 @@ namespace onyxui {
         }
 
         /**
-         * @brief Bring layer to front (highest z-order within its type)
+         * @brief Bring layer to front (highest z-order within its z-index band)
          *
          * @param id Layer to bring to front
          *
          * @details
-         * Moves the specified layer to render last among layers of the same type,
-         * making it appear on top. The z-index remains unchanged, only the render
-         * order within the same z-index is adjusted.
+         * Moves the specified layer to render last among layers of the SAME z-index,
+         * making it appear on top within its band. This preserves the invariant that
+         * modals always render above popups, which always render above windows, etc.
+         *
+         * The z-index remains unchanged. Only the render order within the same
+         * z-index band is adjusted.
          *
          * Does nothing if layer ID is invalid or layer not found.
+         *
+         * **Why band-limited?** Moving a window to the absolute end would place it
+         * above modals/popups, violating the z-index ordering contract. This
+         * implementation respects z-index boundaries.
          */
         void bring_to_front(layer_id id) {
             auto it = find_layer(id);
             if (it == m_layers.end()) return;  // Layer not found
 
-            // Already at end (front)?
-            if (it == m_layers.end() - 1) return;
+            const int target_z = it->z_index;
 
-            // Move to end (renders last = on top)
+            // Find the range of layers with the same z-index
+            // Layers are sorted by z-index, so same-z layers are contiguous
+            auto band_begin = std::find_if(m_layers.begin(), m_layers.end(),
+                [target_z](const layer_data& l) { return l.z_index == target_z; });
+            auto band_end = std::find_if(band_begin, m_layers.end(),
+                [target_z](const layer_data& l) { return l.z_index != target_z; });
+
+            // Already at end of its band (front within z-index)?
+            if (it == band_end - 1) return;
+
+            // Move to end of its z-index band (renders last within band = on top)
             layer_data layer = std::move(*it);
             m_layers.erase(it);
-            m_layers.push_back(std::move(layer));
+
+            // Insert at the end of the z-index band
+            // After erase, band_end may be invalidated, so recalculate
+            auto insert_pos = std::find_if(m_layers.begin(), m_layers.end(),
+                [target_z](const layer_data& l) { return l.z_index > target_z; });
+            m_layers.insert(insert_pos, std::move(layer));
 
             m_layers_changed = true;  // Signal that layers were modified
         }
@@ -467,11 +471,7 @@ namespace onyxui {
         void clear_all_layers() {
             // Track all layer bounds for dirty region marking
             for (const auto& layer : m_layers) {
-                logical_rect bounds_to_track = layer.bounds;
-                constexpr double SHADOW_MARGIN = 2.0;
-                bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
-                bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
-                m_removed_layer_dirty_regions.push_back(bounds_to_track);
+                m_removed_layer_dirty_regions.push_back(expand_for_shadow(layer.bounds));
             }
 
             // Clear hover on element before clearing pointer
@@ -619,19 +619,39 @@ namespace onyxui {
 
         /**
          * @brief Show layer (make visible)
+         *
+         * @details
+         * Marks layers_changed so the renderer knows to redraw.
+         * The layer's bounds will be rendered on the next frame.
          */
         void show_layer(layer_id id) {
             if (auto it = find_layer(id); it != m_layers.end()) {
-                it->visible = true;
+                if (!it->visible) {
+                    it->visible = true;
+                    m_layers_changed = true;  // Trigger redraw
+                }
             }
         }
 
         /**
          * @brief Hide layer (make invisible but don't remove)
+         *
+         * @details
+         * Marks the layer's bounds as dirty so the area gets repainted.
+         * Without this, stale pixels would remain on screen.
          */
         void hide_layer(layer_id id) {
             if (auto it = find_layer(id); it != m_layers.end()) {
-                it->visible = false;
+                if (it->visible) {
+                    it->visible = false;
+                    // Track the hidden layer's bounds for dirty region marking
+                    // so the area gets repainted (clears the layer's pixels)
+                    m_removed_layer_dirty_regions.push_back(expand_for_shadow(it->bounds));
+                    m_layers_changed = true;  // Trigger redraw
+
+                    // Clear hover if it was in this layer
+                    clear_hover_if_in_layer(*it);
+                }
             }
         }
 
@@ -760,51 +780,48 @@ namespace onyxui {
                 if (m_input_manager) {
                     auto* captured = m_input_manager->get_captured();
                     if (captured) {
-                        // Terminals (termbox2) may not emit mouse release events.
-                        // If we press on a different target, synthesize release for the capture.
                         if (mouse_evt->act == mouse_event::action::press) {
+                            // Hit-test to find target widget for capture transfer check
                             element_type* top_target = nullptr;
-
                             for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
-                                if (!it->visible || !it->is_valid()) {
-                                    continue;
-                                }
-                                if (modal_z_index.has_value() && it->z_index < *modal_z_index) {
-                                    continue;
-                                }
+                                if (!it->visible || !it->is_valid()) continue;
+                                if (modal_z_index.has_value() && it->z_index < *modal_z_index) continue;
 
                                 it->with_root([&](element_type* root_ptr) {
-                                    if (top_target) {
-                                        return;
-                                    }
+                                    if (top_target) return;
                                     hit_test_path<Backend> path;
                                     top_target = root_ptr->hit_test_logical(
                                         mouse_evt->x, mouse_evt->y, path);
                                 });
 
-                                if (top_target) {
-                                    break;
-                                }
-
-                                if (it->modal && it->blocks_events) {
-                                    break;
-                                }
+                                if (top_target) break;
+                                if (it->modal && it->blocks_events) break;
                             }
 
-                            if (top_target != captured) {
-                                mouse_event release{
-                                    .x = mouse_evt->x,
-                                    .y = mouse_evt->y,
-                                    .btn = mouse_event::button::left,
-                                    .act = mouse_event::action::release,
-                                    .modifiers = {}
-                                };
-                                captured->handle_event(ui_event{release}, event_phase::target);
-                                m_input_manager->release_capture();
-                            } else {
+                            // Use consolidated capture transfer logic from input_manager
+                            // This handles the termbox2 "no release events" workaround
+                            bool released = m_input_manager->handle_capture_transfer_on_press(
+                                top_target,
+                                [&](auto* old_capture) {
+                                    // Send synthetic release to previously captured widget
+                                    mouse_event release{
+                                        .x = mouse_evt->x,
+                                        .y = mouse_evt->y,
+                                        .btn = mouse_event::button::left,
+                                        .act = mouse_event::action::release,
+                                        .modifiers = {}
+                                    };
+                                    old_capture->handle_event(ui_event{release}, event_phase::target);
+                                }
+                            );
+
+                            // If capture wasn't transferred, deliver to captured widget
+                            if (!released) {
                                 return captured->handle_event(ui_evt, event_phase::target);
                             }
+                            // Otherwise, fall through to normal routing
                         } else {
+                            // Non-press events go directly to captured widget
                             bool handled = captured->handle_event(ui_evt, event_phase::target);
                             if (mouse_evt->act == mouse_event::action::release) {
                                 m_input_manager->release_capture();
@@ -815,8 +832,28 @@ namespace onyxui {
                 }
             }
 
-            // Route to layers (highest z first)
+            // ================================================================
+            // ITERATOR SAFETY: Snapshot layer IDs before routing
+            // ================================================================
+            // Event handlers may call remove_layer() or other mutations during
+            // routing. To prevent iterator invalidation, we take a snapshot of
+            // layer IDs (highest z first) and look up each layer by ID.
+            // If a layer was removed during routing, find_layer() returns end()
+            // and we safely skip it.
+            std::vector<layer_id> layer_snapshot;
+            layer_snapshot.reserve(m_layers.size());
             for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
+                layer_snapshot.push_back(it->id);
+            }
+
+            // Route to layers using snapshot (highest z first)
+            for (layer_id lid : layer_snapshot) {
+                // Look up layer by ID - may have been removed during routing
+                auto it = find_layer(lid);
+                if (it == m_layers.end()) {
+                    continue;  // Layer was removed during event handling
+                }
+
                 if (!it->visible || !it->is_valid()) {
                     continue;
                 }
@@ -844,7 +881,7 @@ namespace onyxui {
                             if (m_layer_hovered) {
                                 m_layer_hovered->reset_hover_and_press_state();
                             }
-                            set_layer_hover(target, it->id);
+                            set_layer_hover(target, lid);
                         }
 
                         if (target) {
@@ -1188,10 +1225,46 @@ namespace onyxui {
         }
 
         void sort_layers_by_z_index() {
-            std::sort(m_layers.begin(), m_layers.end(),
+            // Use stable_sort to preserve insertion order within the same z-index
+            // This ensures deterministic ordering: layers added first render first
+            // within their z-band, and bring_to_front() effects are preserved
+            std::stable_sort(m_layers.begin(), m_layers.end(),
                 [](const layer_data& a, const layer_data& b) {
                     return a.z_index < b.z_index;
                 });
+        }
+
+        /**
+         * @brief Expand bounds for shadow/outline dirty region tracking
+         * @param bounds Original layer bounds
+         * @return Expanded bounds covering potential shadow/outline area
+         *
+         * @details
+         * Expands bounds symmetrically on ALL sides by SHADOW_MARGIN to ensure
+         * dirty region tracking covers shadows, outlines, focus rings, etc.
+         * Also clips to non-negative coordinates to prevent out-of-bounds issues
+         * with renderers that don't handle negative coordinates gracefully.
+         */
+        [[nodiscard]] static logical_rect expand_for_shadow(const logical_rect& bounds) noexcept {
+            // Conservative estimate for shadow/outline offset
+            // Shadow defaults in theme.hh: offset_x=1, offset_y=1
+            // We use 2 as a conservative estimate that covers typical themes.
+            constexpr double SHADOW_MARGIN = 2.0;
+
+            logical_rect expanded;
+            // Expand on all sides, but clamp x/y to 0 (non-negative)
+            expanded.x = std::max(bounds.x - logical_unit(SHADOW_MARGIN), 0.0_lu);
+            expanded.y = std::max(bounds.y - logical_unit(SHADOW_MARGIN), 0.0_lu);
+
+            // Calculate how much we actually subtracted (may be less if clamped)
+            double const actual_left_expansion = (bounds.x - expanded.x).value;
+            double const actual_top_expansion = (bounds.y - expanded.y).value;
+
+            // Width/height expand by margin on both sides, adjusted for any clamping
+            expanded.width = bounds.width + logical_unit(actual_left_expansion + SHADOW_MARGIN);
+            expanded.height = bounds.height + logical_unit(actual_top_expansion + SHADOW_MARGIN);
+
+            return expanded;
         }
 
         /**
@@ -1262,11 +1335,7 @@ namespace onyxui {
             for (const auto& layer : m_layers) {
                 if (!layer.is_valid()) {
                     // Track bounds for dirty region
-                    logical_rect bounds_to_track = layer.bounds;
-                    constexpr double SHADOW_MARGIN = 2.0;
-                    bounds_to_track.width = bounds_to_track.width + logical_unit(SHADOW_MARGIN);
-                    bounds_to_track.height = bounds_to_track.height + logical_unit(SHADOW_MARGIN);
-                    m_removed_layer_dirty_regions.push_back(bounds_to_track);
+                    m_removed_layer_dirty_regions.push_back(expand_for_shadow(layer.bounds));
                 }
             }
 
@@ -1380,9 +1449,13 @@ namespace onyxui {
                 // (e.g., combo_box_view sets a specific height based on item count)
                 logical_size size{layer.bounds.width, layer.bounds.height};
 
-                // If bounds weren't set, fall back to measuring with anchor width
+                // If bounds weren't set, fall back to measuring
+                // CRITICAL: For tooltips (anchor_w <= 0), use viewport width to avoid
+                // measuring with 0 which could collapse the tooltip's width.
+                // Dropdowns use anchor_w as their minimum width.
                 if (size.width.value <= 0 || size.height.value <= 0) {
-                    size = root_ptr->measure(anchor_w, viewport.height);
+                    logical_unit measure_width = (anchor_w.value > 0) ? anchor_w : viewport.width;
+                    size = root_ptr->measure(measure_width, viewport.height);
                 }
 
                 // Calculate position based on placement
@@ -1433,10 +1506,17 @@ namespace onyxui {
                 }
 
                 // Clamp to viewport
-                if (x < viewport.x) x = viewport.x;
-                if (x > viewport.x + viewport.width - size.width) x = viewport.x + viewport.width - size.width;
-                if (y < viewport.y) y = viewport.y;
-                if (y > viewport.y + viewport.height - size.height) y = viewport.y + viewport.height - size.height;
+                // For oversized popups (larger than viewport), pin to viewport origin
+                // and let the popup handle overflow via scrolling internally.
+                // Order matters: check max FIRST, then clamp to min to ensure non-negative
+                logical_unit const x_max = viewport.x + viewport.width - size.width;
+                logical_unit const y_max = viewport.y + viewport.height - size.height;
+
+                if (x > x_max) x = x_max;  // Don't extend past right edge
+                if (x < viewport.x) x = viewport.x;  // But never go negative (handles oversize case)
+
+                if (y > y_max) y = y_max;  // Don't extend past bottom edge
+                if (y < viewport.y) y = viewport.y;  // But never go negative (handles oversize case)
 
                 layer.bounds = logical_rect{x, y, size.width, size.height};
             });

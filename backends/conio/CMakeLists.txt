@@ -1,10 +1,11 @@
 include(FetchContent)
 
 # Fetch termbox2 (single-file header library)
+# Pinned to v2.5.0 for reproducible builds
 FetchContent_Declare(
         termbox2
         GIT_REPOSITORY https://github.com/termbox/termbox2.git
-        GIT_TAG master
+        GIT_TAG v2.5.0
 )
 
 FetchContent_MakeAvailable(termbox2)

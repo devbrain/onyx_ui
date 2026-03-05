@@ -268,3 +268,16 @@ void sdlpp_backend::clear_quit_flag() noexcept
 }
 
 } // namespace onyxui::sdlpp
+
+// =============================================================================
+// Explicit Template Instantiation
+// =============================================================================
+// Instantiate all widget templates for sdlpp_backend to reduce compile times.
+// Users linking against this library get pre-compiled widget code.
+
+#include <onyxui/instantiations/all_widgets.hh>
+#include <onyxui/backends/sdlpp/onyxui_sdlpp_export.h>
+
+#define ONYXUI_BACKEND onyxui::sdlpp::sdlpp_backend
+#define ONYXUI_EXPORT ONYXUI_SDLPP_EXPORT
+#include <onyxui/instantiations/instantiate_widgets.inl>

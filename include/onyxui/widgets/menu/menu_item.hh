@@ -114,9 +114,14 @@ namespace onyxui {
          */
         explicit menu_item(std::string text = "", ui_element<Backend>* parent = nullptr)
             : base(parent)
-            , m_text(std::move(text))
             , m_item_type(menu_item_type::normal) {
             this->set_focusable(true);  // Menu items are focusable
+            // Handle mnemonic syntax in constructor text
+            if (text.find('&') != std::string::npos) {
+                set_mnemonic_text(text);
+            } else {
+                m_text = std::move(text);
+            }
         }
 
         /**
@@ -364,15 +369,17 @@ namespace onyxui {
             int const padding_v_logical = ctx.style().padding_vertical.value.value_or(0);
 
             // Convert padding to physical pixels to match measure_text() output
-            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
-            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
+            // Use ui_services::metrics() to get proper scaling (avoids fallback heuristic)
+            auto const* metrics = ui_services<Backend>::metrics();
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical, metrics);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
             // Shortcut spacing from resolved style or theme - also needs conversion
             int shortcut_spacing_logical = 2;
             if (ctx.theme()) {
                 shortcut_spacing_logical = ctx.theme()->menu_item.shortcut_spacing;
             }
-            physical_x const shortcut_spacing = to_physical_x<Backend>(shortcut_spacing_logical);
+            physical_x const shortcut_spacing = to_physical_x<Backend>(shortcut_spacing_logical, metrics);
 
             // Use absolute screen position from context
             int const base_x = point_utils::get_x(pos);

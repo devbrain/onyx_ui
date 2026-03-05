@@ -35,11 +35,15 @@ void conio_backend::register_themes(theme_registry<conio_backend>& registry) {
 // ============================================================================
 
 bool conio_backend::init() {
+    // Note: Termbox lifecycle is owned by vram (RAII via vram::impl constructor/destructor).
+    // This method just tracks whether a vram instance exists and is usable.
+    // Do NOT call tb_init() here - that's vram's responsibility.
+
     if (g_termbox_initialized) {
-        return true;  // Already initialized by us
+        return true;  // Already initialized
     }
 
-    // Check if termbox is already initialized (e.g., by vram)
+    // Check if termbox is already initialized (by vram)
     // tb_width() returns -1 if not initialized
     if (tb_width() > 0) {
         g_termbox_initialized = true;
@@ -47,24 +51,15 @@ bool conio_backend::init() {
         return true;
     }
 
-    const int result = tb_init();
-    if (result != TB_OK) {
-        return false;
-    }
-
-    // Enable mouse support
-    tb_set_input_mode(TB_INPUT_ESC | TB_INPUT_MOUSE);
-
-    g_termbox_initialized = true;
-    g_quit_requested = false;
-    return true;
+    // Not initialized - caller should create a conio_renderer (which owns vram)
+    return false;
 }
 
 void conio_backend::shutdown() {
-    if (g_termbox_initialized) {
-        tb_shutdown();
-        g_termbox_initialized = false;
-    }
+    // Note: Termbox shutdown is owned by vram destructor (RAII).
+    // This method just clears our tracking state.
+    // Do NOT call tb_shutdown() here - that's vram's responsibility.
+    g_termbox_initialized = false;
 }
 
 bool conio_backend::should_quit() noexcept {
@@ -98,3 +93,16 @@ int conio_poll_event(tb_event* event) {
 }
 
 } // namespace onyxui::conio
+
+// =============================================================================
+// Explicit Template Instantiation
+// =============================================================================
+// Instantiate all widget templates for conio_backend to reduce compile times.
+// Users linking against this library get pre-compiled widget code.
+
+#include <onyxui/instantiations/all_widgets.hh>
+#include <onyxui/backends/conio/onyxui_conio_export.h>
+
+#define ONYXUI_BACKEND onyxui::conio::conio_backend
+#define ONYXUI_EXPORT ONYXUI_CONIO_EXPORT
+#include <onyxui/instantiations/instantiate_widgets.inl>

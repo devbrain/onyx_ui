@@ -266,7 +266,7 @@ namespace onyxui {
      * @brief Convert theme padding/spacing to physical pixels (X-axis)
      * @tparam Backend The UI backend type
      * @param value Theme value (small integer like 1, 2)
-     * @param metrics Pointer to backend metrics (optional)
+     * @param metrics Pointer to backend metrics (required, use ui_services<Backend>::metrics())
      * @return Physical X coordinate (strong type)
      *
      * @details
@@ -277,29 +277,23 @@ namespace onyxui {
      * unit = 1 character cell. For graphical backends, 1 logical unit = N pixels
      * (typically 8). This function converts to physical pixels using the metrics.
      *
-     * When metrics are unavailable, runtime detection estimates the scale factor
-     * by measuring a reference character.
+     * @note If metrics is null, returns 1:1 scaling (value unchanged). This is a
+     * safe fallback for edge cases but callers should always pass valid metrics.
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline physical_x to_physical_x(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline physical_x to_physical_x(int value, backend_metrics<Backend> const* metrics) noexcept {
         if (metrics) {
             return metrics->snap_to_physical_x(logical_unit(value), snap_mode::round);
         }
-        // Runtime detection: measure reference character to estimate scale factor
-        typename Backend::renderer_type::font default_font{};
-        auto ref_size = Backend::renderer_type::measure_text("X", default_font);
-        int const ref_width = size_utils::get_width(ref_size);
-        // Use the reference character width as the scale factor
-        // For terminal: ref_width = 1, so no scaling
-        // For graphical: ref_width = ~8, so value * 8
-        return physical_x(value * ref_width);
+        // Null metrics: use 1:1 scaling as safe fallback (terminal-like behavior)
+        return physical_x(value);
     }
 
     /**
      * @brief Convert theme padding/spacing to physical pixels (Y-axis)
      * @tparam Backend The UI backend type
      * @param value Theme value (small integer like 1, 2)
-     * @param metrics Pointer to backend metrics (optional)
+     * @param metrics Pointer to backend metrics (required, use ui_services<Backend>::metrics())
      * @return Physical Y coordinate (strong type)
      *
      * @details
@@ -310,31 +304,23 @@ namespace onyxui {
      * unit = 1 character cell. For graphical backends, 1 logical unit = N pixels
      * (typically 8). This function converts to physical pixels using the metrics.
      *
-     * When metrics are unavailable, runtime detection estimates the scale factor
-     * by measuring a reference character. Note: we use character WIDTH (not height)
-     * for Y-axis conversion too, to keep padding uniform (square) regardless of
-     * font aspect ratio.
+     * @note If metrics is null, returns 1:1 scaling (value unchanged). This is a
+     * safe fallback for edge cases but callers should always pass valid metrics.
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline physical_y to_physical_y(int value, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline physical_y to_physical_y(int value, backend_metrics<Backend> const* metrics) noexcept {
         if (metrics) {
             return metrics->snap_to_physical_y(logical_unit(value), snap_mode::round);
         }
-        // Runtime detection: measure reference character to estimate scale factor
-        // Use WIDTH for both X and Y to keep padding uniform (square)
-        typename Backend::renderer_type::font default_font{};
-        auto ref_size = Backend::renderer_type::measure_text("X", default_font);
-        int const ref_width = size_utils::get_width(ref_size);
-        // For terminal: ref_width = 1, so no scaling
-        // For graphical: ref_width = ~8, so value * 8
-        return physical_y(value * ref_width);
+        // Null metrics: use 1:1 scaling as safe fallback (terminal-like behavior)
+        return physical_y(value);
     }
 
     /**
      * @brief Convert physical pixels to logical units (Y-axis)
      * @tparam Backend The UI backend type
      * @param py Physical Y coordinate (strong type)
-     * @param metrics Pointer to backend metrics (optional)
+     * @param metrics Pointer to backend metrics (required, use ui_services<Backend>::metrics())
      * @return Value in logical units (rounded up to avoid clipping)
      *
      * @details
@@ -342,25 +328,17 @@ namespace onyxui {
      * to convert a physical measurement (like computed tab bar height) back
      * to logical units for layout calculations.
      *
-     * When metrics are unavailable, runtime detection estimates the scale factor
-     * by measuring a reference character. We use character WIDTH for both X and Y
-     * to keep conversions consistent with to_physical_y().
+     * @note If metrics is null, returns 1:1 scaling (value unchanged). This is a
+     * safe fallback for edge cases but callers should always pass valid metrics.
      */
     template<UIBackend Backend>
-    [[nodiscard]] inline int to_logical_y(physical_y py, backend_metrics<Backend> const* metrics = nullptr) noexcept {
+    [[nodiscard]] inline int to_logical_y(physical_y py, backend_metrics<Backend> const* metrics) noexcept {
         if (metrics) {
             return static_cast<int>(std::ceil(
                 metrics->physical_to_logical_y(py).value));
         }
-        // Runtime detection: measure reference character to estimate scale factor
-        // Use WIDTH for both X and Y to keep conversions symmetric with to_physical_y()
-        typename Backend::renderer_type::font default_font{};
-        auto ref_size = Backend::renderer_type::measure_text("X", default_font);
-        int const ref_width = std::max(1, size_utils::get_width(ref_size));
-        // For terminal: ref_width = 1, so value / 1 = value (no change)
-        // For graphical: ref_width = ~8, so value / 8 (e.g., 16 pixels -> 2 logical)
-        // Round up to avoid clipping
-        return (py.value + ref_width - 1) / ref_width;
+        // Null metrics: use 1:1 scaling as safe fallback (terminal-like behavior)
+        return py.value;
     }
 
 } // namespace onyxui

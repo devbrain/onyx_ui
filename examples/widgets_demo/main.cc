@@ -4,20 +4,19 @@
 // OnyxUI Widgets Demo - Entry Point
 // Comprehensive demonstration of all OnyxUI framework features
 //
-// Compile with:
-//   -DUSE_SDLPP_BACKEND  for SDL++ (graphical)
-//   (default)            for conio (terminal)
+// Backend selection via CMake:
+//   -DONYXUI_USE_CONIO_BACKEND  for conio (terminal)
+//   -DONYXUI_USE_SDLPP_BACKEND  for SDL++ (graphical)
 //
 
-#if defined(USE_SDLPP_BACKEND)
-// ============================================================================
-// SDL++ Backend
-// ============================================================================
-#include <onyxui/sdlpp/sdlpp_backend.hh>
 #include <onyxui/ui_handle.hh>
-#include "widgets_demo.hh"
+#include "widgets_demo.hh"  // Includes backend_config.hh which defines Backend
 
-using Backend = onyxui::sdlpp::sdlpp_backend;
+// ============================================================================
+// Application Entry Point
+// ============================================================================
+
+#if defined(ONYXUI_USE_SDLPP_BACKEND)
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Use run_app for simple standalone application
@@ -25,22 +24,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         "OnyxUI Widgets Demo",
         1024,
         768,
-        [](widgets_demo<Backend>& widget) {
+        [](widgets_demo& widget) {
             // Setup callback - widget is ready but renderer not yet available
             // Note: screenshot functionality requires renderer access
         }
     );
 }
 
-#else
-// ============================================================================
-// Conio (Terminal) Backend
-// ============================================================================
-#include <onyxui/conio/conio_backend.hh>
-#include <onyxui/ui_handle.hh>
-#include "widgets_demo.hh"
-
-using Backend = onyxui::conio::conio_backend;
+#else // ONYXUI_USE_CONIO_BACKEND
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     try {
@@ -48,7 +39,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         onyxui::scoped_ui_context<Backend> ui_ctx{onyxui::make_terminal_metrics<Backend>()};
 
         // Create main widget
-        auto widget = std::make_unique<widgets_demo<Backend>>();
+        auto widget = std::make_unique<widgets_demo>();
         auto* widget_ptr = widget.get();
 
         // Create UI handle (this initializes termbox via vram)

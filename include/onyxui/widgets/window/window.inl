@@ -459,7 +459,7 @@ namespace onyxui {
         }
 
         // Measure content at a large available size to get its natural size
-        constexpr int LARGE_SIZE = 10000;
+        const auto LARGE_SIZE = logical_unit(10000);
         const auto content_size = content->measure(LARGE_SIZE, LARGE_SIZE);
 
         int content_width = size_utils::get_width(content_size);

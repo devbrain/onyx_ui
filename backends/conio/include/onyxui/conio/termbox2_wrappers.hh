@@ -34,8 +34,7 @@
 
 #include <onyxui/backends/conio/onyxui_conio_export.h>
 
-// Forward declare tb_event to avoid including termbox2.h here
-struct tb_event;
+// Note: tb_event is defined in termbox2.h included above
 
 namespace onyxui::conio {
     /**

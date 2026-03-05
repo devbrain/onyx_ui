@@ -640,7 +640,7 @@ namespace onyxui {
                 }
                 // Create default parent style from theme
                 resolved_style<Backend> default_style = resolved_style<Backend>::from_theme(*theme);
-                render(renderer, {}, theme, default_style, metrics, point_type{0, 0});  // Empty vector means "render everything"
+                render(renderer, {}, theme, default_style, metrics, logical_point{0.0_lu, 0.0_lu});  // Empty vector means "render everything"
             }
 
             /**
@@ -667,12 +667,21 @@ namespace onyxui {
        * Coordinate conversion:
        * - m_bounds is in logical units (set by arrange())
        * - metrics converts logical → physical for actual rendering
-       * - offset is accumulated physical position from parent content areas
+       * - abs_origin_logical is accumulated LOGICAL position from parent content areas
+       *
+       * ## Coordinate Correctness
+       *
+       * This method accumulates offsets in LOGICAL space (full precision doubles)
+       * and only snaps to physical pixels when needed for actual rendering.
+       * This avoids non-associative rounding drift in deep hierarchies:
+       *
+       * BAD:  snap(local) + snap(parent) + snap(grandparent) - can drift!
+       * GOOD: snap(local + parent + grandparent) - associative, no drift
        */
             void render(renderer_type& renderer, const std::vector<rect_type>& dirty_regions,
                        const theme_type* theme, const resolved_style<Backend>& parent_style,
                        const backend_metrics<Backend>& metrics,
-                       point_type const& offset = point_type{0, 0}) {
+                       logical_point abs_origin_logical = logical_point{0.0_lu, 0.0_lu}) {
                 if (!m_visible) {
                     return;
                 }
@@ -680,16 +689,27 @@ namespace onyxui {
                 // Resolve style by merging parent_style with my overrides (no recursion!)
                 auto style = this->resolve_style(theme, parent_style);
 
-                // Convert logical bounds to physical using metrics
-                // m_bounds is in logical units, snap_rect converts to physical
-                physical_rect phys_bounds = metrics.snap_rect(m_bounds);
+                // ================================================================
+                // COORDINATE CORRECTNESS: Accumulate in logical space, snap once
+                // ================================================================
+                // Compute absolute logical bounds by translating local bounds by
+                // accumulated logical origin. This preserves precision across the
+                // entire hierarchy and avoids non-associative rounding drift.
+                logical_rect abs_bounds_logical{
+                    m_bounds.x + abs_origin_logical.x,
+                    m_bounds.y + abs_origin_logical.y,
+                    m_bounds.width,
+                    m_bounds.height
+                };
+
+                // NOW snap to physical - this is the only snapping for this element
+                physical_rect phys_bounds = metrics.snap_rect(abs_bounds_logical);
                 rect_type physical_bounds = to_backend_rect<Backend>(phys_bounds);
 
-                // Bounds are RELATIVE to parent's content area
-                // Add accumulated physical offset to get absolute screen position
+                // Extract absolute position and size from snapped bounds
                 point_type absolute_pos{
-                    rect_utils::get_x(physical_bounds) + point_utils::get_x(offset),
-                    rect_utils::get_y(physical_bounds) + point_utils::get_y(offset)
+                    rect_utils::get_x(physical_bounds),
+                    rect_utils::get_y(physical_bounds)
                 };
 
                 size_type size{
@@ -698,7 +718,6 @@ namespace onyxui {
                 };
 
                 // Create draw context with resolved style, ABSOLUTE position, size, dirty regions, and theme
-                // The absolute_pos accounts for all parent content area offsets
                 draw_context<Backend> ctx(renderer, style, absolute_pos, size, dirty_regions, theme);
 
                 // Skip rendering if this element doesn't intersect with any dirty region
@@ -717,35 +736,40 @@ namespace onyxui {
                 // Render this element (style already resolved in ctx)
                 do_render(ctx);
 
-                // Set clip rect for children (content area only)
-                logical_rect const content_area_logical = get_content_area();
+                // ================================================================
+                // Content area for children - accumulate in logical space
+                // ================================================================
+                logical_rect const content_area_local = get_content_area();
 
-                // Convert logical content area to physical
-                physical_rect phys_content = metrics.snap_rect(content_area_logical);
+                // Compute absolute logical content area for clipping
+                // content_area is relative to this widget's bounds origin
+                logical_rect abs_content_logical{
+                    abs_bounds_logical.x + content_area_local.x,
+                    abs_bounds_logical.y + content_area_local.y,
+                    content_area_local.width,
+                    content_area_local.height
+                };
+
+                // Snap content area to physical for clip rect
+                physical_rect phys_content = metrics.snap_rect(abs_content_logical);
                 rect_type content_area_physical = to_backend_rect<Backend>(phys_content);
 
-                // Calculate absolute clip rect
-                // content_area position is relative to widget's bounds origin, so add absolute_pos
-                rect_type absolute_clip;
-                rect_utils::set_bounds(absolute_clip,
-                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area_physical),
-                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area_physical),
-                    rect_utils::get_width(content_area_physical),
-                    rect_utils::get_height(content_area_physical));
-
                 // Push clip rect before rendering children
-                renderer.push_clip(absolute_clip);
+                renderer.push_clip(content_area_physical);
 
-                // Render children in z-order (they're already clipped)
+                // ================================================================
+                // Children: pass logical origin, NOT physical offset
+                // ================================================================
                 // Children are arranged at RELATIVE coordinates (0,0 = top-left of content area)
-                // Accumulate physical offset for children: widget's absolute position + content area physical offset
-                point_type child_offset{
-                    point_utils::get_x(absolute_pos) + rect_utils::get_x(content_area_physical),
-                    point_utils::get_y(absolute_pos) + rect_utils::get_y(content_area_physical)
+                // Pass absolute logical origin of content area so children can compute
+                // their own absolute logical bounds and snap correctly.
+                logical_point child_origin_logical{
+                    abs_bounds_logical.x + content_area_local.x,
+                    abs_bounds_logical.y + content_area_local.y
                 };
 
                 for (const auto& child : m_children) {
-                    child->render(renderer, dirty_regions, theme, style, metrics, child_offset);
+                    child->render(renderer, dirty_regions, theme, style, metrics, child_origin_logical);
                 }
 
                 // Restore previous clip rect

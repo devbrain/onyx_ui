@@ -45,6 +45,9 @@ namespace onyxui::conio {
 
     conio_renderer::~conio_renderer() = default;
 
+    conio_renderer::conio_renderer(conio_renderer&&) noexcept = default;
+    conio_renderer& conio_renderer::operator=(conio_renderer&&) noexcept = default;
+
     void conio_renderer::draw_box(const rect& r, const box_style& style, const color& fg, const color& bg) {
         const rect clip = get_clip_rect();
 

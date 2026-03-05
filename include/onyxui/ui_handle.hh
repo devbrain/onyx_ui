@@ -434,28 +434,24 @@ namespace onyxui {
                 // Handle mouse capture
                 if (is_button_event) {
                     if (is_press) {
-                        // WORKAROUND (PERMANENT): Some backends (like termbox2) don't send mouse release events
-                        // due to terminal limitations. This is expected behavior, not a bug.
-                        // If we're pressing on a different widget than what's captured,
-                        // implicitly release the old capture first by sending it a synthetic mouse release event.
-                        // This ensures widgets can clean up their pressed state properly.
-                        auto* currently_captured = input->get_captured();
-                        if (currently_captured && currently_captured != target_widget) {
-                            // Send mouse release to previously captured widget to clean up its state
-                            // With unified event API, construct proper mouse_event with action::release
-                            // Note: mouse_event uses physical coordinates from original event
-                            mouse_event release{
-                                .x = mouse_evt->x,
-                                .y = mouse_evt->y,
-                                .btn = mouse_event::button::left,
-                                .act = mouse_event::action::release,
-                                .modifiers = {}
-                            };
-                            static_cast<widget_type*>(currently_captured)->handle_event(
-                                ui_event{release}, event_phase::target
-                            );
-                            input->release_capture();
-                        }
+                        // Use consolidated capture transfer logic from input_manager
+                        // This handles the termbox2 "no release events" workaround
+                        input->handle_capture_transfer_on_press(
+                            target_widget,
+                            [&](auto* old_capture) {
+                                // Send synthetic release to previously captured widget
+                                mouse_event release{
+                                    .x = mouse_evt->x,
+                                    .y = mouse_evt->y,
+                                    .btn = mouse_event::button::left,
+                                    .act = mouse_event::action::release,
+                                    .modifiers = {}
+                                };
+                                static_cast<widget_type*>(old_capture)->handle_event(
+                                    ui_event{release}, event_phase::target
+                                );
+                            }
+                        );
 
                         // Mouse button down - capture mouse to this widget
                         input->set_capture(target_widget);

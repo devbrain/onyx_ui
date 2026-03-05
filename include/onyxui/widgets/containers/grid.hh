@@ -217,7 +217,7 @@ namespace onyxui {
         void set_column_spacing(spacing spacing_value) {
             if (m_column_spacing != spacing_value) {
                 m_column_spacing = spacing_value;
-                this->invalidate_layout();
+                this->invalidate_measure();
             }
         }
 
@@ -228,7 +228,7 @@ namespace onyxui {
         void set_row_spacing(spacing spacing_value) {
             if (m_row_spacing != spacing_value) {
                 m_row_spacing = spacing_value;
-                this->invalidate_layout();
+                this->invalidate_measure();
             }
         }
 

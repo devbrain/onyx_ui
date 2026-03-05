@@ -27,9 +27,8 @@ int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
             setup(*widget_ptr);
         }
 
-        // Create VRAM and renderer (vram handles tb_init/tb_shutdown)
-        auto vram_instance = std::make_shared<vram>();
-        conio_renderer onyx_renderer(vram_instance);
+        // Create renderer (owns vram internally, which handles tb_init/tb_shutdown via RAII)
+        conio_renderer onyx_renderer;
 
         // Create UI handle
         ui_handle<conio_backend> ui(std::move(widget), std::move(onyx_renderer));
@@ -62,7 +61,7 @@ int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
             // TB_ERR_NO_EVENT means no event available, continue
         }
 
-        // Cleanup handled by vram destructor
+        // Cleanup handled by conio_renderer destructor (vram destructor calls tb_shutdown)
         return 0;
     }
     catch (const std::exception& e) {

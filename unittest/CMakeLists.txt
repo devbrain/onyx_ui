@@ -151,6 +151,26 @@ add_executable(ui_unittest
         mvc/test_mvc_basic.cc
         mvc/test_table_model.cc
 )
+
+# Tile tests require SDL++ backend (tile_renderer extends sdlpp_renderer)
+if(NEUTRINO_ONYX_UI_BUILD_BACKEND_SDLPP)
+    target_sources(ui_unittest PRIVATE
+        tile/test_tile_types.cc
+        tile/test_tile_theme.cc
+        tile/test_tile_renderer.cc
+        tile/test_tile_widgets.cc
+        tile/test_tile_animation.cc
+        tile/test_tile_factory.cc
+        tile/test_tile_game_ui_demo.cc
+        tile/test_tile_optimization.cc
+        tile/test_tile_run_app_integration.cc
+    )
+    target_include_directories(ui_unittest PRIVATE
+        ${CMAKE_SOURCE_DIR}/backends/sdlpp/include
+    )
+    target_compile_definitions(ui_unittest PRIVATE ONYXUI_HAS_TILE_BACKEND=1)
+    message(STATUS "ui_unittest: Tile tests enabled (requires SDL++ backend)")
+endif()
 # Apply warning flags from neutrino-cmake if available
 if(TARGET neutrino::warnings)
     target_link_libraries(ui_unittest PRIVATE neutrino::warnings)

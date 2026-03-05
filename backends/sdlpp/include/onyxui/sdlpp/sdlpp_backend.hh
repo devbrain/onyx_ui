@@ -198,6 +198,38 @@ struct sdlpp_backend {
         int width = 800,
         int height = 600,
         std::function<void(Widget<sdlpp_backend>&)> setup = nullptr);
+
+    /**
+     * @brief Run standalone application with a concrete widget type
+     * @tparam Widget Concrete widget class (not a template)
+     * @param title Window title
+     * @param width Initial window width
+     * @param height Initial window height
+     * @param setup Optional callback to configure widget after creation
+     * @return Exit code (0 for success)
+     *
+     * This overload is for widgets that are concrete classes (not templates).
+     * Useful when Backend type is determined at compile-time via macros.
+     *
+     * @code
+     * // In backend_config.hh:
+     * using Backend = onyxui::sdlpp::sdlpp_backend;
+     *
+     * // Concrete widget class:
+     * class MyApp : public main_window<Backend> { ... };
+     *
+     * int main() {
+     *     return Backend::run_app<MyApp>("My App", 800, 600);
+     * }
+     * @endcode
+     */
+    template<typename Widget>
+        requires (!requires { typename Widget::template rebind<sdlpp_backend>; })
+    static int run_app(
+        const char* title = "OnyxUI",
+        int width = 800,
+        int height = 600,
+        std::function<void(Widget&)> setup = nullptr);
 };
 
 } // namespace onyxui::sdlpp

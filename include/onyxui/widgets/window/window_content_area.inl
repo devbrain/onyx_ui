@@ -74,7 +74,7 @@ namespace onyxui {
         if (m_scrollable) {
             // Switching to scrollable: create scroll_view and move content into it
             if (!m_scroll_view) {
-                m_scroll_view = this->template emplace_child<scroll_view<Backend>>();
+                m_scroll_view = this->template emplace_child<scroll_view>();
             }
 
             // If we have content, move it from direct child to scroll_view

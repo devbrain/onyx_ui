@@ -71,8 +71,8 @@ namespace onyxui::conio {
      * using element = ui_element<conio_backend>;
      * auto root = std::make_unique<element>();
      *
-     * auto vram_instance = std::make_shared<vram>();
-     * conio_renderer renderer(vram_instance);
+     * // Renderer owns vram internally (which handles termbox2 init/shutdown)
+     * conio_renderer renderer;
      *
      * root->measure(80, 24);
      * root->arrange(conio_backend::rect{0, 0, 80, 24});
@@ -181,7 +181,17 @@ namespace onyxui::conio {
                         // ASCII printable characters
                         kbd.key = static_cast<key_code>(native.ch);
                     } else {
-                        // Unknown character
+                        // Non-ASCII character (Unicode, extended ASCII, etc.)
+                        //
+                        // LIMITATION: The current key_code enum only supports ASCII range (0-127).
+                        // Unicode characters (accented letters, CJK, emoji, etc.) cannot be
+                        // represented as key_code values.
+                        //
+                        // TODO: For proper Unicode input support, add a text_input_event type
+                        // to ui_event that carries UTF-8 text, separate from keyboard_event
+                        // which is meant for key identification (hotkeys, navigation).
+                        //
+                        // For now, non-ASCII characters are dropped.
                         return std::nullopt;
                     }
                 } else {
@@ -190,20 +200,38 @@ namespace onyxui::conio {
                 }
 
                 // Build modifiers (terminal reality: Enter=Ctrl+M, Tab=Ctrl+I, Backspace=Ctrl+H)
-                // Exclude keys that have inherent Ctrl/Shift codes from spurious modifier detection
-                const bool is_special_control_key = (native.key == TB_KEY_ENTER ||
-                                                      native.key == TB_KEY_TAB ||
-                                                      native.key == TB_KEY_BACKSPACE ||
-                                                      native.key == TB_KEY_BACKSPACE2);
+                //
+                // Keys that have inherent Ctrl encoding (ASCII control characters):
+                // - Tab = Ctrl+I (0x09) - suppress spurious Ctrl, but allow Shift for Shift+Tab
+                // - Enter = Ctrl+M (0x0D) - suppress spurious Ctrl
+                // - Backspace = Ctrl+H (0x08) - suppress spurious Ctrl
+                //
+                // Note: Ctrl+Tab may not be reliably detectable in many terminals since
+                // Tab is already a Ctrl sequence. Consider using Alt+Tab or other combos
+                // for tab_widget navigation if Ctrl+Tab doesn't work in your terminal.
+                const bool has_inherent_ctrl = (native.key == TB_KEY_ENTER ||
+                                                native.key == TB_KEY_TAB ||
+                                                native.key == TB_KEY_BACKSPACE ||
+                                                native.key == TB_KEY_BACKSPACE2);
 
                 key_modifier mods = key_modifier::none;
-                if (!is_special_control_key && (native.mod & TB_MOD_CTRL) != 0) mods |= key_modifier::ctrl;
-                if ((native.mod & TB_MOD_ALT) != 0) mods |= key_modifier::alt;
 
-                // For uppercase letters, shift=true (already normalized to lowercase)
+                // Suppress Ctrl only for keys that have inherent Ctrl encoding
+                if (!has_inherent_ctrl && (native.mod & TB_MOD_CTRL) != 0) {
+                    mods |= key_modifier::ctrl;
+                }
+
+                // Alt is always passed through (no spurious encoding issues)
+                if ((native.mod & TB_MOD_ALT) != 0) {
+                    mods |= key_modifier::alt;
+                }
+
+                // Handle Shift:
+                // - For uppercase letters: shift=true (already normalized to lowercase above)
+                // - For other keys: pass through Shift modifier (including Shift+Tab!)
                 if (native.ch >= 'A' && native.ch <= 'Z') {
                     mods |= key_modifier::shift;
-                } else if (!is_special_control_key && (native.mod & TB_MOD_SHIFT) != 0) {
+                } else if ((native.mod & TB_MOD_SHIFT) != 0) {
                     mods |= key_modifier::shift;
                 }
 
@@ -289,17 +317,26 @@ namespace onyxui::conio {
         // ========================================================================
 
         /**
-         * @brief Initialize termbox2 library
-         * @return true on success, false on failure
+         * @brief Check if termbox2 is initialized (by vram)
+         * @return true if termbox2 is ready for use, false otherwise
          *
-         * Call this before using OnyxUI in a custom integration context.
+         * @details
+         * Termbox2 lifecycle is owned by vram via RAII. Creating a conio_renderer
+         * automatically initializes termbox2 (via its internal vram). This method
+         * simply checks whether termbox2 is currently initialized.
+         *
+         * In custom integration mode, create conio_renderer first, then call this
+         * to verify initialization succeeded.
          */
         ONYXUI_CONIO_EXPORT static bool init();
 
         /**
-         * @brief Shutdown termbox2 and release resources
+         * @brief Clear backend state tracking
          *
-         * Must be called before program exit to restore terminal state.
+         * @details
+         * Termbox2 shutdown is handled by vram destructor (RAII). This method
+         * only clears the backend's internal state tracking. Call this after
+         * the conio_renderer (and its vram) have been destroyed.
          */
         ONYXUI_CONIO_EXPORT static void shutdown();
 

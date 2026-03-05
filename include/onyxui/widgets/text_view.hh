@@ -252,7 +252,7 @@ namespace onyxui {
 
             size_constraint width_constraint;
             width_constraint.policy = size_policy::content;
-            width_constraint.preferred_size = chars;  // For now, 1 char = 1 unit (TUI-friendly)
+            width_constraint.preferred_size = logical_unit(chars);  // For now, 1 char = 1 unit (TUI-friendly)
             this->set_width_constraint(width_constraint);
         }
 

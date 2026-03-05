@@ -643,8 +643,10 @@ namespace onyxui {
             const int border = m_has_border ? renderer_type::get_border_thickness(ctx.style().box_style) : 0;
 
             // Convert padding to physical pixels to match measure_text() output
-            const physical_x padding_h = to_physical_x<Backend>(padding_h_logical);
-            const physical_y padding_v = to_physical_y<Backend>(padding_v_logical);
+            // Use ui_services::metrics() to get proper scaling (avoids fallback heuristic)
+            auto const* metrics = ui_services<Backend>::metrics();
+            const physical_x padding_h = to_physical_x<Backend>(padding_h_logical, metrics);
+            const physical_y padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
             // Measure text height (width will scroll)
             typename renderer_type::font const default_font{};

@@ -24,7 +24,14 @@ template<UIBackend Backend>
 {
     auto result = rel.get();  // Start with relative rect (backend type)
 
-    // Walk parent chain to accumulate offsets
+    // COORDINATE CORRECTNESS: Accumulate in logical space (full precision)
+    // to avoid non-associative rounding drift in deep hierarchies.
+    // BAD:  to_int(a) + to_int(b) + to_int(c)  - can drift!
+    // GOOD: to_int(a + b + c)                  - associative, no drift
+    double offset_x = 0.0;
+    double offset_y = 0.0;
+
+    // Walk parent chain to accumulate offsets in logical coordinates
     const ui_element<Backend>* current = element->parent();
     while (current) {
         auto parent_bounds = current->bounds();  // Returns logical_rect
@@ -32,19 +39,22 @@ template<UIBackend Backend>
 
         // Children are positioned relative to parent's content area
         // So we need to add: parent's position + content area offset
-        // Convert from logical to physical coordinates
-        const int px = parent_bounds.x.to_int() + parent_content.x.to_int();
-        const int py = parent_bounds.y.to_int() + parent_content.y.to_int();
-
-        // Offset the result rectangle
-        rect_utils::set_bounds(result,
-                              rect_utils::get_x(result) + px,
-                              rect_utils::get_y(result) + py,
-                              rect_utils::get_width(result),
-                              rect_utils::get_height(result));
+        offset_x += parent_bounds.x.value + parent_content.x.value;
+        offset_y += parent_bounds.y.value + parent_content.y.value;
 
         current = current->parent();
     }
+
+    // Convert accumulated offset to int ONCE at the end
+    const int px = static_cast<int>(std::round(offset_x));
+    const int py = static_cast<int>(std::round(offset_y));
+
+    // Offset the result rectangle
+    rect_utils::set_bounds(result,
+                          rect_utils::get_x(result) + px,
+                          rect_utils::get_y(result) + py,
+                          rect_utils::get_width(result),
+                          rect_utils::get_height(result));
 
     return absolute_rect<Backend>{result};  // Wrap as absolute
 }
@@ -87,35 +97,40 @@ template<UIBackend Backend>
     const relative_point<Backend>& rel_pt,
     const ui_element<Backend>* element)
 {
-    // Start with the point's coordinates relative to element
-    int abs_x = rel_pt.x();
-    int abs_y = rel_pt.y();
+    // COORDINATE CORRECTNESS: Accumulate in logical space (full precision)
+    // to avoid non-associative rounding drift in deep hierarchies.
+    double abs_x = static_cast<double>(rel_pt.x());
+    double abs_y = static_cast<double>(rel_pt.y());
 
-    // Add element's own position
+    // Add element's own position (logical coordinates)
     auto element_bounds = element->bounds();  // Returns logical_rect
-    abs_x += element_bounds.x.to_int();
-    abs_y += element_bounds.y.to_int();
+    abs_x += element_bounds.x.value;
+    abs_y += element_bounds.y.value;
 
-    // Walk parent chain to accumulate offsets
+    // Walk parent chain to accumulate offsets in logical coordinates
     const ui_element<Backend>* current = element->parent();
     while (current) {
         auto parent_bounds = current->bounds();  // Returns logical_rect
         auto parent_content = current->get_content_area();  // Returns logical_rect
 
         // Children are positioned relative to parent's content area
-        abs_x += parent_bounds.x.to_int() + parent_content.x.to_int();
-        abs_y += parent_bounds.y.to_int() + parent_content.y.to_int();
+        abs_x += parent_bounds.x.value + parent_content.x.value;
+        abs_y += parent_bounds.y.value + parent_content.y.value;
         current = current->parent();
     }
+
+    // Convert to int ONCE at the end
+    const int final_x = static_cast<int>(std::round(abs_x));
+    const int final_y = static_cast<int>(std::round(abs_y));
 
     // Create backend point with absolute coordinates
     typename Backend::point_type result_pt;
     if constexpr (detail::has_member_x<typename Backend::point_type> &&
                   detail::has_member_y<typename Backend::point_type>) {
-        result_pt.x = abs_x;
-        result_pt.y = abs_y;
+        result_pt.x = final_x;
+        result_pt.y = final_y;
     } else {
-        result_pt = typename Backend::point_type{abs_x, abs_y};
+        result_pt = typename Backend::point_type{final_x, final_y};
     }
 
     return absolute_point<Backend>{result_pt};

@@ -68,20 +68,23 @@ namespace onyxui {
         }
 
         [[nodiscard]] static bool shift_pressed(const tb_event& e) noexcept {
-            // Terminal reality: Enter=Ctrl+M, Tab=Ctrl+I (Ctrl bit always set at terminal level)
-            // Shift has no semantic meaning for these keys - ignore it
-            if (e.key == TB_KEY_ENTER || e.key == TB_KEY_TAB) {
-                return false;
-            }
+            // Shift modifier is valid for all keys including Tab!
+            // Shift+Tab is used for focus_previous navigation.
+            // (Unlike Ctrl, Shift has no spurious encoding issues with Tab/Enter)
             return (e.mod & TB_MOD_SHIFT) != 0;
         }
 
         [[nodiscard]] static bool ctrl_pressed(const tb_event& e) noexcept {
-            // Terminal reality: Enter=Ctrl+M, Tab=Ctrl+I (Ctrl bit always set at terminal level)
-            // Ignore Ctrl for these keys so they can be used in hotkeys without Ctrl modifier
+            // Terminal reality: Enter=Ctrl+M (0x0D), Tab=Ctrl+I (0x09), Backspace=Ctrl+H (0x08)
+            // These keys have inherent Ctrl encoding at the ASCII level.
+            // Suppress spurious Ctrl for these so they work in hotkeys without Ctrl modifier.
+            //
+            // Note: Ctrl+Tab may not be reliably detectable in many terminals.
+            // Consider using Alt-based shortcuts for tab_widget navigation.
             //
             // Note: Escape is NOT a Ctrl combination, so Ctrl+Escape is meaningful!
-            if (e.key == TB_KEY_ENTER || e.key == TB_KEY_TAB) {
+            if (e.key == TB_KEY_ENTER || e.key == TB_KEY_TAB ||
+                e.key == TB_KEY_BACKSPACE || e.key == TB_KEY_BACKSPACE2) {
                 return false;
             }
             return (e.mod & TB_MOD_CTRL) != 0;

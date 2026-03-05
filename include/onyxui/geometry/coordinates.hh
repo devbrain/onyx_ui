@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <cmath>  // for std::round in coordinates.inl
+
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/concepts/rect_like.hh>
 #include <onyxui/concepts/point_like.hh>

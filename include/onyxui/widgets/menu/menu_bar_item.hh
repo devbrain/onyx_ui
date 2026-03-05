@@ -20,6 +20,7 @@
 #include <onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/actions/mnemonic_parser.hh>
 #include <onyxui/core/backend_metrics.hh>  // For to_physical_x/y
+#include <onyxui/services/ui_services.hh>  // For ui_services::metrics()
 #include <onyxui/ui_constants.hh>  // For default padding values
 
 namespace onyxui {
@@ -68,11 +69,18 @@ namespace onyxui {
          * @param parent Parent element (typically menu_bar)
          */
         explicit menu_bar_item(std::string text = "", ui_element<Backend>* parent = nullptr)
-            : base(parent), m_text(std::move(text)) {
+            : base(parent) {
             // NOTE: Menu bar items should NOT be in the Tab order
             // They are only navigable when menu bar is activated via F10/F9
             this->set_focusable(false);
             this->set_accept_keys_as_click(true);  // Enter/Space triggers click
+            // Handle mnemonic syntax in constructor text
+            if (text.find('&') != std::string::npos) {
+                m_text = strip_mnemonic(text);
+                m_has_mnemonic = true;
+            } else {
+                m_text = std::move(text);
+            }
         }
 
         /**
@@ -204,8 +212,10 @@ namespace onyxui {
                 .value_or(ui_constants::DEFAULT_MENU_BAR_ITEM_PADDING_VERTICAL);
 
             // Convert padding to physical pixels to match measure_text() output
-            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
-            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
+            // Use ui_services::metrics() to get proper scaling (avoids fallback heuristic)
+            auto const* metrics = ui_services<Backend>::metrics();
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical, metrics);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
             // Get position from context
             auto const& pos = ctx.position();

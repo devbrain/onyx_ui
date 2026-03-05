@@ -176,6 +176,14 @@ namespace onyxui::conio {
 
             conio_renderer();
             ~conio_renderer();
+
+            // Move operations (defined in .cc where impl is complete)
+            conio_renderer(conio_renderer&&) noexcept;
+            conio_renderer& operator=(conio_renderer&&) noexcept;
+
+            // Copy is deleted due to unique_ptr member
+            conio_renderer(const conio_renderer&) = delete;
+            conio_renderer& operator=(const conio_renderer&) = delete;
             // ===================================================================
             // Required Drawing Methods (RenderLike Concept)
             // ===================================================================

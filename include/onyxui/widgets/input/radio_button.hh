@@ -215,7 +215,9 @@ protected:
         // Only include spacing if there's text to separate
         const int spacing_logical = (!m_text.empty() && theme) ? theme->radio_button.spacing : 0;
         // Convert spacing to physical pixels to match measure_text() output
-        const physical_x spacing = to_physical_x<Backend>(spacing_logical);
+        // Use ui_services::metrics() to get proper scaling (avoids fallback heuristic)
+        auto const* metrics = ui_services<Backend>::metrics();
+        const physical_x spacing = to_physical_x<Backend>(spacing_logical, metrics);
 
         // Calculate natural size: icon + spacing + text (all values now in physical pixels/cells)
         // Height must accommodate both icon and text (including descenders)

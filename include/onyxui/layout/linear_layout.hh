@@ -506,9 +506,10 @@ namespace onyxui {
             logical_unit child_height = meas_h;
             if (child->h_constraint().policy == size_policy::expand) {
                 child_height = expand_height;
-                // Give remainder to first children
-                if (expand_child_count == 0) {
-                    child_height = child_height + expand_remainder;
+                // Distribute remainder evenly: first floor(remainder) children get +1
+                // This prevents lopsided distribution where first child gets all extra pixels
+                if (expand_child_count < static_cast<int>(expand_remainder.floor().value)) {
+                    child_height = child_height + logical_unit(1.0);
                 }
                 expand_child_count++;
             } else if (child->h_constraint().policy == size_policy::weighted) {
@@ -644,9 +645,10 @@ namespace onyxui {
             logical_unit child_width = meas_w;
             if (child->w_constraint().policy == size_policy::expand) {
                 child_width = expand_width;
-                // Give remainder to first child
-                if (expand_child_count == 0) {
-                    child_width = child_width + expand_remainder;
+                // Distribute remainder evenly: first floor(remainder) children get +1
+                // This prevents lopsided distribution where first child gets all extra pixels
+                if (expand_child_count < static_cast<int>(expand_remainder.floor().value)) {
+                    child_width = child_width + logical_unit(1.0);
                 }
                 expand_child_count++;
             } else if (child->w_constraint().policy == size_policy::weighted) {

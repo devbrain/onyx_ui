@@ -48,10 +48,25 @@ namespace onyxui {
      * @brief Tracks and merges dirty regions for efficient rendering
      *
      * @tparam Rect Rectangle type (must satisfy RectLike concept)
+     *
+     * @details
+     * ## Performance Considerations
+     *
+     * The merging algorithm is O(n²) in the worst case. To prevent performance
+     * degradation with many small invalidations, the manager has a configurable
+     * threshold (default 256 regions). When exceeded, all regions are collapsed
+     * into a single bounding box, effectively marking the entire dirty area for
+     * redraw rather than tracking individual regions.
+     *
+     * This "fallback to full repaint" strategy ensures bounded memory usage and
+     * predictable performance even under pathological invalidation patterns.
      */
     template<RectLike Rect>
     class dirty_region_manager {
     public:
+        /// Maximum number of regions before collapsing to bounding box
+        static constexpr std::size_t MAX_REGIONS_THRESHOLD = 256;
+
         dirty_region_manager() = default;
 
         /**
@@ -93,6 +108,13 @@ namespace onyxui {
             // Periodically consolidate regions to prevent fragmentation
             if (m_dirty_regions.size() > 10) {
                 consolidate();
+            }
+
+            // PERFORMANCE SAFETY: If we still have too many regions after consolidation,
+            // collapse everything to a single bounding box. This prevents O(n²) explosion
+            // under pathological invalidation patterns (e.g., many small sprite updates).
+            if (m_dirty_regions.size() > MAX_REGIONS_THRESHOLD) {
+                collapse_to_bounding_box();
             }
         }
 
@@ -230,6 +252,23 @@ namespace onyxui {
         void consolidate() {
             auto merged = get_merged_regions();
             m_dirty_regions = std::move(merged);
+        }
+
+        /**
+         * @brief Collapse all regions into a single bounding box
+         *
+         * @details
+         * Called when region count exceeds MAX_REGIONS_THRESHOLD to prevent
+         * O(n²) performance degradation. Results in a single "full repaint"
+         * region covering all dirty areas.
+         */
+        void collapse_to_bounding_box() {
+            if (m_dirty_regions.size() <= 1) {
+                return;
+            }
+            Rect bbox = get_bounding_box();
+            m_dirty_regions.clear();
+            m_dirty_regions.push_back(bbox);
         }
     };
 

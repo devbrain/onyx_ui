@@ -235,67 +235,6 @@ namespace onyxui {
 
     protected:
         /**
-         * @brief Mark this button as dirty, including shadow area
-         *
-         * @details
-         * Extends base mark_dirty() to include the shadow region.
-         * This prevents shadow flickering when neighboring widgets update.
-         * The shadow extends beyond button bounds by offset_x and offset_y.
-         */
-        void mark_dirty() {
-            using rect_type = typename Backend::rect_type;
-            using rect_utils = typename Backend::rect_utils;
-
-            // First mark the button itself as dirty
-            base::mark_dirty();
-
-            // If shadow is enabled, also mark the shadow area as dirty
-            auto theme = this->get_resolved_theme();
-            if (theme && theme->button.shadow.enabled) {
-                // Get absolute position of button
-                int abs_x = rect_utils::get_x(this->m_bounds);
-                int abs_y = rect_utils::get_y(this->m_bounds);
-
-                ui_element<Backend>* current_parent = this->m_parent;
-                while (current_parent) {
-                    typename Backend::rect_type parent_content = current_parent->get_content_area();
-                    abs_x += rect_utils::get_x(parent_content);
-                    abs_y += rect_utils::get_y(parent_content);
-                    current_parent = current_parent->m_parent;
-                }
-
-                // Create rectangle for shadow area (right and bottom edges)
-                // Convert logical shadow offsets to physical pixels for dirty region
-                int shadow_offset_x = to_physical_x<Backend>(theme->button.shadow.offset_x);
-                int shadow_offset_y = to_physical_y<Backend>(theme->button.shadow.offset_y);
-                int button_width = rect_utils::get_width(this->m_bounds);
-                int button_height = rect_utils::get_height(this->m_bounds);
-
-                // Shadow on right edge
-                if (shadow_offset_x > 0) {
-                    typename Backend::rect_type shadow_right{
-                        abs_x + button_width,
-                        abs_y,
-                        shadow_offset_x,
-                        button_height
-                    };
-                    this->mark_dirty_region(shadow_right);
-                }
-
-                // Shadow on bottom edge
-                if (shadow_offset_y > 0) {
-                    typename Backend::rect_type shadow_bottom{
-                        abs_x,
-                        abs_y + button_height,
-                        button_width + shadow_offset_x,  // Include corner
-                        shadow_offset_y
-                    };
-                    this->mark_dirty_region(shadow_bottom);
-                }
-            }
-        }
-
-        /**
          * @brief Render button using render context (visitor pattern)
          *
          * @details
@@ -319,10 +258,10 @@ namespace onyxui {
             int const border = renderer_type::get_border_thickness(ctx.style().box_style);
 
             // Convert padding to physical pixels to match measure_text() output
-            // For terminal backends: 1:1 mapping (no change)
-            // For graphical backends: multiply by scale factor (e.g., 8x)
-            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical);
-            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical);
+            // Use ui_services::metrics() to get proper scaling (avoids fallback heuristic)
+            auto const* metrics = ui_services<Backend>::metrics();
+            physical_x const padding_h = to_physical_x<Backend>(padding_h_logical, metrics);
+            physical_y const padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
             // Measure text size (returns physical pixels for graphical backends)
             typename renderer_type::font const default_font{};
@@ -416,8 +355,9 @@ namespace onyxui {
                 auto current_state = this->get_effective_state();
                 if (current_state != base::interaction_state::pressed) {
                     // Convert logical shadow offsets to physical pixels for rendering
-                    physical_x const shadow_x = to_physical_x<Backend>(theme->button.shadow.offset_x);
-                    physical_y const shadow_y = to_physical_y<Backend>(theme->button.shadow.offset_y);
+                    // Use already-retrieved metrics from above
+                    physical_x const shadow_x = to_physical_x<Backend>(theme->button.shadow.offset_x, metrics);
+                    physical_y const shadow_y = to_physical_y<Backend>(theme->button.shadow.offset_y, metrics);
                     // Draw shadow on right and bottom edges (darkens background OUTSIDE button)
                     ctx.draw_shadow(button_rect, shadow_x.value, shadow_y.value);
                 }

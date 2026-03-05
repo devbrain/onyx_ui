@@ -247,6 +247,62 @@ namespace onyxui {
         }
 
         /**
+         * @brief Handle capture transfer when pressing on a different target
+         *
+         * @param new_target The widget being pressed (may be nullptr)
+         * @param synthesize_release_fn Callback to send synthetic release to old capture
+         * @return true if a synthetic release was sent, false otherwise
+         *
+         * @details
+         * ## WORKAROUND FOR TERMINAL BACKENDS
+         *
+         * Some backends (like termbox2) don't send mouse release events due to
+         * terminal limitations. This is expected behavior, not a bug.
+         *
+         * When pressing on a different widget than what's captured, we must:
+         * 1. Send a synthetic release to the old captured widget
+         * 2. Release the capture
+         * 3. Allow normal press handling to proceed
+         *
+         * This ensures widgets can clean up their pressed state properly.
+         *
+         * ## Usage
+         *
+         * @code
+         * // In event handler:
+         * if (mouse_evt->act == mouse_event::action::press) {
+         *     input.handle_capture_transfer_on_press(
+         *         target_widget,
+         *         [&](target_ptr old_capture) {
+         *             // Send synthetic release to old capture
+         *             mouse_event release{...};
+         *             old_capture->handle_event(release, event_phase::target);
+         *         }
+         *     );
+         * }
+         * @endcode
+         *
+         * ## Why a callback?
+         *
+         * The input_manager doesn't know about mouse_event or handle_event().
+         * The callback lets callers construct the proper event type for their context.
+         */
+        template<typename ReleaseFn>
+        bool handle_capture_transfer_on_press(target_ptr new_target, ReleaseFn&& synthesize_release_fn) {
+            auto* old_capture = m_captured;
+
+            // No capture or same target - nothing to do
+            if (!old_capture || old_capture == new_target) {
+                return false;
+            }
+
+            // Different target while something is captured - synthesize release
+            synthesize_release_fn(old_capture);
+            release_capture();
+            return true;
+        }
+
+        /**
          * @brief Get currently captured widget
          * @return Pointer to captured widget, or nullptr if none
          */
