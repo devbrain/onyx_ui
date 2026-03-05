@@ -31,3 +31,7 @@ Testing/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local docs/assistant artifacts
+CLAUDE.md
+docs/
