@@ -65,6 +65,7 @@ add_executable(ui_unittest
         widgets/test_progress_bar.cc
         widgets/test_slider.cc
         widgets/test_tab_widget.cc
+        widgets/test_stack_panel.cc
         widgets/test_panel.cc
         widgets/test_spacer.cc
         utils/warnings.hh
