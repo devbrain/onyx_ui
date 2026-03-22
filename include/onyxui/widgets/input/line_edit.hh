@@ -301,9 +301,15 @@ namespace onyxui {
         void set_visible_chars(int chars) {
             if (chars < 1) chars = 1;
 
+            // Measure one character to get the actual character width in pixels
+            typename renderer_type::font default_font{};
+            auto char_size = renderer_type::measure_text("M", default_font);
+            int char_width = size_utils::get_width(char_size);
+            if (char_width < 1) char_width = 8; // fallback
+
             size_constraint width_constraint;
-            width_constraint.policy = size_policy::content;
-            width_constraint.preferred_size = logical_unit(static_cast<double>(chars));
+            width_constraint.policy = size_policy::fixed;
+            width_constraint.preferred_size = logical_unit(static_cast<double>(chars * char_width));
             this->set_width_constraint(width_constraint);
         }
 
@@ -508,6 +514,17 @@ namespace onyxui {
                 return handle_key_event(*key_evt);
             }
 
+            if (auto* text_evt = std::get_if<text_input_event>(&event)) {
+                if (!m_is_read_only && !text_evt->text.empty()) {
+                    for (char ch : text_evt->text) {
+                        if (ch >= 32 && ch <= 126) {
+                            insert_char_at_cursor(ch);
+                        }
+                    }
+                    return true;
+                }
+            }
+
             return base::handle_event(event, phase);
         }
 
@@ -654,7 +671,11 @@ namespace onyxui {
             const int text_height = size_utils::get_height(sample_text_size);
 
             // Calculate natural size (all values now in physical pixels/cells)
-            const int min_width = 100;  // Reasonable minimum for text input
+            // Use width constraint preferred_size if set, otherwise default minimum
+            const auto& wc = this->width_constraint();
+            const int min_width = (wc.policy == size_policy::fixed && wc.preferred_size > logical_unit(0.0))
+                ? wc.preferred_size.to_int()
+                : 100;
             const int natural_width = min_width + (padding_h.value * 2) + (border * 2);
             const int natural_height = text_height + (padding_v.value * 2) + (border * 2);
 
@@ -757,62 +778,34 @@ namespace onyxui {
                 }
             }
 
-            // Draw text with cursor emulation
+            // Draw text and cursor
             const bool show_cursor = this->has_focus() && m_cursor_visible;
-            const int cursor_pos_in_text = m_cursor_pos - m_scroll_offset;  // Adjust for scroll offset
+            const int cursor_pos_in_text = m_cursor_pos - m_scroll_offset;
 
-            if (!visible_text.empty() || show_cursor) {
-                // Calculate cursor offset
+            // Draw all visible text at once
+            if (!visible_text.empty()) {
+                const point_type text_pos{text_x, text_y};
+                ctx.draw_text(visible_text, text_pos, default_font, text_color);
+            }
+
+            // Draw cursor overlay
+            if (show_cursor) {
+                // Calculate cursor X from text before cursor
                 int cursor_x_offset = 0;
-                if (show_cursor && cursor_pos_in_text > 0 && cursor_pos_in_text <= static_cast<int>(visible_text.length())) {
-                    const std::string text_before_cursor = visible_text.substr(0, static_cast<std::size_t>(cursor_pos_in_text));
-                    const auto cursor_offset_size = renderer_type::measure_text(text_before_cursor, default_font);
-                    cursor_x_offset = size_utils::get_width(cursor_offset_size);
+                if (cursor_pos_in_text > 0 && cursor_pos_in_text <= static_cast<int>(visible_text.length())) {
+                    const std::string text_before = visible_text.substr(0, static_cast<std::size_t>(cursor_pos_in_text));
+                    cursor_x_offset = size_utils::get_width(renderer_type::measure_text(text_before, default_font));
                 }
 
-                // Draw text before cursor
-                if (cursor_pos_in_text > 0 && !visible_text.empty() && cursor_pos_in_text <= static_cast<int>(visible_text.length())) {
-                    const std::string before_text = visible_text.substr(0, static_cast<std::size_t>(cursor_pos_in_text));
-                    const point_type before_pos{text_x, text_y};
-                    ctx.draw_text(before_text, before_pos, default_font, text_color);
-                }
+                const int cursor_x = text_x + cursor_x_offset;
+                const point_type cursor_pos{cursor_x, text_y};
 
-                // Draw cursor character (emulated)
-                if (show_cursor) {
-                    const int cursor_x = text_x + cursor_x_offset;
-                    const point_type cursor_pos{cursor_x, text_y};
-
-                    if (m_overwrite_mode && cursor_pos_in_text >= 0 && cursor_pos_in_text < static_cast<int>(visible_text.length())) {
-                        // Block cursor: draw character at cursor position with cursor background
-                        const std::string cursor_char = visible_text.substr(static_cast<std::size_t>(cursor_pos_in_text), 1);
-
-                        // Create font with reverse attribute for cursor highlighting (if supported)
-                        typename renderer_type::font cursor_font = default_font;
-                        if constexpr (requires { cursor_font.reverse; }) {
-                            cursor_font.reverse = true;
-                        }
-
-                        ctx.draw_text(cursor_char, cursor_pos, cursor_font, text_color);
-                    } else {
-                        // Insert mode or end of text: draw cursor icon from theme
-                        const auto& cursor_icon = m_overwrite_mode ?
-                            theme->line_edit.cursor_overwrite_icon :
-                            theme->line_edit.cursor_insert_icon;
-                        ctx.draw_icon(cursor_icon, cursor_pos);
-                    }
-                }
-
-                // Draw text after cursor
-                if (cursor_pos_in_text >= 0 && cursor_pos_in_text < static_cast<int>(visible_text.length())) {
-                    const int after_start = show_cursor ? cursor_pos_in_text + 1 : cursor_pos_in_text;
-                    if (after_start >= 0 && after_start < static_cast<int>(visible_text.length())) {
-                        const std::string after_text = visible_text.substr(static_cast<std::size_t>(after_start));
-                        const std::string up_to_cursor = visible_text.substr(0, static_cast<std::size_t>(after_start));
-                        const auto offset_size = renderer_type::measure_text(up_to_cursor, default_font);
-                        const int after_x = text_x + size_utils::get_width(offset_size);
-                        const point_type after_pos{after_x, text_y};
-                        ctx.draw_text(after_text, after_pos, default_font, text_color);
-                    }
+                if (m_overwrite_mode && cursor_pos_in_text >= 0 && cursor_pos_in_text < static_cast<int>(visible_text.length())) {
+                    const auto& cursor_icon = theme->line_edit.cursor_overwrite_icon;
+                    ctx.draw_icon(cursor_icon, cursor_pos);
+                } else {
+                    const auto& cursor_icon = theme->line_edit.cursor_insert_icon;
+                    ctx.draw_icon(cursor_icon, cursor_pos);
                 }
             }
         }
@@ -1013,10 +1006,10 @@ namespace onyxui {
                     break;
             }
 
-            // Handle printable characters (insert at cursor)
+            // Handle printable characters (apply shift mapping for symbols)
             if (is_printable(evt.key)) {
                 if (!m_is_read_only) {
-                    char ch = static_cast<char>(static_cast<int>(evt.key));
+                    char ch = apply_shift_mapping(evt.key, evt.modifiers);
                     insert_char_at_cursor(ch);
                     return true;
                 }
@@ -1041,6 +1034,45 @@ namespace onyxui {
             int code = static_cast<int>(key);
             // Printable ASCII range: 32 (space) to 126 (~)
             return code >= 32 && code <= 126;
+        }
+
+        /**
+         * @brief Apply shift modifier to produce the correct character (US keyboard layout)
+         */
+        [[nodiscard]] static char apply_shift_mapping(key_code key, key_modifier mods) noexcept {
+            char ch = static_cast<char>(static_cast<int>(key));
+            bool shift = (mods & key_modifier::shift) != key_modifier::none;
+
+            if (!shift) return ch;
+
+            // Letters: lowercase key_code → uppercase
+            if (ch >= 'a' && ch <= 'z') return static_cast<char>(ch - 32);
+
+            // US keyboard shift mappings for digits and symbols
+            switch (ch) {
+                case '1': return '!';
+                case '2': return '@';
+                case '3': return '#';
+                case '4': return '$';
+                case '5': return '%';
+                case '6': return '^';
+                case '7': return '&';
+                case '8': return '*';
+                case '9': return '(';
+                case '0': return ')';
+                case '-': return '_';
+                case '=': return '+';
+                case '[': return '{';
+                case ']': return '}';
+                case '\\': return '|';
+                case ';': return ':';
+                case '\'': return '"';
+                case ',': return '<';
+                case '.': return '>';
+                case '/': return '?';
+                case '`': return '~';
+                default: return ch;
+            }
         }
 
         /**

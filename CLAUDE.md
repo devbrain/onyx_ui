@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Commit Attribution Policy
+
+- Use only one identity for Git metadata:
+  - Author: `igor <igor.gutnik@gmail.com>`
+  - Committer: `igor <igor.gutnik@gmail.com>`
+- Do not add any `Co-authored-by:` trailers.
+- Do not add assistant/tool identities to commit metadata or commit messages.
+
+---
+
 ## 📚 Documentation Index
 
 **Quick Navigation:**

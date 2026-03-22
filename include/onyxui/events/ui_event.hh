@@ -325,6 +325,19 @@ namespace onyxui {
      * @see mouse_event
      * @see resize_event
      */
-    using ui_event = std::variant<keyboard_event, mouse_event, resize_event>;
+    /**
+     * @brief Text input event (translated character input)
+     * @ingroup events
+     *
+     * @details
+     * Represents a translated text input with modifiers applied (e.g., Shift+2 = '@').
+     * Generated from platform text input events (SDL_TEXTINPUT, WM_CHAR, etc.).
+     * Used by text widgets (line_edit, text_edit) for character insertion.
+     */
+    struct text_input_event {
+        std::string text;  ///< UTF-8 encoded text (usually one character)
+    };
+
+    using ui_event = std::variant<keyboard_event, mouse_event, resize_event, text_input_event>;
 
 } // namespace onyxui

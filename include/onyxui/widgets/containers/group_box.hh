@@ -261,24 +261,11 @@ namespace onyxui {
             if (m_title.empty()) {
                 return logical_unit(0.0);
             }
-            // Measure text height to detect backend type
-            typename Backend::renderer_type::font default_font{};
-            auto text_size = Backend::renderer_type::measure_text("X", default_font);
-            int const text_height_px = size_utils::get_height(text_size);
-
-            // For text backends where height is 1 physical pixel, offset is 0
-            if (text_height_px <= 1) {
-                return logical_unit(0.0);
-            }
-
-            // For graphical backends, derive logical units from pixel offset
-            // text_height_px is roughly 1 logical unit (the font height)
-            // title_offset_pixels is half the text height
-            // So title_offset_logical = 0.5 logical units approximately
-            // Use ceil to ensure we never underestimate the space needed
-            int const title_offset_px = get_title_offset_pixels();
-            double const logical_per_pixel = 1.0 / static_cast<double>(text_height_px);
-            return logical_unit(std::ceil(static_cast<double>(title_offset_px) * logical_per_pixel));
+            // Use the pixel offset directly as logical units.
+            // For text backends (height=1), get_title_offset_pixels() returns 0.
+            // For graphical backends with 1:1 logical-to-physical mapping,
+            // the pixel value is the correct logical value.
+            return logical_unit(get_title_offset_pixels());
         }
 
         /**

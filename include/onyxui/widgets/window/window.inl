@@ -683,19 +683,11 @@ namespace onyxui {
 
     template<UIBackend Backend>
     logical_rect window<Backend>::get_content_area() const noexcept {
-        // Start from ui_element base content area (margin + padding only).
-        logical_rect content = ui_element<Backend>::get_content_area();
-
-        if (this->m_has_border) {
-            // Shrink for left/right borders.
-            content.x = content.x + logical_unit(1.0);
-            content.width = max(logical_unit(0.0), content.width - logical_unit(2.0));
-
-            // Shrink for bottom border only (top border is reserved for title bar overlap).
-            content.height = max(logical_unit(0.0), content.height - logical_unit(1.0));
-        }
-
-        return content;
+        // Start from the full element bounds (no border inset).
+        // The window draws its own border — the title bar should be flush
+        // against the inner edge. Border rendering is handled in do_render,
+        // not through the layout system's border mechanism.
+        return ui_element<Backend>::get_content_area();
     }
 
     template<UIBackend Backend>
