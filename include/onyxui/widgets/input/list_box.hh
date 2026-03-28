@@ -80,6 +80,23 @@ public:
     using base::is_focusable;
     using base::set_focusable;
     using base::parent;
+    using base::set_width_constraint;
+    using base::set_height_constraint;
+    using base::set_horizontal_align;
+    using base::set_vertical_align;
+    using base::set_margin;
+    using base::set_visible;
+    using base::set_background_color;
+    using base::invalidate_visual;
+    using base::invalidate_layout;
+
+    // Allow ownership transfer as ui_element for add_child()
+    static std::unique_ptr<onyxui::ui_element<Backend>> into_element(
+        std::unique_ptr<list_box> self) {
+        return std::unique_ptr<onyxui::ui_element<Backend>>(
+            static_cast<onyxui::ui_element<Backend>*>(
+                static_cast<list_view<Backend>*>(self.release())));
+    }
 
     // Expose list_view scrolling methods
     using base::scroll_offset;
