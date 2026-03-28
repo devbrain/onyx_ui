@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/size_like.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/mvc/views/abstract_item_view.hh>
 #include <onyxui/services/ui_services.hh>
@@ -604,9 +605,10 @@ public:
             // Get row height from delegate
             auto idx = this->m_model->index(0, 0);
             auto size_hint = this->m_delegate->size_hint(idx);
+            int const hint_h = size_utils::get_height(size_hint);
             m_row_height = metrics
-                ? static_cast<int>(metrics->physical_to_logical_y(physical_y(size_hint.h)).value)
-                : size_hint.h;
+                ? static_cast<int>(metrics->physical_to_logical_y(physical_y(hint_h)).value)
+                : hint_h;
             m_row_height = std::max(m_row_height, 1);
         }
 
@@ -1039,9 +1041,10 @@ private:
                 for (int row = 0; row < sample_rows; ++row) {
                     auto idx = this->m_model->index(row, col);
                     auto size = this->m_delegate->size_hint(idx);
+                    int const sz_w = size_utils::get_width(size);
                     int const logical_w = metrics
-                        ? static_cast<int>(metrics->physical_to_logical_x(physical_x(size.w)).value)
-                        : size.w;
+                        ? static_cast<int>(metrics->physical_to_logical_x(physical_x(sz_w)).value)
+                        : sz_w;
                     max_width = std::max(max_width, logical_w);
                 }
 

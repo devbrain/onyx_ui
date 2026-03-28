@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/size_like.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/core/physical_conversions.hh>
 #include <onyxui/mvc/views/abstract_item_view.hh>
@@ -356,9 +357,10 @@ public:
             auto item_size = this->m_delegate->size_hint(idx);
 
             // Convert physical height to logical height
+            int const item_h = size_utils::get_height(item_size);
             double item_height = metrics
-                ? metrics->physical_to_logical_y(physical_y(item_size.h)).value
-                : static_cast<double>(item_size.h);  // Fallback 1:1
+                ? metrics->physical_to_logical_y(physical_y(item_h)).value
+                : static_cast<double>(item_h);  // Fallback 1:1
 
             double item_width = view_width;  // Use full width (already logical)
 

@@ -11,6 +11,7 @@
 #include <variant>
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/size_like.hh>
 #include <onyxui/core/signal.hh>
 #include <onyxui/core/raii/scoped_layer.hh>
 #include <onyxui/events/ui_event.hh>
@@ -649,9 +650,10 @@ private:
             auto size = m_delegate->size_hint(idx);  // Physical units
 
             // Convert physical height to logical
+            int const sz_h = size_utils::get_height(size);
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(physical_y(size.h)).value
-                : static_cast<double>(size.h);  // Fallback 1:1
+                ? metrics->physical_to_logical_y(physical_y(sz_h)).value
+                : static_cast<double>(sz_h);  // Fallback 1:1
 
             total_logical_height += item_logical_height;
         }
@@ -734,9 +736,10 @@ private:
             auto size = m_delegate->size_hint(idx);  // Physical units
 
             // Convert physical height to logical
+            int const sz_h = size_utils::get_height(size);
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(physical_y(size.h)).value
-                : static_cast<double>(size.h);
+                ? metrics->physical_to_logical_y(physical_y(sz_h)).value
+                : static_cast<double>(sz_h);
 
             total_content_height += item_logical_height;
         }
@@ -750,9 +753,10 @@ private:
             auto idx = m_model->index(row, 0);
             auto size = m_delegate->size_hint(idx);
 
+            int const sz_h = size_utils::get_height(size);
             double item_logical_height = metrics
-                ? metrics->physical_to_logical_y(physical_y(size.h)).value
-                : static_cast<double>(size.h);
+                ? metrics->physical_to_logical_y(physical_y(sz_h)).value
+                : static_cast<double>(sz_h);
 
             viewport_height += item_logical_height;
         }

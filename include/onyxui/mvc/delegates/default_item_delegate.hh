@@ -9,6 +9,7 @@
 #include <variant>
 
 #include <onyxui/concepts/backend.hh>
+#include <onyxui/concepts/size_like.hh>
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/mvc/delegates/abstract_item_delegate.hh>
 #include <onyxui/mvc/model_index.hh>
@@ -216,8 +217,8 @@ public:
         // Add padding from theme
         int const pad_h = theme ? theme->list.padding_horizontal : PADDING_LEFT;
         int const pad_v = theme ? theme->list.padding_vertical : PADDING_TOP;
-        int width = text_size.w + (pad_h * 2);
-        int height = text_size.h + (pad_v * 2);
+        int width = size_utils::get_width(text_size) + (pad_h * 2);
+        int height = size_utils::get_height(text_size) + (pad_v * 2);
 
         // Enforce minimum height for usability
         if (height < min_height) {
