@@ -542,9 +542,8 @@ namespace onyxui {
             // Resolve my style by merging parent_style with my overrides (same as rendering)
             auto style = this->resolve_style(theme, parent_style);
 
-            // Create measure_context with resolved style (ensures measurement = rendering)
-            // The theme is already set via the resolved_style, accessible via ctx.theme()
-            measure_context<Backend> ctx(style);
+            // Create measure_context with resolved style and theme
+            measure_context<Backend> ctx(style, theme);
 
             // "Render" for measurement (same code path as actual rendering)
             this->do_render(ctx);

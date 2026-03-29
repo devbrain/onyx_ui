@@ -75,6 +75,7 @@ namespace onyxui {
         using font_type = typename base::font_type;
         using box_style = typename base::box_style;
         using icon_type = typename base::icon_type;
+        using theme_type = typename base::theme_type;
 
         /**
          * @brief Construct measure context with resolved style
@@ -88,8 +89,9 @@ namespace onyxui {
          * ensure measurement uses the same theme properties (padding, fonts, etc.)
          * as rendering. This prevents measurement/rendering inconsistencies.
          */
-        explicit measure_context(const resolved_style<Backend>& style)
-            : base(style, nullptr)
+        explicit measure_context(const resolved_style<Backend>& style,
+                                 const theme_type* theme = nullptr)
+            : base(style, theme)
             , m_min_x(INT_MAX)
             , m_min_y(INT_MAX)
             , m_max_right(INT_MIN)
