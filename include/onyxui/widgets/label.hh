@@ -264,3 +264,6 @@ namespace onyxui {
         return parent.template emplace_child<label>(std::forward<Args>(args)...);
     }
 }
+
+// Deferred implementation: widget tooltip needs label to be fully defined
+#include <onyxui/widgets/core/widget_tooltip_impl.hh>

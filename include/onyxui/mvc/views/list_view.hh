@@ -299,7 +299,7 @@ public:
      * @brief Scroll by a delta amount
      * @param delta Amount to scroll (positive = down, negative = up)
      */
-    void scroll_by(double delta) {
+    void scroll_by(double delta) override {
         set_scroll_offset(m_scroll_offset_y + delta);
     }
 
@@ -603,6 +603,7 @@ private:
     logical_rect m_last_arranged_bounds{};    ///< Track bounds changes for scroll_to
     scrollbar<Backend>* m_scrollbar = nullptr; ///< Vertical scrollbar (owned as child)
     double m_scrollbar_width = 0.0;           ///< Cached scrollbar width (logical units)
+
 
     // ===================================================================
     // Utility Methods

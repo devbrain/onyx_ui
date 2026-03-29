@@ -384,6 +384,20 @@ namespace onyxui {
             }
 
             // ============================================================
+            // Text Input Event Handling
+            // ============================================================
+            if (auto* text_evt = std::get_if<text_input_event>(&ui_evt)) {
+                (void)text_evt;
+                widget_type* focused = nullptr;
+                if (input) {
+                    focused = static_cast<widget_type*>(input->get_focused());
+                }
+                if (focused) {
+                    return focused->handle_event(ui_evt, event_phase::target);
+                }
+            }
+
+            // ============================================================
             // Mouse Event Handling (Unified with Input Manager)
             // ============================================================
             // Use variant dispatch to handle mouse events

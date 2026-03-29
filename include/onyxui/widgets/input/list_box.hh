@@ -12,9 +12,13 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>
+#include <onyxui/core/raii/scoped_layer.hh>
 #include <onyxui/mvc/models/list_model.hh>
 #include <onyxui/mvc/views/list_view.hh>
 #include <onyxui/mvc/selection/item_selection_model.hh>
+#include <onyxui/widgets/tooltip_widget.hh>
+#include <onyxui/services/ui_services.hh>
+#include <functional>
 
 namespace onyxui {
 
@@ -74,6 +78,7 @@ public:
     using base::measure;
     using base::arrange;
     using base::bounds;
+    using base::get_absolute_logical_bounds;
     using base::render;
     using base::handle_event;
     using base::has_focus;
@@ -87,6 +92,8 @@ public:
     using base::set_margin;
     using base::set_visible;
     using base::set_background_color;
+    using base::set_tooltip;
+    using base::hide_tooltip;
 
     // Allow ownership transfer as ui_element for add_child()
     static std::unique_ptr<onyxui::ui_element<Backend>> into_element(
@@ -156,6 +163,13 @@ public:
                 if (idx.is_valid()) {
                     double_clicked.emit(idx.row);
                 }
+            }
+        );
+
+        m_item_hovered_conn = scoped_connection(
+            base::item_hovered,
+            [this](const model_index& idx, logical_unit mx, logical_unit my) {
+                item_hovered.emit(idx.is_valid() ? idx.row : -1, mx, my);
             }
         );
     }
@@ -528,6 +542,113 @@ public:
      */
     signal<int> double_clicked;
 
+    /**
+     * @brief Emitted when mouse hovers over a different item
+     * @param index Hovered item index (-1 when mouse leaves all items)
+     * @param mouse_x Absolute mouse X in logical units
+     * @param mouse_y Absolute mouse Y in logical units
+     */
+    signal<int, logical_unit, logical_unit> item_hovered;
+
+    // ===================================================================
+    // Tooltip Support
+    // ===================================================================
+
+    /**
+     * @brief Set a callback that provides tooltip text for each item
+     * @param provider Function returning tooltip text for an index (empty = no tooltip)
+     *
+     * @details
+     * The list_box automatically shows a tooltip when hovering over an item
+     * for which the provider returns a non-empty string. Tooltip is hidden
+     * when the mouse moves to another item or leaves the list.
+     */
+    void set_tooltip_provider(std::function<std::string(int)> provider) {
+        m_tooltip_provider = std::move(provider);
+        wire_tooltip_signals();
+    }
+
+    /**
+     * @brief Enable automatic tooltips for items whose text is too wide to display
+     *
+     * @details
+     * When enabled, hovering over an item whose text is wider than the list
+     * will show a tooltip with the full text. No callback needed.
+     */
+    void set_truncation_tooltips(bool enabled) {
+        if (enabled) {
+            set_tooltip_provider([this](int idx) -> std::string {
+                if (idx < 0 || idx >= count()) return {};
+                auto text = item_text(idx);
+                if (!is_item_truncated(text)) return {};
+                return text;
+            });
+        } else {
+            m_tooltip_provider = nullptr;
+            dismiss_item_tooltip();
+        }
+    }
+
+private:
+    void wire_tooltip_signals() {
+        if (!m_tooltip_hover_conn.is_connected()) {
+            m_tooltip_hover_conn = scoped_connection(
+                item_hovered,
+                [this](int idx, logical_unit mx, logical_unit my) {
+                    update_item_tooltip(idx, mx, my);
+                }
+            );
+        }
+        if (!m_tooltip_exit_conn.is_connected()) {
+            m_tooltip_exit_conn = scoped_connection(
+                base::mouse_exited,
+                [this]() { dismiss_item_tooltip(); }
+            );
+        }
+    }
+
+    void dismiss_item_tooltip() {
+        m_item_tooltip_layer.reset();
+        m_item_tooltip.reset();
+        m_item_tooltip_row = -1;
+    }
+
+    void update_item_tooltip(int index, logical_unit mouse_x, logical_unit mouse_y) {
+        dismiss_item_tooltip();
+
+        if (index < 0 || !m_tooltip_provider) return;
+
+        auto text = m_tooltip_provider(index);
+        if (text.empty()) return;
+
+        auto* layers = ui_services<Backend>::layers();
+        if (!layers) return;
+
+        m_item_tooltip = std::make_unique<tooltip_widget<Backend>>(text);
+
+        // Position at mouse cursor (slightly below and to the right)
+        auto id = layers->show_tooltip(
+            m_item_tooltip.get(),
+            mouse_x,
+            mouse_y + logical_unit(16));
+
+        m_item_tooltip_layer = scoped_layer<Backend>(layers, id);
+        m_item_tooltip_row = index;
+    }
+
+    [[nodiscard]] bool is_item_truncated(const std::string& text) const {
+        auto* themes = ui_services<Backend>::themes();
+        auto const* theme = themes ? themes->get_current_theme() : nullptr;
+        if (!theme) return false;
+
+        using renderer_type = typename Backend::renderer_type;
+        auto text_size = renderer_type::measure_text(text, theme->list.font);
+        int text_w = size_utils::get_width(text_size) + (theme->list.padding_horizontal * 2);
+
+        auto b = this->bounds();
+        return text_w > b.width.to_int();
+    }
+
 private:
     std::shared_ptr<model_type> m_model;        ///< Internal string list model (owned)
     selection_model_type* m_selection_model = nullptr;  ///< Selection model from view
@@ -538,6 +659,15 @@ private:
     scoped_connection m_activated_conn;
     scoped_connection m_clicked_conn;
     scoped_connection m_double_clicked_conn;
+    scoped_connection m_item_hovered_conn;
+
+    // Tooltip state
+    std::function<std::string(int)> m_tooltip_provider;
+    scoped_connection m_tooltip_hover_conn;
+    scoped_connection m_tooltip_exit_conn;
+    int m_item_tooltip_row = -1;
+    std::unique_ptr<tooltip_widget<Backend>> m_item_tooltip;
+    scoped_layer<Backend> m_item_tooltip_layer;
 };
 
 } // namespace onyxui

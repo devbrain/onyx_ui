@@ -666,7 +666,9 @@ namespace onyxui {
             const physical_y padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
             // Measure text height (width will scroll)
-            typename renderer_type::font const default_font{};
+            auto const default_font = theme
+                ? theme->line_edit.font
+                : typename renderer_type::font{};
             const auto sample_text_size = renderer_type::measure_text("Ay", default_font);
             const int text_height = size_utils::get_height(sample_text_size);
 

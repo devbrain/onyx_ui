@@ -494,6 +494,53 @@ namespace onyxui {
         std::weak_ptr<action<Backend>> m_action;                     ///< Associated action (weak reference)
         std::vector<scoped_connection> m_action_connections;         ///< Auto-cleanup connections
 
+        // ===================================================================
+        // Tooltip
+        // ===================================================================
+    public:
+        /**
+         * @brief Set tooltip text — shown automatically on hover
+         * @param text Tooltip text (empty string disables tooltip)
+         */
+        void set_tooltip(const std::string& text) {
+            m_tooltip_text = text;
+
+            if (text.empty()) {
+                hide_tooltip();
+                m_tooltip_enter_conn = {};
+                m_tooltip_exit_conn = {};
+                return;
+            }
+
+            if (!m_tooltip_enter_conn.is_connected()) {
+                m_tooltip_enter_conn = scoped_connection(mouse_entered, [this]() {
+                    show_auto_tooltip();
+                });
+                m_tooltip_exit_conn = scoped_connection(mouse_exited, [this]() {
+                    hide_tooltip();
+                });
+            }
+        }
+
+        /**
+         * @brief Hide the currently displayed tooltip (if any)
+         */
+        void hide_tooltip() {
+            m_tooltip_layer.reset();
+            m_tooltip_content.reset();
+        }
+
+    private:
+        // Defined in widget_tooltip_impl.hh (deferred — needs tooltip_widget which inherits from widget)
+        void show_auto_tooltip();
+
+        std::string m_tooltip_text;
+        std::unique_ptr<ui_element<Backend>> m_tooltip_content;
+        scoped_layer<Backend> m_tooltip_layer;
+        scoped_connection m_tooltip_enter_conn;
+        scoped_connection m_tooltip_exit_conn;
+
+    protected:
 
         /**
          * @brief Automatic content size calculation via measure_context

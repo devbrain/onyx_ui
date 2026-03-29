@@ -295,6 +295,16 @@ public:
     virtual void scroll_to(const model_index& index) = 0;
 
     /**
+     * @brief Scroll by a delta amount (positive = down)
+     */
+    virtual void scroll_by(double /*delta*/) {}
+
+    /**
+     * @brief Get the height of one scroll line (for mouse wheel)
+     */
+    [[nodiscard]] virtual double scroll_line_height() const { return 20.0; }
+
+    /**
      * @brief Update internal geometries after model changes
      *
      * @details
@@ -339,6 +349,14 @@ public:
      */
     signal<const model_index&> double_clicked;
 
+    /**
+     * @brief Emitted when the mouse hovers over a different item
+     * @param index Hovered item (invalid index when mouse leaves all items)
+     * @param mouse_x Absolute mouse X in logical units
+     * @param mouse_y Absolute mouse Y in logical units
+     */
+    signal<const model_index&, logical_unit, logical_unit> item_hovered;
+
     // ===================================================================
     // Event Handling (public - part of event dispatch interface)
     // ===================================================================
@@ -376,6 +394,32 @@ public:
             if (mouse_evt->act == mouse_event::action::press &&
                 mouse_evt->btn == mouse_event::button::left) {
                 return handle_mouse_press(*mouse_evt);
+            }
+            if (mouse_evt->act == mouse_event::action::move) {
+                // Convert absolute coordinates to view-relative for index_at()
+                auto abs_bounds = this->get_absolute_logical_bounds();
+                logical_unit const rel_x = mouse_evt->x - abs_bounds.x;
+                logical_unit const rel_y = mouse_evt->y - abs_bounds.y;
+                auto idx = index_at(rel_x, rel_y);
+                if (idx != m_hovered_index) {
+                    m_hovered_index = idx;
+                    item_hovered.emit(m_hovered_index, mouse_evt->x, mouse_evt->y);
+                }
+            }
+            if (mouse_evt->act == mouse_event::action::wheel_up ||
+                mouse_evt->act == mouse_event::action::wheel_down) {
+                double dir = (mouse_evt->act == mouse_event::action::wheel_up) ? -1.0 : 1.0;
+                scroll_by(dir * scroll_line_height() * 3);
+                // Re-evaluate hovered item after scroll
+                auto abs_bounds = this->get_absolute_logical_bounds();
+                logical_unit const rel_x = mouse_evt->x - abs_bounds.x;
+                logical_unit const rel_y = mouse_evt->y - abs_bounds.y;
+                auto idx = index_at(rel_x, rel_y);
+                if (idx != m_hovered_index) {
+                    m_hovered_index = idx;
+                    item_hovered.emit(m_hovered_index, mouse_evt->x, mouse_evt->y);
+                }
+                return true;
             }
         }
 
@@ -915,6 +959,9 @@ protected:
     model_type* m_model;
     std::shared_ptr<delegate_type> m_delegate;
     std::shared_ptr<selection_model_type> m_selection_model;
+
+    // Hover tracking
+    model_index m_hovered_index{};
 
     // Double-click detection
     std::chrono::steady_clock::time_point m_last_click_time{};
