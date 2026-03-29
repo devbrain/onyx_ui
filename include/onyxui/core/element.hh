@@ -1360,13 +1360,18 @@ namespace onyxui {
         logical_unit meas_w = measured.width + m_margin.horizontal();
         logical_unit meas_h = measured.height + m_margin.vertical();
 
-        // Apply constraints
-        logical_unit clamped_w = m_width_constraint.clamp(meas_w);
-        logical_unit clamped_h = m_height_constraint.clamp(meas_h);
+        // Apply constraints — fixed policy uses preferred_size directly
+        logical_unit clamped_w = (m_width_constraint.policy == size_policy::fixed)
+            ? m_width_constraint.clamp(m_width_constraint.preferred_size)
+            : m_width_constraint.clamp(meas_w);
+        logical_unit clamped_h = (m_height_constraint.policy == size_policy::fixed)
+            ? m_height_constraint.clamp(m_height_constraint.preferred_size)
+            : m_height_constraint.clamp(meas_h);
 
         // Store clamped sizes
         measured.width = clamped_w;
         measured.height = clamped_h;
+
 
         // Cache results
         m_last_measured_size = measured;

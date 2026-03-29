@@ -459,6 +459,11 @@ public:
 
         int row_count = this->m_model->row_count();
 
+        // Clip items to content area so partially-visible items don't overflow
+        int const content_height = physical_height - (physical_border_y * 2);
+        rect_type clip_rect{content_x, content_y, content_width, content_height};
+        ctx.push_clip(clip_rect);
+
         for (int row = 0; row < row_count; ++row) {
             if (row >= static_cast<int>(m_item_rects.size())) {
                 break;  // Safety check
@@ -508,6 +513,8 @@ public:
             // Delegate renders the item (receives physical coordinates)
             this->m_delegate->paint(ctx, idx, abs_item_rect, is_selected, has_focus);
         }
+
+        ctx.pop_clip();
     }
 
     // ===================================================================
