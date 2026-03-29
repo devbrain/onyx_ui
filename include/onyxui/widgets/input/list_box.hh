@@ -87,8 +87,6 @@ public:
     using base::set_margin;
     using base::set_visible;
     using base::set_background_color;
-    using base::invalidate_visual;
-    using base::invalidate_layout;
 
     // Allow ownership transfer as ui_element for add_child()
     static std::unique_ptr<onyxui::ui_element<Backend>> into_element(
@@ -459,6 +457,7 @@ public:
      * @brief Scroll to make an item visible
      * @param index Item index to scroll to
      */
+    using base::scroll_to;  // bring base overload into scope
     void scroll_to(int index) {
         if (index < 0 || index >= count()) {
             return;
