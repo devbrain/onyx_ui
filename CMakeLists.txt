@@ -124,6 +124,7 @@ if(NEUTRINO_ONYX_UI_ENABLE_YAML_THEMES)
                 GIT_TAG v0.4.0
                 GIT_SHALLOW TRUE
                 GIT_PROGRESS TRUE
+                PATCH_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/patch_cmake_minimum.cmake
             )
             FetchContent_MakeAvailable(fkYAML)
         endif()

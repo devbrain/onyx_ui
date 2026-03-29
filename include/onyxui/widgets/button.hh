@@ -263,9 +263,11 @@ namespace onyxui {
             physical_x const padding_h = to_physical_x<Backend>(padding_h_logical, metrics);
             physical_y const padding_v = to_physical_y<Backend>(padding_v_logical, metrics);
 
-            // Measure text size (returns physical pixels for graphical backends)
-            typename renderer_type::font const default_font{};
-            auto text_size = renderer_type::measure_text(m_text, default_font);
+            // Measure text size using the theme font (returns physical pixels for graphical backends)
+            auto const& measure_font = theme
+                ? this->get_state_font(theme->button)
+                : typename renderer_type::font{};
+            auto text_size = renderer_type::measure_text(m_text, measure_font);
             physical_x const text_width{size_utils::get_width(text_size)};
             physical_y const text_height{size_utils::get_height(text_size)};
 
