@@ -343,12 +343,12 @@ namespace onyxui {
                 } else {
                     // Fallback to plain text if parsing failed
                     typename Backend::point_type const text_pos{text_x, text_y};
-                    ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
+                    (void)ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
                 }
             } else {
                 // Render plain text
                 typename Backend::point_type const text_pos{text_x, text_y};
-                ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
+                (void)ctx.draw_text(m_text, text_pos, this->get_state_font(theme->button), fg);
             }
 
             // Draw shadow AFTER button content (like menu shadows)

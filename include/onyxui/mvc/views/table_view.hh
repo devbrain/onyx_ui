@@ -1320,13 +1320,13 @@ private:
             rect_type cell_rect{abs_x, content_y, abs_w, physical_header_height};
 
             // Draw header text with padding
-            ctx.draw_text(header_text, {abs_x + HEADER_PADDING, content_y + 2}, theme->table.header_font, theme->table.header_foreground);
+            (void)ctx.draw_text(header_text, {abs_x + HEADER_PADDING, content_y + 2}, theme->table.header_font, theme->table.header_foreground);
 
             // Draw sort indicator
             if (m_sort_column == col) {
                 std::string indicator = (m_sort_order == sort_order::ascending) ? " ^" : " v";
                 int const text_x = abs_x + abs_w - SORT_INDICATOR_WIDTH;
-                ctx.draw_text(indicator, {text_x, content_y + 2}, theme->table.header_font, theme->table.sort_indicator_color);
+                (void)ctx.draw_text(indicator, {text_x, content_y + 2}, theme->table.header_font, theme->table.sort_indicator_color);
             }
 
             col_x += col_w;

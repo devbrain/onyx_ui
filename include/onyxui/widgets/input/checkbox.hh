@@ -309,12 +309,12 @@ protected:
 
         // Draw checkbox icon (vertically centered)
         const typename Backend::point_type box_pos{x, box_y};
-        ctx.draw_icon(box_icon, box_pos);
+        (void)ctx.draw_icon(box_icon, box_pos);
 
         // Draw label text (if any, vertically centered)
         if (!m_text.empty()) {
             const typename Backend::point_type text_pos{x + box_width + spacing.value, text_y};
-            ctx.draw_text(m_text, text_pos, default_font, fg);
+            (void)ctx.draw_text(m_text, text_pos, default_font, fg);
         }
     }
 

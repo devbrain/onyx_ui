@@ -623,7 +623,7 @@ namespace onyxui {
                 // Draw left scroll arrow if overflow
                 if (m_has_overflow) {
                     typename Backend::point_type arrow_pos{tab_x, tab_y};
-                    ctx.draw_icon(tab_style.scroll_left_icon, arrow_pos);
+                    (void)ctx.draw_icon(tab_style.scroll_left_icon, arrow_pos);
                     m_left_arrow_end = (tab_x - x + arrow_width.value) * phys_to_logical;  // Logical units
                     tab_x += arrow_width.value;
                 } else {
@@ -677,7 +677,7 @@ namespace onyxui {
                         int close_icon_x = text_end_x;
                         tab.close_x = (close_icon_x - x) * phys_to_logical;  // Logical units
                         typename Backend::point_type icon_pos{close_icon_x, tab_y};
-                        ctx.draw_icon(tab_style.close_button_icon, icon_pos);
+                        (void)ctx.draw_icon(tab_style.close_button_icon, icon_pos);
                         tab_x = close_icon_x + physical_close_icon_width + tab_spacing.value;
                     } else {
                         tab.close_x = -1;
@@ -705,7 +705,7 @@ namespace onyxui {
                     int arrow_abs_x = x + total_width - arrow_width.value;
                     m_right_arrow_start = (total_width - arrow_width.value) * phys_to_logical;  // Logical units
                     typename Backend::point_type arrow_pos{arrow_abs_x, tab_y};
-                    ctx.draw_icon(tab_style.scroll_right_icon, arrow_pos);
+                    (void)ctx.draw_icon(tab_style.scroll_right_icon, arrow_pos);
                 } else {
                     m_right_arrow_start = logical_width;  // Off-screen (use logical width)
                 }

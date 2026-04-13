@@ -164,7 +164,7 @@ public:
 
         // Get font from theme or use default
         auto font = theme ? theme->list.font : get_font();
-        ctx.draw_text(text, text_pos, font, fg_color);
+        (void)ctx.draw_text(text, text_pos, font, fg_color);
 
         // ===============================================================
         // 3. Focus Indication

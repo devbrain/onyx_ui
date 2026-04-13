@@ -804,10 +804,10 @@ namespace onyxui {
 
                 if (m_overwrite_mode && cursor_pos_in_text >= 0 && cursor_pos_in_text < static_cast<int>(visible_text.length())) {
                     const auto& cursor_icon = theme->line_edit.cursor_overwrite_icon;
-                    ctx.draw_icon(cursor_icon, cursor_pos);
+                    (void)ctx.draw_icon(cursor_icon, cursor_pos);
                 } else {
                     const auto& cursor_icon = theme->line_edit.cursor_insert_icon;
-                    ctx.draw_icon(cursor_icon, cursor_pos);
+                    (void)ctx.draw_icon(cursor_icon, cursor_pos);
                 }
             }
         }

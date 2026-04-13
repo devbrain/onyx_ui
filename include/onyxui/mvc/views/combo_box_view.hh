@@ -593,13 +593,13 @@ protected:
         int const text_x = x + border + padding_h;
         int const text_y = y + border + padding_v;
         typename Backend::point_type const text_pos{text_x, text_y};
-        ctx.draw_text(display_text, text_pos, font, fg);
+        (void)ctx.draw_text(display_text, text_pos, font, fg);
 
         // Draw arrow icon
         int const arrow_x = x + final_width - border - padding_h - arrow_width;
         int const arrow_y = y + border + padding_v + (content_height - arrow_height) / 2;
         typename Backend::point_type const arrow_pos{arrow_x, arrow_y};
-        ctx.draw_icon(icon_style::arrow_down, arrow_pos);
+        (void)ctx.draw_icon(icon_style::arrow_down, arrow_pos);
     }
 
 private:

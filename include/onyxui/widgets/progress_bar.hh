@@ -512,7 +512,7 @@ private:
 
         // Draw text
         point_type const text_pos{text_x, text_y};
-        ctx.draw_text(text, text_pos, font, text_color);
+        (void)ctx.draw_text(text, text_pos, font, text_color);
     }
 };
 

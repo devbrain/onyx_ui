@@ -184,7 +184,7 @@ namespace onyxui {
             // Draw left text
             if (!m_left_text.empty()) {
                 typename Backend::point_type const left_pos{x, y};
-                ctx.draw_text(m_left_text, left_pos, ctx.style().font, ctx.style().foreground_color);
+                (void)ctx.draw_text(m_left_text, left_pos, ctx.style().font, ctx.style().foreground_color);
             }
 
             // Draw right text (right-aligned)
@@ -195,7 +195,7 @@ namespace onyxui {
                 int right_x = x + width - text_width;
 
                 typename Backend::point_type const right_pos{right_x, y};
-                ctx.draw_text(m_right_text, right_pos, ctx.style().font, ctx.style().foreground_color);
+                (void)ctx.draw_text(m_right_text, right_pos, ctx.style().font, ctx.style().foreground_color);
             }
         }
 

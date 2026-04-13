@@ -171,7 +171,7 @@ namespace onyxui {
             int const icon_y = base_y + (height - icon_h) / 2;
 
             point_type const icon_pos{icon_x, icon_y};
-            ctx.draw_icon(icon, icon_pos);
+            (void)ctx.draw_icon(icon, icon_pos);
         }
 
     private:

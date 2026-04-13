@@ -79,7 +79,7 @@ namespace onyxui {
             int const text_x = x + border + padding_h;
             int const text_y = y + border + padding_v;
             point_type text_pos{text_x, text_y};
-            ctx.draw_text(m_text, text_pos, font, m_fg_color);
+            (void)ctx.draw_text(m_text, text_pos, font, m_fg_color);
         }
 
     private:
