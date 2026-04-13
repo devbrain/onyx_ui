@@ -304,12 +304,28 @@ namespace onyxui {
             // Measure one character to get the actual character width in pixels
             typename renderer_type::font default_font{};
             auto char_size = renderer_type::measure_text("M", default_font);
-            int char_width = size_utils::get_width(char_size);
-            if (char_width < 1) char_width = 8; // fallback
+            int char_width_px = size_utils::get_width(char_size);
+            if (char_width_px < 1) char_width_px = 8; // fallback
+
+            // measure_text returns a pixel count, but size_constraint
+            // expects a logical_unit. On GUI backends with
+            // logical_to_physical != 1 or dpi_scale != 1 the two differ,
+            // so convert pixels -> logical units by dividing by the
+            // backend's current scale factor. Without this, a HiDPI
+            // backend overshoots the preferred width by the scale factor
+            // and pushes the widget over its sibling cells.
+            double scale = 1.0;
+            if (auto const* metrics = ui_services<Backend>::metrics()) {
+                const double s = metrics->logical_to_physical_x * metrics->dpi_scale;
+                if (s > 0.0) {
+                    scale = s;
+                }
+            }
+            const double char_width_logical = static_cast<double>(char_width_px) / scale;
 
             size_constraint width_constraint;
             width_constraint.policy = size_policy::fixed;
-            width_constraint.preferred_size = logical_unit(static_cast<double>(chars * char_width));
+            width_constraint.preferred_size = logical_unit(static_cast<double>(chars) * char_width_logical);
             this->set_width_constraint(width_constraint);
         }
 
