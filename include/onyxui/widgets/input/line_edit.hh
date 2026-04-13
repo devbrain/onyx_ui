@@ -787,7 +787,7 @@ namespace onyxui {
             // Draw all visible text at once
             if (!visible_text.empty()) {
                 const point_type text_pos{text_x, text_y};
-                ctx.draw_text(visible_text, text_pos, default_font, text_color);
+                (void)ctx.draw_text(visible_text, text_pos, default_font, text_color);
             }
 
             // Draw cursor overlay

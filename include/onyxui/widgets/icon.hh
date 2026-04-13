@@ -109,7 +109,7 @@ namespace onyxui {
             // Use context position (absolute screen coordinates)
             // bounds() returns RELATIVE coords, but ctx.position() has absolute coords
             const auto& position = ctx.position();
-            ctx.draw_icon(m_icon_style, position);
+            (void)ctx.draw_icon(m_icon_style, position);
         }
 
     private:

@@ -196,12 +196,12 @@ namespace onyxui {
                 } else {
                     // Fallback to plain text if parsing failed
                     typename Backend::point_type const text_pos{x, y};
-                    ctx.draw_text(m_text, text_pos, font, fg);
+                    (void)ctx.draw_text(m_text, text_pos, font, fg);
                 }
             } else {
                 // Render plain text using pre-resolved style
                 typename Backend::point_type const text_pos{x, y};
-                ctx.draw_text(m_text, text_pos, font, fg);
+                (void)ctx.draw_text(m_text, text_pos, font, fg);
             }
         }
 

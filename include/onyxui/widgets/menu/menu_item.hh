@@ -430,12 +430,12 @@ namespace onyxui {
                 } else {
                     // Fallback to plain text if parsing failed
                     typename Backend::point_type const text_pos{text_x, text_y};
-                    ctx.draw_text(m_text, text_pos, text_font, fg);
+                    (void)ctx.draw_text(m_text, text_pos, text_font, fg);
                 }
             } else {
                 // Render plain text (no mnemonics)
                 typename Backend::point_type const text_pos{text_x, text_y};
-                ctx.draw_text(m_text, text_pos, text_font, fg);
+                (void)ctx.draw_text(m_text, text_pos, text_font, fg);
             }
 
             // Draw submenu indicator if item has submenu (backend-specific icon from theme)
@@ -453,7 +453,7 @@ namespace onyxui {
                     }
                     // Draw icon at calculated position
                     typename Backend::point_type const icon_pos{indicator_x, text_y};
-                    ctx.draw_icon(*submenu_icon_opt, icon_pos);
+                    (void)ctx.draw_icon(*submenu_icon_opt, icon_pos);
                 }
             }
 
@@ -463,7 +463,7 @@ namespace onyxui {
                 typename Backend::point_type const shortcut_pos{shortcut_x, text_y};
                 // Use shortcut color from theme (shortcuts use a dimmed color for subtlety)
                 auto shortcut_color = ctx.theme()->menu_item.shortcut.foreground;
-                ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, shortcut_color);
+                (void)ctx.draw_text(shortcut, shortcut_pos, typename renderer_type::font{}, shortcut_color);
             }
 
         }

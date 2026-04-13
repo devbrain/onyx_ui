@@ -190,6 +190,11 @@
 
 #pragma once
 
+// Undo Win32 `small`, `min`, `max` macros if system headers leaked them in.
+// Must come before <algorithm> / system headers so those don't re-introduce
+// the macros through any of their own includes.
+#include <onyxui/detail/windows_cleanup.hh>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -199,6 +204,9 @@
 #include <onyxui/core/types.hh>
 #include <onyxui/core/geometry.hh>
 #include <onyxui/concepts/backend.hh>
+
+// Re-clean up in case <algorithm> or another include pulled in <windows.h>.
+#include <onyxui/detail/windows_cleanup.hh>
 
 
 namespace onyxui {

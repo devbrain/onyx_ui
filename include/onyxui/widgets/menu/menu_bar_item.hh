@@ -245,7 +245,7 @@ namespace onyxui {
             int const text_x = x + padding_h.value;
             int const text_y = y + padding_v.value;
             typename Backend::point_type const text_pos{text_x, text_y};
-            ctx.draw_text(m_text, text_pos, text_font, fg);
+            (void)ctx.draw_text(m_text, text_pos, text_font, fg);
         }
 
         /**

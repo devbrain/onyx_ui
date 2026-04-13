@@ -256,7 +256,8 @@ namespace onyxui {
          * ```
          */
         constexpr key_sequence(char ch, key_modifier mods = key_modifier::none) noexcept
-            : key(static_cast<key_code>(std::tolower(static_cast<unsigned char>(ch))))
+            : key(static_cast<key_code>(
+                  (ch >= 'A' && ch <= 'Z') ? static_cast<char>(ch - 'A' + 'a') : ch))
             , modifiers(mods) {}
 
         /**

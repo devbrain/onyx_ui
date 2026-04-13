@@ -12,6 +12,30 @@
 #include <type_traits>
 
 namespace onyxui {
+    namespace detail {
+        // constexpr replacements for std::abs/floor/ceil/round on double.
+        // std::abs/floor/ceil/round are not constexpr in C++20 and earlier,
+        // which breaks MSVC when these are used inside constexpr functions.
+        constexpr double const_abs(double v) noexcept {
+            return v < 0.0 ? -v : v;
+        }
+        constexpr double const_floor(double v) noexcept {
+            const long long i = static_cast<long long>(v);
+            return (v < 0.0 && static_cast<double>(i) != v)
+                ? static_cast<double>(i - 1)
+                : static_cast<double>(i);
+        }
+        constexpr double const_ceil(double v) noexcept {
+            const long long i = static_cast<long long>(v);
+            return (v > 0.0 && static_cast<double>(i) != v)
+                ? static_cast<double>(i + 1)
+                : static_cast<double>(i);
+        }
+        constexpr double const_round(double v) noexcept {
+            return v >= 0.0 ? const_floor(v + 0.5) : const_ceil(v - 0.5);
+        }
+    }
+
 
     /**
      * @class logical_unit
@@ -91,7 +115,7 @@ namespace onyxui {
 
         // Comparison operators (epsilon-based for floating-point)
         [[nodiscard]] constexpr bool operator==(logical_unit other) const noexcept {
-            return std::abs(value - other.value) < 1e-9;
+            return detail::const_abs(value - other.value) < 1e-9;
         }
 
         [[nodiscard]] constexpr bool operator!=(logical_unit other) const noexcept {
@@ -121,24 +145,24 @@ namespace onyxui {
 
         // Math helpers
         [[nodiscard]] constexpr logical_unit abs() const noexcept {
-            return logical_unit(std::abs(value));
+            return logical_unit(detail::const_abs(value));
         }
 
         [[nodiscard]] constexpr logical_unit floor() const noexcept {
-            return logical_unit(std::floor(value));
+            return logical_unit(detail::const_floor(value));
         }
 
         [[nodiscard]] constexpr logical_unit ceil() const noexcept {
-            return logical_unit(std::ceil(value));
+            return logical_unit(detail::const_ceil(value));
         }
 
         [[nodiscard]] constexpr logical_unit round() const noexcept {
-            return logical_unit(std::round(value));
+            return logical_unit(detail::const_round(value));
         }
 
         // Conversion to int (with rounding)
         [[nodiscard]] constexpr int to_int() const noexcept {
-            return static_cast<int>(std::round(value));
+            return static_cast<int>(detail::const_round(value));
         }
     };
 

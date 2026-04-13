@@ -483,8 +483,13 @@ namespace onyxui {
                 return this->handle_mouse(e);
             } else if constexpr (std::is_same_v<T, resize_event>) {
                 return this->handle_resize(e);
+            } else {
+                // Unknown event type — unreachable given current variant
+                // alternatives, but required so the lambda has a return on
+                // all paths without a trailing unreachable `return false;`
+                // (which MSVC flags as C4702).
+                return false;
             }
-            return false;  // Unknown event type
         }, evt);
     }
 
