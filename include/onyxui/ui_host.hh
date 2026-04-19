@@ -135,6 +135,24 @@ namespace onyxui {
             dispatch_render(renderer, bounds, viewport);
         }
 
+        /// Convenience overload: query @p renderer for its physical
+        /// viewport and render into that. Matches the shape of the
+        /// legacy `ui_handle::display()` call.
+        void render(renderer_type& renderer) {
+            const rect_type bounds = renderer.get_viewport();
+            const auto& metrics = m_ctx.metrics();
+            const logical_size logical_viewport =
+                metrics.physical_to_logical_size(
+                    typename Backend::size_type{
+                        rect_utils::get_width(bounds),
+                        rect_utils::get_height(bounds)
+                    });
+            dispatch_render(renderer, bounds,
+                            logical_rect{0.0_lu, 0.0_lu,
+                                         logical_viewport.width,
+                                         logical_viewport.height});
+        }
+
         /// Dispatch a backend-native event through the UI. Returns true
         /// if the event was consumed.
         [[nodiscard]] bool handle_event(const event_type& native_event) {
