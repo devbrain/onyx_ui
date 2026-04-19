@@ -49,11 +49,14 @@
 
 #include <onyxui/widgets/menu/menu.hh>
 #include <onyxui/widgets/menu/menu_bar.hh>
+#include <onyxui/widgets/menu/menu_bar_item.hh>
 #include <onyxui/widgets/menu/menu_item.hh>
+#include <onyxui/widgets/menu/menu_system.hh>
 #include <onyxui/widgets/menu/separator.hh>
 
 #include <onyxui/widgets/window/window.hh>
 #include <onyxui/widgets/window/dialog.hh>
+#include <onyxui/widgets/window/window_list_dialog.hh>
 #include <onyxui/widgets/window/presented_window.hh>
 
 namespace onyxui::conio {

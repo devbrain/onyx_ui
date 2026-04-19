@@ -103,6 +103,43 @@ function(add_backend_library)
         OUTPUT_NAME "onyxui_${BACKEND_NAME}"
     )
 
+    # ------------------------------------------------------------------
+    # Install rules
+    #
+    # Backend-specific public headers live under
+    # `backends/<name>/include/onyxui/` (typically `onyxui/<name>/` and
+    # possibly `onyxui/tile/` etc.). Without explicit install rules
+    # they never reach the installed package — consumers who do
+    # `#include <onyxui/<name>/...>` via neutrino::onyxui get a broken
+    # public header even after `make install`.
+    #
+    # This rule merges the backend's `include/onyxui/*` subdirectories
+    # into the installed `${CMAKE_INSTALL_INCLUDEDIR}/onyxui/` tree so
+    # they sit alongside the core headers, matching the
+    # `$<INSTALL_INTERFACE>` include path above.
+    # ------------------------------------------------------------------
+    if(NEUTRINO_ONYX_UI_INSTALL)
+        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/onyxui/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/onyxui
+            FILES_MATCHING
+                PATTERN "*.hh"
+                PATTERN "*.inl"
+        )
+        # Also install the generated export header so consumers that
+        # include it get the symbol-visibility macros.
+        install(FILES ${EXPORT_HEADER_FILE}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/onyxui/backends/${BACKEND_NAME}
+        )
+        # Install the target itself so consumers can link it.
+        install(TARGETS ${TARGET_NAME}
+            EXPORT onyxuiTargets
+            LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+            INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        )
+    endif()
+
     # Display build info
     get_target_property(LIB_TYPE ${TARGET_NAME} TYPE)
     message(STATUS "Backend '${BACKEND_NAME}': ${LIB_TYPE}")
