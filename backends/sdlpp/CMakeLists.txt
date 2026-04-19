@@ -17,6 +17,8 @@ add_backend_library(
         src/tile_renderer.cc
         src/tile_backend.cc
         src/procedural_atlas.cc
+        src/simple/runtime.cc
+        src/simple/app_window.cc
     PUBLIC_HEADERS
         include/onyxui/sdlpp/colors.hh
         include/onyxui/sdlpp/geometry.hh
