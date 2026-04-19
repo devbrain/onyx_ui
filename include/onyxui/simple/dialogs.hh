@@ -9,12 +9,19 @@
  *   3. Registers the resulting presenter with the simple-shell
  *      runtime so it stays alive until the dialog closes.
  *   4. When the user clicks OK / Cancel / etc., the dialog's
- *      `result_ready` signal fires, the user's callback runs, and
- *      the runtime drops the presenter — destroying the dialog.
+ *      `closed` signal fires, the user's callback runs, and the
+ *      runtime drops the presenter — destroying the dialog.
  *
- * Not standalone. Like `app_window.hh`, this header uses
- * unqualified names (`app_window`) that must be in scope via a
- * bundle header (`<onyxui/for/sdlpp.hh>` or similar).
+ * onyx_ui is a header-only library. The dialog logic is genuinely
+ * backend-agnostic — every type it touches (window, vbox, label,
+ * button, …) is reached via the `onyxui::simple` aliases that the
+ * bundle header (`<onyxui/for/sdlpp.hh>` etc.) populates BEFORE this
+ * header is parsed. The implementations therefore live here as
+ * `inline` definitions; no .cc per backend is needed.
+ *
+ * Not standalone. Like `app_window.hh`, this header uses unqualified
+ * names that must be in scope via a bundle header. The
+ * `ONYXUI_SIMPLE_BUNDLE_INCLUDED` guardrail below catches misuse.
  *
  * No auto-find-active-window in v1 — each helper takes the parent
  * `app_window&` explicitly.
@@ -22,38 +29,227 @@
 
 #pragma once
 
+// Guardrail: same as app_window.hh — the simple/* headers reference
+// the unqualified `window`, `vbox`, `button`, … names in
+// `onyxui::simple`, which a bundle header populates via
+// using-declarations BEFORE this file is parsed. Including this
+// header standalone would produce a cryptic cascade of "unknown type"
+// errors; this check turns that into a readable diagnostic.
+#ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
+#  error "<onyxui/simple/dialogs.hh> is not a standalone header. " \
+         "Include a bundle header instead — typically " \
+         "<onyxui/for/sdlpp.hh> or <onyxui/for/conio.hh>. See " \
+         "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
+#endif
+
+#include <onyxui/simple/app_window.hh>
+#include <onyxui/simple/detail/runtime.hh>
+
+#include <onyxui/core/types.hh>
+
 #include <functional>
+#include <memory>
 #include <string>
+#include <utility>
 
 namespace onyxui::simple {
 
-    class app_window;  // forward-decl; definition in app_window.hh
+    namespace detail {
+
+        // Present a modal `window`, wire its `closed` signal to call
+        // the user hook and dismiss via the live-dialog registry.
+        // Returns the raw window pointer so callers can finish
+        // building the content before handing off.
+        //
+        // The disposer passed to register_live_dialog() must be
+        // copy-constructible (std::function requirement). We hold
+        // the presenter via std::shared_ptr so the capturing lambda
+        // stays copyable — there's only ever one ref (the registry),
+        // so it behaves like a unique_ptr with a copyable wrapper.
+        // Self-destruction during signal emit is safe thanks to the
+        // post-WAR-48 signal fix.
+        inline window* present_and_register(
+            app_window& parent,
+            std::unique_ptr<window> win,
+            std::function<void()> on_close_hook) {
+            auto* raw = win.get();
+            auto presenter = std::make_shared<presented_window>(
+                parent.host().present_modal(std::move(win)));
+
+            raw->closed.connect([raw, hook = std::move(on_close_hook)]() {
+                if (hook) hook();
+                detail::dismiss_live_dialog(raw);
+            });
+
+            detail::register_live_dialog(
+                &parent, raw,
+                [presenter]() { /* refcount drops when disposer dies */ });
+
+            return raw;
+        }
+
+        // Build a simple "title bar + message label" window. Caller
+        // adds the button row via `add_button_row`.
+        inline std::unique_ptr<window> build_message_window(
+            const std::string& title,
+            const std::string& message) {
+            typename window::window_flags flags;
+            flags.is_resizable = false;
+            flags.is_movable = true;
+            flags.has_close_button = false;
+            flags.has_minimize_button = false;
+            flags.has_maximize_button = false;
+
+            auto w = std::make_unique<window>(title, flags);
+            w->set_width_constraint(
+                {::onyxui::size_policy::fixed, ::onyxui::logical_unit(360)});
+            w->set_window_focus(true);
+
+            auto content = std::make_unique<vbox>(::onyxui::spacing::medium);
+            content->set_margin(::onyxui::logical_thickness(
+                ::onyxui::logical_unit(16), ::onyxui::logical_unit(12),
+                ::onyxui::logical_unit(16), ::onyxui::logical_unit(12)));
+            content->template emplace_child<label>(message);
+
+            w->set_content(std::move(content));
+            return w;
+        }
+
+        // Add a right-aligned button row and return the hbox so
+        // callers can put buttons in it.
+        inline hbox* add_button_row(window* w) {
+            auto* content = dynamic_cast<vbox*>(w->get_content());
+            if (!content) return nullptr;
+            content->template emplace_child<spacer>(0, 4);
+            auto* row = content->template emplace_child<hbox>(
+                ::onyxui::spacing::small);
+            row->set_horizontal_align(::onyxui::horizontal_alignment::right);
+            return row;
+        }
+
+    } // namespace detail
+
+    // -----------------------------------------------------------------
 
     /// Modal OK dialog. Fire-and-forget — no callback. Use `confirm`
     /// or `input_dialog` when the caller needs the user's answer.
-    void message_box(app_window& parent,
-                     const std::string& title,
-                     const std::string& message);
+    inline void message_box(app_window& parent,
+                            const std::string& title,
+                            const std::string& message) {
+        auto w = detail::build_message_window(title, message);
+        auto* raw = w.get();
+
+        auto* row = detail::add_button_row(raw);
+        if (row) {
+            auto* ok = row->template emplace_child<button>("OK");
+            ok->clicked.connect([raw]() { raw->close(); });
+        }
+
+        (void)detail::present_and_register(
+            parent, std::move(w),
+            []() { /* no user callback for message_box */ });
+    }
+
+    /// Modal error dialog — shortcut for `message_box` with the
+    /// title defaulting to "Error" and the same visual weight.
+    /// Visual styling (red border, icon) is a future nicety; v1
+    /// delegates to `message_box`.
+    inline void error_box(app_window& parent,
+                          const std::string& message,
+                          const std::string& title = "Error") {
+        message_box(parent, title, message);
+    }
 
     /// Modal Yes/No dialog. `on_result` fires with true for yes,
     /// false for no or cancel. Never invoked if the window dies
     /// before the user dismisses.
-    void confirm(app_window& parent,
-                 const std::string& title,
-                 const std::string& message,
-                 std::function<void(bool yes)> on_result);
+    inline void confirm(app_window& parent,
+                        const std::string& title,
+                        const std::string& message,
+                        std::function<void(bool yes)> on_result) {
+        auto w = detail::build_message_window(title, message);
+        auto* raw = w.get();
+
+        auto result = std::make_shared<bool>(false);
+
+        auto* row = detail::add_button_row(raw);
+        if (row) {
+            auto* yes_btn = row->template emplace_child<button>("Yes");
+            yes_btn->clicked.connect([raw, result]() {
+                *result = true;
+                raw->close();
+            });
+            auto* no_btn = row->template emplace_child<button>("No");
+            no_btn->clicked.connect([raw, result]() {
+                *result = false;
+                raw->close();
+            });
+        }
+
+        (void)detail::present_and_register(
+            parent, std::move(w),
+            [result, cb = std::move(on_result)]() {
+                if (cb) cb(*result);
+            });
+    }
 
     /// Modal single-line input dialog. `on_result` fires with
     /// (true, entered_text) on OK, (false, "") on Cancel.
-    void input_dialog(app_window& parent,
-                      const std::string& title,
-                      const std::string& prompt,
-                      std::function<void(bool ok, std::string value)> on_result);
+    inline void input_dialog(
+        app_window& parent,
+        const std::string& title,
+        const std::string& prompt,
+        std::function<void(bool ok, std::string value)> on_result) {
+        typename window::window_flags flags;
+        flags.is_resizable = false;
+        flags.is_movable = true;
+        flags.has_close_button = false;
+        flags.has_minimize_button = false;
+        flags.has_maximize_button = false;
 
-    /// Modal error dialog — shortcut for `message_box` with the
-    /// title defaulting to "Error" and the same visual weight.
-    void error_box(app_window& parent,
-                   const std::string& message,
-                   const std::string& title = "Error");
+        auto w = std::make_unique<window>(title, flags);
+        w->set_width_constraint(
+            {::onyxui::size_policy::fixed, ::onyxui::logical_unit(400)});
+        w->set_window_focus(true);
+
+        auto content = std::make_unique<vbox>(::onyxui::spacing::small);
+        content->set_margin(::onyxui::logical_thickness(
+            ::onyxui::logical_unit(16), ::onyxui::logical_unit(12),
+            ::onyxui::logical_unit(16), ::onyxui::logical_unit(12)));
+
+        content->template emplace_child<label>(prompt);
+        auto* input = content->template emplace_child<line_edit>();
+        input->set_visible_chars(40);
+
+        content->template emplace_child<spacer>(0, 4);
+        auto* row = content->template emplace_child<hbox>(
+            ::onyxui::spacing::small);
+        row->set_horizontal_align(::onyxui::horizontal_alignment::right);
+
+        auto* raw = w.get();
+        auto result_ok = std::make_shared<bool>(false);
+        auto result_value = std::make_shared<std::string>();
+
+        auto* ok_btn = row->template emplace_child<button>("OK");
+        ok_btn->clicked.connect([raw, input, result_ok, result_value]() {
+            *result_ok = true;
+            *result_value = input->text();
+            raw->close();
+        });
+        auto* cancel_btn = row->template emplace_child<button>("Cancel");
+        cancel_btn->clicked.connect([raw, result_ok, result_value]() {
+            *result_ok = false;
+            result_value->clear();
+            raw->close();
+        });
+
+        w->set_content(std::move(content));
+
+        (void)detail::present_and_register(
+            parent, std::move(w),
+            [result_ok, result_value, cb = std::move(on_result)]() {
+                if (cb) cb(*result_ok, *result_value);
+            });
+    }
 
 } // namespace onyxui::simple

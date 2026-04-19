@@ -68,6 +68,7 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
 #include <vector>
 #include <algorithm>
 #include <limits>
@@ -292,6 +293,44 @@ namespace onyxui {
             template<template<UIBackend> class WidgetTemplate, typename... Args>
             auto* emplace_child(Args&&... args) {
                 using WidgetType = WidgetTemplate<Backend>;
+                auto child = std::make_unique<WidgetType>(std::forward<Args>(args)...);
+                auto* ptr = child.get();
+                add_child(std::move(child));
+                return ptr;
+            }
+
+            /**
+             * @brief Create and add a child widget — concrete-type form.
+             *
+             * Sibling to the template-template overload above. Accepts
+             * an already-instantiated type (typically a backend-fixed
+             * alias like `onyxui::simple::button`, which is
+             * `::onyxui::button<backend>`). This is what makes the
+             * simple-shell consumer code clean after
+             * `using namespace onyxui::simple;` —
+             * `root->emplace_child<button>("OK")` just works.
+             *
+             * The `requires` clause distinguishes this overload from
+             * the template-template one: a class template with one
+             * `UIBackend` parameter is not a type and fails the
+             * `derived_from` constraint; a concrete type passes.
+             *
+             * @tparam WidgetType Concrete widget type derived from
+             *                    `ui_element<Backend>`.
+             * @param args Arguments forwarded to the widget's ctor.
+             * @return Pointer to the newly created child.
+             *
+             * @example
+             * @code
+             * using namespace onyxui::simple;  // or onyxui::sdlpp, etc.
+             * auto root = std::make_unique<vbox>();
+             * root->emplace_child<label>("Hello");   // concrete alias
+             * root->emplace_child<::onyxui::label>("Hi");  // template form
+             * @endcode
+             */
+            template<typename WidgetType, typename... Args>
+                requires std::derived_from<WidgetType, ui_element<Backend>>
+            WidgetType* emplace_child(Args&&... args) {
                 auto child = std::make_unique<WidgetType>(std::forward<Args>(args)...);
                 auto* ptr = child.get();
                 add_child(std::move(child));
