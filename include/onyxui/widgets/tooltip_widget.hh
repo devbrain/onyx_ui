@@ -84,9 +84,9 @@ namespace onyxui {
 
     private:
         std::string m_text;
-        color_type m_bg_color{255, 255, 225, 255};    // light yellow
-        color_type m_fg_color{0, 0, 0, 255};          // black text
-        color_type m_border_color{0, 0, 0, 255};      // black border
+        color_type m_bg_color{255, 255, 225};    // light yellow
+        color_type m_fg_color{0, 0, 0};          // black text
+        color_type m_border_color{0, 0, 0};      // black border
     };
 
 } // namespace onyxui
