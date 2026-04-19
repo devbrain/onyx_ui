@@ -147,6 +147,15 @@ namespace onyxui::simple {
         : pimpl_(std::make_unique<impl>(std::move(title), width, height)) {}
 
     app_window::~app_window() {
+        // Dismiss any still-live simple-shell dialogs that were
+        // presented on this window before the host (and its
+        // layer_manager) go away. Otherwise the registry keeps a
+        // shared_ptr<presented_window> alive indefinitely and leaks
+        // dialog widgets across the thread's lifetime. Reviewer-
+        // flagged: the m_layer_owner_conn safety work from WAR-45
+        // prevents UAF, but the registry still held refs.
+        detail::dismiss_dialogs_for(this);
+
         if (pimpl_ && pimpl_->open) {
             detail::unregister_window(this);
             pimpl_->open = false;
@@ -168,6 +177,14 @@ namespace onyxui::simple {
 
     void app_window::close() {
         if (!pimpl_->open) return;
+
+        // Dismiss any still-live simple-shell dialogs that were
+        // presented on this window. They outlive the layer registry
+        // (via WAR-45's m_layer_owner_conn) if we didn't, but the
+        // runtime registry still holds refs and would leak. See
+        // dismiss_dialogs_for in detail/runtime.hh.
+        detail::dismiss_dialogs_for(this);
+
         if (pimpl_->sdl_window) {
             pimpl_->sdl_window->hide();
         }

@@ -67,7 +67,7 @@ namespace onyxui::simple {
             });
 
             detail::register_live_dialog(
-                raw,
+                &parent, raw,
                 [presenter]() { /* refcount drops when disposer dies */ });
 
             return raw;

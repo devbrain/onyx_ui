@@ -56,12 +56,24 @@ namespace onyxui::simple::detail {
     // lets this header stay backend-agnostic.
     // ----------------------------------------------------------------
 
-    void register_live_dialog(void* key, std::function<void()> disposer);
+    /// Register a live dialog. @p owner identifies the parent
+    /// `app_window*` the dialog was presented on (stored as an
+    /// opaque pointer so this header stays backend-agnostic); the
+    /// owner's `close()` / destructor uses it to tear down any
+    /// remaining dialogs before the host goes away, so dialogs
+    /// can't outlive their hosting window.
+    void register_live_dialog(app_window* owner, void* key,
+                              std::function<void()> disposer);
 
     /// Dismiss the registered dialog matching @p key. Runs the
     /// stored disposer (drops the presenter → destroys the window)
     /// and removes the entry. No-op if no entry matches.
     void dismiss_live_dialog(void* key);
+
+    /// Dismiss every registered dialog whose @p owner matches.
+    /// Called from `app_window::close()` and `app_window::~app_window()`
+    /// so dialogs can't outlive their host window.
+    void dismiss_dialogs_for(app_window* owner);
 
     /// Count of live dialogs registered. For tests / diagnostics.
     [[nodiscard]] std::size_t live_dialog_count() noexcept;

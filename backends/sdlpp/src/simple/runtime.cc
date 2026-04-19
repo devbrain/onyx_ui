@@ -28,6 +28,7 @@ namespace onyxui::simple::detail {
         thread_local int s_exit_code = 0;
 
         struct live_dialog {
+            app_window* owner;
             void* key;
             std::function<void()> disposer;
         };
@@ -80,9 +81,10 @@ namespace onyxui::simple::detail {
         s_exit_code = 0;
     }
 
-    void register_live_dialog(void* key, std::function<void()> disposer) {
+    void register_live_dialog(app_window* owner, void* key,
+                              std::function<void()> disposer) {
         if (!key) return;
-        s_live_dialogs.push_back({key, std::move(disposer)});
+        s_live_dialogs.push_back({owner, key, std::move(disposer)});
     }
 
     void dismiss_live_dialog(void* key) {
@@ -106,6 +108,30 @@ namespace onyxui::simple::detail {
         auto disposer = std::move(it->disposer);
         s_live_dialogs.erase(it);
         if (disposer) disposer();
+    }
+
+    void dismiss_dialogs_for(app_window* owner) {
+        if (!owner) return;
+
+        // Snapshot-and-drain pattern — build a local list of
+        // disposers, clear the matching entries from the registry,
+        // THEN run the disposers. Running them may destroy widgets
+        // that were mid-emit on some signal, but by then the
+        // registry no longer references them, so recursive
+        // dismissal calls are no-ops.
+        std::vector<std::function<void()>> pending;
+        auto it = s_live_dialogs.begin();
+        while (it != s_live_dialogs.end()) {
+            if (it->owner == owner) {
+                pending.push_back(std::move(it->disposer));
+                it = s_live_dialogs.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        for (auto& d : pending) {
+            if (d) d();
+        }
     }
 
     std::size_t live_dialog_count() noexcept {
