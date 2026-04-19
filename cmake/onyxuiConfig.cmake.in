@@ -15,9 +15,14 @@ endif()
 # Backend library dependencies. These are reconstituted here so that
 # the backend link targets installed into onyxuiTargets.cmake (e.g.
 # onyxui::onyxui_sdlpp_backend) resolve their BUILD_INTERFACE deps
-# via normal find_package machinery at consume-time. If the consumer
-# did not build against the same backends or didn't install sdlpp /
-# termbox2 themselves, find_dependency fails with a clear message.
+# via normal find_package machinery at consume-time.
+#
+# FetchContent deps (`neutrino::sdlpp`, `termbox2_lib`) are hidden
+# from install-time INTERFACE_LINK_LIBRARIES via $<BUILD_INTERFACE:>
+# because they aren't in any export set. We reattach them below
+# after loading onyxuiTargets.cmake so downstream consumers who
+# link `onyxui::onyxui_sdlpp_backend` (etc.) get the transitive
+# link without repeating the recipe.
 set(_onyxui_has_backend_sdlpp @NEUTRINO_ONYX_UI_BUILD_BACKEND_SDLPP@)
 set(_onyxui_has_backend_conio @NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO@)
 if(_onyxui_has_backend_sdlpp)
@@ -37,6 +42,41 @@ endif()
 # library (`onyxui::onyxui_sdlpp_backend` for the sdlpp shell,
 # `onyxui::onyxui_conio_backend` for the conio shell).
 include("${CMAKE_CURRENT_LIST_DIR}/onyxuiTargets.cmake")
+
+# Reattach third-party dependencies to the imported backend targets.
+# The BUILD_INTERFACE wrap in cmake/AddBackend.cmake hides these at
+# export time so install(EXPORT) doesn't choke on non-export-set
+# FetchContent targets; we put them back here using whichever name
+# `find_dependency()` above produced.
+if(TARGET onyxui::onyxui_sdlpp_backend)
+    if(TARGET neutrino::sdlpp)
+        set_property(TARGET onyxui::onyxui_sdlpp_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES neutrino::sdlpp)
+    elseif(TARGET sdlpp::sdlpp)
+        set_property(TARGET onyxui::onyxui_sdlpp_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES sdlpp::sdlpp)
+    elseif(TARGET sdlpp)
+        set_property(TARGET onyxui::onyxui_sdlpp_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES sdlpp)
+    endif()
+endif()
+
+if(TARGET onyxui::onyxui_conio_backend)
+    if(TARGET termbox2_lib)
+        set_property(TARGET onyxui::onyxui_conio_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES termbox2_lib)
+    elseif(TARGET termbox2::termbox2)
+        set_property(TARGET onyxui::onyxui_conio_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES termbox2::termbox2)
+    elseif(TARGET termbox2)
+        set_property(TARGET onyxui::onyxui_conio_backend APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES termbox2)
+    endif()
+    # conio also has a PRIVATE utf8cpp dep but it isn't needed at
+    # link time for downstream static consumers (it was linked into
+    # the static lib at build-time); re-add if a build/link breakage
+    # surfaces.
+endif()
 
 # Backward-compatible alias so existing consumers using
 # `neutrino::onyxui` continue to link correctly.

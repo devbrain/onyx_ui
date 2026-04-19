@@ -58,10 +58,17 @@ namespace onyxui::simple {
         /// no-op.
         void show();
 
-        /// Hide the OS window, unregister from the run loop, and
-        /// destroy the mounted root. After `close()`, `is_open()`
-        /// returns false and the window is no longer driven by
-        /// `onyxui::simple::run()`. Idempotent.
+        /// Hide the OS window and unregister it from the run loop.
+        /// After `close()`, `is_open()` returns false and the window
+        /// is no longer driven by `onyxui::simple::run()`.
+        ///
+        /// The mounted root is NOT destroyed — a subsequent `show()`
+        /// brings the same UI tree back. Consumers that want the old
+        /// tree gone should either mount a fresh root via
+        /// `set_content(…)` before calling `show()` again, or unmount
+        /// via `host().unmount()`.
+        ///
+        /// Idempotent.
         void close();
 
         /// Update the OS window title.
