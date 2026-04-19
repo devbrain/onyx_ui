@@ -80,9 +80,17 @@ function(add_backend_library)
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 
-    # Link public dependencies
+    # Link public dependencies. Wrap each in $<BUILD_INTERFACE:> so
+    # the link only propagates within this build; installed consumers
+    # reconstitute the link via find_dependency() in the package
+    # config. Without this, FetchContent-provided deps (e.g.
+    # neutrino::sdlpp) would cause install(EXPORT) to fail — they're
+    # not in any export set.
     if(BACKEND_DEPENDENCIES)
-        target_link_libraries(${TARGET_NAME} PUBLIC ${BACKEND_DEPENDENCIES})
+        foreach(_dep IN LISTS BACKEND_DEPENDENCIES)
+            target_link_libraries(${TARGET_NAME} PUBLIC
+                $<BUILD_INTERFACE:${_dep}>)
+        endforeach()
     endif()
 
     # Link private dependencies

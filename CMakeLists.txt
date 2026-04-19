@@ -278,14 +278,22 @@ target_include_directories(onyxui INTERFACE
 )
 
 target_link_libraries(onyxui INTERFACE
-    neutrino::failsafe
+    # Wrapped in $<BUILD_INTERFACE:> so the link dependency only
+    # propagates within this build. Installed consumers reconstitute
+    # the link via `find_dependency(failsafe)` in onyxuiConfig.cmake —
+    # otherwise export would fail because third-party targets pulled
+    # in via FetchContent aren't in any export set.
+    $<BUILD_INTERFACE:neutrino::failsafe>
 )
 
 # Conditionally link YAML theme dependencies
 if(NEUTRINO_ONYX_UI_ENABLE_YAML_THEMES)
     target_link_libraries(onyxui INTERFACE
-        neutrino::fkyaml       # YAML parsing for theme support
-        neutrino::reflectcpp   # Automatic C++ reflection for JSON serialization
+        # Same BUILD_INTERFACE wrap as failsafe above — the YAML
+        # dependencies come from FetchContent and are reconstituted
+        # by the package config at consume-time.
+        $<BUILD_INTERFACE:neutrino::fkyaml>
+        $<BUILD_INTERFACE:neutrino::reflectcpp>
     )
     target_compile_definitions(onyxui INTERFACE ONYXUI_ENABLE_YAML_THEMES=1)
     message(STATUS "YAML theme support enabled (fkYAML + reflect-cpp)")
@@ -352,10 +360,33 @@ if(NEUTRINO_ONYX_UI_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
 
-    # Install headers only (header-only library)
+    # Install headers for the header-only core library.
+    # (Backend-specific public headers are installed by their own
+    # add_backend_library() call — see cmake/AddBackend.cmake.)
     install(DIRECTORY include/onyxui
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.hh" PATTERN "*.h"
+        FILES_MATCHING PATTERN "*.hh" PATTERN "*.h" PATTERN "*.inl" PATTERN "*.inc"
+    )
+
+    # Install the core interface target into the same EXPORT set that
+    # backend libraries (`onyxui_sdlpp_backend`, etc.) join via
+    # add_backend_library(). Without this, the exported target file
+    # doesn't exist and the install fails — and without installing
+    # the EXPORT set, downstream consumers can't link backend
+    # libraries through the package config.
+    install(TARGETS onyxui
+        EXPORT onyxuiTargets
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
+    # Write the exported targets file so consumers who
+    # find_package(onyxui) get both `onyxui::onyxui` and any
+    # enabled backend libraries (`onyxui::onyxui_sdlpp_backend`,
+    # `onyxui::onyxui_conio_backend`).
+    install(EXPORT onyxuiTargets
+        FILE onyxuiTargets.cmake
+        NAMESPACE onyxui::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/onyxui
     )
 
     # Generate version file

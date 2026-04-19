@@ -114,7 +114,12 @@ TEST_CASE("backend aliases — X-macro mechanism holds against test_backend") {
 // Layer 2: sdlpp shell header smoke — gated by availability
 // --------------------------------------------------------------------
 
-#if __has_include(<onyxui/sdlpp/sdlpp_backend.hh>)
+// Gate the sdlpp block on ALL headers in the chain being present —
+// `onyxui/sdlpp/sdlpp_backend.hh` may be reachable even when the
+// SDL++ library itself isn't, which would let the first include
+// succeed and then fail on `sdlpp/events/events.hh`.
+#if __has_include(<onyxui/sdlpp/sdlpp_backend.hh>) && \
+    __has_include(<sdlpp/events/events.hh>)
 #  include <onyxui/backend/sdlpp.hh>
 
 TEST_CASE("backend aliases (sdlpp) — ui_host + vbox via aliased names") {
@@ -125,13 +130,42 @@ TEST_CASE("backend aliases (sdlpp) — ui_host + vbox via aliased names") {
     host.mount(std::move(root));
     CHECK(host.root() != nullptr);
 }
+
+// Bundle header: the single public entry point for simple-shell
+// consumers. Pulls in app_window, run/quit, and (once WAR-55
+// lands) the dialog helpers. Smoke test ensures the header
+// resolves every name it needs after the X-macro promotion step.
+#  include <onyxui/for/sdlpp.hh>
+
+TEST_CASE("simple-shell bundle (sdlpp) — app_window declarations resolve") {
+    // We deliberately don't CONSTRUCT an app_window here (doing so
+    // would initialise SDL and open a real OS window, which is wrong
+    // for a unit test). What we pin is that:
+    //   - the bundle header compiles,
+    //   - onyxui::simple::app_window / ui_host / ui_element / run /
+    //     quit are all declared at the API names the docs promise.
+    using simple_app_window = ::onyxui::simple::app_window;
+    static_assert(sizeof(simple_app_window) > 0);
+
+    using simple_ui_host = ::onyxui::simple::ui_host;
+    static_assert(sizeof(simple_ui_host) > 0);
+
+    // quit() is a free function; take its address as a syntactic
+    // check — the signature is void(int) noexcept.
+    [[maybe_unused]] void (*quit_ptr)(int) noexcept =
+        &::onyxui::simple::quit;
+    [[maybe_unused]] int (*run_ptr)() = &::onyxui::simple::run;
+    CHECK(quit_ptr != nullptr);
+    CHECK(run_ptr != nullptr);
+}
 #endif
 
 // --------------------------------------------------------------------
 // Layer 3: conio shell header smoke — gated by availability
 // --------------------------------------------------------------------
 
-#if __has_include(<onyxui/conio/conio_backend.hh>)
+#if __has_include(<onyxui/conio/conio_backend.hh>) && \
+    __has_include(<termbox2.h>)
 #  include <onyxui/backend/conio.hh>
 
 TEST_CASE("backend aliases (conio) — ui_host + vbox via aliased names") {

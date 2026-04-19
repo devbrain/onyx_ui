@@ -76,25 +76,30 @@ namespace onyxui::simple {
         [[nodiscard]] ui_host& host() noexcept;
 
         // ----------------------------------------------------------
-        // Simple-shell runtime internals. These are not intended for
-        // consumer use; they're public so the runtime (`run()` loop)
-        // can drive frames without friend-class boilerplate. A
-        // consumer calling them directly will get the same behavior
-        // the loop gets, which is fine but redundant.
+        // Simple-shell runtime internals. Public so the `run()` loop
+        // can drive frames without friend-class boilerplate. Consumers
+        // should not call these directly.
         // ----------------------------------------------------------
 
         /// Render one frame (called by `onyxui::simple::run()` each
         /// loop iteration).
         void render_frame();
 
-        /// Pump any pending OS events targeting this window and
-        /// forward them to the ui_host. Returns true if a close
-        /// request was observed on this window.
-        [[nodiscard]] bool pump_events();
-
         /// Flip the back buffer (called by `run()` after all windows
         /// have rendered).
         void present();
+
+        /// Dispatch a pre-polled backend-native event to this window's
+        /// host. The `native_event` pointer is cast to the backend's
+        /// event type inside the implementation — keeping this
+        /// declaration backend-agnostic. Returns true if the event
+        /// signalled a close request (e.g. SDL_QUIT).
+        ///
+        /// The run loop (`onyxui::simple::run()`) polls the OS event
+        /// queue ONCE per frame and calls this on the target window —
+        /// app_window does not pump its own queue. This avoids the
+        /// multi-window misrouting that per-window polling would cause.
+        [[nodiscard]] bool dispatch_native_event(const void* native_event);
 
     private:
         struct impl;

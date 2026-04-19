@@ -12,51 +12,41 @@ if(_onyxui_yaml_themes)
     find_dependency(reflectcpp REQUIRED)
 endif()
 
-# Create the onyxui interface target
+# Backend library dependencies. These are reconstituted here so that
+# the backend link targets installed into onyxuiTargets.cmake (e.g.
+# onyxui::onyxui_sdlpp_backend) resolve their BUILD_INTERFACE deps
+# via normal find_package machinery at consume-time. If the consumer
+# did not build against the same backends or didn't install sdlpp /
+# termbox2 themselves, find_dependency fails with a clear message.
+set(_onyxui_has_backend_sdlpp @NEUTRINO_ONYX_UI_BUILD_BACKEND_SDLPP@)
+set(_onyxui_has_backend_conio @NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO@)
+if(_onyxui_has_backend_sdlpp)
+    find_dependency(sdlpp QUIET)
+endif()
+if(_onyxui_has_backend_conio)
+    find_dependency(termbox2 QUIET)
+endif()
+
+# Load exported targets (core `onyxui::onyxui` interface target plus
+# any backend libraries that were built — `onyxui::onyxui_sdlpp_backend`,
+# `onyxui::onyxui_conio_backend`).
+#
+# Backend libraries carry the implementation of consumer-facing APIs
+# like `onyxui::simple::app_window` and `onyxui::simple::run()`, so
+# consumers who use the simple shell must link the appropriate backend
+# library (`onyxui::onyxui_sdlpp_backend` for the sdlpp shell,
+# `onyxui::onyxui_conio_backend` for the conio shell).
+include("${CMAKE_CURRENT_LIST_DIR}/onyxuiTargets.cmake")
+
+# Backward-compatible alias so existing consumers using
+# `neutrino::onyxui` continue to link correctly.
 if(NOT TARGET neutrino::onyxui)
-    add_library(neutrino::onyxui INTERFACE IMPORTED)
-    set_target_properties(neutrino::onyxui PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@"
-    )
+    add_library(neutrino::onyxui ALIAS onyxui::onyxui)
+endif()
 
-    # Link required dependencies
-    if(TARGET neutrino::failsafe)
-        set_property(TARGET neutrino::onyxui APPEND PROPERTY
-            INTERFACE_LINK_LIBRARIES neutrino::failsafe)
-    elseif(TARGET failsafe::failsafe)
-        set_property(TARGET neutrino::onyxui APPEND PROPERTY
-            INTERFACE_LINK_LIBRARIES failsafe::failsafe)
-    elseif(TARGET failsafe)
-        set_property(TARGET neutrino::onyxui APPEND PROPERTY
-            INTERFACE_LINK_LIBRARIES failsafe)
-    endif()
-
-    # Link optional YAML theme dependencies
-    if(_onyxui_yaml_themes)
-        if(TARGET fkYAML::fkYAML)
-            set_property(TARGET neutrino::onyxui APPEND PROPERTY
-                INTERFACE_LINK_LIBRARIES fkYAML::fkYAML)
-        elseif(TARGET fkYAML)
-            set_property(TARGET neutrino::onyxui APPEND PROPERTY
-                INTERFACE_LINK_LIBRARIES fkYAML)
-        endif()
-
-        if(TARGET reflectcpp::reflectcpp)
-            set_property(TARGET neutrino::onyxui APPEND PROPERTY
-                INTERFACE_LINK_LIBRARIES reflectcpp::reflectcpp)
-        elseif(TARGET reflectcpp)
-            set_property(TARGET neutrino::onyxui APPEND PROPERTY
-                INTERFACE_LINK_LIBRARIES reflectcpp)
-        endif()
-
-        set_property(TARGET neutrino::onyxui APPEND PROPERTY
-            INTERFACE_COMPILE_DEFINITIONS ONYXUI_ENABLE_YAML_THEMES=1)
-    endif()
-
-    # Create onyxui alias for compatibility
-    if(NOT TARGET onyxui)
-        add_library(onyxui ALIAS neutrino::onyxui)
-    endif()
+# Legacy unnamespaced alias — keep until consumers have migrated.
+if(NOT TARGET onyxui)
+    add_library(onyxui ALIAS onyxui::onyxui)
 endif()
 
 check_required_components(onyxui)

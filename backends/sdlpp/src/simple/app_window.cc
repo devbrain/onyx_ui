@@ -208,23 +208,18 @@ namespace onyxui::simple {
         pimpl_->host->render(*pimpl_->onyx_renderer);
     }
 
-    bool app_window::pump_events() {
-        // v1 simplification: drain ALL events from SDL's global queue
-        // and route everything to this window's host. This works for
-        // single-window tools (the default simple-shell use case).
-        // Multi-window apps need event_queue::poll in the run() loop
-        // with explicit window-id routing — tracked for a future
-        // revision.
-        while (auto event = ::sdlpp::event_queue::poll()) {
-            if (event->type() == ::sdlpp::event_type::quit) {
-                pimpl_->close_requested = true;
-                return true;
-            }
-            if (pimpl_->host) {
-                (void)pimpl_->host->handle_event(*event);
-            }
+    bool app_window::dispatch_native_event(const void* native_event) {
+        if (!native_event || !pimpl_->open) return false;
+        const auto& ev = *static_cast<const ::sdlpp::event*>(native_event);
+
+        if (ev.type() == ::sdlpp::event_type::quit) {
+            pimpl_->close_requested = true;
+            return true;
         }
-        return pimpl_->close_requested;
+        if (pimpl_->host) {
+            (void)pimpl_->host->handle_event(ev);
+        }
+        return false;
     }
 
     void app_window::present() {
