@@ -20,6 +20,10 @@
  * single-window contract.
  */
 
+// This TU plays the same role as a bundle header; signal that to the
+// guardrail check in the simple/* headers.
+#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+
 // Promote aliases into onyxui::simple before app_window.hh is parsed.
 #include <onyxui/backend/sdlpp.hh>
 

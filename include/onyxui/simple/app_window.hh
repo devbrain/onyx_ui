@@ -18,6 +18,20 @@
 
 #pragma once
 
+// Guardrail: the simple/* headers are NOT standalone. They use the
+// unqualified names `ui_element` and `ui_host` in namespace
+// `onyxui::simple`, which a bundle header (`<onyxui/for/sdlpp.hh>`
+// or `<onyxui/for/conio.hh>`) populates via using-declarations
+// BEFORE this file is parsed. Including this header directly would
+// produce a cryptic cascade of "unknown type" errors; this check
+// turns that into a readable message.
+#ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
+#  error "<onyxui/simple/app_window.hh> is not a standalone header. " \
+         "Include a bundle header instead — typically " \
+         "<onyxui/for/sdlpp.hh> or <onyxui/for/conio.hh>. See " \
+         "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
+#endif
+
 #include <memory>
 #include <string>
 

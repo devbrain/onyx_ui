@@ -15,6 +15,11 @@
 
 #pragma once
 
+// Signal to the simple/* headers that the bundle chain is in use —
+// see the note on ONYXUI_SIMPLE_BUNDLE_INCLUDED in
+// `<onyxui/for/sdlpp.hh>`.
+#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+
 #include <onyxui/backend/conio.hh>
 
 namespace onyxui::simple {

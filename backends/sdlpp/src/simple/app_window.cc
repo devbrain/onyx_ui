@@ -8,6 +8,11 @@
  * class methods over an SDL_Window + renderer + ui_host<sdlpp_backend>.
  */
 
+// This TU plays the same role as a bundle header — it promotes the
+// aliases into onyxui::simple and then includes the simple/* header.
+// Signal that to the guardrail check in the header.
+#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+
 // 1. Backend-fixed aliases into onyxui::sdlpp::, and the ui_host /
 //    window / ui_element templates we need to alias.
 #include <onyxui/backend/sdlpp.hh>

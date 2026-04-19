@@ -4,6 +4,10 @@
  *        helpers per docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §6.3.
  */
 
+// This TU plays the same role as a bundle header; signal that to the
+// guardrail check in the simple/* headers.
+#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+
 // 1. Backend-fixed aliases under onyxui::sdlpp::.
 #include <onyxui/backend/sdlpp.hh>
 

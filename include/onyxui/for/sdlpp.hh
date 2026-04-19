@@ -20,6 +20,13 @@
 
 #pragma once
 
+// Signal to the simple/* headers that they're being included via a
+// bundle header (and therefore the onyxui::simple aliases will be
+// populated before they're parsed). Each simple/* header #error's
+// out if this isn't defined, producing a readable diagnostic
+// instead of a cascade of "unknown type" errors.
+#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+
 // 1. Backend-fixed aliases under onyxui::sdlpp::.
 #include <onyxui/backend/sdlpp.hh>
 
