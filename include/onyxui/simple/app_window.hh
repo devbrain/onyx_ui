@@ -33,6 +33,7 @@
 #endif
 
 #include <cstddef>
+#include <iosfwd>
 #include <memory>
 #include <string>
 
@@ -124,6 +125,13 @@ namespace onyxui::simple {
         /// modal-dialog case — most simple-shell code never needs
         /// this method.
         [[nodiscard]] ui_host& host() noexcept;
+
+        /// Dump a screenshot of the current frame into @p sink.
+        /// Forwards to the backend renderer's screenshot routine —
+        /// the exact wire format is backend-specific (PPM on sdlpp,
+        /// formatted text on conio). No-op if the renderer is not
+        /// yet initialised (e.g. called before `show()`).
+        void take_screenshot(std::ostream& sink) const;
 
         // ----------------------------------------------------------
         // Simple-shell runtime internals. Public so the `run()` loop

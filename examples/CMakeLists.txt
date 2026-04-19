@@ -1,26 +1,18 @@
 # ============================================================================
-# Comprehensive widgets demo - builds for both backends from same sources
+# Comprehensive widgets demo — simple-shell sdlpp port (WAR-57).
+#
+# The conio variant was removed when widgets_demo was ported onto
+# <onyxui/for/sdlpp.hh>. Conio parity returns under WAR-59 once the
+# conio simple-shell impls (app_window/run/dialogs) land.
 # ============================================================================
 
-# Conio (terminal) version
-add_executable(conio_widgets_demo
-        widgets_demo/main.cc
-        widgets_demo/widgets_demo.hh
-)
-target_compile_definitions(conio_widgets_demo PRIVATE
-        ONYXUI_USE_CONIO_BACKEND
-)
-target_link_libraries(conio_widgets_demo PRIVATE onyxui_conio_backend)
-
-# SDL++ (graphical) version
-add_executable(sdlpp_widgets_demo
-        widgets_demo/main.cc
-        widgets_demo/widgets_demo.hh
-)
-target_compile_definitions(sdlpp_widgets_demo PRIVATE
-        ONYXUI_USE_SDLPP_BACKEND
-)
-target_link_libraries(sdlpp_widgets_demo PRIVATE onyxui_sdlpp_backend)
+if(TARGET onyxui_sdlpp_backend)
+    add_executable(sdlpp_widgets_demo
+            widgets_demo/main.cc
+            widgets_demo/widgets_demo.hh
+    )
+    target_link_libraries(sdlpp_widgets_demo PRIVATE onyxui_sdlpp_backend)
+endif()
 
 # ============================================================================
 # Simple-shell Hello-World — the one-include, no-template-parameter
@@ -32,5 +24,3 @@ if(TARGET onyxui_sdlpp_backend)
     add_executable(simple_hello simple_hello/main.cc)
     target_link_libraries(simple_hello PRIVATE onyxui_sdlpp_backend)
 endif()
-
-

@@ -212,6 +212,24 @@ namespace onyxui {
         [[nodiscard]] auto& windows() noexcept { return m_ctx.windows(); }
         [[nodiscard]] const auto& metrics() const noexcept { return m_ctx.metrics(); }
 
+        /// Invoke @p f with this host's context pushed as the
+        /// ambient one. Use this when building a widget tree OUTSIDE
+        /// `render()` / `handle_event()` — widget constructors that
+        /// call `ui_services<B>::themes()` etc. need the ambient
+        /// slot populated.
+        ///
+        /// Typical use from a factory that runs before mount:
+        /// @code
+        /// auto root = host.with_scope([&] {
+        ///     return std::make_unique<my_root_widget>(...);
+        /// });
+        /// @endcode
+        template<typename F>
+        decltype(auto) with_scope(F&& f) {
+            scope guard(m_ctx);
+            return std::forward<F>(f)();
+        }
+
     private:
         // --------------------------------------------------------------
         // Scope guard: pushes the host's context onto the ui_services

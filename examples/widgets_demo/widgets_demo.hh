@@ -1,20 +1,25 @@
 //
-// Created by Claude Code on 2025-11-23.
+// OnyxUI Widgets Demo — comprehensive showcase of framework features.
 //
-// OnyxUI Widgets Demo - Main Application Class
-// Comprehensive demonstration of all OnyxUI framework features
+// Ported onto the simple-shell sdlpp bundle under WAR-57: the class
+// no longer owns a run loop or a layer_manager. `build_widgets_demo`
+// is the factory main.cc calls; it constructs the demo with a
+// reference back to its hosting `onyxui::simple::app_window` so
+// spawned dialogs can route through `app_window::show_modal` and
+// `app_window::host().present(...)`.
 //
 
 #pragma once
 
-#include "backend_config.hh"  // Defines concrete Backend type
+#include "backend_config.hh"  // Pulls <onyxui/for/sdlpp.hh> + Backend alias.
 
 #include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include <onyxui/widgets/main_window.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/containers/tab_widget.hh>
@@ -24,7 +29,7 @@
 #include <onyxui/widgets/menu/menu.hh>
 #include <onyxui/widgets/menu/menu_item.hh>
 #include <onyxui/widgets/status_bar.hh>
-#include <onyxui/services/ui_services.hh>
+#include <onyxui/widgets/window/presented_window.hh>
 #include <onyxui/actions/action.hh>
 
 // Tab implementations
@@ -38,494 +43,337 @@
 #include "windows/modeless_dialog_example.hh"
 #include "windows/about_dialog.hh"
 
-#include <onyxui/services/layer_manager.hh>
-#include <onyxui/widgets/window/presented_window.hh>
-
 /**
- * @brief Main application class for OnyxUI Widgets Demo
+ * @brief Widgets demo main window.
  *
- * @details
- * Uses concrete Backend type (defined via CMake macro in backend_config.hh).
- * This eliminates the need for ->template syntax throughout.
- *
- * Demonstrates:
- * - Complete widget gallery (all widgets, all states)
- * - Layout and scrolling systems
- * - Event system, focus management, hotkeys
- * - Multi-window management (MVC demo, theme editor, debug tools)
- * - Layer management (tooltips, popups, modals)
- * - Theme switching
- * - Screenshot functionality
- * - Performance metrics
+ * Inherits `onyxui::main_window<Backend>` — the root widget tree that
+ * `app_window::set_content` mounts. All service access (themes,
+ * hotkeys) goes through the parent `app_window`'s `ui_host`, which
+ * exposes them directly as member accessors (no ambient-scope
+ * requirement).
  */
 class widgets_demo : public onyxui::main_window<Backend> {
 public:
     /**
-     * @brief Construct the widgets demo application
+     * @param parent The hosting simple-shell app_window. Stored by
+     *               reference — its lifetime must strictly exceed
+     *               this widget's.
      */
-    widgets_demo()
+    explicit widgets_demo(onyxui::simple::app_window& parent)
         : onyxui::main_window<Backend>()
+        , m_parent(parent)
         , m_current_theme_index(0)
-        , m_should_quit(false)
     {
-        // Get available themes from service locator
-        auto* themes = onyxui::ui_services<Backend>::themes();
-        if (themes) {
-            m_theme_names = themes->list_theme_names();
-        }
+        // Pull themes from the host's registry directly — no
+        // thread-local service lookup needed. ui_host exposes this
+        // as a member accessor regardless of whether we're inside a
+        // render/event call.
+        auto& themes = m_parent.host().themes();
+        m_theme_names = themes.list_theme_names();
 
-        // Ensure we have at least one theme
         if (m_theme_names.empty()) {
-            throw std::runtime_error("No themes registered! Call conio_themes::register_default_themes() first.");
+            throw std::runtime_error(
+                "No themes registered! Call "
+                "sdlpp_themes::register_default_themes() first.");
         }
 
-        // Find Norton Blue theme index (default theme)
-        auto norton_it = std::find(m_theme_names.begin(), m_theme_names.end(), "NU8");
-        if (norton_it != m_theme_names.end()) {
-            m_current_theme_index = static_cast<std::size_t>(std::distance(m_theme_names.begin(), norton_it));
-        } else {
-            m_current_theme_index = 0;  // Fallback to first theme
-        }
+        auto norton_it = std::find(
+            m_theme_names.begin(), m_theme_names.end(), "NU8");
+        m_current_theme_index = (norton_it != m_theme_names.end())
+            ? static_cast<std::size_t>(
+                std::distance(m_theme_names.begin(), norton_it))
+            : 0;
 
-        // Set up actions and hotkeys
         setup_actions();
-
-        // Build UI structure (menu bar, tabs, status bar)
         build_ui();
-
-        // Apply initial theme
         apply_theme_by_name(m_theme_names[m_current_theme_index]);
     }
 
-    /**
-     * @brief Check if application should quit
-     */
-    bool should_quit() const noexcept {
-        return m_should_quit;
-    }
-
-    /**
-     * @brief Trigger quit action
-     */
-    void quit() {
-        m_should_quit = true;
-    }
-
-    /**
-     * @brief Set renderer for screenshot functionality
-     * @param renderer Pointer to the renderer
-     */
-    void set_renderer(Backend::renderer_type* renderer) {
-        m_renderer = renderer;
-    }
-
-    /**
-     * @brief Get renderer for screenshot functionality
-     * @return Pointer to the renderer (may be nullptr)
-     */
-    Backend::renderer_type* get_renderer() const noexcept {
-        return m_renderer;
-    }
-
-    /**
-     * @brief Take a screenshot and save to file
-     * @param filename Output filename (default: screenshot_<timestamp>.txt)
-     */
     void take_screenshot(const std::string& filename = "") {
-        if (!m_renderer) {
-            std::cerr << "Cannot take screenshot: renderer not set\n";
-            return;
-        }
-
-        // Generate filename with timestamp if not provided
         std::string output_file = filename;
         if (output_file.empty()) {
-            auto now = std::chrono::system_clock::now();
             auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
-                now.time_since_epoch()
-            ).count();
+                std::chrono::system_clock::now().time_since_epoch()).count();
             output_file = "screenshot_" + std::to_string(timestamp) + ".txt";
         }
 
-        // Take screenshot
         std::ofstream file(output_file);
         if (!file) {
             std::cerr << "Failed to open file: " << output_file << "\n";
             return;
         }
-
-        m_renderer->take_screenshot(file);
-        // Note: Don't use std::cout in terminal UI - it interferes with the terminal buffer
-        // Screenshot is silently saved (check working directory for screenshot_*.txt files)
+        m_parent.take_screenshot(file);
     }
 
-    /**
-     * @brief Switch to theme by index
-     * @param index Theme index in sorted theme list
-     */
-    void switch_to_theme_index(size_t index) {
-        if (index >= m_theme_names.size()) {
-            return;
-        }
-
+    void switch_to_theme_index(std::size_t index) {
+        if (index >= m_theme_names.size()) return;
         m_current_theme_index = index;
         apply_theme_by_name(m_theme_names[index]);
-
-        // TODO: Update status bar when theme changes
     }
 
-    /**
-     * @brief Show MVC Demo window (Ctrl+M)
-     */
     void show_mvc_demo() {
-        present_window(widgets_demo_windows::create_mvc_demo_window(),
-                       onyxui::presentation_kind::modeless);
+        present_modeless(widgets_demo_windows::create_mvc_demo_window());
     }
 
-    /**
-     * @brief Show Theme Editor window (Ctrl+T)
-     */
     void show_theme_editor() {
         std::cout << "Theme Editor window - Coming soon!\n";
-        // TODO: Implement theme_editor_window
     }
 
-    /**
-     * @brief Show Debug Tools window (F12)
-     */
     void show_debug_tools() {
         std::cout << "Debug Tools window - Coming soon!\n";
-        // TODO: Implement debug_tools_window
     }
 
 private:
-    /**
-     * @brief Apply theme by name to the entire UI
-     */
     void apply_theme_by_name(const std::string& theme_name) {
-        auto* themes = onyxui::ui_services<Backend>::themes();
-        if (!themes) {
-            return;
-        }
-
-        // Use the global theming API (sets theme for entire application)
-        themes->set_current_theme(theme_name);
+        m_parent.host().themes().set_current_theme(theme_name);
     }
 
-    /**
-     * @brief Set up all actions and hotkeys
-     */
     void setup_actions() {
-        auto* hotkeys = onyxui::ui_services<Backend>::hotkeys();
-        if (!hotkeys) {
-            return;
-        }
+        auto& hotkeys = m_parent.host().hotkeys();
 
-        // Screenshot actions (F9 and F2)
-        // NOTE: Ctrl+S cannot be used - it's a terminal control character (XOFF - suspend output)
-        // that gets captured by the terminal before reaching the application
         auto screenshot_f9 = std::make_shared<onyxui::action<Backend>>();
         screenshot_f9->set_text("Screenshot");
-        screenshot_f9->set_shortcut_f(9);  // F9
-        screenshot_f9->triggered.connect([this]() {
-            take_screenshot();
-        });
-        hotkeys->register_action(screenshot_f9);
+        screenshot_f9->set_shortcut_f(9);
+        screenshot_f9->triggered.connect([this]() { take_screenshot(); });
+        hotkeys.register_action(screenshot_f9);
         m_actions.push_back(screenshot_f9);
 
         m_screenshot_action = std::make_shared<onyxui::action<Backend>>();
         m_screenshot_action->set_text("Save Screenshot");
-        m_screenshot_action->set_shortcut_f(2);  // F2 (common DOS save key, no terminal conflicts)
-        m_screenshot_action->triggered.connect([this]() {
-            take_screenshot();
-        });
-        hotkeys->register_action(m_screenshot_action);
+        m_screenshot_action->set_shortcut_f(2);
+        m_screenshot_action->triggered.connect([this]() { take_screenshot(); });
+        hotkeys.register_action(m_screenshot_action);
         m_actions.push_back(m_screenshot_action);
 
-        // Window spawning actions
         m_mvc_action = std::make_shared<onyxui::action<Backend>>();
         m_mvc_action->set_text("MVC Demo");
-        m_mvc_action->set_shortcut('m', onyxui::key_modifier::ctrl);  // Ctrl+M
-        m_mvc_action->triggered.connect([this]() {
-            show_mvc_demo();
-        });
-        hotkeys->register_action(m_mvc_action);
+        m_mvc_action->set_shortcut('m', onyxui::key_modifier::ctrl);
+        m_mvc_action->triggered.connect([this]() { show_mvc_demo(); });
+        hotkeys.register_action(m_mvc_action);
         m_actions.push_back(m_mvc_action);
 
         m_theme_editor_action = std::make_shared<onyxui::action<Backend>>();
         m_theme_editor_action->set_text("Theme Editor");
-        m_theme_editor_action->set_shortcut('t', onyxui::key_modifier::ctrl);  // Ctrl+T
-        m_theme_editor_action->triggered.connect([this]() {
-            show_theme_editor();
-        });
-        hotkeys->register_action(m_theme_editor_action);
+        m_theme_editor_action->set_shortcut('t', onyxui::key_modifier::ctrl);
+        m_theme_editor_action->triggered.connect([this]() { show_theme_editor(); });
+        hotkeys.register_action(m_theme_editor_action);
         m_actions.push_back(m_theme_editor_action);
 
         m_debug_tools_action = std::make_shared<onyxui::action<Backend>>();
         m_debug_tools_action->set_text("Debug Tools");
-        m_debug_tools_action->set_shortcut_f(12);  // F12
-        m_debug_tools_action->triggered.connect([this]() {
-            show_debug_tools();
-        });
-        hotkeys->register_action(m_debug_tools_action);
+        m_debug_tools_action->set_shortcut_f(12);
+        m_debug_tools_action->triggered.connect([this]() { show_debug_tools(); });
+        hotkeys.register_action(m_debug_tools_action);
         m_actions.push_back(m_debug_tools_action);
 
-        // Quit action (Alt+F4)
+        // Quit goes through onyxui::simple::quit() — no more
+        // m_should_quit flag; the run loop exits when requested.
         m_quit_action = std::make_shared<onyxui::action<Backend>>();
         m_quit_action->set_text("Quit");
-        m_quit_action->set_shortcut_f(4, onyxui::key_modifier::alt);  // Alt+F4
-        m_quit_action->triggered.connect([this]() {
-            quit();
-        });
-        hotkeys->register_action(m_quit_action);
+        m_quit_action->set_shortcut_f(4, onyxui::key_modifier::alt);
+        m_quit_action->triggered.connect([]() { onyxui::simple::quit(); });
+        hotkeys.register_action(m_quit_action);
         m_actions.push_back(m_quit_action);
 
-        // Quit action (Alt+Q) - Borland/DOS style
-        auto quit_action_alt = std::make_shared<onyxui::action<Backend>>();
-        quit_action_alt->set_text("Quit");
-        quit_action_alt->set_shortcut('q', onyxui::key_modifier::alt);  // Alt+Q
-        quit_action_alt->triggered.connect([this]() {
-            quit();
-        });
-        hotkeys->register_action(quit_action_alt);
-        m_actions.push_back(quit_action_alt);
+        auto quit_alt = std::make_shared<onyxui::action<Backend>>();
+        quit_alt->set_text("Quit");
+        quit_alt->set_shortcut('q', onyxui::key_modifier::alt);
+        quit_alt->triggered.connect([]() { onyxui::simple::quit(); });
+        hotkeys.register_action(quit_alt);
+        m_actions.push_back(quit_alt);
     }
 
-    /**
-     * @brief Build the complete UI structure
-     */
     void build_ui() {
-        // Build menu bar
         build_menu_bar();
-
-        // Create central widget (panel that will contain tabs)
-        // This must be done before build_tabs() tries to access it
         this->set_central_widget(std::make_unique<onyxui::panel<Backend>>());
-
-        // Build central content (tab widget with 3 tabs)
         build_tabs();
-
-        // Build status bar
         build_status_bar();
     }
 
-    /**
-     * @brief Build the menu bar
-     */
     void build_menu_bar() {
         auto menu_bar_widget = std::make_unique<onyxui::menu_bar<Backend>>();
 
-        // Initialize spacing from current theme
-        auto* themes = onyxui::ui_services<Backend>::themes();
-        if (themes) {
-            if (auto* theme = themes->get_current_theme()) {
-                menu_bar_widget->set_spacing(theme->menu_bar.item_spacing);
-            }
+        if (auto* theme = m_parent.host().themes().get_current_theme()) {
+            menu_bar_widget->set_spacing(theme->menu_bar.item_spacing);
         }
 
         // File menu
         auto file_menu = std::make_unique<onyxui::menu<Backend>>();
+        {
+            auto screenshot_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            screenshot_item->set_mnemonic_text("&Save Screenshot");
+            screenshot_item->set_action(m_screenshot_action);
+            file_menu->add_item(std::move(screenshot_item));
 
-        auto screenshot_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        screenshot_item->set_mnemonic_text("&Save Screenshot");
-        screenshot_item->set_action(m_screenshot_action);  // Displays "Ctrl+S"
-        file_menu->add_item(std::move(screenshot_item));
+            file_menu->add_separator();
 
-        file_menu->add_separator();
-
-        auto exit_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        exit_item->set_mnemonic_text("E&xit");
-        exit_item->set_action(m_quit_action);  // Displays "Alt+F4"
-        file_menu->add_item(std::move(exit_item));
-
+            auto exit_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            exit_item->set_mnemonic_text("E&xit");
+            exit_item->set_action(m_quit_action);
+            file_menu->add_item(std::move(exit_item));
+        }
         menu_bar_widget->add_menu("&File", std::move(file_menu));
 
         // Windows menu
         auto windows_menu = std::make_unique<onyxui::menu<Backend>>();
+        {
+            auto mvc_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            mvc_item->set_mnemonic_text("&MVC Demo...");
+            mvc_item->set_action(m_mvc_action);
+            windows_menu->add_item(std::move(mvc_item));
 
-        auto mvc_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        mvc_item->set_mnemonic_text("&MVC Demo...");
-        mvc_item->set_action(m_mvc_action);  // Displays "Ctrl+M"
-        windows_menu->add_item(std::move(mvc_item));
+            auto theme_editor_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            theme_editor_item->set_mnemonic_text("&Theme Editor...");
+            theme_editor_item->set_action(m_theme_editor_action);
+            windows_menu->add_item(std::move(theme_editor_item));
 
-        auto theme_editor_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        theme_editor_item->set_mnemonic_text("&Theme Editor...");
-        theme_editor_item->set_action(m_theme_editor_action);  // Displays "Ctrl+T"
-        windows_menu->add_item(std::move(theme_editor_item));
+            auto debug_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            debug_item->set_mnemonic_text("&Debug Tools...");
+            debug_item->set_action(m_debug_tools_action);
+            windows_menu->add_item(std::move(debug_item));
 
-        auto debug_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        debug_item->set_mnemonic_text("&Debug Tools...");
-        debug_item->set_action(m_debug_tools_action);  // Displays "F12"
-        windows_menu->add_item(std::move(debug_item));
+            windows_menu->add_separator();
 
-        windows_menu->add_separator();
+            auto modal_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            modal_item->set_mnemonic_text("M&odal Dialog Example...");
+            modal_item->clicked.connect([this]() { show_modal_dialog(); });
+            windows_menu->add_item(std::move(modal_item));
 
-        auto modal_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        modal_item->set_mnemonic_text("M&odal Dialog Example...");
-        modal_item->clicked.connect([this]() {
-            show_modal_dialog();
-        });
-        windows_menu->add_item(std::move(modal_item));
-
-        auto modeless_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        modeless_item->set_mnemonic_text("Mode&less Dialog Example...");
-        modeless_item->clicked.connect([this]() {
-            show_modeless_dialog();
-        });
-        windows_menu->add_item(std::move(modeless_item));
-
+            auto modeless_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            modeless_item->set_mnemonic_text("Mode&less Dialog Example...");
+            modeless_item->clicked.connect([this]() { show_modeless_dialog(); });
+            windows_menu->add_item(std::move(modeless_item));
+        }
         menu_bar_widget->add_menu("&Windows", std::move(windows_menu));
 
         // Theme menu
         auto theme_menu = std::make_unique<onyxui::menu<Backend>>();
-
-        for (size_t i = 0; i < m_theme_names.size(); ++i) {
-            const auto& theme_name = m_theme_names[i];
-            auto theme_item = std::make_unique<onyxui::menu_item<Backend>>(theme_name);
-            theme_item->clicked.connect([this, i]() {
-                switch_to_theme_index(i);
-            });
+        for (std::size_t i = 0; i < m_theme_names.size(); ++i) {
+            auto theme_item = std::make_unique<onyxui::menu_item<Backend>>(
+                m_theme_names[i]);
+            theme_item->clicked.connect([this, i]() { switch_to_theme_index(i); });
             theme_menu->add_item(std::move(theme_item));
         }
-
         menu_bar_widget->add_menu("&Theme", std::move(theme_menu));
 
         // Help menu
         auto help_menu = std::make_unique<onyxui::menu<Backend>>();
-
-        auto about_item = std::make_unique<onyxui::menu_item<Backend>>("");
-        about_item->set_mnemonic_text("&About OnyxUI...");
-        about_item->clicked.connect([this]() {
-            show_about_dialog();
-        });
-        help_menu->add_item(std::move(about_item));
-
+        {
+            auto about_item = std::make_unique<onyxui::menu_item<Backend>>("");
+            about_item->set_mnemonic_text("&About OnyxUI...");
+            about_item->clicked.connect([this]() { show_about_dialog(); });
+            help_menu->add_item(std::move(about_item));
+        }
         menu_bar_widget->add_menu("&Help", std::move(help_menu));
 
-        // Set menu bar on main_window
         this->set_menu_bar(std::move(menu_bar_widget));
     }
 
-    /**
-     * @brief Build the tab widget with 3 tabs
-     */
     void build_tabs() {
         auto* central = this->central_widget();
-        if (!central) {
-            return;
-        }
+        if (!central) return;
 
-        // No ->template needed! Backend is a concrete type
         m_tab_widget = central->emplace_child<onyxui::tab_widget>();
 
-        // Tab 1: All Widgets (complete implementation)
-        auto tab1 = widgets_demo_tabs::create_tab_all_widgets(
-            [this]() { take_screenshot(); },
-            [this]() { show_theme_editor(); },
-            [this]() { show_mvc_demo(); }
-        );
-        m_tab_widget->add_tab(std::move(tab1), "All Widgets");
+        m_tab_widget->add_tab(
+            widgets_demo_tabs::create_tab_all_widgets(
+                [this]() { take_screenshot(); },
+                [this]() { show_theme_editor(); },
+                [this]() { show_mvc_demo(); }),
+            "All Widgets");
+        m_tab_widget->add_tab(
+            widgets_demo_tabs::create_tab_layout_scrolling(),
+            "Layout & Scrolling");
+        m_tab_widget->add_tab(
+            widgets_demo_tabs::create_tab_events_interaction(),
+            "Events & Interaction");
 
-        // Tab 2: Layout & Scrolling (complete implementation)
-        auto tab2 = widgets_demo_tabs::create_tab_layout_scrolling();
-        m_tab_widget->add_tab(std::move(tab2), "Layout & Scrolling");
-
-        // Tab 3: Events & Interaction (complete implementation)
-        auto tab3 = widgets_demo_tabs::create_tab_events_interaction();
-        m_tab_widget->add_tab(std::move(tab3), "Events & Interaction");
-
-        // Set default tab
         m_tab_widget->set_current_index(0);
     }
 
-    /**
-     * @brief Build the status bar
-     */
     void build_status_bar() {
-        auto status_bar_widget = std::make_unique<onyxui::status_bar<Backend>>();
-
-        // Set initial status text (left side)
-        std::string status_text = "Theme: " + m_theme_names[m_current_theme_index] +
-                                  " | FPS: -- | Focus: -- | Widgets: --";
-        status_bar_widget->set_left_text(status_text);
-
-        // Set right side text
-        status_bar_widget->set_right_text("OnyxUI Widgets Demo v1.0");
-
-        // Set status bar on main_window
-        this->set_status_bar(std::move(status_bar_widget));
+        auto status = std::make_unique<onyxui::status_bar<Backend>>();
+        status->set_left_text(
+            "Theme: " + m_theme_names[m_current_theme_index] +
+            " | FPS: -- | Focus: -- | Widgets: --");
+        status->set_right_text("OnyxUI Widgets Demo v1.0");
+        this->set_status_bar(std::move(status));
     }
 
-    /**
-     * @brief Show Modal Dialog Example
-     */
+    // ---- spawn helpers ----
+
+    // Modal spawns hand ownership to the host app_window, which owns
+    // the presenter and drops it when `window::closed` fires.
     void show_modal_dialog() {
-        present_window(widgets_demo_windows::create_modal_dialog(
-                           "This is a modal dialog!\n\n"
-                           "Try clicking the main window - it's blocked.\n"
-                           "Focus is trapped within this dialog."),
-                       onyxui::presentation_kind::modal);
+        m_parent.show_modal(widgets_demo_windows::create_modal_dialog(
+            "This is a modal dialog!\n\n"
+            "Try clicking the main window - it's blocked.\n"
+            "Focus is trapped within this dialog."));
     }
 
-    /**
-     * @brief Show Modeless Dialog Example
-     */
-    void show_modeless_dialog() {
-        present_window(widgets_demo_windows::create_modeless_dialog(),
-                       onyxui::presentation_kind::modeless);
-    }
-
-    /**
-     * @brief Show About Dialog
-     */
     void show_about_dialog() {
-        present_window(widgets_demo_windows::create_about_dialog(),
-                       onyxui::presentation_kind::modal);
+        m_parent.show_modal(widgets_demo_windows::create_about_dialog());
+    }
+
+    // Modeless spawns: app_window::show_modal is modal-only, so we
+    // reach through to ui_host::present and own the presenter
+    // ourselves. Same auto-drop pattern as the old present_window.
+    void show_modeless_dialog() {
+        present_modeless(widgets_demo_windows::create_modeless_dialog());
+    }
+
+    void present_modeless(std::unique_ptr<onyxui::window<Backend>> win) {
+        if (!win) return;
+
+        auto presenter = std::make_unique<
+            onyxui::presented_window<Backend>>(
+            m_parent.host().present(std::move(win)));
+        auto* presenter_ptr = presenter.get();
+
+        presenter_ptr->get()->closed.connect([this, presenter_ptr]() {
+            auto it = std::find_if(
+                m_modeless.begin(), m_modeless.end(),
+                [presenter_ptr](const auto& p) {
+                    return p.get() == presenter_ptr;
+                });
+            if (it != m_modeless.end()) m_modeless.erase(it);
+        });
+
+        m_modeless.push_back(std::move(presenter));
     }
 
 private:
-    std::vector<std::string> m_theme_names;  // Discovered from theme registry
-    size_t m_current_theme_index;
-    bool m_should_quit;
+    onyxui::simple::app_window& m_parent;
+
+    std::vector<std::string> m_theme_names;
+    std::size_t m_current_theme_index;
 
     onyxui::tab_widget<Backend>* m_tab_widget = nullptr;
-    Backend::renderer_type* m_renderer = nullptr;  // For screenshots
 
-    // Actions - kept alive as shared_ptrs
     std::vector<std::shared_ptr<onyxui::action<Backend>>> m_actions;
-
-    // Specific actions for menu items
     std::shared_ptr<onyxui::action<Backend>> m_screenshot_action;
     std::shared_ptr<onyxui::action<Backend>> m_quit_action;
     std::shared_ptr<onyxui::action<Backend>> m_mvc_action;
     std::shared_ptr<onyxui::action<Backend>> m_theme_editor_action;
     std::shared_ptr<onyxui::action<Backend>> m_debug_tools_action;
 
-    // Open spawned windows — each entry owns its window and its layer.
-    // Subscribing to window::closed erases the presenter, which removes
-    // the layer and destroys the window.
-    std::vector<std::unique_ptr<onyxui::presented_window<Backend>>> m_open_windows;
-
-    void present_window(std::unique_ptr<onyxui::window<Backend>> win,
-                        onyxui::presentation_kind kind) {
-        auto* layers = onyxui::ui_services<Backend>::layers();
-        if (!layers) return;
-
-        auto presenter = std::make_unique<onyxui::presented_window<Backend>>(
-            *layers, std::move(win), kind);
-        auto* presenter_ptr = presenter.get();
-
-        // When the window closes itself (title-bar X, OK/Close button),
-        // drop the presenter so its layer and the window are freed.
-        presenter_ptr->get()->closed.connect([this, presenter_ptr]() {
-            auto it = std::find_if(
-                m_open_windows.begin(), m_open_windows.end(),
-                [presenter_ptr](const auto& p) { return p.get() == presenter_ptr; });
-            if (it != m_open_windows.end()) {
-                m_open_windows.erase(it);
-            }
-        });
-
-        m_open_windows.push_back(std::move(presenter));
-    }
+    // Modeless presenters we own — modal ones are owned by m_parent.
+    std::vector<std::unique_ptr<onyxui::presented_window<Backend>>> m_modeless;
 };
+
+// Factory called from main.cc — constructs the demo with a reference
+// back to the hosting app_window and returns it as the root widget
+// tree for `app_window::set_content`.
+//
+// Built inside `host().with_scope(...)` because widget constructors
+// across the tree (text_view, menu_bar, etc.) consult
+// `ui_services<Backend>::themes()` during construction. That
+// thread-local slot is only populated when a host scope is active —
+// normally only inside render() / handle_event(). Without this,
+// widgets would see a null theme registry and crash on first access.
+inline std::unique_ptr<onyxui::main_window<Backend>>
+build_widgets_demo(onyxui::simple::app_window& parent) {
+    return parent.host().with_scope([&] {
+        return std::make_unique<widgets_demo>(parent);
+    });
+}

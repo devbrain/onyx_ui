@@ -233,6 +233,12 @@ namespace onyxui::simple {
         return *pimpl_->host;
     }
 
+    void app_window::take_screenshot(std::ostream& sink) const {
+        if (pimpl_ && pimpl_->onyx_renderer) {
+            pimpl_->onyx_renderer->take_screenshot(sink);
+        }
+    }
+
     void app_window::show_modal(std::unique_ptr<window> win) {
         if (!pimpl_->open || !win) return;
 
