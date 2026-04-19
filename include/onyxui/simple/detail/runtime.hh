@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 
 namespace onyxui::simple {
     class app_window;
@@ -39,5 +40,30 @@ namespace onyxui::simple::detail {
 
     /// Reset quit state — for re-entering run() in tests.
     void reset_quit() noexcept;
+
+    // ----------------------------------------------------------------
+    // Live-dialog registry. Each fire-and-forget dialog helper
+    // (message_box, confirm, input_dialog, error_box) owns a
+    // presented_window — but the helper returns void so there's
+    // nowhere for the caller to hold the presenter. The registry
+    // holds it externally and is keyed by an opaque pointer (the
+    // dialog window's address) so the dialog's close handler can
+    // dismiss itself without fighting an ownership cycle.
+    //
+    // `disposer` is a type-erased drop: whatever the helper
+    // captured (its unique_ptr<presented_window<backend>>) gets
+    // released when the disposer runs. Keeping the API void*-keyed
+    // lets this header stay backend-agnostic.
+    // ----------------------------------------------------------------
+
+    void register_live_dialog(void* key, std::function<void()> disposer);
+
+    /// Dismiss the registered dialog matching @p key. Runs the
+    /// stored disposer (drops the presenter → destroys the window)
+    /// and removes the entry. No-op if no entry matches.
+    void dismiss_live_dialog(void* key);
+
+    /// Count of live dialogs registered. For tests / diagnostics.
+    [[nodiscard]] std::size_t live_dialog_count() noexcept;
 
 } // namespace onyxui::simple::detail

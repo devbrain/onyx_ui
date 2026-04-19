@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
+#include <utility>
 #include <vector>
 
 namespace onyxui::simple::detail {
@@ -24,6 +26,12 @@ namespace onyxui::simple::detail {
         thread_local std::vector<app_window*> s_windows;
         thread_local bool s_quit_requested = false;
         thread_local int s_exit_code = 0;
+
+        struct live_dialog {
+            void* key;
+            std::function<void()> disposer;
+        };
+        thread_local std::vector<live_dialog> s_live_dialogs;
     }
 
     void register_window(app_window* w) {
@@ -70,6 +78,38 @@ namespace onyxui::simple::detail {
     void reset_quit() noexcept {
         s_quit_requested = false;
         s_exit_code = 0;
+    }
+
+    void register_live_dialog(void* key, std::function<void()> disposer) {
+        if (!key) return;
+        s_live_dialogs.push_back({key, std::move(disposer)});
+    }
+
+    void dismiss_live_dialog(void* key) {
+        if (!key) return;
+        auto it = std::find_if(s_live_dialogs.begin(),
+                               s_live_dialogs.end(),
+                               [key](const live_dialog& d) {
+                                   return d.key == key;
+                               });
+        if (it == s_live_dialogs.end()) return;
+
+        // Move the disposer out first, then erase the entry, THEN
+        // invoke the disposer. Running the disposer drops the
+        // presenter → destroys the dialog widget → destroys the
+        // signal whose emit() we're currently inside (if called
+        // from result_ready). The self-destruction-during-emit
+        // protection in signal::emit (post-WAR-48) handles this —
+        // we just need to make sure s_live_dialogs isn't touched
+        // during the drop, so we take the disposer out of the
+        // vector before calling it.
+        auto disposer = std::move(it->disposer);
+        s_live_dialogs.erase(it);
+        if (disposer) disposer();
+    }
+
+    std::size_t live_dialog_count() noexcept {
+        return s_live_dialogs.size();
     }
 
 } // namespace onyxui::simple::detail

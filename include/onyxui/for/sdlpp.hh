@@ -38,6 +38,4 @@ namespace onyxui::simple {
 //    are visible as concrete backend-fixed types in onyxui::simple.
 #include <onyxui/simple/app_window.hh>
 #include <onyxui/simple/run.hh>
-
-// dialogs.hh (message_box / confirm / input_dialog / error_box) is
-// WAR-55 and gets added here when it lands.
+#include <onyxui/simple/dialogs.hh>

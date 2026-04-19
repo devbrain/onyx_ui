@@ -27,3 +27,4 @@ namespace onyxui::simple {
 
 #include <onyxui/simple/app_window.hh>
 #include <onyxui/simple/run.hh>
+#include <onyxui/simple/dialogs.hh>
