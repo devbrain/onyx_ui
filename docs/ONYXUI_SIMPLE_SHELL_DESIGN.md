@@ -92,72 +92,153 @@ Consequences:
 - Mixing shell headers in one translation unit is a build error by
   construction (conflicting aliases).
 
-## 5. Per-backend shell headers
+## 5. Per-backend header layout
 
-OnyxUI ships one shell header per backend:
+The backend-alias and simple-shell responsibilities are carried by
+two different headers, so engine consumers who want backend
+aliases without the simple-shell types can take just the first.
 
 ```
-<onyxui/for/sdlpp.hh>
+<onyxui/backend/sdlpp.hh>   — aliases only (both tiers may use this)
+<onyxui/backend/conio.hh>
+
+<onyxui/for/sdlpp.hh>       — aliases + simple-shell bundle (simple tier)
 <onyxui/for/conio.hh>
 ```
 
-Each pre-aliases every public templated type against the chosen
-backend:
+### 5.1 Aliases-only header
+
+Aliases go in a per-backend sub-namespace — **not** in `onyxui::`.
+Placing them in `onyxui::` with names that match existing class
+templates (`using button = button<backend>;`) is a redeclaration
+and doesn't compile. A sub-namespace sidesteps that cleanly and
+lets the consumer opt in explicitly with `using namespace`.
+
+```cpp
+// include/onyxui/backend/sdlpp.hh
+#pragma once
+
+#include <onyxui/onyxui.hh>
+#include <onyxui/backends/sdlpp.hh>
+
+namespace onyxui::sdlpp {
+
+    using backend = ::onyxui::sdlpp_backend;
+
+    // Widgets
+    using button   = ::onyxui::button<backend>;
+    using label    = ::onyxui::label<backend>;
+    using vbox     = ::onyxui::vbox<backend>;
+    using hbox     = ::onyxui::hbox<backend>;
+    using list_box = ::onyxui::list_box<backend>;
+    // … every public widget …
+
+    // Overlays
+    using window            = ::onyxui::window<backend>;
+    using presented_window  = ::onyxui::presented_window<backend>;
+
+    // Host
+    using ui_host = ::onyxui::ui_host<backend>;
+
+    // Signals are already un-templated on backend; no aliasing needed.
+
+}  // namespace onyxui::sdlpp
+```
+
+Consumer:
+
+```cpp
+#include <onyxui/backend/sdlpp.hh>
+
+using namespace onyxui::sdlpp;  // one line, explicit opt-in
+
+int main() {
+    ui_host host;
+    auto root = std::make_unique<vbox>();
+    root->emplace_child<label>("hi");
+    host.mount(std::move(root));
+    // …
+}
+```
+
+`using namespace onyxui::sdlpp;` pulls in the backend-fixed
+aliases. It does **not** shadow `onyxui::button` (the template),
+because the alias lives in a different namespace; both are
+reachable by full qualification if anyone ever needs both.
+
+`<onyxui/backend/conio.hh>` mirrors the same structure under
+`namespace onyxui::conio`.
+
+**Why aliases in a sub-namespace rather than macros:** aliases
+preserve IDE tooling (go-to-definition, rename, parameter hints).
+A macro substitution breaks all of that.
+
+**Why one header per backend, not an `ONYXUI_BACKEND=sdlpp`
+define:** explicit include is greppable and doesn't depend on
+compile-flag discipline.
+
+### 5.2 Simple-shell bundle header
+
+The simple-shell bundle includes the aliases header plus the
+`onyxui::simple::` types and re-exports the aliases from the
+backend sub-namespace into the simple-shell namespace so consumers
+only write `using namespace onyxui::simple;` (or
+`onyxui::simple::button`):
 
 ```cpp
 // include/onyxui/for/sdlpp.hh
 #pragma once
 
-#include <onyxui/onyxui.hh>
-#include <onyxui/backends/sdlpp.hh>
+#include <onyxui/backend/sdlpp.hh>
 #include <onyxui/simple/app_window.hh>
 #include <onyxui/simple/run.hh>
 #include <onyxui/simple/dialogs.hh>
 
-namespace onyxui {
-    using backend = sdlpp_backend;
-
-    // Widgets
-    using button   = button<backend>;
-    using label    = label<backend>;
-    using vbox     = vbox<backend>;
-    using hbox     = hbox<backend>;
-    using list_box = list_box<backend>;
+namespace onyxui::simple {
+    // Re-export the backend aliases so consumers only import one
+    // namespace. Using-declarations (not using-directive) bring
+    // each name in without a namespace collision.
+    using ::onyxui::sdlpp::backend;
+    using ::onyxui::sdlpp::button;
+    using ::onyxui::sdlpp::label;
+    using ::onyxui::sdlpp::vbox;
+    using ::onyxui::sdlpp::hbox;
+    using ::onyxui::sdlpp::list_box;
+    using ::onyxui::sdlpp::window;
+    using ::onyxui::sdlpp::presented_window;
+    using ::onyxui::sdlpp::ui_host;
     // … every public widget …
 
-    // Overlays
-    using window            = window<backend>;
-    using presented_window  = presented_window<backend>;
-
-    // Host
-    using ui_host = ui_host<backend>;
-
-    // Signals are already un-templated on backend; no aliasing needed.
-}
-
-namespace onyxui::simple {
-    // Defined in headers this shell header already included.
-    // Exposed here for discoverability:
-    using app_window = app_window_impl<sdlpp_backend>;
+    // app_window, run, quit, message_box, etc. are already
+    // declared in the simple/* headers included above.
 }
 ```
 
-`<onyxui/for/conio.hh>` mirrors the structure for conio.
+Consumer:
 
-**Why aliases rather than macros:** aliases preserve IDE tooling
-(go-to-definition, rename, parameter hints). A macro substitution
-breaks all of that.
+```cpp
+#include <onyxui/for/sdlpp.hh>
 
-**Why one shell header per backend, not an
-`ONYXUI_BACKEND=sdlpp` define:** explicit include is greppable and
-doesn't depend on compile-flag discipline.
+using namespace onyxui::simple;
 
-**warlords-style consumers** keep their own typedef header
-(`<warlords/backend.hh>` provides `warlords_backend`). That's the
-same pattern one layer deeper — a consumer that customizes its
-backend can't use the stock shell header, so it provides its own
-with its own aliases. This is already what bane does today and
-nothing changes about that.
+int main() {
+    app_window win("Hello", 640, 480);
+    auto root = std::make_unique<vbox>();
+    root->emplace_child<label>("Hello, World!");
+    win.set_content(std::move(root));
+    win.show();
+    return run();
+}
+```
+
+### 5.3 warlords and custom backends
+
+A consumer that customizes its backend (warlords' `warlords_backend`
+layers renderer adapters on top of sdlpp) can't use the stock
+`<onyxui/backend/sdlpp.hh>` header — it needs its own aliases
+against its own backend type. warlords already provides the
+equivalent today (per-widget typedefs against `warlords_backend`).
+The pattern is identical, one layer deeper; no changes needed.
 
 ---
 
@@ -303,25 +384,31 @@ the same API; only the shell header differs.
 
 ## 8. The simple / embed boundary rule
 
-**One rule:** simple shell for standalone tools; `ui_host<B>` for
-engines. Never mix in one application.
+**The rule is about runtime composition, not header inclusion.**
+Either tier may freely include the backend-alias header
+`<onyxui/backend/...>`. Only the simple tier uses the bundle
+header `<onyxui/for/...>`.
 
 Specifically:
 
-- A program using `onyxui::simple::app_window` must not instantiate
-  `ui_host<B>` directly — the `app_window` already owns one, and a
-  second would fight for the ambient service stack.
-- A program using `ui_host<B>` directly must not include an
-  `<onyxui/for/...>` shell header or call
-  `onyxui::simple::run()`.
+- An engine consumer using `ui_host<B>` (or the aliased `ui_host`)
+  may include `<onyxui/backend/sdlpp.hh>` — the aliases are
+  useful regardless of tier. What they must not do is call
+  `onyxui::simple::run()` or instantiate `simple::app_window`,
+  because those take over the main loop.
+- A simple-tier consumer including `<onyxui/for/sdlpp.hh>` must
+  not additionally construct a second `ui_host<B>` by hand — the
+  `app_window` already owns one, and a second would fight for the
+  ambient service stack on the same thread.
 - The simple shell's `app_window::host()` accessor is an escape
   hatch, not an invitation to embed. It exists so a simple-shell
-  consumer can use `present_modal` for custom dialogs or reach a
-  specific service; it does not invert the boundary.
+  consumer can call `present_modal` for custom dialogs or reach a
+  specific service on the host's internal instance. It does not
+  invert the boundary.
 
-This rule is a documentation convention, not a type-system
-enforcement. Violating it is noisy and obviously wrong, which is
-enough.
+This is a composition rule, not a type-system enforcement.
+Violations are noisy and obviously wrong at runtime (two competing
+main loops, conflicting ambient service stacks), which is enough.
 
 ---
 

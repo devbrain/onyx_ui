@@ -33,7 +33,7 @@ What shipped:
 | 8.2 Split overlay windows from tree panes       | 🟡 partial                | WAR-47 — `window<B>` sealed via protected inheritance; no `pane<B>` added (no consumer asked) |
 | 8.3 Finish ambient-to-explicit separation       | ✅ shipped                | WAR-46 — deprecated forms deleted; `PRESENTATION_CONVENTIONS.md` published |
 | 8.4 Reduce raw cross-references                 | ✅ shipped                | `layer_manager::destroying` + `window::m_layer_owner_conn` |
-| 8.5 Collapse startup into one obvious path      | ⬜ not started             | Waiting on a consumer need — warlords is satisfied |
+| 8.5 Collapse startup into one obvious path      | 🟡 proposed (two docs)    | `ONYXUI_UI_HOST_DESIGN.md` (embedding side) + `ONYXUI_SIMPLE_SHELL_DESIGN.md` (tools side) |
 
 The `main_window::create_window` helper is gone (WAR-48). The signal
 primitive is now safe against self-destruction during emit (fix landed
@@ -47,9 +47,27 @@ Not adopted from the companion docs:
 - **Renames** (`ui_runtime`, `ui_surface`, `overlay_window`,
   `presented_overlay`/`presented_dialog`) — pure churn with no
   semantic gain over the current names.
-- **App-shell layer** (`app<B>` / `app_window<B>` / `dialog<B>`) —
-  speculative; no consumer needs it. warlords explicitly doesn't want
-  it. widgets_demo is a demo, not a product.
+
+Reversed from an earlier stance:
+
+- **App-shell layer** — in my first adoption pass I marked this "not
+  adopted, no consumer asks". On further review that framing was too
+  narrow: the consumer is *every person evaluating OnyxUI*. A
+  newcomer who has to assemble seven types to render Hello-World
+  bounces; one who does it in six lines sticks. The app-shell is
+  concretely specified in `ONYXUI_SIMPLE_SHELL_DESIGN.md` — the
+  headline types are `onyxui::simple::app_window`, `run()`, `quit()`,
+  and the dialog helpers. It is compile-time backend-fixed (backend
+  is picked by which shell header you include) and intended only
+  for standalone tools — engines use `ui_host<B>` directly.
+  §12 Phase 4 below is superseded by that design.
+- **Embedding consolidation** — the earlier "8.5 collapse startup"
+  line item is now concretely scoped in
+  `ONYXUI_UI_HOST_DESIGN.md`. The proposed `ui_host<B>` replaces
+  `scoped_ui_context<B>` + `ui_handle<B>` with one type, closes out
+  the "`scene_with_ui` teardown-comment cleanup" residual item, and
+  is the foundation both the simple shell and engine embedders
+  (warlords) sit on.
 
 Remaining work broadly consistent with this direction:
 
@@ -671,26 +689,38 @@ Success criteria met:
 - tests that relied on tree-hosting `window` ported to the workspace
   pattern.
 
-## Phase 4: define the app shell — ⬜ not adopted
+## Phase 4: define the app shell — 🟡 superseded by `ONYXUI_SIMPLE_SHELL_DESIGN.md`
 
-The app-shell proposal (`app<B>` / `app_window<B>` / `dialog<B>`) is
-not adopted in its current form. Rationale:
+Adopted as a concrete workstream, not in the original proposal's
+form. The replacement design:
 
-- warlords — the reference embedding consumer — explicitly doesn't
-  want app-shell semantics,
-- widgets_demo is a demo harness, not a product; it doesn't create
-  consumer demand on its own,
-- there is no third consumer asking for this layer.
+- Uses different headline types — `onyxui::simple::app_window`,
+  `onyxui::simple::run()`, not `app<B>` / `app_window<B>` / `dialog<B>`.
+- Compile-time backend-fixed — consumer picks a backend by
+  including `<onyxui/for/sdlpp.hh>` or similar; no `<B>` in
+  consumer code.
+- Built on `ui_host<B>` (Phase 3.5 — see below).
+- Explicitly only for standalone tools. Engine embedders stay on
+  `ui_host<B>` directly.
 
-Revisit when a concrete standalone-tool consumer emerges. Until then,
-§6.3 `onyxui-app` remains a direction, not a scheduled workstream.
+See `ONYXUI_SIMPLE_SHELL_DESIGN.md` for the concrete proposal.
 
-## Phase 5: standard dialogs and utility surfaces — ⬜ not adopted
+## Phase 3.5 (inserted): embedding consolidation via `ui_host<B>` — 🟡 proposed
 
-Same rationale as Phase 4 — no consumer is asking for prepackaged
-message / confirm / input dialogs today. Revisit when one does. The
-existing `dialog<B>` + `window_presets.hh` helpers are adequate for
-the current consumer base.
+Not in the original phase list, but required by both the updated
+Phase 4 and the residual "§8.5 collapse startup into one obvious
+path" item. `ui_host<B>` replaces `scoped_ui_context<B>` +
+`ui_handle<B>` with one type; warlords is the validation
+consumer. See `ONYXUI_UI_HOST_DESIGN.md`.
+
+## Phase 5: standard dialogs and utility surfaces — 🟡 folded into Phase 4
+
+Delivered as part of the simple shell. `message_box`, `confirm`,
+`input_dialog`, `error_box` are helpers on
+`onyxui::simple::` that wrap `ui_host::present_modal()` against a
+parent `app_window`. The existing `dialog<B>` +
+`window_presets.hh` machinery remains underneath. See
+`ONYXUI_SIMPLE_SHELL_DESIGN.md §6.3`.
 
 ---
 

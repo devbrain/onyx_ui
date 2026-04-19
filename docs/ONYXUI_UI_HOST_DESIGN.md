@@ -25,11 +25,11 @@ not. To mount a UI today, a consumer has to understand and assemble:
 - event dispatch from its own source into `ui_handle`
 - render calls at the right frame tick
 - overlay presentation through `layer_manager` + `presented_window`
-- an error channel for async subsystems that need user-visible
-  failure surfacing (warlords built this locally as
-  `services::report_error`)
 - teardown order careful enough that overlays don't outlive the
   context they reference
+
+(Error surfacing — getting an async failure in front of the user —
+is explicitly **not** absorbed by `ui_host`; see §5.)
 
 `scene_with_ui` in warlords is the de-facto embedding contract, but
 only by accident — nobody outside warlords knows it exists. The
@@ -98,8 +98,9 @@ public:
     [[nodiscard]] ui_element<B>* root() noexcept;
     [[nodiscard]] const ui_element<B>* root() const noexcept;
 
-    // Unmount returns the root for inspection or reuse; subsequent
-    // render() calls no-op until another mount().
+    // Unmount returns the root for inspection or reuse. Subsequent
+    // render() / handle_event() calls render an empty root
+    // (the host's layer stack is unaffected — see §7.1).
     [[nodiscard]] std::unique_ptr<ui_element<B>> unmount();
 
     // --- Per-frame entry points ---
@@ -128,11 +129,6 @@ public:
         std::unique_ptr<window<B>> win,
         dialog_position pos = dialog_position::center);
 
-    // --- Error channel ---
-
-    void report_error(error_info info);
-    [[nodiscard]] std::optional<error_info> take_error();
-
     // --- Escape hatches (rarely needed) ---
 
     [[nodiscard]] layer_manager<B>&   layers()    noexcept;
@@ -144,38 +140,48 @@ public:
 };
 ```
 
-## 5. `error_info`
+## 5. Error handling is not a `ui_host` responsibility
 
-A richer error than a bare string. Async subsystems need to
-communicate severity (is this fatal? recoverable?) and origin (which
-subsystem?) so host UI can render it correctly (red modal dialog vs.
-status-bar note vs. silent log).
+Earlier drafts of this doc placed an error channel on `ui_host`
+(a `report_error` / `take_error` queue). That was wrong — it
+broke warlords' recovery model.
 
-```cpp
-enum class error_severity : std::uint8_t {
-    info,       // informational; non-blocking
-    warning,    // user should know, can continue
-    error,      // operation failed; user must acknowledge
-    fatal,      // host compromised; consider bailing
-};
+In warlords today, errors enqueue in app-global state:
 
-struct error_info {
-    error_severity severity = error_severity::error;
-    std::string    message;    // user-facing text
-    std::string    source;     // subsystem id, e.g. "net", "import"
-    std::chrono::steady_clock::time_point when =
-        std::chrono::steady_clock::now();
-};
-```
+- `src/bane/main.cc` — the `SDL_AppIterate` / `SDL_AppEvent`
+  safety-net catches wrap exceptions and enqueue to
+  `bane::services::report_error`,
+- `src/bane/kernel/scenes_manager.cc` — scene-push rollback
+  (failure during `on_enter`) enqueues the error before popping
+  the broken scene,
+- `src/bane/scenes/init_scene.cc` — the surviving scene drains
+  the queue next frame and shows an error dialog.
 
-**Queue semantics:** FIFO. `take_error()` pops the oldest; consumer
-drains per frame. Warlords' current `init_scene::update_physics` loop
-already has this shape — the `std::string` it reads becomes
-`error_info{severity=error, source="…", message=…}`.
+The protocol's critical invariant is that **the error outlives
+the failing scene**. If the queue lived on that scene's `ui_host`,
+the push/on_enter/frame failure → scene pop → queue destruction
+sequence would destroy the error before any replacement scene
+could display it.
 
-**Bound:** not set at the API level in v1; implementation caps with
-drop-oldest at an internal limit (e.g. 64). If a consumer needs a
-bigger or different bound, add a constructor parameter later.
+The UI framework is therefore the wrong owner for the error
+channel. It stays an app-level concern:
+
+- **warlords** keeps `bane::services::report_error` /
+  `take_error` as an app-global queue, unchanged by the `ui_host`
+  migration.
+- **The simple shell** (see `ONYXUI_SIMPLE_SHELL_DESIGN.md`) owns
+  its own error surface on `onyxui::simple::app_window` or in
+  `onyxui::simple::` globals — the queue lives in the
+  `simple::run()` scope, which outlasts individual
+  mount/unmount cycles.
+- **`ui_host`** provides no error channel. A consumer that wants
+  one wires its own app-level queue and routes errors through it,
+  independent of which host instance is current.
+
+`ui_host` still surfaces library-originated conditions through
+signals (e.g., `window::closed`) as it does today. What it does
+not do is become the app-global sink for cross-transition
+failures — that's the consumer's responsibility.
 
 ---
 
@@ -187,8 +193,8 @@ No backward compatibility required.
 |------------------------------------------------|----------------------------------------------------------------------------|
 | `scoped_ui_context<B>`                         | Becomes an internal implementation detail of `ui_host<B>`. The scope-stack push/pop still happens, just inside `render()` / `handle_event()`. Removed from public headers. |
 | `ui_handle<B>`                                 | Deleted. Its role (bind renderer to root, drive render/event) is absorbed by `ui_host::render()` / `handle_event()`. Renderer-per-call replaces renderer-ownership. |
-| `warlords::services::report_error / take_error`| Move into `ui_host`. The `bane/kernel/services.{hh,cc}` namespace shrinks to the game-service accessors it actually belongs to. |
 | `scene_with_ui` teardown-order comment         | Deleted. The ownership story becomes explicit at the type level. |
+| `warlords::services::report_error / take_error`| **Unchanged.** Stays app-global in `bane::services::`. Not absorbed by `ui_host`; see §5 for rationale. |
 
 After migration, `scene_with_ui` collapses to roughly:
 
@@ -220,11 +226,49 @@ layer_manager reference).
 
 ## 7. Ownership and lifetime
 
+### 7.1 `unmount()` and live overlays
+
+`unmount()` only affects the root — the layer stack and any live
+`presented_window<B>` handles are untouched. Specifically:
+
+- `unmount()` returns the root widget. The host's layer manager
+  and every layer currently registered through `present()` or
+  `present_modal()` remain alive.
+- Subsequent `render()` calls draw the layer stack over an empty
+  background until `mount()` installs a new root.
+- Subsequent `handle_event()` calls continue to dispatch to
+  overlays; routing to the unmounted root no-ops.
+- `mount()` installs a replacement root without disturbing live
+  overlays — they render over the new root exactly as they
+  rendered over the old one.
+
+This keeps ownership consistent with the rest of the design:
+overlays are owned by the consumer-held `presented_window<B>`
+handles, not by the host. `unmount()` doesn't get to dismiss
+someone else's owned state. A consumer that wants a clean
+transition drops presenter handles explicitly before calling
+`unmount()`.
+
+Ghost-overlay scenario (render over nothing) is deliberately
+reachable: that's what the consumer asked for by calling
+`unmount()` without dropping their presenters. It's a valid
+transient state during mount-swap and doesn't UAF — the layer
+manager and all widgets remain valid.
+
+**Destruction:** when `ui_host` itself dies, the layer manager
+dies with it; the existing `window::m_layer_owner_conn` mechanism
+(shipped in WAR-45) handles the out-of-order case where a
+`presented_window` outlives the host. The window destructor
+degrades to a visibility-flag update and doesn't UAF.
+
+### 7.2 What owns what
+
 **The host owns:**
 - service stack (themes, focus, hotkeys, input, layers, metrics),
 - the mounted root widget tree,
-- the error queue,
 - internal state needed for overlay layer registration.
+
+It does **not** own the error queue — see §5.
 
 **The consumer owns:**
 - the renderer (passed per `render()` call),
@@ -238,14 +282,6 @@ layer_manager reference).
 - the game/app state,
 - widget trees mounted as overlays (those live in the presenter
   until it's dropped).
-
-**Destruction protocol:** when `ui_host` dies, its service stack
-dies with it. Any still-alive `presented_window<B>` observes its
-owning `layer_manager` being destroyed via the existing
-`m_layer_owner_conn` scoped_connection (shipped in WAR-45), so the
-window's destructor degrades to a visibility-flag update and does
-not UAF. This protocol already works; `ui_host` just makes it the
-only lifetime story consumers need to know about.
 
 **Scope-stack ambient services:** the existing
 `ui_services<B>::layers() / themes() / input()` pipeline still
