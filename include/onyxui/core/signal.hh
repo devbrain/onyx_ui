@@ -376,6 +376,15 @@ namespace onyxui {
              * @endcode
              */
             void emit(Args... args) {
+                // Keep the alive-flag control block alive on our stack for
+                // the duration of emit(). If a slot destroys the signal's
+                // owner (and therefore the signal), `*alive_flag` flips to
+                // false; we can observe that and bail without touching any
+                // signal member. Without this, the post-slot state
+                // updates at the end of this function would be a
+                // use-after-free.
+                auto const alive_flag = m_alive_flag;
+
 #ifdef ONYXUI_THREAD_SAFE
                 // Copy slot functions under shared lock
                 // std::function uses internal reference counting, so our copies
@@ -403,11 +412,19 @@ namespace onyxui {
                     // This prevents deadlock and eliminates TOCTOU race condition
                     for (auto& slot : slots_to_call) {
                         slot(args...);
+                        if (alive_flag && !*alive_flag) {
+                            // A slot destroyed us. Stack-local `alive_flag`
+                            // still holds the control block; returning here
+                            // skips any further access to signal members.
+                            return;
+                        }
                     }
 
                     m_emitting.store(was_emitting, std::memory_order_relaxed);
                 } catch (...) {
-                    m_emitting.store(was_emitting, std::memory_order_relaxed);
+                    if (alive_flag && *alive_flag) {
+                        m_emitting.store(was_emitting, std::memory_order_relaxed);
+                    }
                     throw;
                 }
 #else
@@ -430,12 +447,19 @@ namespace onyxui {
                         // Check if still connected (might have been disconnected during iteration)
                         if (m_slots.find(id) != m_slots.end()) {
                             slot(args...);
+                            if (alive_flag && !*alive_flag) {
+                                // Slot destroyed us; stop iterating and
+                                // skip the post-loop state update.
+                                return;
+                            }
                         }
                     }
 
                     m_emitting = was_emitting;
                 } catch (...) {
-                    m_emitting = was_emitting;
+                    if (alive_flag && *alive_flag) {
+                        m_emitting = was_emitting;
+                    }
                     throw;  // Re-throw exception after cleanup
                 }
 #endif
