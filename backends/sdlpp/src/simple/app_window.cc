@@ -41,11 +41,13 @@ namespace onyxui::simple {
 #include <sdlpp/video/renderer.hh>
 #include <sdlpp/video/color.hh>
 
+#include <algorithm>
 #include <atomic>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace onyxui::simple {
 
@@ -86,6 +88,17 @@ namespace onyxui::simple {
         std::optional<::sdlpp::renderer> sdl_renderer;
         std::optional<::onyxui::sdlpp::sdlpp_renderer> onyx_renderer;
         std::unique_ptr<ui_host>         host;
+
+        // Live modal presenters, keyed by raw `window*`. Declared
+        // AFTER `host` so destruction order (reverse) runs the
+        // presenters' dtors before the host they target. Each entry
+        // is auto-erased from this vector when its window fires
+        // `closed` — see `app_window::show_modal`.
+        struct live_modal {
+            window* key;
+            presented_window presenter;
+        };
+        std::vector<live_modal> modals;
 
         bool open = false;
         bool close_requested = false;
@@ -152,15 +165,10 @@ namespace onyxui::simple {
         : pimpl_(std::make_unique<impl>(std::move(title), width, height)) {}
 
     app_window::~app_window() {
-        // Dismiss any still-live simple-shell dialogs that were
-        // presented on this window before the host (and its
-        // layer_manager) go away. Otherwise the registry keeps a
-        // shared_ptr<presented_window> alive indefinitely and leaks
-        // dialog widgets across the thread's lifetime. Reviewer-
-        // flagged: the m_layer_owner_conn safety work from WAR-45
-        // prevents UAF, but the registry still held refs.
-        detail::dismiss_dialogs_for(this);
-
+        // Modal dialogs live in pimpl_->modals; pimpl destruction
+        // (below) reverses declaration order and runs the presenter
+        // dtors before the host they target. No explicit dismiss
+        // needed here.
         if (pimpl_ && pimpl_->open) {
             detail::unregister_window(this);
             pimpl_->open = false;
@@ -183,12 +191,12 @@ namespace onyxui::simple {
     void app_window::close() {
         if (!pimpl_->open) return;
 
-        // Dismiss any still-live simple-shell dialogs that were
-        // presented on this window. They outlive the layer registry
-        // (via WAR-45's m_layer_owner_conn) if we didn't, but the
-        // runtime registry still holds refs and would leak. See
-        // dismiss_dialogs_for in detail/runtime.hh.
-        detail::dismiss_dialogs_for(this);
+        // Drop any live modal dialogs before we hide the OS window.
+        // Clearing the vector runs each presenter's dtor, which
+        // destroys its window; the connected close-slots below become
+        // no-ops once the entry has already been erased (see the
+        // guarded-erase logic in show_modal).
+        pimpl_->modals.clear();
 
         if (pimpl_->sdl_window) {
             pimpl_->sdl_window->hide();
@@ -214,6 +222,37 @@ namespace onyxui::simple {
 
     ui_host& app_window::host() noexcept {
         return *pimpl_->host;
+    }
+
+    void app_window::show_modal(std::unique_ptr<window> win) {
+        if (!pimpl_->open || !win) return;
+
+        auto* raw = win.get();
+        auto presenter = pimpl_->host->present_modal(std::move(win));
+        pimpl_->modals.push_back({raw, std::move(presenter)});
+
+        // Auto-erase when the window fires `closed`. Caller-connected
+        // slots on `closed` run first (signal dispatches in connection
+        // order and callers wire up before calling show_modal), so
+        // the window is still alive when their slots execute. This
+        // slot runs last and destroys it.
+        //
+        // Capturing `this` is safe: if the app_window dies before
+        // `closed` fires, pimpl destruction drops `modals`, which
+        // destroys each presenter and its window WITHOUT calling
+        // close() — so this slot never fires post-mortem.
+        raw->closed.connect([this, raw]() {
+            auto& m = pimpl_->modals;
+            auto it = std::find_if(m.begin(), m.end(),
+                [raw](const impl::live_modal& lm) { return lm.key == raw; });
+            if (it != m.end()) {
+                m.erase(it);  // destroys the presenter → the window
+            }
+        });
+    }
+
+    std::size_t app_window::modal_count() const noexcept {
+        return pimpl_ ? pimpl_->modals.size() : 0;
     }
 
     // --- runtime helpers (called by WAR-54's run()) ---

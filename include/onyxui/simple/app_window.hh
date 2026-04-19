@@ -3,9 +3,9 @@
  * @brief Top-level standalone-tool window for the simple shell.
  *
  * This header is NOT standalone. It declares `onyxui::simple::app_window`
- * referencing the unqualified names `ui_host` and `ui_element` in the
- * enclosing namespace. Those names are brought into `onyxui::simple` by
- * the bundle header (`<onyxui/for/sdlpp.hh>` or `<onyxui/for/conio.hh>`)
+ * referencing the unqualified names `ui_host`, `ui_element` and `window`
+ * in the enclosing namespace. Those names are brought into
+ * `onyxui::simple` by the bundle header (`<onyxui/for/sdlpp.hh>`)
  * BEFORE this header is included. Including this file directly without
  * a bundle header in scope is a compile error by construction — see
  * `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md` §5.2.
@@ -19,31 +19,32 @@
 #pragma once
 
 // Guardrail: the simple/* headers are NOT standalone. They use the
-// unqualified names `ui_element` and `ui_host` in namespace
-// `onyxui::simple`, which a bundle header (`<onyxui/for/sdlpp.hh>`
-// or `<onyxui/for/conio.hh>`) populates via using-declarations
-// BEFORE this file is parsed. Including this header directly would
-// produce a cryptic cascade of "unknown type" errors; this check
-// turns that into a readable message.
+// unqualified names `ui_element`, `ui_host` and `window` in namespace
+// `onyxui::simple`, which a bundle header (`<onyxui/for/sdlpp.hh>`)
+// populates via using-declarations BEFORE this file is parsed.
+// Including this header directly would produce a cryptic cascade of
+// "unknown type" errors; this check turns that into a readable
+// message.
 #ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
 #  error "<onyxui/simple/app_window.hh> is not a standalone header. " \
          "Include a bundle header instead — typically " \
-         "<onyxui/for/sdlpp.hh> or <onyxui/for/conio.hh>. See " \
+         "<onyxui/for/sdlpp.hh>. See " \
          "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
 #endif
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
 namespace onyxui::simple {
 
-    // The two names this class's API mentions are brought in by the
+    // The three names this class's API mentions are brought in by the
     // bundle header via using-declarations before this file is parsed:
     //   using ::onyxui::sdlpp::ui_element;
     //   using ::onyxui::sdlpp::ui_host;
-    // (or the conio equivalents). If neither is in scope, the
-    // compiler will reject the declarations below — which is exactly
-    // what we want.
+    //   using ::onyxui::sdlpp::window;
+    // If they're not in scope, the compiler will reject the
+    // declarations below — which is exactly what we want.
 
     /**
      * @brief Top-level OS window owning one mounted UI tree.
@@ -90,10 +91,33 @@ namespace onyxui::simple {
 
         [[nodiscard]] bool is_open() const noexcept;
 
-        /// Access the underlying `ui_host` — used by dialog helpers
-        /// (`message_box`, `confirm`, …) and by advanced consumers
-        /// that need overlay presentation or escape-hatch service
-        /// lookups. Most simple-shell code never calls this.
+        /// Present a top-level `window` widget modally over this app
+        /// window. Takes ownership; the presenter is stored
+        /// internally and dropped automatically when the window's
+        /// `closed` signal fires (typically when the user clicks a
+        /// dismiss button that calls `window::close()`).
+        ///
+        /// Consumers needing a result callback should connect to
+        /// `win->closed` BEFORE calling this — the host's internal
+        /// cleanup slot runs after caller-connected slots, so the
+        /// window is still alive when the caller's callback fires.
+        ///
+        /// No-op if this app_window is not `is_open()` — the dialog
+        /// would otherwise attach to a host that's being torn down.
+        ///
+        /// `message_box`, `confirm`, `input_dialog` are thin wrappers
+        /// around this method.
+        void show_modal(std::unique_ptr<window> win);
+
+        /// Number of modal windows currently presented via
+        /// `show_modal`. For tests and diagnostics.
+        [[nodiscard]] std::size_t modal_count() const noexcept;
+
+        /// Access the underlying `ui_host`. Advanced hatch for
+        /// non-modal overlays, service lookups, and anything outside
+        /// the simple-shell happy path. `show_modal` covers the
+        /// modal-dialog case — most simple-shell code never needs
+        /// this method.
         [[nodiscard]] ui_host& host() noexcept;
 
         // ----------------------------------------------------------

@@ -1,26 +1,28 @@
 /**
  * @file detail/runtime.hh
- * @brief Internal bookkeeping for the simple-shell `run()` loop
- *        and the live-dialog registry.
+ * @brief Internal bookkeeping for the simple-shell `run()` loop.
  *
  * onyx_ui is a header-only library. The state backing the run loop
- * (registered windows, quit flag) and the live-dialog registry
- * therefore lives here as `inline thread_local` variables and the
- * helpers that touch them are `inline` functions. Every TU that
- * includes this header compiles its own copy; the `inline`
- * specifier deduplicates the definitions at link time.
+ * (registered windows, quit flag) lives here as `inline thread_local`
+ * variables and the helpers that touch them are `inline` functions.
+ * Every TU that includes this header compiles its own copy; the
+ * `inline` specifier deduplicates the definitions at link time.
  *
  * Not part of the public API — consumers interact with the simple
  * shell through `<onyxui/simple/app_window.hh>`,
  * `<onyxui/simple/run.hh>`, and `<onyxui/simple/dialogs.hh>`.
+ *
+ * Modal-dialog ownership is NOT tracked here. Each `app_window` owns
+ * its own modal presenters via `app_window::show_modal(...)` — this
+ * keeps the lifetime tied to the host that rendered the dialog and
+ * avoids the DSO-split problem a thread-local registry would have in
+ * shared-library builds.
  */
 
 #pragma once
 
 #include <algorithm>
 #include <cstddef>
-#include <functional>
-#include <utility>
 #include <vector>
 
 namespace onyxui::simple {
@@ -32,18 +34,16 @@ namespace onyxui::simple::detail {
     // --------------------------------------------------------------
     // Thread-local state. `inline thread_local` is valid from C++17
     // onwards and gives us a header-only singleton per thread.
+    //
+    // All state here is run-loop-scoped (windows participating in
+    // `run()`, quit flag). Per-window state — notably the set of
+    // live modal dialogs — lives on `app_window` itself so its
+    // lifetime follows the host.
     // --------------------------------------------------------------
 
     inline thread_local std::vector<app_window*> g_windows;
     inline thread_local bool g_quit_requested = false;
     inline thread_local int  g_exit_code = 0;
-
-    struct live_dialog_entry {
-        app_window* owner;
-        void* key;
-        std::function<void()> disposer;
-    };
-    inline thread_local std::vector<live_dialog_entry> g_live_dialogs;
 
     // --------------------------------------------------------------
     // Window registry
@@ -99,73 +99,6 @@ namespace onyxui::simple::detail {
     inline void reset_quit() noexcept {
         g_quit_requested = false;
         g_exit_code = 0;
-    }
-
-    // --------------------------------------------------------------
-    // Live-dialog registry. See docs/ONYXUI_SIMPLE_SHELL_DESIGN.md
-    // §6.3 — each fire-and-forget dialog helper owns a presented
-    // window. The helper stores a type-erased disposer here, keyed
-    // by the dialog's raw pointer and tagged with the owning
-    // app_window so the owner's close() / destructor can drain any
-    // still-live dialogs before the host goes away (otherwise the
-    // registry would leak them).
-    // --------------------------------------------------------------
-
-    inline void register_live_dialog(app_window* owner, void* key,
-                                     std::function<void()> disposer) {
-        if (!key) return;
-        g_live_dialogs.push_back({owner, key, std::move(disposer)});
-    }
-
-    /// Dismiss the registered dialog matching @p key. Runs the
-    /// stored disposer (drops the presenter → destroys the window)
-    /// and removes the entry. No-op if no entry matches.
-    inline void dismiss_live_dialog(void* key) {
-        if (!key) return;
-        auto it = std::find_if(g_live_dialogs.begin(),
-                               g_live_dialogs.end(),
-                               [key](const live_dialog_entry& d) {
-                                   return d.key == key;
-                               });
-        if (it == g_live_dialogs.end()) return;
-
-        // Move the disposer out, remove the entry, THEN invoke.
-        // Running the disposer destroys the dialog widget — which
-        // destroys its signals — whose emit() may be what's calling
-        // us. The post-WAR-48 signal self-destruction protection
-        // keeps that safe, but we also need the registry to be in a
-        // consistent state first so recursive dismissal calls from
-        // the disposer become no-ops.
-        auto disposer = std::move(it->disposer);
-        g_live_dialogs.erase(it);
-        if (disposer) disposer();
-    }
-
-    /// Dismiss every registered dialog whose owner matches.
-    /// Called from `app_window::close()` and `app_window::~app_window()`
-    /// so dialogs can't outlive their host window.
-    inline void dismiss_dialogs_for(app_window* owner) {
-        if (!owner) return;
-
-        std::vector<std::function<void()>> pending;
-        auto it = g_live_dialogs.begin();
-        while (it != g_live_dialogs.end()) {
-            if (it->owner == owner) {
-                pending.push_back(std::move(it->disposer));
-                it = g_live_dialogs.erase(it);
-            } else {
-                ++it;
-            }
-        }
-        for (auto& d : pending) {
-            if (d) d();
-        }
-    }
-
-    /// Count of live dialogs currently registered on this thread.
-    /// For tests / diagnostics.
-    [[nodiscard]] inline std::size_t live_dialog_count() noexcept {
-        return g_live_dialogs.size();
     }
 
 } // namespace onyxui::simple::detail

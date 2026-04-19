@@ -5,19 +5,16 @@
  * Per docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §6.3. Each helper:
  *
  *   1. Builds a dialog widget on the heap (title + message + buttons).
- *   2. Presents it modal via `parent.host().present_modal(...)`.
- *   3. Registers the resulting presenter with the simple-shell
- *      runtime so it stays alive until the dialog closes.
- *   4. When the user clicks OK / Cancel / etc., the dialog's
- *      `closed` signal fires, the user's callback runs, and the
- *      runtime drops the presenter — destroying the dialog.
+ *   2. Connects `window::closed` with the user's result callback.
+ *   3. Hands ownership to `app_window::show_modal(...)` — the host
+ *      stores the presenter internally and destroys the window when
+ *      `closed` fires.
  *
- * onyx_ui is a header-only library. The dialog logic is genuinely
- * backend-agnostic — every type it touches (window, vbox, label,
- * button, …) is reached via the `onyxui::simple` aliases that the
- * bundle header (`<onyxui/for/sdlpp.hh>` etc.) populates BEFORE this
- * header is parsed. The implementations therefore live here as
- * `inline` definitions; no .cc per backend is needed.
+ * onyx_ui is header-only. The dialog logic is genuinely backend-
+ * agnostic — every type it touches (`window`, `vbox`, `label`,
+ * `button`, …) is reached via the `onyxui::simple` aliases that the
+ * bundle header populates BEFORE this header is parsed. The
+ * implementations therefore live here as `inline` definitions.
  *
  * Not standalone. Like `app_window.hh`, this header uses unqualified
  * names that must be in scope via a bundle header. The
@@ -29,21 +26,14 @@
 
 #pragma once
 
-// Guardrail: same as app_window.hh — the simple/* headers reference
-// the unqualified `window`, `vbox`, `button`, … names in
-// `onyxui::simple`, which a bundle header populates via
-// using-declarations BEFORE this file is parsed. Including this
-// header standalone would produce a cryptic cascade of "unknown type"
-// errors; this check turns that into a readable diagnostic.
 #ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
 #  error "<onyxui/simple/dialogs.hh> is not a standalone header. " \
          "Include a bundle header instead — typically " \
-         "<onyxui/for/sdlpp.hh> or <onyxui/for/conio.hh>. See " \
+         "<onyxui/for/sdlpp.hh>. See " \
          "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
 #endif
 
 #include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/detail/runtime.hh>
 
 #include <onyxui/core/types.hh>
 
@@ -55,38 +45,6 @@
 namespace onyxui::simple {
 
     namespace detail {
-
-        // Present a modal `window`, wire its `closed` signal to call
-        // the user hook and dismiss via the live-dialog registry.
-        // Returns the raw window pointer so callers can finish
-        // building the content before handing off.
-        //
-        // The disposer passed to register_live_dialog() must be
-        // copy-constructible (std::function requirement). We hold
-        // the presenter via std::shared_ptr so the capturing lambda
-        // stays copyable — there's only ever one ref (the registry),
-        // so it behaves like a unique_ptr with a copyable wrapper.
-        // Self-destruction during signal emit is safe thanks to the
-        // post-WAR-48 signal fix.
-        inline window* present_and_register(
-            app_window& parent,
-            std::unique_ptr<window> win,
-            std::function<void()> on_close_hook) {
-            auto* raw = win.get();
-            auto presenter = std::make_shared<presented_window>(
-                parent.host().present_modal(std::move(win)));
-
-            raw->closed.connect([raw, hook = std::move(on_close_hook)]() {
-                if (hook) hook();
-                detail::dismiss_live_dialog(raw);
-            });
-
-            detail::register_live_dialog(
-                &parent, raw,
-                [presenter]() { /* refcount drops when disposer dies */ });
-
-            return raw;
-        }
 
         // Build a simple "title bar + message label" window. Caller
         // adds the button row via `add_button_row`.
@@ -139,21 +97,17 @@ namespace onyxui::simple {
         auto w = detail::build_message_window(title, message);
         auto* raw = w.get();
 
-        auto* row = detail::add_button_row(raw);
-        if (row) {
+        if (auto* row = detail::add_button_row(raw)) {
             auto* ok = row->template emplace_child<button>("OK");
             ok->clicked.connect([raw]() { raw->close(); });
         }
 
-        (void)detail::present_and_register(
-            parent, std::move(w),
-            []() { /* no user callback for message_box */ });
+        parent.show_modal(std::move(w));
     }
 
     /// Modal error dialog — shortcut for `message_box` with the
-    /// title defaulting to "Error" and the same visual weight.
-    /// Visual styling (red border, icon) is a future nicety; v1
-    /// delegates to `message_box`.
+    /// title defaulting to "Error". Visual styling (red border,
+    /// icon) is a future nicety; v1 delegates to `message_box`.
     inline void error_box(app_window& parent,
                           const std::string& message,
                           const std::string& title = "Error") {
@@ -161,8 +115,9 @@ namespace onyxui::simple {
     }
 
     /// Modal Yes/No dialog. `on_result` fires with true for yes,
-    /// false for no or cancel. Never invoked if the window dies
-    /// before the user dismisses.
+    /// false for no. Callback is invoked when the user dismisses —
+    /// never if the parent app_window dies first (the dialog is
+    /// destroyed with it and `closed` is not fired during teardown).
     inline void confirm(app_window& parent,
                         const std::string& title,
                         const std::string& message,
@@ -172,8 +127,7 @@ namespace onyxui::simple {
 
         auto result = std::make_shared<bool>(false);
 
-        auto* row = detail::add_button_row(raw);
-        if (row) {
+        if (auto* row = detail::add_button_row(raw)) {
             auto* yes_btn = row->template emplace_child<button>("Yes");
             yes_btn->clicked.connect([raw, result]() {
                 *result = true;
@@ -186,11 +140,15 @@ namespace onyxui::simple {
             });
         }
 
-        (void)detail::present_and_register(
-            parent, std::move(w),
+        // Connect BEFORE show_modal so our slot runs before the
+        // host's cleanup slot — the window is still alive when
+        // `on_result` runs.
+        raw->closed.connect(
             [result, cb = std::move(on_result)]() {
                 if (cb) cb(*result);
             });
+
+        parent.show_modal(std::move(w));
     }
 
     /// Modal single-line input dialog. `on_result` fires with
@@ -245,11 +203,13 @@ namespace onyxui::simple {
 
         w->set_content(std::move(content));
 
-        (void)detail::present_and_register(
-            parent, std::move(w),
+        // Connect BEFORE show_modal (see confirm() for the rationale).
+        raw->closed.connect(
             [result_ok, result_value, cb = std::move(on_result)]() {
                 if (cb) cb(*result_ok, *result_value);
             });
+
+        parent.show_modal(std::move(w));
     }
 
 } // namespace onyxui::simple
