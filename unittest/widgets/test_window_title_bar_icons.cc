@@ -350,15 +350,14 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         auto win = std::make_unique<window<Backend>>("Test", flags);
 
-        // Create a parent container to maximize within
+        // window<B> is overlay-only. Use set_workspace() to give
+        // maximize() a bounds reference without adding the window to
+        // the tree.
         auto parent = std::make_unique<panel<Backend>>();
+        win->set_workspace(parent.get());
+        auto* win_ptr = win.get();
 
-        // Add window to parent FIRST
-        parent->add_child(std::move(win));
-        auto* win_ptr = dynamic_cast<window<Backend>*>(parent->children()[0].get());
-        REQUIRE(win_ptr != nullptr);
-
-        // Now measure and arrange parent (which will layout its children)
+        // Arrange the parent so workspace bounds are established.
         typename Backend::rect_type parent_bounds;
         rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
         [[maybe_unused]] auto parent_size = parent->measure(80_lu, 25_lu);
@@ -434,21 +433,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         auto win = std::make_unique<window<Backend>>("Test", flags);
 
-        // Create parent
+        // Overlay-only: use set_workspace instead of add_child.
         auto parent = std::make_unique<panel<Backend>>();
+        win->set_workspace(parent.get());
+        auto* win_ptr = win.get();
 
-        // Add window FIRST
-        parent->add_child(std::move(win));
-        auto* win_ptr = dynamic_cast<window<Backend>*>(parent->children()[0].get());
-        REQUIRE(win_ptr != nullptr);
-
-        // Now measure and arrange parent
         typename Backend::rect_type parent_bounds;
         rect_utils::set_bounds(parent_bounds, 0, 0, 80, 25);
         [[maybe_unused]] auto parent_size = parent->measure(80_lu, 25_lu);
         parent->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
-        // Position window
         typename Backend::rect_type win_bounds;
         rect_utils::set_bounds(win_bounds, 10, 5, 40, 15);
         [[maybe_unused]] auto measured = win_ptr->measure(40_lu, 15_lu);
@@ -515,7 +509,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         flags.has_maximize_button = true;
         flags.has_close_button = false;
 
-        auto* win = parent->template emplace_child<window>("Visual Test", flags);
+        // Overlay-only: window cannot be a tree child. Construct it
+        // standalone and pair it to the panel via set_workspace. The
+        // render harness handles both the panel and window trees.
+        auto window_owner = std::make_unique<window<Backend>>("Visual Test", flags);
+        auto* win = window_owner.get();
         win->set_workspace(parent.get());
 
         // Render using harness (this will measure, arrange, and render the whole tree)

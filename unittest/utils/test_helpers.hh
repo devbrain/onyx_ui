@@ -170,8 +170,9 @@ namespace onyxui::testing {
      * 4. Renders the element to the canvas
      * 5. Returns the canvas for visual inspection
      */
+    template<typename Element>
     inline std::shared_ptr<test_canvas> render_to_canvas(
-        ui_element<test_canvas_backend>& element,
+        Element& element,
         int width,
         int height)
     {

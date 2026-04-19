@@ -32,11 +32,17 @@ namespace onyxui {
         // Create title bar and content area
         // (Drag/resize implementation comes in later phases)
 
+        // Under protected inheritance of widget_container, the implicit
+        // upcast from `this` to `ui_element<Backend>*` is not accessible
+        // to `std::make_unique` (a namespace-std function). Perform the
+        // upcast explicitly here, inside window's scope, where it is.
+        ui_element<Backend>* const self_as_element = this;
+
         if (m_flags.has_title_bar) {
             auto title_bar = std::make_unique <window_title_bar <Backend>>(
                 m_title,
                 m_flags,
-                this
+                self_as_element
             );
             m_title_bar = title_bar.get(); // Store raw pointer before moving
 
@@ -169,7 +175,7 @@ namespace onyxui {
 
         auto content_area = std::make_unique <window_content_area <Backend>>(
             m_flags.is_scrollable,
-            this
+            self_as_element
         );
 
         // Window should draw the border (not the content area)

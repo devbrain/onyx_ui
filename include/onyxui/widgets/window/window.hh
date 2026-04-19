@@ -98,10 +98,23 @@ namespace onyxui {
      * win->show(layers);
      * @endcode
      */
+    /// Friend access: layer_manager needs to upcast window* to ui_element*
+    /// when registering window layers. Under protected inheritance this
+    /// conversion is not accessible to external code, so add_layer takes
+    /// a window<Backend>& overload that performs the cast internally.
+    template<UIBackend Backend> class layer_manager;
+
     template<UIBackend Backend>
-    class window : public widget_container<Backend> {  // NOLINT(cppcoreguidelines-virtual-class-destructor) - destructor is correctly virtual via override
+    class window : protected widget_container<Backend> {  // NOLINT(cppcoreguidelines-virtual-class-destructor) - destructor is correctly virtual via override
     public:
         using base = widget_container<Backend>;
+
+        // layer_manager needs to access the ui_element/widget_container
+        // base of this window to register it as an overlay layer. Under
+        // protected inheritance, only friends can upcast; tree code in
+        // external callers correctly fails to compile when handed a
+        // window*.
+        template<UIBackend B> friend class layer_manager;
         using size_type = typename Backend::size_type;
         using rect_type = typename Backend::rect_type;
         using point_type = typename Backend::point_type;
@@ -182,6 +195,41 @@ namespace onyxui {
         window& operator=(const window&) = delete;
         window(window&&) noexcept = default;
         window& operator=(window&&) noexcept = default;
+
+        // ====================================================================
+        // Re-export ui_element / widget_container public API
+        //
+        // window<B> inherits protectedly from widget_container<B> so that
+        // external tree code cannot upcast a window pointer to
+        // ui_element* (thus `parent->add_child(unique_ptr<window<B>>)`
+        // is a compile error). The subset of the widget API that window
+        // consumers legitimately call is re-exported below.
+        // ====================================================================
+
+        using base::bounds;
+        using base::parent;
+        using base::is_visible;
+        using base::set_visible;
+        using base::set_width_constraint;
+        using base::set_height_constraint;
+        using base::set_margin;
+        using base::set_padding;
+        using base::set_background_color;
+        using base::invalidate_measure;
+        using base::invalidate_arrange;
+        using base::measure;
+        using base::arrange;
+        using base::children;
+        using base::render;
+        using base::hit_test;
+        using base::hit_test_logical;
+        using base::get_absolute_logical_bounds;
+        using base::get_content_area;
+        using base::set_z_order;
+        using base::set_layout_strategy;
+        using base::needs_measure;
+        using base::needs_arrange;
+        using base::measure_unconstrained;
 
         // ====================================================================
         // State Management
