@@ -114,6 +114,34 @@ templates (`using button = button<backend>;`) is a redeclaration
 and doesn't compile. A sub-namespace sidesteps that cleanly and
 lets the consumer opt in explicitly with `using namespace`.
 
+The canonical list of types that need aliasing is kept in a
+single include-file, driven by an X-macro pattern so the same list
+expands differently in each consumer (aliases in the backend
+sub-namespace, using-declarations in the simple-shell namespace,
+conformance-test instantiations, etc.). Adding a new public widget
+means editing the list in one place, not each shell header.
+
+```cpp
+// include/onyxui/detail/public_types.inc
+//
+// Canonical list of publicly-templated-on-backend types.
+// Included by each shell header with ONYXUI_TYPE redefined per
+// expansion site. This file has no header guard on purpose.
+
+ONYXUI_TYPE(button)
+ONYXUI_TYPE(label)
+ONYXUI_TYPE(vbox)
+ONYXUI_TYPE(hbox)
+ONYXUI_TYPE(list_box)
+// … every public widget …
+ONYXUI_TYPE(window)
+ONYXUI_TYPE(presented_window)
+ONYXUI_TYPE(ui_host)
+```
+
+The per-backend header then uses the list twice — once for the
+`backend` typedef, once to expand each alias:
+
 ```cpp
 // include/onyxui/backend/sdlpp.hh
 #pragma once
@@ -125,24 +153,28 @@ namespace onyxui::sdlpp {
 
     using backend = ::onyxui::sdlpp_backend;
 
-    // Widgets
-    using button   = ::onyxui::button<backend>;
-    using label    = ::onyxui::label<backend>;
-    using vbox     = ::onyxui::vbox<backend>;
-    using hbox     = ::onyxui::hbox<backend>;
-    using list_box = ::onyxui::list_box<backend>;
-    // … every public widget …
-
-    // Overlays
-    using window            = ::onyxui::window<backend>;
-    using presented_window  = ::onyxui::presented_window<backend>;
-
-    // Host
-    using ui_host = ::onyxui::ui_host<backend>;
-
-    // Signals are already un-templated on backend; no aliasing needed.
+    #define ONYXUI_TYPE(name) using name = ::onyxui::name<backend>;
+    #include <onyxui/detail/public_types.inc>
+    #undef ONYXUI_TYPE
 
 }  // namespace onyxui::sdlpp
+```
+
+That expands to:
+
+```cpp
+namespace onyxui::sdlpp {
+    using backend          = ::onyxui::sdlpp_backend;
+    using button           = ::onyxui::button<backend>;
+    using label            = ::onyxui::label<backend>;
+    using vbox             = ::onyxui::vbox<backend>;
+    using hbox             = ::onyxui::hbox<backend>;
+    using list_box         = ::onyxui::list_box<backend>;
+    // …
+    using window           = ::onyxui::window<backend>;
+    using presented_window = ::onyxui::presented_window<backend>;
+    using ui_host          = ::onyxui::ui_host<backend>;
+}
 ```
 
 Consumer:
@@ -167,23 +199,31 @@ because the alias lives in a different namespace; both are
 reachable by full qualification if anyone ever needs both.
 
 `<onyxui/backend/conio.hh>` mirrors the same structure under
-`namespace onyxui::conio`.
+`namespace onyxui::conio`, using the same canonical list.
 
-**Why aliases in a sub-namespace rather than macros:** aliases
-preserve IDE tooling (go-to-definition, rename, parameter hints).
-A macro substitution breaks all of that.
+**Why X-macro + aliases rather than a name-substituting macro:**
+aliases preserve IDE tooling (go-to-definition, rename, parameter
+hints); a name-replacement macro breaks all of that. The X-macro
+generates the aliases once per backend from a single canonical
+list; each alias is still a real `using` declaration at the
+compiler level, so tooling sees it as a named type.
 
 **Why one header per backend, not an `ONYXUI_BACKEND=sdlpp`
 define:** explicit include is greppable and doesn't depend on
 compile-flag discipline.
 
+**Canonical-list location:** `include/onyxui/detail/public_types.inc`
+is the recommended spot. The `.inc` extension signals "non-standalone
+include; re-included with macros redefined". Keeping it under
+`detail/` marks it as library machinery — consumers should not
+include it directly.
+
 ### 5.2 Simple-shell bundle header
 
 The simple-shell bundle includes the aliases header plus the
 `onyxui::simple::` types and re-exports the aliases from the
-backend sub-namespace into the simple-shell namespace so consumers
-only write `using namespace onyxui::simple;` (or
-`onyxui::simple::button`):
+backend sub-namespace into the simple-shell namespace. The same
+X-macro list drives it, with a re-export expansion:
 
 ```cpp
 // include/onyxui/for/sdlpp.hh
@@ -195,24 +235,21 @@ only write `using namespace onyxui::simple;` (or
 #include <onyxui/simple/dialogs.hh>
 
 namespace onyxui::simple {
-    // Re-export the backend aliases so consumers only import one
-    // namespace. Using-declarations (not using-directive) bring
-    // each name in without a namespace collision.
     using ::onyxui::sdlpp::backend;
-    using ::onyxui::sdlpp::button;
-    using ::onyxui::sdlpp::label;
-    using ::onyxui::sdlpp::vbox;
-    using ::onyxui::sdlpp::hbox;
-    using ::onyxui::sdlpp::list_box;
-    using ::onyxui::sdlpp::window;
-    using ::onyxui::sdlpp::presented_window;
-    using ::onyxui::sdlpp::ui_host;
-    // … every public widget …
+
+    #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
+    #include <onyxui/detail/public_types.inc>
+    #undef ONYXUI_TYPE
 
     // app_window, run, quit, message_box, etc. are already
     // declared in the simple/* headers included above.
 }
 ```
+
+That expands to using-declarations that bring each name from
+`onyxui::sdlpp::` into `onyxui::simple::` without redeclaration
+(using-declarations, not using-directives, so each name is a
+standalone introduction).
 
 Consumer:
 
