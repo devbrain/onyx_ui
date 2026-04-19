@@ -68,24 +68,6 @@ namespace onyxui {
         this->invalidate_measure();
     }
 
-    template<UIBackend Backend>
-    template<typename... Args>
-    std::shared_ptr<typename main_window<Backend>::window_type>
-    main_window<Backend>::create_window(Args&&... args) {
-        ensure_central_widget();
-
-        // Create the window with NO parent — it's a floating layer window,
-        // not a tree child of the central widget. We then point
-        // set_workspace() at the central widget so maximize() fills the
-        // central area rather than the whole viewport. This keeps parent()
-        // and "maximize bound source" as distinct concepts; previously the
-        // central widget was passed as parent to piggy-back on the
-        // maximize() parent-branch, which overloaded parent with a
-        // non-tree-membership meaning.
-        auto win = std::make_shared<window_type>(std::forward<Args>(args)...);
-        win->set_workspace(m_central_widget);
-        return win;
-    }
 
     template<UIBackend Backend>
     void main_window<Backend>::ensure_central_widget() {

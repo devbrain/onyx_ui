@@ -24,13 +24,15 @@ using Backend = test_canvas_backend;
 TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - construction creates empty layout") {
     auto main = std::make_unique<main_window<Backend>>();
 
-    // Should have no children initially (central widget created lazily)
+    // No children until the first access to the central widget, menu, or
+    // status — the central widget is materialized lazily on first request.
     CHECK(main->children().empty());
-
-    // Central widget should be nullptr until first use
-    CHECK(main->central_widget() == nullptr);
     CHECK(main->get_menu_bar() == nullptr);
     CHECK(main->get_status_bar() == nullptr);
+
+    // Accessing central_widget() materializes it lazily.
+    CHECK(main->central_widget() != nullptr);
+    CHECK(main->children().size() == 1);
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - set_menu_bar adds menu at top") {
@@ -72,15 +74,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - set_central_widget
     CHECK(main->central_widget() == central_ptr);
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - create_window wires central widget as workspace") {
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - central widget is the workspace for overlay windows") {
     auto main = std::make_unique<main_window<Backend>>();
 
     typename window<Backend>::window_flags flags;
     flags.has_maximize_button = true;
 
-    auto win = main->create_window("Test Window", flags);
+    auto win = std::make_unique<window<Backend>>("Test Window", flags);
+    win->set_workspace(main->central_widget());
 
-    // Central widget is created automatically on first create_window.
+    // Central widget is created lazily the first time it's requested.
     REQUIRE(main->central_widget() != nullptr);
 
     // The window is an overlay — it is NOT a tree child of central widget.
@@ -125,10 +128,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - window maximizes t
     [[maybe_unused]] auto measured = main->measure(80_lu, 25_lu);
     main->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
-    // Create window via main_window
+    // Create a floating overlay window and pair it to the central widget.
     typename window<Backend>::window_flags flags;
     flags.has_maximize_button = true;
-    auto win = main->create_window("Test", flags);
+    auto win = std::make_unique<window<Backend>>("Test", flags);
+    win->set_workspace(main->central_widget());
 
     // Set window size
     win->set_size(20, 10);
@@ -148,8 +152,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - window maximizes t
 TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - multiple windows share same central widget workspace") {
     auto main = std::make_unique<main_window<Backend>>();
 
-    auto win1 = main->create_window("Window 1", typename window<Backend>::window_flags{});
-    auto win2 = main->create_window("Window 2", typename window<Backend>::window_flags{});
+    auto win1 = std::make_unique<window<Backend>>(
+        "Window 1", typename window<Backend>::window_flags{});
+    win1->set_workspace(main->central_widget());
+    auto win2 = std::make_unique<window<Backend>>(
+        "Window 2", typename window<Backend>::window_flags{});
+    win2->set_workspace(main->central_widget());
 
     // Both windows are overlays (no tree parent); they share the same
     // workspace, which is the central widget.

@@ -10,11 +10,10 @@
  * - Central widget in middle (fills remaining space)
  * - Optional status bar at bottom
  *
- * Windows created via create_window() have their workspace pointer set to
- * the central widget via set_workspace(), so maximize() fills the central
- * area (respecting menu and status bars). The windows are NOT parented to
- * the central widget — they are overlay windows hosted in a layer_manager,
- * not tree children.
+ * Overlay windows hosted in the main_window are constructed directly by
+ * the consumer. Pair each window to `central_widget()` via
+ * `window::set_workspace()` so maximize() fills the central area
+ * (respecting menu and status bars) rather than the whole viewport.
  *
  * ## Usage
  *
@@ -22,9 +21,10 @@
  * auto main = std::make_unique<main_window<Backend>>();
  * main->set_menu_bar(std::make_unique<menu_bar<Backend>>());
  *
- * // Create windows — workspace is wired to central widget automatically
- * auto win = main->create_window("Document 1", window_flags{});
- * win->show(*layers);
+ * auto win = std::make_unique<window<Backend>>("Document 1");
+ * win->set_workspace(main->central_widget());
+ * auto presenter = std::make_unique<presented_window<Backend>>(
+ *     layers, std::move(win));
  *
  * main->set_status_bar(std::make_unique<status_bar<Backend>>());
  * @endcode
@@ -53,11 +53,12 @@ namespace onyxui {
      * 2. Central widget (required, middle, fills remaining space)
      * 3. Status bar (optional, bottom, content-sized)
      *
-     * The central widget serves as the *workspace* for windows created via
-     * create_window() — it's wired through `window::set_workspace()`, so
-     * maximize() fills the central area instead of the whole viewport.
-     * Windows are not tree children of the central widget; they are
-     * overlay windows living in the layer_manager.
+     * The central widget serves as the *workspace* for overlay windows
+     * hosted in the main_window — consumers pair each window to it via
+     * `window::set_workspace(central_widget())` so maximize() fills the
+     * central area instead of the whole viewport. Windows are not tree
+     * children of the central widget; they are overlay windows living in
+     * the layer_manager.
      *
      * ## Signals
      *
@@ -121,15 +122,17 @@ namespace onyxui {
          * @details
          * Central widget fills space between menu and status bar.
          * If a central widget already exists, it is replaced.
-         * Windows created via create_window() will use this as parent.
+         * Pair overlay windows to this via `window::set_workspace()` so
+         * maximize() fills the central area.
          */
         void set_central_widget(std::unique_ptr<ui_element<Backend>> widget);
 
         /**
-         * @brief Get central widget (for window parenting)
+         * @brief Get central widget (the workspace for overlay windows)
          * @return Pointer to central widget (created lazily, may be nullptr before first use)
          */
         [[nodiscard]] ui_element<Backend>* central_widget() noexcept {
+            ensure_central_widget();
             return m_central_widget;
         }
 
@@ -157,27 +160,6 @@ namespace onyxui {
             return m_status_bar;
         }
 
-        /**
-         * @brief Create a window wired to the central widget as its workspace
-         * @tparam Args Constructor arguments for window
-         * @param args Arguments forwarded to window constructor
-         * @return Shared pointer to created window
-         *
-         * @details
-         * Constructs a floating overlay window (no parent) and calls
-         * `set_workspace(central_widget)` so maximize() fills the central
-         * area only — not the whole viewport. The window is not a tree
-         * child of the central widget; show it via a layer_manager to
-         * make it visible.
-         *
-         * @code
-         * auto win = main->create_window("My Window", window_flags{});
-         * win->show(*layers);
-         * @endcode
-         */
-        template<typename... Args>
-        std::shared_ptr<window_type> create_window(Args&&... args);
-
     private:
         menu_bar_type* m_menu_bar = nullptr;         ///< Menu bar at top (optional)
         ui_element<Backend>* m_central_widget = nullptr;  ///< Central widget (required)
@@ -187,8 +169,9 @@ namespace onyxui {
          * @brief Ensure central widget exists (lazy initialization)
          *
          * @details
-         * Creates default empty panel as central widget if not already set.
-         * Called by constructor and create_window().
+         * Creates default empty panel as central widget if not already
+         * set. Called by the constructor and by the non-const
+         * `central_widget()` accessor.
          */
         void ensure_central_widget();
     };

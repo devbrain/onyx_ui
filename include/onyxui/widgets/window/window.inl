@@ -245,14 +245,10 @@ namespace onyxui {
 
         // Phase 4: Fill workspace or viewport (all in logical coordinates).
         //
-        // Historically this branch also consulted parent() first, so that a
-        // window passed "central_widget as parent" by main_window::create_window
-        // would maximize within the central area. That was an overload of
-        // `parent`: for a layer-mode window, parent is not a real tree parent
-        // (add_child was never called) — it was just a workspace hint. The
-        // correct seam for that is set_workspace(). We now look at workspace
-        // only; callers that want the old "fill my tree parent" semantic can
-        // pass the parent via set_workspace() explicitly.
+        // window<B> is overlay-only (see WAR-47); it has no meaningful
+        // tree parent. The workspace hint — set via set_workspace() —
+        // is the only "fill this region" source. Viewport fallback
+        // handles the no-workspace case.
         logical_rect maximized_bounds;
 
         if (m_workspace) {

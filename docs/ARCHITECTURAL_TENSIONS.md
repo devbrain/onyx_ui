@@ -334,22 +334,27 @@ minimal because every real consumer is already overlay-only.
 
 ### Priority 4 — Decide `main_window::create_window` fate
 
-**Tension addressed:** consumer discoverability.
+**Status as of WAR-48 (2026-04-19): deleted.**
 
-Two options, both acceptable, pick one:
+`main_window::create_window` was used only by its own tests; every
+other consumer built windows directly with `std::make_unique` and
+called `set_workspace(central_widget())`. A convenience helper that
+nobody reaches for is negative value — it appears in docs, creates
+discovery friction, and its existence implies it's the right path
+when in practice consumers skip it.
 
-- **Canonicalize.** Make `create_window` the one way to build an
-  overlay window, and use it everywhere in examples. It returns
-  `std::unique_ptr<window<B>>` with `set_workspace(central_widget)`
-  already folded in. Combine with Priority 1 so the typical usage
-  hands the result straight to a `presented_window`.
-- **Delete.** Let consumers build windows directly via
-  `std::make_unique<window<B>>(...)` and call
-  `set_workspace(central_widget)` themselves. `main_window` remains
-  as a chrome container but doesn't own a factory.
+Post-WAR-47 the helper was a two-line wrapper
+(`make_shared<window>(args...); set_workspace(central)`). Deleting
+it is the honest move: `main_window` stays purely a chrome
+container, and the `set_workspace(central_widget())` idiom is
+explicit at every call site. The idiom is short enough that it
+doesn't warrant abstraction, and with `window<B>` now overlay-only
+(WAR-47), pairing a window to its workspace is a one-time decision
+the consumer makes anyway.
 
-The current state — helper exists, nobody uses it, examples go
-around it — is the worst of both worlds.
+The `presented_window<B>` / `show(lm)` APIs handle the presentation
+lifetime; `main_window` just provides the chrome and the workspace
+reference via `central_widget()`.
 
 ### Pragmatic vs. architectural ordering
 
