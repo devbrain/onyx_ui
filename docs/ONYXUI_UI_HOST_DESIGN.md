@@ -382,9 +382,6 @@ implementation surfaces them:
   `ui_handle` defers to the consumer. Recommend keeping that
   (explicit focus management), document it.
 
-- **Error queue cap.** Implementation caps at ~64 with drop-oldest.
-  Is that configurable? Needed? Defer unless a consumer asks.
-
 - **Per-host theme override across multiple hosts.** If host A sets
   theme "dark" and host B sets theme "light", does the scope-stack
   push/pop correctly during their render calls so each sees its own

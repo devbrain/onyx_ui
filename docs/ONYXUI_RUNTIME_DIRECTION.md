@@ -187,20 +187,40 @@ That path looks normal and productive.
 
 ### 4.2 Where consumers are paying the cost
 
-The pain is concentrated in the overlay/presentation seam:
+Two cadences of pain, only one of them fixed.
 
-- `warlords/src/bane/kernel/scene_with_ui.hh`
-  has to document destruction order so windows do not outlive the UI context they implicitly depend on.
-- `warlords/src/bane/scenes/init_scene.cc`
-  manually tracks overlay visibility with `m_*_shown` booleans and explicit `show(layers())` / `hide(layers())` pairs.
-- `examples/widgets_demo/windows/window_registry.hh`
-  introduces a global `shared_ptr` registry purely to keep spawned windows alive.
-- `examples/widgets_demo/widgets_demo.hh`
-  still uses ambient `win->show()` while `warlords` uses explicit `show(layers())`, so the preferred public pattern is unclear.
-- Tests such as `unittest/widgets/test_window_title_bar_icons.cc`
-  still embed `window` inside the tree because that is convenient, even though the type is increasingly overlay-oriented.
+**Historical (resolved by WAR-44 / WAR-45 / WAR-46 / WAR-47 /
+WAR-48):** the concrete symptoms that motivated the original
+overlay refactor — `m_*_shown` booleans in `init_scene`, the
+demo's `window_registry.hh` keeping spawned windows alive,
+ambient vs. explicit `show()` mixed in examples, `window` types
+embedded inline in widget trees — are all gone. `init_scene`
+holds owning overlay wrappers (`src/bane/scenes/init_scene.hh`);
+the demo holds `presented_window` values
+(`examples/widgets_demo/widgets_demo.hh`); the deprecated
+ambient presentation API is deleted (WAR-46); and the `window`
+type is sealed against tree hosting (WAR-47).
 
-This is the signal that OnyxUI is not suffering from "some bugs in windows". It is suffering from a design boundary that is not explicit enough.
+**Residual (what this direction doc motivates):** even after
+that cleanup, a new consumer still has to assemble too many
+loose pieces to run a UI — `scoped_ui_context<B>`,
+`theme_registry<B>`, `focus_manager<B>`, `input_manager<B>`,
+`layer_manager<B>`, `backend_metrics<B>`, `ui_handle<B>` — plus
+hand-wire event dispatch, the render tick, and an app-level
+error channel (warlords' `services::report_error`). The
+reference embedding path is hidden inside `scene_with_ui`;
+nobody outside warlords knows that's where to look. Test sites
+that used to embed `window` in the tree are fixed, but the
+shape of the embedding contract is still implicit enough that
+a new engine consumer has to reverse-engineer warlords to
+discover it.
+
+This is the signal that OnyxUI is not suffering from "some bugs
+in windows". It is suffering from an embedding boundary that is
+not explicit enough — and a consumer surface that surfaces too
+much plumbing even after the lifecycle bugs are gone. That's
+what the proposed `ui_host<B>` (`ONYXUI_UI_HOST_DESIGN.md`) and
+simple shell (`ONYXUI_SIMPLE_SHELL_DESIGN.md`) address.
 
 ---
 

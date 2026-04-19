@@ -222,36 +222,52 @@ include it directly.
 
 ### 5.2 Simple-shell bundle header
 
-The simple-shell bundle includes the aliases header plus the
-`onyxui::simple::` types and re-exports the aliases from the
-backend sub-namespace into the simple-shell namespace. The same
-X-macro list drives it, with a re-export expansion:
+The simple-shell bundle includes the backend-aliases header,
+then re-exports the aliases into `onyxui::simple` via
+using-declarations, and **only then** includes the `simple/*`
+headers. The order matters: the `simple/*` headers use `ui_host`
+and `ui_element` unqualified in `onyxui::simple::` member
+signatures, so those names must already be in that namespace by
+the time the compiler parses them.
 
 ```cpp
 // include/onyxui/for/sdlpp.hh
 #pragma once
 
+// 1. Bring in the backend-fixed aliases (onyxui::sdlpp::ui_host,
+//    onyxui::sdlpp::ui_element, etc.).
 #include <onyxui/backend/sdlpp.hh>
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/run.hh>
-#include <onyxui/simple/dialogs.hh>
 
+// 2. Promote them into onyxui::simple BEFORE the simple/* headers
+//    are parsed. Using-declarations (not using-directives) so each
+//    name is a first-class introduction in the target namespace.
 namespace onyxui::simple {
     using ::onyxui::sdlpp::backend;
 
     #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
-
-    // app_window, run, quit, message_box, etc. are already
-    // declared in the simple/* headers included above.
 }
+
+// 3. Now include the simple/* headers. Each is declared inside
+//    namespace onyxui::simple {} and references the aliased names
+//    unqualified; the aliases are already in scope from step 2.
+#include <onyxui/simple/app_window.hh>
+#include <onyxui/simple/run.hh>
+#include <onyxui/simple/dialogs.hh>
 ```
 
-That expands to using-declarations that bring each name from
-`onyxui::sdlpp::` into `onyxui::simple::` without redeclaration
-(using-declarations, not using-directives, so each name is a
-standalone introduction).
+**The `onyxui/simple/*.hh` headers are not standalone.** They
+must be included through a bundle header (`<onyxui/for/sdlpp.hh>`
+or `<onyxui/for/conio.hh>`) that has already performed the
+alias-promotion step above. Including them directly is a build
+error by construction — `ui_host` and `ui_element` are undeclared
+in `onyxui::simple::` without the promotion step.
+
+This is a deliberate constraint, not an accident: a consumer who
+wanted to author a `simple/*` header without committing to a
+backend can't. The simple shell is compile-time backend-fixed by
+design (§4).
 
 Consumer:
 
