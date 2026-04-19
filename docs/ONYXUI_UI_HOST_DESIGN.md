@@ -304,8 +304,9 @@ embedded-tests harness that spins up throwaway hosts, or
 picture-in-picture UI.
 
 **Sharing:** nothing is shared between hosts by default. Each has
-its own services, its own layer stack, its own error queue.
-Consumers who want cross-host state pass it explicitly.
+its own services and its own layer stack. Consumers who want
+cross-host state pass it explicitly. (The app-level error queue,
+per §5, is not a host concern.)
 
 **Scope-stack nesting with multiple hosts:** two hosts rendering
 concurrently on different threads would be a consumer bug — the
@@ -322,15 +323,18 @@ Step-by-step, each step independently mergeable:
 
 1. **Add `ui_host<B>` alongside existing types.** Internally built
    from `scoped_ui_context` + `ui_handle`. Public surface is what
-   §4 describes. Add focused unit tests (construction, mount,
-   render, handle_event, present, error channel, destruction).
+   §4 describes. Add focused unit tests: construction, mount /
+   unmount (including unmount-with-live-overlays per §7.1),
+   render, handle_event, present / present_modal, destruction
+   ordering. No error-channel tests — error surfacing is not a
+   host responsibility (§5).
 
 2. **Port `scene_with_ui` onto `ui_host`.** Delete the
    teardown-order comment. `host_.render()` and
    `host_.handle_event()` replace the direct `scoped_ui_context` /
-   `ui_handle` plumbing. warlords `services::report_error /
-   take_error` moves into `ui_host` (bane's `services` namespace
-   loses the error forwarding).
+   `ui_handle` plumbing. `bane::services::report_error` /
+   `take_error` **stay where they are** — they're an app-level
+   channel that must outlive individual host instances (§5).
 
 3. **Port `widgets_demo` onto `ui_host`.** This is a prerequisite
    for collapsing the app-shell (Track C) to meaningful size;
@@ -350,7 +354,9 @@ Step-by-step, each step independently mergeable:
 Success criteria at each step:
 - Step 1: `ui_host` has tests; no consumer uses it yet.
 - Step 2: `scene_with_ui` teardown-order comment is gone; warlords
-  414 tests still pass; bane's `services` namespace is smaller.
+  414 tests still pass. `bane::services::report_error` /
+  `take_error` remain in place and keep surfacing cross-scene
+  errors (§5).
 - Step 3: `widgets_demo` no longer constructs `scoped_ui_context`
   or `ui_handle` directly.
 - Step 4: zero public call sites for the old types.
@@ -402,10 +408,13 @@ implementation surfaces them:
 
 This doc is the proposal. Before implementing:
 
-1. Review and approve the API in §4 and the `error_info` shape in §5.
-2. Lock the migration plan in §9 — specifically, whether step 2
+1. Review and approve the API in §4 and the unmount-vs-overlays
+   contract in §7.1.
+2. Confirm the §5 decision that error surfacing stays app-level,
+   not absorbed by `ui_host`.
+3. Lock the migration plan in §9 — specifically, whether step 2
    (warlords port) lands in the same PR as step 1 or separately.
-3. Decide whether to start prototyping.
+4. Decide whether to start prototyping.
 
 Recommended first PR: step 1 + step 2 together, so the `ui_host`
 design is validated against the real embedding consumer from the

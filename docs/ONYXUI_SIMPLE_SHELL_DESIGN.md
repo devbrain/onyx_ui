@@ -128,6 +128,7 @@ means editing the list in one place, not each shell header.
 // Included by each shell header with ONYXUI_TYPE redefined per
 // expansion site. This file has no header guard on purpose.
 
+ONYXUI_TYPE(ui_element)     // the widget base, used in set_content signatures
 ONYXUI_TYPE(button)
 ONYXUI_TYPE(label)
 ONYXUI_TYPE(vbox)
@@ -165,6 +166,7 @@ That expands to:
 ```cpp
 namespace onyxui::sdlpp {
     using backend          = ::onyxui::sdlpp_backend;
+    using ui_element       = ::onyxui::ui_element<backend>;
     using button           = ::onyxui::button<backend>;
     using label            = ::onyxui::label<backend>;
     using vbox             = ::onyxui::vbox<backend>;
@@ -281,14 +283,15 @@ The pattern is identical, one layer deeper; no changes needed.
 
 ## 6. Simple shell API
 
-All types live in `onyxui::simple`. All are non-templated for the
-consumer; internally each owns a `ui_host<backend>` (where
-`backend` is the alias from the shell header).
+All types live in `onyxui::simple`. Signatures below use the
+backend-fixed aliases (`ui_element`, `ui_host`) brought into this
+namespace by the §5.2 re-export. There are no template parameters
+in any consumer-facing signature.
 
 ## 6.1 `app_window`
 
 A top-level OS window. Owns its OS surface, its renderer, and a
-`ui_host<backend>`.
+`ui_host`.
 
 ```cpp
 namespace onyxui::simple {
@@ -304,7 +307,7 @@ public:
     app_window& operator=(app_window&&) = delete;
 
     // Root widget tree.
-    void set_content(std::unique_ptr<ui_element<backend>> root);
+    void set_content(std::unique_ptr<ui_element> root);
 
     // Show/hide the OS window. show() registers the window with the
     // simple::run() loop; close() unregisters and makes run() return
@@ -319,11 +322,18 @@ public:
     // Escape hatch — access the underlying ui_host for overlay
     // presentation or for consumers who need a specific service.
     // Most simple-shell consumers never touch this.
-    [[nodiscard]] ui_host<backend>& host() noexcept;
+    [[nodiscard]] ui_host& host() noexcept;
 };
 
 } // namespace onyxui::simple
 ```
+
+**Implementation note:** the header declaring `app_window` is
+included *after* `<onyxui/backend/sdlpp.hh>` by the bundle header
+(§5.2), so `ui_element` and `ui_host` above resolve to the
+backend-fixed aliases established in `onyxui::simple`. The class
+itself is **not** a template — one backend per translation unit,
+per the compile-time backend rule (§4).
 
 ## 6.2 `run()` / `quit()`
 
@@ -388,7 +398,8 @@ the helper until the user dismisses the dialog.
 1. An OS window (per-backend — SDL_Window for sdlpp, termbox
    surface for conio).
 2. A renderer bound to that OS window.
-3. A `ui_host<backend>` with the consumer's root mounted.
+3. A `ui_host` (the backend-fixed alias) with the consumer's root
+   mounted.
 4. A per-window bookkeeping entry with the `run()` loop so the loop
    knows when all windows have closed.
 

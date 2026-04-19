@@ -4,14 +4,26 @@
 > direction. Implementation work and future API proposals should line
 > up with the thesis in sections 3 and 5.
 >
-> The companion docs `ONYXUI_API_SKETCH_AND_MIGRATION.md` and
-> `ONYXUI_IMPLEMENTATION_PLAN.md` are inputs to this direction, not
-> decisions. Specifically, their proposals for a `pane<B>` type, the
-> `ui_runtime` / `ui_surface` / `overlay_window` / `presented_overlay` /
-> `presented_dialog` renames, and the standalone app-shell layer
-> (`app<B>` / `app_window<B>` / `dialog<B>`) are **not adopted** — none
-> of them has a concrete consumer need today. They may be revisited
-> if and when a real consumer asks.
+> **Scope of adoption** (see §0 for the detailed map):
+>
+> - The thesis in §3 / §5 — retained runtime for custom hosts +
+>   embedding layer + simple app shell on top — is adopted.
+> - The standalone app-shell layer is adopted as a concrete
+>   workstream, but **not** in the shape the companion docs
+>   `ONYXUI_API_SKETCH_AND_MIGRATION.md` and
+>   `ONYXUI_IMPLEMENTATION_PLAN.md` proposed. The adopted form is
+>   specified in `ONYXUI_SIMPLE_SHELL_DESIGN.md` — headline types
+>   are `onyxui::simple::app_window`, `run()`, `quit()`, and
+>   dialog helpers; compile-time backend-fixed via shell headers;
+>   backend template parameter not visible to consumer code.
+> - The embedding consolidation (§8.5) is adopted as a concrete
+>   workstream via `ONYXUI_UI_HOST_DESIGN.md` (`ui_host<B>`
+>   replaces `scoped_ui_context<B>` + `ui_handle<B>`).
+> - From the companion sketch/plan docs, explicitly **not adopted**:
+>   the `pane<B>` type split, and the
+>   `ui_runtime` / `ui_surface` / `overlay_window` /
+>   `presented_overlay` / `presented_dialog` renames. Both are
+>   churn without consumer-visible semantic gain; see §0.
 >
 > Audience: OnyxUI maintainers and consumers embedding OnyxUI into
 > custom hosts.
@@ -39,35 +51,32 @@ The `main_window::create_window` helper is gone (WAR-48). The signal
 primitive is now safe against self-destruction during emit (fix landed
 post-WAR-48).
 
-Not adopted from the companion docs:
+### From the companion sketch/plan docs — not adopted
 
-- **`pane<B>` type split** — the WAR-47 investigation found zero
-  consumer need; `group_box<B>` already covers the tree-hosted framed
-  container role. Deferred until a real consumer asks.
+- **`pane<B>` type split** — WAR-47 investigation found zero
+  consumer need; `group_box<B>` already covers the tree-hosted
+  framed container role. Deferred until a real consumer asks.
 - **Renames** (`ui_runtime`, `ui_surface`, `overlay_window`,
-  `presented_overlay`/`presented_dialog`) — pure churn with no
+  `presented_overlay` / `presented_dialog`) — pure churn with no
   semantic gain over the current names.
 
-Reversed from an earlier stance:
+### From the companion sketch/plan docs — reshaped then adopted
 
-- **App-shell layer** — in my first adoption pass I marked this "not
-  adopted, no consumer asks". On further review that framing was too
-  narrow: the consumer is *every person evaluating OnyxUI*. A
-  newcomer who has to assemble seven types to render Hello-World
-  bounces; one who does it in six lines sticks. The app-shell is
-  concretely specified in `ONYXUI_SIMPLE_SHELL_DESIGN.md` — the
-  headline types are `onyxui::simple::app_window`, `run()`, `quit()`,
-  and the dialog helpers. It is compile-time backend-fixed (backend
-  is picked by which shell header you include) and intended only
-  for standalone tools — engines use `ui_host<B>` directly.
-  §12 Phase 4 below is superseded by that design.
-- **Embedding consolidation** — the earlier "8.5 collapse startup"
-  line item is now concretely scoped in
-  `ONYXUI_UI_HOST_DESIGN.md`. The proposed `ui_host<B>` replaces
-  `scoped_ui_context<B>` + `ui_handle<B>` with one type, closes out
-  the "`scene_with_ui` teardown-comment cleanup" residual item, and
-  is the foundation both the simple shell and engine embedders
-  (warlords) sit on.
+- **App-shell layer** — the shape proposed in the sketch/plan
+  docs (`app<B>` / `app_window<B>` / `dialog<B>` with the backend
+  parameter visible to consumers) is not adopted. The replacement
+  is `ONYXUI_SIMPLE_SHELL_DESIGN.md`: headline types are
+  `onyxui::simple::app_window`, `run()`, `quit()`, and dialog
+  helpers; compile-time backend-fixed via shell headers; backend
+  template parameter not visible to consumer code. Intended for
+  standalone tools only — engines keep using `ui_host<B>`
+  directly. §12 Phase 4 below is superseded by that design.
+- **Embedding consolidation** — the §8.5 "collapse startup" item
+  is concretely scoped in `ONYXUI_UI_HOST_DESIGN.md`. `ui_host<B>`
+  replaces `scoped_ui_context<B>` + `ui_handle<B>` with one type,
+  closes out the "`scene_with_ui` teardown-comment cleanup"
+  residual item, and is the foundation both the simple shell and
+  engine embedders (warlords) sit on.
 
 Remaining work broadly consistent with this direction:
 
