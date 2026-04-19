@@ -310,9 +310,14 @@ namespace onyxui {
             rect get_clip_rect() const {
                 return rect {};
             }
+            /// Mutable viewport so tests can exercise render(renderer)
+            /// with non-zero origins or custom sizes. Defaults to the
+            /// historical (0, 0, 800, 600) so existing tests are
+            /// unaffected.
+            rect viewport_override{0, 0, 800, 600};
+
             rect get_viewport() const {
-                // Return a default viewport for testing (800x600)
-                return rect{0, 0, 800, 600};
+                return viewport_override;
             }
             void present() {
                 // Stub for testing - no actual presentation in test backend

@@ -209,6 +209,7 @@ namespace onyxui {
         [[nodiscard]] auto& themes()  noexcept { return m_ctx.themes(); }
         [[nodiscard]] auto& hotkeys() noexcept { return m_ctx.hotkeys(); }
         [[nodiscard]] auto& input()   noexcept { return m_ctx.input(); }
+        [[nodiscard]] auto& windows() noexcept { return m_ctx.windows(); }
         [[nodiscard]] const auto& metrics() const noexcept { return m_ctx.metrics(); }
 
     private:

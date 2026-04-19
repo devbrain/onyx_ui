@@ -298,6 +298,86 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
     CHECK(bounds.height.value == doctest::Approx(40.0));
 }
 
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - render(renderer) overload honors the renderer's physical origin") {
+    ui_host<Backend> host;
+
+    auto root = std::make_unique<vbox<Backend>>();
+    root->set_width_constraint({size_policy::fixed, logical_unit(50.0)});
+    root->set_height_constraint({size_policy::fixed, logical_unit(30.0)});
+    auto* root_ptr = root.get();
+    host.mount(std::move(root));
+
+    // Configure the test_backend renderer to report a viewport whose
+    // origin is NOT at (0, 0). The convenience overload must propagate
+    // that origin through to the arrange() call.
+    typename Backend::renderer_type r{};
+    r.viewport_override = typename Backend::rect_type{7, 11, 50, 30};
+
+    host.render(r);
+
+    const auto& bounds = root_ptr->bounds();
+    CHECK(bounds.x.value == doctest::Approx(7.0));
+    CHECK(bounds.y.value == doctest::Approx(11.0));
+    CHECK(bounds.width.value == doctest::Approx(50.0));
+    CHECK(bounds.height.value == doctest::Approx(30.0));
+}
+
+// ============================================================================
+// present() / present_modal() scope behavior
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - present_modal pushes scope so show_modal sees host's window_manager") {
+    // window::show_modal consults ambient ui_services::windows() to
+    // set the active window. If present_modal fails to push the host's
+    // scope before calling show, the active-window lookup either
+    // misses entirely or targets the fixture's outer window_manager
+    // (which is NOT the host's).
+    ui_host<Backend> host;
+    host.mount(make_root());
+
+    // Before: the host's window_manager has no active window for
+    // the dialog we're about to present.
+    CHECK(host.windows().get_active_window() == nullptr);
+
+    auto presenter = host.present_modal(make_dialog("modal"));
+    REQUIRE(static_cast<bool>(presenter));
+
+    // After present_modal: the host's OWN window_manager records the
+    // modal as active. This is only possible if the scope was pushed
+    // during the call — otherwise ui_services::windows() would have
+    // returned the fixture's window_manager or nullptr.
+    CHECK(host.windows().get_active_window() == presenter.get());
+
+    // And dormancy is restored after the call: the ambient pointer
+    // is the fixture's again, not the host's.
+    CHECK(ui_services<Backend>::windows() != &host.windows());
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - present pushes scope (ambient points at host during call, restored after)") {
+    // For non-modal present(), the observable effect is a layer
+    // registered with the host's layers. The scope-push invariant
+    // is verifiable by dormancy-after-call: before and after the
+    // call, ambient layers is the fixture's, not the host's.
+    auto* outer_layers = ui_services<Backend>::layers();
+    REQUIRE(outer_layers != nullptr);
+
+    ui_host<Backend> host;
+    CHECK(&host.layers() != outer_layers);
+
+    auto presenter = host.present(make_dialog());
+    REQUIRE(static_cast<bool>(presenter));
+
+    // The overlay landed on the host's layers, not the outer one.
+    CHECK(host.layers().layer_count() >= 1);
+    CHECK(outer_layers->layer_count() == 0);
+
+    // Ambient is restored to the fixture's after present() returns.
+    CHECK(ui_services<Backend>::layers() == outer_layers);
+}
+
 TEST_CASE("ui_host - destruction with live overlays is safe (layer_manager teardown)") {
     // Heap-allocate the presenter too so we can sequence its destruction
     // AFTER the host. The presenter's underlying window observes the
