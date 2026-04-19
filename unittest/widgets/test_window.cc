@@ -390,12 +390,14 @@ TEST_CASE("Window - Position and size") {
 }
 
 TEST_CASE("Window - Show and hide") {
+    layer_manager<test_backend> layers;
+
     SUBCASE("Show window") {
         window<test_backend> win;
         win.hide();
         CHECK(!win.is_visible());
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
     }
 
@@ -411,7 +413,7 @@ TEST_CASE("Window - Show and hide") {
         window<test_backend> win;
         win.hide();
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_visible());
         CHECK(win.is_modal());  // show_modal() sets modal flag
     }
@@ -419,10 +421,10 @@ TEST_CASE("Window - Show and hide") {
     SUBCASE("Multiple show calls idempotent") {
         window<test_backend> win;
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());  // Still visible
     }
 
@@ -946,11 +948,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize up
 
     auto win = std::make_shared<window<test_canvas_backend>>("Test", flags);
     win->set_size(20, 10);
-    win->show();  // Adds to layer_manager
 
     // Get layer manager
     auto* layers = ui_services<test_canvas_backend>::layers();
     REQUIRE(layers != nullptr);
+    win->show(*layers);  // Adds to layer_manager
 
     // Maximize
     win->maximize();

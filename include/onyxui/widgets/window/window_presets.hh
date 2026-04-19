@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <onyxui/services/layer_manager.hh>
 #include <onyxui/widgets/window/dialog.hh>
 #include <string>
 #include <functional>
@@ -71,6 +72,7 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     std::shared_ptr<dialog<Backend>> show_message_box(
+        onyxui::layer_manager<Backend>& layers,
         std::string title,
         std::string message,
         message_box_buttons buttons,
@@ -104,7 +106,7 @@ namespace onyxui {
         }
 
         // Show modal with callback
-        dlg->show_modal(std::move(callback));
+        dlg->show_modal(layers, std::move(callback));
 
         // Return shared_ptr so caller can keep dialog alive
         return dlg;
@@ -131,13 +133,14 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     std::shared_ptr<dialog<Backend>> show_info(
+        onyxui::layer_manager<Backend>& layers,
         std::string message,
         std::string title = "Information"
     ) {
         auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
         dlg->set_message(std::move(message));
         dlg->add_ok_button();
-        dlg->show_modal();
+        dlg->show_modal(layers);
 
         return dlg;
     }
@@ -171,6 +174,7 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     std::shared_ptr<dialog<Backend>> show_confirm(
+        onyxui::layer_manager<Backend>& layers,
         std::string title,
         std::string message,
         std::function<void(bool confirmed)> callback
@@ -180,9 +184,10 @@ namespace onyxui {
         dlg->add_yes_no_buttons();
 
         // Wrap callback to convert dialog_result to bool
-        dlg->show_modal([callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
-            callback(result == dialog<Backend>::dialog_result::yes);
-        });
+        dlg->show_modal(layers,
+            [callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
+                callback(result == dialog<Backend>::dialog_result::yes);
+            });
 
         return dlg;
     }
@@ -216,6 +221,7 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     std::shared_ptr<dialog<Backend>> show_warning(
+        onyxui::layer_manager<Backend>& layers,
         std::string title,
         std::string message,
         std::function<void(bool proceed)> callback
@@ -225,9 +231,10 @@ namespace onyxui {
         dlg->add_ok_cancel_buttons();
 
         // Wrap callback to convert dialog_result to bool
-        dlg->show_modal([callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
-            callback(result == dialog<Backend>::dialog_result::ok);
-        });
+        dlg->show_modal(layers,
+            [callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
+                callback(result == dialog<Backend>::dialog_result::ok);
+            });
 
         return dlg;
     }
@@ -253,13 +260,14 @@ namespace onyxui {
      */
     template<UIBackend Backend>
     std::shared_ptr<dialog<Backend>> show_error(
+        onyxui::layer_manager<Backend>& layers,
         std::string message,
         std::string title = "Error"
     ) {
         auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
         dlg->set_message(std::move(message));
         dlg->add_ok_button();
-        dlg->show_modal();
+        dlg->show_modal(layers);
 
         return dlg;
     }

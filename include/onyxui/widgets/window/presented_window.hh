@@ -32,9 +32,9 @@
  * want.
  *
  * Cross-manager safety and use-after-free protection are inherited for
- * free: `window::show()` / `show_modal()` register the window with the
- * passed `layer_manager` and subscribe to its `destroying` signal, so
- * the window is robust to either the presenter or the manager going
+ * free: `window::show(lm)` / `show_modal(lm)` register the window with
+ * the passed `layer_manager` and subscribe to its `destroying` signal,
+ * so the window is robust to either the presenter or the manager going
  * away first.
  */
 

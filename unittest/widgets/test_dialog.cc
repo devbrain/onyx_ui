@@ -325,11 +325,12 @@ TEST_CASE("dialog - Callback-based pattern") {
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper functions") {
+    auto& layers = this->ctx.layers();
     SUBCASE("show_message_box creates dialog") {
         bool callback_invoked = false;
         dialog<test_canvas_backend>::dialog_result received_result = dialog<test_canvas_backend>::dialog_result::none;
 
-        auto dlg = show_message_box<test_canvas_backend>(
+        auto dlg = show_message_box<test_canvas_backend>(layers,
             "Test Title",
             "Test Message",
             message_box_buttons::ok,
@@ -345,7 +346,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     }
 
     SUBCASE("show_message_box with yes_no_cancel buttons") {
-        auto dlg = show_message_box<test_canvas_backend>(
+        auto dlg = show_message_box<test_canvas_backend>(layers,
             "Save Changes?",
             "Do you want to save?",
             message_box_buttons::yes_no_cancel,
@@ -357,7 +358,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     }
 
     SUBCASE("show_info creates dialog") {
-        auto dlg = show_info<test_canvas_backend>("File saved successfully!");
+        auto dlg = show_info<test_canvas_backend>(layers, "File saved successfully!");
 
         REQUIRE(dlg != nullptr);
         CHECK(dlg->get_title() == "Information");
@@ -365,7 +366,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     }
 
     SUBCASE("show_info with custom title") {
-        auto dlg = show_info<test_canvas_backend>("Operation completed.", "Success");
+        auto dlg = show_info<test_canvas_backend>(layers, "Operation completed.", "Success");
 
         REQUIRE(dlg != nullptr);
         CHECK(dlg->get_title() == "Success");
@@ -376,7 +377,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
         bool callback_invoked = false;
         bool confirmed = false;
 
-        auto dlg = show_confirm<test_canvas_backend>(
+        auto dlg = show_confirm<test_canvas_backend>(layers, 
             "Delete File?",
             "This cannot be undone.",
             [&](bool result) {
@@ -393,7 +394,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     SUBCASE("show_warning creates dialog") {
         bool proceed = false;
 
-        auto dlg = show_warning<test_canvas_backend>(
+        auto dlg = show_warning<test_canvas_backend>(layers, 
             "Overwrite File?",
             "The file already exists.",
             [&](bool result) {
@@ -406,7 +407,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     }
 
     SUBCASE("show_error creates dialog") {
-        auto dlg = show_error<test_canvas_backend>("Failed to open file");
+        auto dlg = show_error<test_canvas_backend>(layers, "Failed to open file");
 
         REQUIRE(dlg != nullptr);
         CHECK(dlg->get_title() == "Error");
@@ -414,7 +415,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
     }
 
     SUBCASE("show_error with custom title") {
-        auto dlg = show_error<test_canvas_backend>("Network timeout", "Connection Error");
+        auto dlg = show_error<test_canvas_backend>(layers, "Network timeout", "Connection Error");
 
         REQUIRE(dlg != nullptr);
         CHECK(dlg->get_title() == "Connection Error");
@@ -426,6 +427,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Integration") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Complete workflow: create, set message, add buttons, simulate close") {
         test_dialog<test_canvas_backend> dlg("Confirmation");
         dlg.set_message("Are you sure?");
@@ -525,6 +527,7 @@ TEST_CASE("dialog - Edge cases") {
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rendering verification") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Dialog with message and buttons renders correctly") {
         test_dialog<test_canvas_backend> dlg("Confirmation");
         dlg.set_message("Are you sure you want to continue?");
@@ -588,7 +591,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
     }
 
     SUBCASE("Simple info dialog renders correctly") {
-        auto dlg = show_info<test_canvas_backend>("Operation completed successfully!");
+        auto dlg = show_info<test_canvas_backend>(layers, "Operation completed successfully!");
 
         REQUIRE(dlg != nullptr);
 

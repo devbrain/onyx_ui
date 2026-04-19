@@ -95,7 +95,7 @@ namespace onyxui {
      * win->set_content(std::move(content));
      *
      * // Show window
-     * win->show();
+     * win->show(layers);
      * @endcode
      */
     template<UIBackend Backend>
@@ -162,10 +162,10 @@ namespace onyxui {
          * @param flags Window configuration flags
          *
          * @note `window<Backend>` is designed to be hosted in a
-         *       `layer_manager<Backend>` via `show()` / `show_modal()`. It
-         *       is not intended to live inside a widget layout tree. For a
-         *       tree-hosted framed container (title + border + children),
-         *       use `group_box<Backend>` instead.
+         *       `layer_manager<Backend>` via `show(lm)` / `show_modal(lm)`.
+         *       It is not intended to live inside a widget layout tree.
+         *       For a tree-hosted framed container (title + border +
+         *       children), use `group_box<Backend>` instead.
          */
         explicit window(
             std::string title = "",
@@ -270,7 +270,7 @@ namespace onyxui {
          * win->fit_content();
          *
          * // Show window
-         * win->show();
+         * win->show(layers);
          * @endcode
          */
         void fit_content();
@@ -398,22 +398,16 @@ namespace onyxui {
         /// @brief Remove the window's layer from the given manager.
         void hide(layer_manager<Backend>& layers);
 
-        /// @brief DEPRECATED — ambient ui_services::layers() lookup.
-        /// Prefer the overload taking an explicit layer_manager.
-        [[deprecated("pass layer_manager explicitly: win.show(*layers)")]]
-        void show();
-
-        /// @brief DEPRECATED — ambient ui_services::layers() lookup.
-        [[deprecated("pass layer_manager explicitly: win.show_modal(*layers)")]]
-        void show_modal();
-
-        /// @brief Hide via the ambient layer_manager.
+        /// @brief Hide via the cached owning manager.
         ///
-        /// Not deprecated: hide() is called from the destructor and close(),
-        /// neither of which can reasonably require an explicit
-        /// layer_manager reference. For typical caller-initiated hiding,
-        /// prefer the overload that takes an explicit layer_manager so the
-        /// intent matches show(*layers).
+        /// Called from the destructor and `close()`, both of which can't
+        /// reasonably plumb a `layer_manager&` through. Uses the manager
+        /// recorded by the last `show(lm)` / `show_modal(lm)`; no-ops
+        /// safely if that manager has been torn down (observed via
+        /// `m_layer_owner_conn` on the manager's `destroying` signal).
+        ///
+        /// For typical caller-initiated hiding, prefer `hide(layers)` so
+        /// the intent mirrors `show(layers)`.
         void hide();
 
         /**
@@ -437,9 +431,9 @@ namespace onyxui {
          * **Use case**: Floating windows in main_window applications
          * @code
          * auto main = std::make_unique<main_window<Backend>>();
-         * auto win = std::make_shared<window<Backend>>("Tool", flags);
+         * auto win = std::make_unique<window<Backend>>("Tool", flags);
          * win->set_workspace(main->central_widget());  // Respect workspace
-         * win->show();  // Still a floating layer
+         * win->show(layers);  // Still a floating layer
          * win->maximize();  // Fills central_widget area, not entire screen
          * @endcode
          */
@@ -552,8 +546,8 @@ namespace onyxui {
         // Phase 5: Layer manager integration
         //
         // A window keeps track of which layer_manager owns its current
-        // layer. Every show()/show_modal() call records the manager that
-        // received the layer; subsequent show/hide on a *different*
+        // layer. Every show(lm)/show_modal(lm) call records the manager
+        // that received the layer; subsequent show/hide on a *different*
         // manager first removes the layer from the old owner, so the
         // window never leaves an orphaned entry behind.
         //

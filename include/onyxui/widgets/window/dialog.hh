@@ -51,7 +51,7 @@ namespace onyxui {
      *     }
      * });
      *
-     * dlg->show_modal();  // Non-blocking
+     * dlg->show_modal(layers);  // Non-blocking
      * @endcode
      *
      * ## Pattern 2: Callback-Based (Convenience)
@@ -157,22 +157,19 @@ namespace onyxui {
         // Display Methods
         // ====================================================================
 
-        // Bring base class show_modal() into scope (prevents name hiding)
+        // Bring base-class show_modal overloads into scope (prevents
+        // name hiding by the callback overload below).
         using base::show_modal;
 
         /**
          * @brief Show modal dialog with callback (callback-based pattern)
+         * @param layers    Host layer_manager (same contract as window::show_modal)
          * @param on_result Callback invoked when dialog closes with result
-         *
-         * @details
-         * This overload does NOT hide window::show_modal() thanks to the
-         * using declaration above. Both versions are available:
-         * - dialog.show_modal()          -> calls window::show_modal()
-         * - dialog.show_modal(callback)  -> calls this overload
          */
-        void show_modal(std::function<void(dialog_result)> on_result) {
+        void show_modal(onyxui::layer_manager<Backend>& layers,
+                         std::function<void(dialog_result)> on_result) {
             m_callback = std::move(on_result);
-            base::show_modal();
+            base::show_modal(layers);
         }
 
         // ====================================================================

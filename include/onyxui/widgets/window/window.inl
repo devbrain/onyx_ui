@@ -61,7 +61,7 @@ namespace onyxui {
                     this->arrange(new_bounds);
 
                     // Update layer bounds on the manager that actually owns
-                    // the layer (the one show()/show_modal() last used).
+                    // the layer (the one show(lm)/show_modal(lm) last used).
                     if (m_layer_id.is_valid() && m_layer_owner) {
                         m_layer_owner->set_layer_bounds(m_layer_id, new_bounds);
                     }
@@ -93,7 +93,13 @@ namespace onyxui {
                     return;
                 }
 
-                auto* layers = ui_services <Backend>::layers();
+                // Route the popup through the owning manager (the one that
+                // hosted this window via show*) rather than an ambient
+                // lookup. Without this, a nested context would add the
+                // popup to the wrong manager.
+                auto* layers = m_layer_owner
+                    ? m_layer_owner
+                    : ui_services <Backend>::layers();
                 if (!layers) {
                     return;
                 }
@@ -255,6 +261,9 @@ namespace onyxui {
             maximized_bounds = m_workspace->get_absolute_logical_bounds();
         } else {
             // Floating window without workspace — maximize to fill viewport.
+            // Ambient lookup is intentional here: the viewport is a shared
+            // frame-level resource with no per-window alternative. See
+            // PRESENTATION_CONVENTIONS.md.
             auto* layers = ui_services <Backend>::layers();
             auto* metrics = ui_services <Backend>::metrics();
             if (layers && metrics) {
@@ -650,64 +659,20 @@ namespace onyxui {
         this->set_visible(false);
     }
 
-    // ----------------------------------------------------------------
-    // Deprecated legacy: ambient ui_services::layers() lookup.
-    //
-    // These match the historical contract: even if no layer manager is
-    // available (e.g. a test context that didn't install one), the window's
-    // own state (visible / focus / modal flags) still gets updated. Only
-    // the layer-manipulation step is skipped when there's nothing to
-    // manipulate.
-    // ----------------------------------------------------------------
-
-    template<UIBackend Backend>
-    void window <Backend>::show() {
-        if (auto* layers = ui_services<Backend>::layers()) {
-            show(*layers);
-            return;
-        }
-        m_flags.is_modal = false;
-        this->set_visible(true);
-        set_window_focus(true);
-    }
-
-    template<UIBackend Backend>
-    void window <Backend>::show_modal() {
-        if (auto* layers = ui_services<Backend>::layers()) {
-            show_modal(*layers);
-            return;
-        }
-        m_flags.is_modal = true;
-        this->set_visible(true);
-        if (auto* win_mgr = ui_services<Backend>::windows()) {
-            m_previous_active_window = win_mgr->get_active_window();
-            win_mgr->set_active_window(this);
-        }
-        if (auto* focus_mgr = ui_services<Backend>::input()) {
-            focus_mgr->release_capture();
-            focus_mgr->clear_hover();
-            focus_mgr->set_focus(this);
-        }
-        set_window_focus(true);
-    }
-
     template<UIBackend Backend>
     void window <Backend>::hide() {
-        // Prefer the owning manager (set by the last show/show_modal) over
-        // whatever ambient layer_manager happens to be current. If the
-        // owner has already been torn down, the `destroying` signal has
-        // cleared m_layer_owner, so this branch is correctly skipped and
-        // we just toggle the visible flag.
+        // Use the owning manager recorded at show-time. If the owner has
+        // been torn down first, its `destroying` signal has already
+        // cleared m_layer_owner; the layer is gone with it, so we just
+        // toggle the visible flag and exit. There is intentionally no
+        // ambient fallback here — see PRESENTATION_CONVENTIONS.md.
         if (m_layer_id.is_valid() && m_layer_owner) {
             m_layer_owner->remove_layer(m_layer_id);
-            m_layer_owner_conn = scoped_connection{};
-            m_layer_id = layer_id::invalid();
-            m_layer_owner = nullptr;
-            m_layer_handle.reset();
-        } else if (auto* layers = ui_services<Backend>::layers()) {
-            hide(*layers);
-            return;
         }
+        m_layer_owner_conn = scoped_connection{};
+        m_layer_id = layer_id::invalid();
+        m_layer_owner = nullptr;
+        m_layer_handle.reset();
         this->set_visible(false);
     }
 
@@ -974,6 +939,9 @@ namespace onyxui {
             container = m_workspace->get_absolute_logical_bounds();
             have_container = true;
         } else {
+            // Ambient lookup is intentional here for the same reason as
+            // the maximize viewport fallback above — see
+            // PRESENTATION_CONVENTIONS.md.
             auto* layers = ui_services<Backend>::layers();
             auto* metrics = ui_services<Backend>::metrics();
             if (layers && metrics) {

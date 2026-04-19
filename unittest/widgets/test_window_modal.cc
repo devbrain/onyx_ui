@@ -19,6 +19,7 @@ using namespace onyxui::testing;
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - show() integration") {
+    auto& layers = this->ctx.layers();
     SUBCASE("show() makes window visible") {
         window<test_canvas_backend> win("Test Window");
 
@@ -29,35 +30,36 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - show() inte
         win.hide();
         CHECK_FALSE(win.is_visible());
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
     }
 
     SUBCASE("show() can be called multiple times") {
         window<test_canvas_backend> win("Test Window");
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
 
-        win.show();  // Second call should not crash
+        win.show(layers);  // Second call should not crash
         CHECK(win.is_visible());
     }
 
     SUBCASE("show() after hide() makes window visible again") {
         window<test_canvas_backend> win("Test Window");
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
 
         win.hide();
         CHECK_FALSE(win.is_visible());
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
     }
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - show_modal() integration") {
+    auto& layers = this->ctx.layers();
     SUBCASE("show_modal() makes window visible") {
         window<test_canvas_backend> win("Modal Window");
 
@@ -68,39 +70,40 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - show_modal(
         win.hide();
         CHECK_FALSE(win.is_visible());
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_visible());
     }
 
     SUBCASE("show_modal() can be called multiple times") {
         window<test_canvas_backend> win("Modal Window");
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_visible());
 
-        win.show_modal();  // Second call should not crash
+        win.show_modal(layers);  // Second call should not crash
         CHECK(win.is_visible());
     }
 
     SUBCASE("show_modal() after hide()") {
         window<test_canvas_backend> win("Modal Window");
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_visible());
 
         win.hide();
         CHECK_FALSE(win.is_visible());
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_visible());
     }
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - hide() integration") {
+    auto& layers = this->ctx.layers();
     SUBCASE("hide() makes window invisible") {
         window<test_canvas_backend> win("Test Window");
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
 
         win.hide();
@@ -122,7 +125,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - hide() inte
     SUBCASE("hide() can be called multiple times") {
         window<test_canvas_backend> win("Test Window");
 
-        win.show();
+        win.show(layers);
         win.hide();
         win.hide();  // Second call should not crash
         CHECK_FALSE(win.is_visible());
@@ -134,14 +137,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - hide() inte
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Multiple windows") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Multiple non-modal windows can be shown") {
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         CHECK(win1.is_visible());
         CHECK(win2.is_visible());
@@ -152,8 +156,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Multiple wi
         window<test_canvas_backend> win1("Modal 1");
         window<test_canvas_backend> win2("Modal 2");
 
-        win1.show_modal();
-        win2.show_modal();
+        win1.show_modal(layers);
+        win2.show_modal(layers);
 
         CHECK(win1.is_visible());
         CHECK(win2.is_visible());
@@ -164,9 +168,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Multiple wi
         window<test_canvas_backend> win2("Modal 1");
         window<test_canvas_backend> win3("Window 2");
 
-        win1.show();
-        win2.show_modal();
-        win3.show();
+        win1.show(layers);
+        win2.show_modal(layers);
+        win3.show(layers);
 
         CHECK(win1.is_visible());
         CHECK(win2.is_visible());
@@ -177,8 +181,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Multiple wi
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         win1.hide();
 
@@ -192,10 +196,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Multiple wi
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Lifecycle") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Window destructor cleans up layer") {
         {
             window<test_canvas_backend> win("Temporary");
-            win.show();
+            win.show(layers);
             CHECK(win.is_visible());
         }
         // Window destroyed - layer should be cleaned up
@@ -205,7 +210,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Lifecycle")
     SUBCASE("Window can be shown, hidden, and destroyed") {
         auto win = std::make_unique<window<test_canvas_backend>>("Test");
 
-        win->show();
+        win->show(layers);
         CHECK(win->is_visible());
 
         win->hide();
@@ -219,7 +224,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Lifecycle")
         window<test_canvas_backend> win("Test");
 
         for (int i = 0; i < 5; ++i) {
-            win.show();
+            win.show(layers);
             CHECK(win.is_visible());
 
             win.hide();
@@ -233,10 +238,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Lifecycle")
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - close() hides window") {
+    auto& layers = this->ctx.layers();
     SUBCASE("close() hides window") {
         window<test_canvas_backend> win("Test");
 
-        win.show();
+        win.show(layers);
         CHECK(win.is_visible());
 
         win.close();
@@ -261,7 +267,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - close() hid
             CHECK(closing_count == 1);
         });
 
-        win.show();
+        win.show(layers);
         win.close();
 
         CHECK(closing_count == 1);
@@ -286,6 +292,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - close() hid
 // ============================================================================
 
 TEST_CASE("window - Modal flags") {
+    layer_manager<test_canvas_backend> layers;
     SUBCASE("Non-modal window by default") {
         window<test_backend> win;
 
@@ -320,10 +327,11 @@ TEST_CASE("window - Modal flags") {
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - States with show/hide") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Minimized window can be shown again") {
         window<test_canvas_backend> win("Test");
 
-        win.show();
+        win.show(layers);
         win.minimize();
 
         CHECK(win.get_state() == window<test_canvas_backend>::window_state::minimized);
@@ -337,7 +345,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - States with
     SUBCASE("Maximized window can be hidden") {
         window<test_canvas_backend> win("Test");
 
-        win.show();
+        win.show(layers);
         win.maximize();
 
         CHECK(win.get_state() == window<test_canvas_backend>::window_state::maximized);
@@ -355,7 +363,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - States with
         win.maximize();
         CHECK(win.get_state() == window<test_canvas_backend>::window_state::maximized);
 
-        win.show();
+        win.show(layers);
         // State should still be maximized
         CHECK(win.get_state() == window<test_canvas_backend>::window_state::maximized);
     }
@@ -366,11 +374,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - States with
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Edge cases") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Rapid show/hide cycles") {
         window<test_canvas_backend> win("Test");
 
         for (int i = 0; i < 100; ++i) {
-            win.show();
+            win.show(layers);
             win.hide();
         }
         // Should not crash or leak
@@ -379,7 +388,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Edge cases"
     SUBCASE("show() then immediate close()") {
         window<test_canvas_backend> win("Test");
 
-        win.show();
+        win.show(layers);
         win.close();
 
         CHECK_FALSE(win.is_visible());
@@ -388,7 +397,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Edge cases"
     SUBCASE("show_modal() then immediate close()") {
         window<test_canvas_backend> win("Test");
 
-        win.show_modal();
+        win.show_modal(layers);
         win.close();
 
         CHECK_FALSE(win.is_visible());
@@ -399,9 +408,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Edge cases"
         auto win2 = std::make_unique<window<test_canvas_backend>>("Win 2");
         auto win3 = std::make_unique<window<test_canvas_backend>>("Win 3");
 
-        win1->show();
-        win2->show();
-        win3->show();
+        win1->show(layers);
+        win2->show(layers);
+        win3->show(layers);
 
         // Destroy in different order than creation
         win2.reset();
@@ -416,6 +425,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Edge cases"
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Performance") {
+    auto& layers = this->ctx.layers();
     SUBCASE("Many windows can be created") {
         std::vector<std::unique_ptr<window<test_canvas_backend>>> windows;
 
@@ -425,7 +435,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Performance
 
         // Show all windows
         for (auto& win : windows) {
-            win->show();
+            win->show(layers);
         }
 
         // All should be visible
@@ -450,12 +460,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Performance
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - is_modal() flag") {
+    auto& layers = this->ctx.layers();
     SUBCASE("show_modal() sets is_modal flag") {
         window<test_canvas_backend> win("Test");
 
         CHECK_FALSE(win.is_modal());
 
-        win.show_modal();
+        win.show_modal(layers);
 
         CHECK(win.is_modal());
     }
@@ -464,18 +475,18 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - is_modal() 
         window<test_canvas_backend> win("Test");
 
         // First show as modal
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_modal());
 
         // Then show as normal
-        win.show();
+        win.show(layers);
         CHECK_FALSE(win.is_modal());
     }
 
     SUBCASE("is_modal persists after hide") {
         window<test_canvas_backend> win("Test");
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_modal());
 
         win.hide();
@@ -487,55 +498,54 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - is_modal() 
         window<test_canvas_backend> win("Test");
 
         // Normal show first
-        win.show();
+        win.show(layers);
         CHECK_FALSE(win.is_modal());
 
         // Then modal
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(win.is_modal());
     }
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - Layer manager modal integration") {
-    auto* layers = ui_services<test_canvas_backend>::layers();
-    REQUIRE(layers != nullptr);
+    auto& layers = this->ctx.layers();
 
     SUBCASE("show_modal() creates modal layer") {
         window<test_canvas_backend> win("Modal Test");
 
-        CHECK_FALSE(layers->has_modal_layer());
+        CHECK_FALSE(layers.has_modal_layer());
 
-        win.show_modal();
+        win.show_modal(layers);
 
-        CHECK(layers->has_modal_layer());
+        CHECK(layers.has_modal_layer());
     }
 
     SUBCASE("hide() removes modal layer") {
         window<test_canvas_backend> win("Modal Test");
 
-        win.show_modal();
-        CHECK(layers->has_modal_layer());
+        win.show_modal(layers);
+        CHECK(layers.has_modal_layer());
 
         win.hide();
-        CHECK_FALSE(layers->has_modal_layer());
+        CHECK_FALSE(layers.has_modal_layer());
     }
 
     SUBCASE("Multiple modal windows create multiple layers") {
         window<test_canvas_backend> win1("Modal 1");
         window<test_canvas_backend> win2("Modal 2");
 
-        win1.show_modal();
-        CHECK(layers->has_modal_layer());
+        win1.show_modal(layers);
+        CHECK(layers.has_modal_layer());
 
-        win2.show_modal();
-        CHECK(layers->has_modal_layer());
+        win2.show_modal(layers);
+        CHECK(layers.has_modal_layer());
 
         // Hide first - should still have modal
         win1.hide();
-        CHECK(layers->has_modal_layer());
+        CHECK(layers.has_modal_layer());
 
         // Hide second - no more modals
         win2.hide();
-        CHECK_FALSE(layers->has_modal_layer());
+        CHECK_FALSE(layers.has_modal_layer());
     }
 }

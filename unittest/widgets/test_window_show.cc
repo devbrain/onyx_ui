@@ -29,13 +29,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
     win->set_height_constraint({size_policy::fixed, logical_unit(100.0)});
     // Intentionally do NOT call set_position/set_size. Bounds stay zero.
 
-    win->show();
+    auto* layers = ui_services<Backend>::layers();
+    REQUIRE(layers != nullptr);
+    win->show(*layers);
 
     // Render once so the layer manager runs its auto-positioning pass.
     const typename Backend::rect_type viewport{0, 0, 800, 600};
-
-    auto* layers = ui_services<Backend>::layers();
-    REQUIRE(layers != nullptr);
     auto* themes = ui_services<Backend>::themes();
     REQUIRE(themes != nullptr);
     auto* theme = themes->get_current_theme();
@@ -142,11 +141,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
     win->set_position(50, 40);
     win->set_size(200, 100);
 
-    win->show();
-
-    const typename Backend::rect_type viewport{0, 0, 800, 600};
     auto* layers = ui_services<Backend>::layers();
     REQUIRE(layers != nullptr);
+    win->show(*layers);
+
+    const typename Backend::rect_type viewport{0, 0, 800, 600};
     auto* themes = ui_services<Backend>::themes();
     REQUIRE(themes != nullptr);
     auto* theme = themes->get_current_theme();

@@ -56,7 +56,7 @@ namespace onyxui {
      *     // Bring to front and focus
      * });
      *
-     * dialog->show_modal();
+     * dialog->show_modal(layers);
      * @endcode
      */
     template<UIBackend Backend>

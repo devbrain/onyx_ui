@@ -68,7 +68,7 @@ namespace onyxui {
         //     }
         //     // Bring to front and focus
         // });
-        // dialog->show_modal();
+        // dialog->show_modal(layers);
     }
 
     // Note: register_hotkeys() implementation is in window.inl (window_manager section)

@@ -10,6 +10,7 @@
 #include "../utils/test_backend.hh"
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
+#include "onyxui/services/layer_manager.hh"
 #include "onyxui/widgets/window/window_list_dialog.hh"
 #include "onyxui/widgets/window/window.hh"
 
@@ -115,14 +116,15 @@ TEST_CASE("window_list_dialog - Window management") {
 // ============================================================================
 
 TEST_CASE("window_list_dialog - Filter modes") {
+    layer_manager<test_backend> layers;
     SUBCASE("Filter mode: all") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win1("Visible");
         window<test_backend> win2("Minimized");
         window<test_backend> win3("Hidden");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
         win3.hide();
 
@@ -142,8 +144,8 @@ TEST_CASE("window_list_dialog - Filter modes") {
         window<test_backend> win2("Minimized");
         window<test_backend> win3("Hidden");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
         win3.hide();
 
@@ -162,8 +164,8 @@ TEST_CASE("window_list_dialog - Filter modes") {
         window<test_backend> win1("Visible");
         window<test_backend> win2("Minimized");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
 
         dialog.add_window(&win1);
@@ -180,8 +182,8 @@ TEST_CASE("window_list_dialog - Filter modes") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -200,15 +202,16 @@ TEST_CASE("window_list_dialog - Filter modes") {
 // ============================================================================
 
 TEST_CASE("window_list_dialog - Selection and navigation") {
+    layer_manager<test_backend> layers;
     SUBCASE("Set selected index") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
         window<test_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -226,8 +229,8 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -246,9 +249,9 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
         window<test_backend> win2("Window 2");
         window<test_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -268,8 +271,8 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -287,9 +290,9 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
         window<test_backend> win2("Window 2");
         window<test_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -310,8 +313,8 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -341,13 +344,14 @@ TEST_CASE("window_list_dialog - Selection and navigation") {
 // ============================================================================
 
 TEST_CASE("window_list_dialog - Keyboard event handling") {
+    layer_manager<test_backend> layers;
     SUBCASE("Arrow down selects next") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -368,8 +372,8 @@ TEST_CASE("window_list_dialog - Keyboard event handling") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -391,8 +395,8 @@ TEST_CASE("window_list_dialog - Keyboard event handling") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -463,13 +467,14 @@ TEST_CASE("window_list_dialog - Keyboard event handling") {
 // ============================================================================
 
 TEST_CASE("window_list_dialog - Signal emission") {
+    layer_manager<test_backend> layers;
     SUBCASE("window_selected signal emitted on activate") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -495,9 +500,9 @@ TEST_CASE("window_list_dialog - Signal emission") {
         window<test_backend> win2("Window 2");
         window<test_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -533,7 +538,7 @@ TEST_CASE("window_list_dialog - Signal emission") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win("Test");
 
-        win.show();
+        win.show(layers);
         dialog.add_window(&win);
 
         bool dialog_closed = false;
@@ -552,15 +557,16 @@ TEST_CASE("window_list_dialog - Signal emission") {
 // ============================================================================
 
 TEST_CASE("window_list_dialog - Integration scenarios") {
+    layer_manager<test_backend> layers;
     SUBCASE("Complete workflow: add, navigate, activate") {
         test_window_list_dialog<test_backend> dialog;
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
         window<test_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         // Add windows
         dialog.add_window(&win1);
@@ -595,10 +601,10 @@ TEST_CASE("window_list_dialog - Integration scenarios") {
         window<test_backend> win2("Minimized");
         window<test_backend> win3("Visible 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
-        win3.show();
+        win3.show(layers);
 
         dialog.add_window(&win1);
         dialog.add_window(&win2);
@@ -621,8 +627,8 @@ TEST_CASE("window_list_dialog - Integration scenarios") {
         window<test_backend> win1("Window 1");
         window<test_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         dialog1.add_window(&win1);
         dialog2.add_window(&win2);

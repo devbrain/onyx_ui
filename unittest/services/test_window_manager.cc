@@ -191,6 +191,7 @@ TEST_CASE("window_manager - Get all windows") {
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get visible windows") {
+    auto& layers = this->ctx.layers();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -204,9 +205,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         auto visible = mgr->get_visible_windows();
         CHECK(visible.size() == 3);
@@ -217,8 +218,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win3.hide();
 
         auto visible = mgr->get_visible_windows();
@@ -239,8 +240,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
 
         auto visible = mgr->get_visible_windows();
@@ -256,12 +257,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
         window<test_canvas_backend> win4("Minimized");
         window<test_canvas_backend> win5("Maximized");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win3.hide();
-        win4.show();
+        win4.show(layers);
         win4.minimize();
-        win5.show();
+        win5.show(layers);
         win5.maximize();
 
         auto visible = mgr->get_visible_windows();
@@ -280,6 +281,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
 }
 
 TEST_CASE("window_manager - Get minimized windows") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -294,10 +296,10 @@ TEST_CASE("window_manager - Get minimized windows") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();
-        win3.show();
+        win3.show(layers);
 
         auto minimized = mgr->get_minimized_windows();
         CHECK(minimized.size() == 1);
@@ -310,11 +312,11 @@ TEST_CASE("window_manager - Get minimized windows") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
+        win1.show(layers);
         win1.minimize();
-        win2.show();
+        win2.show(layers);
         win2.minimize();
-        win3.show();
+        win3.show(layers);
 
         auto minimized = mgr->get_minimized_windows();
         CHECK(minimized.size() == 2);
@@ -330,7 +332,7 @@ TEST_CASE("window_manager - Get minimized windows") {
 
     SUBCASE("Restored window is removed from minimized list") {
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         win.minimize();
 
         auto minimized1 = mgr->get_minimized_windows();
@@ -344,6 +346,7 @@ TEST_CASE("window_manager - Get minimized windows") {
 }
 
 TEST_CASE("window_manager - Get modal windows") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -357,8 +360,8 @@ TEST_CASE("window_manager - Get modal windows") {
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         auto modal = mgr->get_modal_windows();
         CHECK(modal.empty());
@@ -368,8 +371,8 @@ TEST_CASE("window_manager - Get modal windows") {
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Modal Window");
 
-        win1.show();
-        win2.show_modal();
+        win1.show(layers);
+        win2.show_modal(layers);
 
         auto modal = mgr->get_modal_windows();
         CHECK(modal.size() == 1);
@@ -381,9 +384,9 @@ TEST_CASE("window_manager - Get modal windows") {
         window<test_canvas_backend> win2("Modal 2");
         window<test_canvas_backend> win3("Normal");
 
-        win1.show_modal();
-        win2.show_modal();
-        win3.show();
+        win1.show_modal(layers);
+        win2.show_modal(layers);
+        win3.show(layers);
 
         auto modal = mgr->get_modal_windows();
         CHECK(modal.size() == 2);
@@ -392,11 +395,11 @@ TEST_CASE("window_manager - Get modal windows") {
     SUBCASE("Modal window converted to normal not returned") {
         window<test_canvas_backend> win("Window");
 
-        win.show_modal();
+        win.show_modal(layers);
         CHECK(mgr->get_modal_windows().size() == 1);
 
         // Convert to normal
-        win.show();
+        win.show(layers);
         CHECK(mgr->get_modal_windows().empty());
     }
 }
@@ -499,6 +502,7 @@ TEST_CASE("window_manager - Signals - window_unregistered") {
 }
 
 TEST_CASE("window_manager - Signals - window_minimized") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -513,7 +517,7 @@ TEST_CASE("window_manager - Signals - window_minimized") {
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         CHECK(emit_count == 0);
 
         win.minimize();
@@ -530,7 +534,7 @@ TEST_CASE("window_manager - Signals - window_minimized") {
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         win.minimize();
         CHECK(emit_count == 1);
 
@@ -540,6 +544,7 @@ TEST_CASE("window_manager - Signals - window_minimized") {
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Signals - window_restored") {
+    auto& layers = this->ctx.layers();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -553,7 +558,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Sig
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         win.minimize();
         CHECK(emit_count == 0);
 
@@ -573,7 +578,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Sig
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         win.maximize();
         CHECK(emit_count == 0);
 
@@ -591,7 +596,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Sig
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         CHECK(emit_count == 0);
 
         win.restore();
@@ -604,6 +609,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Sig
 // ============================================================================
 
 TEST_CASE("window_manager - Custom minimize handler") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -624,7 +630,7 @@ TEST_CASE("window_manager - Custom minimize handler") {
         CHECK(mgr->has_custom_minimize_handler());
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
 
         // Minimize should call custom handler
         win.minimize();
@@ -651,8 +657,8 @@ TEST_CASE("window_manager - Custom minimize handler") {
         window<test_canvas_backend> win1("Window 1");
         window<test_canvas_backend> win2("Window 2");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         win1.minimize();
         CHECK(call_count == 1);
@@ -667,7 +673,7 @@ TEST_CASE("window_manager - Custom minimize handler") {
         });
 
         window<test_canvas_backend> win("Test");
-        win.show();
+        win.show(layers);
         win.minimize();
 
         CHECK(win.get_state() == window<test_canvas_backend>::window_state::minimized);
@@ -679,6 +685,7 @@ TEST_CASE("window_manager - Custom minimize handler") {
 // ============================================================================
 
 TEST_CASE("window_manager - Window cycling") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -694,7 +701,7 @@ TEST_CASE("window_manager - Window cycling") {
 
     SUBCASE("Cycle next with single window") {
         window<test_canvas_backend> win("Window 1");
-        win.show();
+        win.show(layers);
 
         CHECK(mgr->get_active_window() == nullptr);
 
@@ -712,9 +719,9 @@ TEST_CASE("window_manager - Window cycling") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         // No active window - should activate first
         mgr->cycle_next_window();
@@ -744,7 +751,7 @@ TEST_CASE("window_manager - Window cycling") {
 
     SUBCASE("Cycle previous with single window") {
         window<test_canvas_backend> win("Window 1");
-        win.show();
+        win.show(layers);
 
         mgr->cycle_previous_window();
 
@@ -760,9 +767,9 @@ TEST_CASE("window_manager - Window cycling") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         // No active window - should activate last
         mgr->cycle_previous_window();
@@ -786,9 +793,9 @@ TEST_CASE("window_manager - Window cycling") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
+        win1.show(layers);
         win2.hide();  // Hidden
-        win3.show();
+        win3.show(layers);
 
         // Cycle next should skip win2
         mgr->cycle_next_window();
@@ -806,10 +813,10 @@ TEST_CASE("window_manager - Window cycling") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
         win2.minimize();  // Minimized
-        win3.show();
+        win3.show(layers);
 
         // Cycle should skip minimized
         mgr->cycle_next_window();
@@ -843,9 +850,9 @@ TEST_CASE("window_manager - Window cycling") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         // Set active to win2
         mgr->set_active_window(&win2);
@@ -864,7 +871,7 @@ TEST_CASE("window_manager - Window cycling") {
 
     SUBCASE("Active window tracking survives minimize/restore") {
         window<test_canvas_backend> win("Active Window");
-        win.show();
+        win.show(layers);
 
         mgr->set_active_window(&win);
         CHECK(mgr->get_active_window() == &win);
@@ -885,6 +892,7 @@ TEST_CASE("window_manager - Window cycling") {
 // ============================================================================
 
 TEST_CASE("window_manager - Multi-window scenarios") {
+    layer_manager<test_canvas_backend> layers;
     scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
@@ -895,8 +903,8 @@ TEST_CASE("window_manager - Multi-window scenarios") {
 
         CHECK(mgr->get_window_count() == 2);
 
-        win1.show();
-        win2.show();
+        win1.show(layers);
+        win2.show(layers);
 
         auto visible1 = mgr->get_visible_windows();
         CHECK(visible1.size() == 2);
@@ -938,7 +946,7 @@ TEST_CASE("window_manager - Multi-window scenarios") {
 
         {
             window<test_canvas_backend> win("Test");
-            win.show();
+            win.show(layers);
             win.minimize();
             win.restore();
         }
@@ -955,9 +963,9 @@ TEST_CASE("window_manager - Multi-window scenarios") {
         window<test_canvas_backend> win2("Window 2");
         window<test_canvas_backend> win3("Window 3");
 
-        win1.show();
-        win2.show();
-        win3.show();
+        win1.show(layers);
+        win2.show(layers);
+        win3.show(layers);
 
         auto all1 = mgr->get_all_windows();
         auto visible1 = mgr->get_visible_windows();
