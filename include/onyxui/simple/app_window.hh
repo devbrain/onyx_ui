@@ -126,11 +126,20 @@ namespace onyxui::simple {
         /// this method.
         [[nodiscard]] ui_host& host() noexcept;
 
-        /// Dump a screenshot of the current frame into @p sink.
-        /// Forwards to the backend renderer's screenshot routine —
-        /// the exact wire format is backend-specific (PPM on sdlpp,
-        /// formatted text on conio). No-op if the renderer is not
-        /// yet initialised (e.g. called before `show()`).
+        /// Dump a backend-specific textual representation of the
+        /// current frame into @p sink. Forwards directly to the
+        /// backend renderer's `take_screenshot` routine; this method
+        /// does not normalise the output format.
+        ///
+        /// Current backends write debug/diagnostic text (the sdlpp
+        /// renderer emits a short header with viewport dimensions;
+        /// the conio renderer emits character-cell art of the
+        /// terminal buffer). Neither produces an image binary — a
+        /// real PPM/PNG path would require work on the renderer
+        /// side, not here.
+        ///
+        /// No-op if the renderer is not yet initialised (e.g.
+        /// called before `show()`).
         void take_screenshot(std::ostream& sink) const;
 
         // ----------------------------------------------------------
