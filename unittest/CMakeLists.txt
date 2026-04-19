@@ -36,6 +36,7 @@ add_executable(ui_unittest
         layout/test_size_constraint.cc
         main.cc
         test_ui_host.cc
+        test_backend_aliases.cc
         utils/test_backend.hh
         utils/test_helpers.hh
         utils/test_canvas.hh
