@@ -24,3 +24,12 @@ if(TARGET onyxui_sdlpp_backend)
     add_executable(simple_hello simple_hello/main.cc)
     target_link_libraries(simple_hello PRIVATE onyxui_sdlpp_backend)
 endif()
+
+# Conio parity (WAR-59) — same main.cc, bundle header swap via
+# ONYXUI_EXAMPLE_USE_CONIO. Proves the simple-shell API is genuinely
+# backend-agnostic at the source level.
+if(TARGET onyxui_conio_backend)
+    add_executable(simple_hello_conio simple_hello/main.cc)
+    target_compile_definitions(simple_hello_conio PRIVATE ONYXUI_EXAMPLE_USE_CONIO=1)
+    target_link_libraries(simple_hello_conio PRIVATE onyxui_conio_backend)
+endif()
