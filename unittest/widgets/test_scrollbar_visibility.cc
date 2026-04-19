@@ -29,7 +29,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "widgets_demo - VISUA
     auto canvas = std::make_shared<test_canvas>(width, height);
     canvas_renderer renderer(canvas);
 
-    // CRITICAL: Use renderer viewport for measure/arrange (like ui_handle does)
+    // CRITICAL: Use renderer viewport for measure/arrange (like ui_host does)
     auto bounds = renderer.get_viewport();
     [[maybe_unused]] auto size = demo_widget->measure(logical_unit(static_cast<double>(rect_utils::get_width(bounds))), logical_unit(static_cast<double>(rect_utils::get_height(bounds))));
     demo_widget->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});

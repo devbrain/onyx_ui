@@ -485,7 +485,7 @@ namespace onyxui {
             //   hit_test(absolute_point, hit_test_path&)
             //
             // For scaled backends (SDL), mouse coordinates should be converted to
-            // logical units once at the entry point (ui_handle.hh) using:
+            // logical units once at the entry point (ui_host.hh) using:
             //   metrics.physical_to_logical_x/y()
             //
             // @see hit_test_path For path structure and three-phase event routing
@@ -500,7 +500,7 @@ namespace onyxui {
              * @details
              * This is the preferred hit testing method for scaled backends (SDL).
              * Mouse coordinates should be converted to logical units once at the
-             * entry point (ui_handle.hh), then passed here for consistent precision.
+             * entry point (ui_host.hh), then passed here for consistent precision.
              */
             [[nodiscard]] ui_element* hit_test_logical(logical_unit x, logical_unit y);
 
@@ -686,7 +686,7 @@ namespace onyxui {
        * @brief Render this element and its children with dirty rectangle optimization
        * @param renderer The backend renderer instance
        * @param dirty_regions Regions that need redrawing (empty = render everything)
-       * @param theme Global theme pointer (may be nullptr - fetched once by ui_handle and passed down tree)
+       * @param theme Global theme pointer (may be nullptr - fetched once by host and passed down tree)
        * @param parent_style Parent's resolved style (accumulated top-down, no recursion!)
        * @param metrics Backend metrics for logical-to-physical coordinate conversion
        * @param offset Accumulated physical offset from parent content areas
@@ -696,7 +696,7 @@ namespace onyxui {
        * intersect with any dirty region. This significantly improves performance
        * when only small portions of the UI change.
        *
-       * The theme is fetched once at the top level (ui_handle::display()) and
+       * The theme is fetched once at the top level (the host render path) and
        * passed down through the widget tree to avoid repeated lookups.
        *
        * Parent style is passed down during top-down traversal, eliminating the need
@@ -1072,7 +1072,7 @@ namespace onyxui {
              * @details
              * This is the preferred method for hit testing as it works entirely
              * in logical space, preserving fractional precision. Mouse coordinates
-             * should be converted to logical once at the entry point (ui_handle.hh).
+             * should be converted to logical once at the entry point (ui_host.hh).
              */
             [[nodiscard]] bool is_inside_logical(logical_unit x, logical_unit y) const noexcept {
                 logical_rect abs_bounds = get_absolute_logical_bounds();

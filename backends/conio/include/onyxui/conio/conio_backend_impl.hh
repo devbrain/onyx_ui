@@ -15,8 +15,9 @@ template<template<typename> class Widget>
 int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
 {
     try {
-        // Create UI context with terminal metrics (1 logical unit = 1 char)
-        scoped_ui_context<conio_backend> ui_ctx(make_terminal_metrics<conio_backend>());
+        // Create UI host with terminal metrics (1 logical unit = 1 char).
+        ui_host<conio_backend> host(make_terminal_metrics<conio_backend>());
+        [[maybe_unused]] auto host_scope = host.push_scope();
 
         // Create widget
         auto widget = std::make_unique<Widget<conio_backend>>();
@@ -27,14 +28,14 @@ int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
             setup(*widget_ptr);
         }
 
+        // Mount onto the host.
+        host.mount(std::move(widget));
+
         // Create renderer (owns vram internally, which handles tb_init/tb_shutdown via RAII)
         conio_renderer onyx_renderer;
 
-        // Create UI handle
-        ui_handle<conio_backend> ui(std::move(widget), std::move(onyx_renderer));
-
         // Initial display
-        ui.display();
+        host.render(onyx_renderer);
 
         // Main event loop
         // Check widget's should_quit if available, otherwise use backend's
@@ -49,11 +50,11 @@ int conio_backend::run_app(std::function<void(Widget<conio_backend>&)> setup)
             const int result = conio_poll_event(&ev);
 
             if (result == TB_OK) {
-                // Pass native event to ui_handle (it does conversion internally)
-                ui.handle_event(ev);
+                // Pass native event to host (it converts internally)
+                (void)host.handle_event(ev);
 
                 // Display after handling event
-                ui.display();
+                host.render(onyx_renderer);
             } else if (result == TB_ERR_POLL) {
                 // Error polling - exit
                 break;

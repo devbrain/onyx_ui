@@ -157,7 +157,7 @@ struct sdlpp_tile_backend : public onyxui::sdlpp::sdlpp_backend {
      * Standard widgets use this theme, while tile widgets use the global
      * tile_theme (via get_theme()).
      *
-     * Called automatically by scoped_ui_context on first context creation.
+     * Called automatically by ui_host on first context creation.
      */
     static void register_themes(
         onyxui::theme_registry<sdlpp_tile_backend>& registry);

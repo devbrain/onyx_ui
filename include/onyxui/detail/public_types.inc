@@ -27,8 +27,8 @@
 //     `window_content_area`, `window_system_menu`) — consumers
 //     rarely instantiate these directly. They can be added later
 //     if a real consumer asks.
-//   - Retired / retiring types (scoped_ui_context, ui_handle — see
-//     WAR-58).
+//   - Retired types (moved to `onyxui::detail::` under WAR-58):
+//     `scoped_ui_context` and `ui_handle`. Use `ui_host<B>` instead.
 //
 // Order: core framework first, then widgets by category, then
 // overlays.

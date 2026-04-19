@@ -59,7 +59,7 @@ namespace onyxui {
      * ## get_viewport() Rationale
      *
      * The viewport defines the drawable area for the renderer:
-     * - **Auto-layout**: ui_handle::display() needs viewport to measure/arrange UI
+     * - **Auto-layout**: the host render path needs viewport to measure/arrange UI
      * - **Fullscreen rendering**: Viewport = entire window/screen
      * - **Sub-region rendering**: Viewport = portion of screen (e.g., HUD area)
      * - **Multi-renderer**: Different viewports for different UI panels

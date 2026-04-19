@@ -10,7 +10,7 @@
 #include "../utils/test_helpers.hh"
 #include <onyxui/widgets/label.hh>
 #include "../utils/test_helpers.hh"
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include "../utils/test_helpers.hh"
 #include <utility>
 #include "../utils/test_helpers.hh"
@@ -110,7 +110,7 @@ TEST_SUITE("group_box") {
         // Setup ui_context with theme for measurement
         ui_theme<Backend> theme;
         theme.name = "Test";
-        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test");
 

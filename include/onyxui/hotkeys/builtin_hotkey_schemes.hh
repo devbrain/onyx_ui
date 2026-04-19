@@ -28,7 +28,7 @@
  *
  * ```cpp
  * // Automatic registration (happens in ui_context)
- * scoped_ui_context<Backend> ctx;
+ * ui_host<Backend> ctx;
  *
  * // Built-in schemes already registered!
  * auto* windows = ctx.hotkey_schemes().get_scheme("Windows");

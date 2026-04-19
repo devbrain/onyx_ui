@@ -52,7 +52,7 @@
 #include <onyxui/services/ui_services.hh>
 #include <onyxui/widgets/core/widget.hh>
 
-namespace onyxui {
+namespace onyxui::detail {
 
     /**
      * @class ui_handle
@@ -657,4 +657,4 @@ namespace onyxui {
         }
     };
 
-} // namespace onyxui
+} // namespace onyxui::detail

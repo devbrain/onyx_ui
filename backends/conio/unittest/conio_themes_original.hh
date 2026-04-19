@@ -54,7 +54,7 @@ namespace onyxui::conio {
          * @example
          * @code
          * // Automatic registration (happens automatically)
-         * scoped_ui_context<conio_backend> ctx;
+         * ui_host<conio_backend> ctx;
          * auto* theme = ctx.themes().get_theme("Norton Blue");  // Available!
          *
          * // Manual registration (if needed for custom scenarios)

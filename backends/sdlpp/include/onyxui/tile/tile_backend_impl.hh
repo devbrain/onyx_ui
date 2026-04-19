@@ -46,7 +46,8 @@ int sdlpp_tile_backend::run_app(
             .logical_to_physical_y = 1.0,  // 1 logical unit = 1 pixel
             .dpi_scale = 1.0               // No DPI scaling for tile-based rendering
         };
-        scoped_ui_context<sdlpp_tile_backend> ui_ctx(tile_metrics);
+        ui_host<sdlpp_tile_backend> host(tile_metrics);
+        [[maybe_unused]] auto host_scope = host.push_scope();
 
         // Initialize SDL
         ::sdlpp::init sdl(::sdlpp::init_flags::video);
@@ -158,7 +159,7 @@ int sdlpp_tile_backend::run_app(
                         }
                     } else if (std::get_if<keyboard_event>(&*ui_evt)) {
                         // Keyboard events go to focused widget, or root if none focused
-                        auto* focused = ui_ctx.input().get_focused();
+                        auto* focused = host.input().get_focused();
                         if (focused) {
                             focused->handle_event(*ui_evt, event_phase::target);
                         } else {
@@ -189,9 +190,9 @@ int sdlpp_tile_backend::run_app(
             sdl_renderer.clear();
 
             // Render the widget tree using proper render() method
-            // Get current UI theme (auto-registered by scoped_ui_context)
-            const auto* ui_theme = ui_ctx.themes().get_current_theme();
-            widget_ptr->render(onyx_renderer, ui_theme, ui_ctx.metrics());
+            // Get current UI theme (auto-registered by ui_host)
+            const auto* ui_theme = host.themes().get_current_theme();
+            widget_ptr->render(onyx_renderer, ui_theme, host.metrics());
 
             // Present frame
             sdl_renderer.present();
@@ -231,7 +232,8 @@ int sdlpp_tile_backend::run_app(
             .logical_to_physical_y = 1.0,  // 1 logical unit = 1 pixel
             .dpi_scale = 1.0               // No DPI scaling for tile-based rendering
         };
-        scoped_ui_context<sdlpp_tile_backend> ui_ctx(tile_metrics);
+        ui_host<sdlpp_tile_backend> host(tile_metrics);
+        [[maybe_unused]] auto host_scope = host.push_scope();
 
         // Initialize SDL
         ::sdlpp::init sdl(::sdlpp::init_flags::video);
@@ -343,7 +345,7 @@ int sdlpp_tile_backend::run_app(
                         }
                     } else if (std::get_if<keyboard_event>(&*ui_evt)) {
                         // Keyboard events go to focused widget, or root if none focused
-                        auto* focused = ui_ctx.input().get_focused();
+                        auto* focused = host.input().get_focused();
                         if (focused) {
                             focused->handle_event(*ui_evt, event_phase::target);
                         } else {
@@ -374,9 +376,9 @@ int sdlpp_tile_backend::run_app(
             sdl_renderer.clear();
 
             // Render the widget tree using proper render() method
-            // Get current UI theme (auto-registered by scoped_ui_context)
-            const auto* ui_theme = ui_ctx.themes().get_current_theme();
-            widget_ptr->render(onyx_renderer, ui_theme, ui_ctx.metrics());
+            // Get current UI theme (auto-registered by ui_host)
+            const auto* ui_theme = host.themes().get_current_theme();
+            widget_ptr->render(onyx_renderer, ui_theme, host.metrics());
 
             // Present frame
             sdl_renderer.present();

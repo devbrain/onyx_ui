@@ -15,7 +15,7 @@
 #include <onyxui/widgets/button.hh>
 #include <../../include/onyxui/widgets/containers/vbox.hh>
 #include <../../include/onyxui/widgets/containers/hbox.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
@@ -57,7 +57,7 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Measurement (horizontal)") {
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         separator<CanvasBackend> sep(orientation::horizontal);
 
         // Horizontal separator should have height=1 and expand width
@@ -72,7 +72,7 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Measurement (vertical)") {
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         separator<CanvasBackend> sep(orientation::vertical);
 
         // Vertical separator should have width=1 and expand height
@@ -87,7 +87,7 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Arrangement") {
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
 
         SUBCASE("Horizontal separator arrangement") {
             separator<CanvasBackend> sep(orientation::horizontal);
@@ -123,7 +123,7 @@ TEST_SUITE("Separator Widget") {
         theme.separator.line_style.horizontal = '-';
         theme.separator.line_style.vertical = '|';
 
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -148,7 +148,7 @@ TEST_SUITE("Separator Widget") {
         theme.separator.line_style.horizontal = '-';
         theme.separator.line_style.vertical = '|';
 
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme));
         ctx.themes().set_current_theme("Test Theme");
 
@@ -172,7 +172,7 @@ TEST_SUITE("Separator Widget") {
         theme.name = "Menu Theme";
         theme.separator.line_style.horizontal = '-';
 
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme));
 
         // Simulate menu with items and separator
@@ -211,7 +211,7 @@ TEST_SUITE("Separator Widget") {
         theme.name = "Toolbar Theme";
         theme.separator.line_style.vertical = '|';
 
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme));
 
         // Simulate toolbar with buttons and separator
@@ -250,7 +250,7 @@ TEST_SUITE("Separator Widget") {
         theme1.name = "Theme 1";
         theme1.separator.line_style.horizontal = '-';
 
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         ctx.themes().register_theme(std::move(theme1));
         ctx.themes().set_current_theme("Theme 1");
 
@@ -279,7 +279,7 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Size constraints") {
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
 
         SUBCASE("Horizontal separator size constraints") {
             separator<CanvasBackend> sep(orientation::horizontal);
@@ -305,7 +305,7 @@ TEST_SUITE("Separator Widget") {
     }
 
     TEST_CASE("Separator - Orientation change invalidates layout") {
-        scoped_ui_context<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()};
+        ui_host<CanvasBackend> ctx{make_terminal_metrics<CanvasBackend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
 
         separator<CanvasBackend> sep(orientation::horizontal);
 

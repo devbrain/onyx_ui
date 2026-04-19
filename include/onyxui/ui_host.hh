@@ -205,11 +205,12 @@ namespace onyxui {
         // Escape hatches for power users
         // --------------------------------------------------------------
 
-        [[nodiscard]] auto& layers()  noexcept { return m_ctx.layers(); }
-        [[nodiscard]] auto& themes()  noexcept { return m_ctx.themes(); }
-        [[nodiscard]] auto& hotkeys() noexcept { return m_ctx.hotkeys(); }
-        [[nodiscard]] auto& input()   noexcept { return m_ctx.input(); }
-        [[nodiscard]] auto& windows() noexcept { return m_ctx.windows(); }
+        [[nodiscard]] auto& layers()         noexcept { return m_ctx.layers(); }
+        [[nodiscard]] auto& themes()         noexcept { return m_ctx.themes(); }
+        [[nodiscard]] auto& hotkeys()        noexcept { return m_ctx.hotkeys(); }
+        [[nodiscard]] auto& hotkey_schemes() noexcept { return m_ctx.hotkey_schemes(); }
+        [[nodiscard]] auto& input()          noexcept { return m_ctx.input(); }
+        [[nodiscard]] auto& windows()        noexcept { return m_ctx.windows(); }
         [[nodiscard]] const auto& metrics() const noexcept { return m_ctx.metrics(); }
 
         /// Invoke @p f with this host's context pushed as the
@@ -228,6 +229,51 @@ namespace onyxui {
         decltype(auto) with_scope(F&& f) {
             scope guard(m_ctx);
             return std::forward<F>(f)();
+        }
+
+        /// RAII token that keeps this host's context pushed as the
+        /// ambient one for its lifetime. Returned from
+        /// `push_scope()`.
+        ///
+        /// This replaces the pre-`ui_host` `scoped_ui_context<B>`
+        /// pattern: tests and fixtures that used to rely on the
+        /// context being ambient for their whole lifetime can now
+        /// hold a `scope_token` instead of the context itself, while
+        /// the owning `ui_host` retains per-call scope management
+        /// for production use.
+        class [[nodiscard]] scope_token {
+        public:
+            /// Construct from the host that owns the context. This
+            /// overload is the one struct/class members should use,
+            /// because it can be spelled without `auto` and does not
+            /// leak the internal `ui_context<B>` type:
+            /// @code
+            /// struct fixture {
+            ///     ui_host<B> host;
+            ///     typename ui_host<B>::scope_token scope{host};
+            /// };
+            /// @endcode
+            explicit scope_token(ui_host& host) noexcept {
+                ui_services<Backend>::push_context(&host.m_ctx);
+            }
+            ~scope_token() noexcept {
+                ui_services<Backend>::pop_context();
+            }
+            scope_token(const scope_token&) = delete;
+            scope_token& operator=(const scope_token&) = delete;
+            scope_token(scope_token&&) = delete;
+            scope_token& operator=(scope_token&&) = delete;
+        };
+
+        /// Push this host's context onto the ambient services stack
+        /// and keep it there until the returned `scope_token` goes
+        /// out of scope. Most consumers want the per-call scoping
+        /// that `render()` / `handle_event()` already apply — reach
+        /// for `push_scope()` only when you need ambient services
+        /// during arbitrary code between those calls (tests,
+        /// fixture setup, one-shot utilities).
+        [[nodiscard]] scope_token push_scope() noexcept {
+            return scope_token{*this};
         }
 
     private:

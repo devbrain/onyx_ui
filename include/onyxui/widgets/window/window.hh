@@ -602,7 +602,7 @@ namespace onyxui {
         // The back-pointer is a raw `layer_manager<Backend>*`; we defend
         // against use-after-free by subscribing to layer_manager's
         // `destroying` signal through `m_layer_owner_conn`. When the
-        // manager is torn down first (e.g. a scene's scoped_ui_context
+        // manager is torn down first (e.g. a scene's ui_host
         // destructs before the dialog holding this window), the signal
         // clears m_layer_owner so our own destructor can no longer
         // dereference it.

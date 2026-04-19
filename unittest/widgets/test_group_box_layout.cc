@@ -8,7 +8,7 @@
 #include <doctest/doctest.h>
 #include <../../include/onyxui/widgets/containers/group_box.hh>
 #include <onyxui/widgets/label.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
@@ -23,7 +23,8 @@ TEST_SUITE("Group Box - Layout Integration") {
     using Backend = test_canvas_backend;
 
     struct test_fixture {
-        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        typename ui_host<Backend>::scope_token ctx_scope{ctx};
 
         template<typename Widget>
         void apply_default_theme([[maybe_unused]] Widget& w) {

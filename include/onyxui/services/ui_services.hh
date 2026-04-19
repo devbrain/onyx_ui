@@ -401,9 +401,13 @@ namespace onyxui {
         }
     };
 
-    // ================================================================
-    // scoped_ui_context Implementation
-    // ================================================================
+} // namespace onyxui
+
+// ================================================================
+// detail::scoped_ui_context implementation (retired — WAR-58)
+// ================================================================
+
+namespace onyxui::detail {
 
     template<UIBackend Backend>
     scoped_ui_context<Backend>::scoped_ui_context(metrics_type metrics)
@@ -418,4 +422,4 @@ namespace onyxui {
         ui_services<Backend>::pop_context();
     }
 
-} // namespace onyxui
+} // namespace onyxui::detail

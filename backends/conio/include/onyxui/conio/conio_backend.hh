@@ -44,8 +44,7 @@
 #include <onyxui/conio/conio_events.hh>
 #include <onyxui/events/ui_event.hh>
 #include <onyxui/theming/theme_registry.hh>
-#include <onyxui/services/ui_context.hh>
-#include <onyxui/ui_handle.hh>
+#include <onyxui/ui_host.hh>
 #include <onyxui/backends/conio/onyxui_conio_export.h>
 #include <optional>
 #include <cctype>

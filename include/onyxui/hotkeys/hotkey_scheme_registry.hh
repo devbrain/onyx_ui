@@ -32,7 +32,7 @@
  *
  * ```cpp
  * // Automatic registration (happens in ui_context constructor)
- * scoped_ui_context<Backend> ctx;
+ * ui_host<Backend> ctx;
  *
  * // Schemes already available!
  * auto* schemes = ctx.hotkey_schemes();

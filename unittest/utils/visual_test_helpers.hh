@@ -15,9 +15,8 @@
 #include "test_canvas.hh"
 #include "test_canvas_backend.hh"
 #include <../../include/onyxui/core/element.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include <../../include/onyxui/core/backend_metrics.hh>
-#include <onyxui/ui_handle.hh>
 #include <memory>
 #include <string>
 #include <fstream>
@@ -75,8 +74,10 @@ namespace onyxui::testing {
         void render(element_type* widget) {
             if (!widget) return;
 
-            // Create UI context for rendering
-            scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
+            // Create UI host for rendering; keep its scope active
+            // for the widget operations below.
+            ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+            [[maybe_unused]] auto _scope = ctx.push_scope();
 
             // Measure and arrange widget to fill canvas
             [[maybe_unused]] auto size = widget->measure(

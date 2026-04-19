@@ -15,7 +15,7 @@
 #include <onyxui/widgets/label.hh>
 #include <../../include/onyxui/widgets/containers/vbox.hh>
 #include <../../include/onyxui/widgets/containers/hbox.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 #include "../utils/layout_assertions.hh"
@@ -29,7 +29,8 @@ TEST_SUITE("Layout - Complex Scenarios") {
     using Backend = test_canvas_backend;
 
     struct test_fixture {
-        scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        typename ui_host<Backend>::scope_token ctx_scope{ctx};
 
         test_fixture() {
             setup_theme();

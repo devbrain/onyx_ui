@@ -13,7 +13,7 @@
 #include <../../include/onyxui/widgets/core/stateful_widget.hh>
 #include <onyxui/widgets/button.hh>
 #include <../../include/onyxui/theming/theme.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include <../../include/onyxui/services/ui_services.hh>
 #include <../../include/onyxui/core/rendering/render_context.hh>
 #include <onyxui/events/ui_event.hh>
@@ -816,7 +816,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Button integration with automatic state syncing") {
     test_button<Backend> btn("Test");
-    scoped_ui_context<Backend> local_ctx{make_terminal_metrics<Backend>()};
+    ui_host<Backend> local_ctx{make_terminal_metrics<Backend>()}; [[maybe_unused]] auto local_ctx_scope = local_ctx.push_scope();
     local_ctx.themes().register_theme(create_state_test_theme());
 //     btn.apply_theme("State Test", local_ctx.themes());  // No longer needed - widgets use global theme
 

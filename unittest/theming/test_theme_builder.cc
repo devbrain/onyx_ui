@@ -6,7 +6,7 @@
 #include <doctest/doctest.h>
 #include <onyxui/theming/theme_builder.hh>
 #include <onyxui/theming/theme_registry.hh>
-#include <onyxui/services/ui_context.hh>
+#include <onyxui/ui_host.hh>
 #include "../utils/test_canvas_backend.hh"
 
 using namespace onyxui;
@@ -38,7 +38,7 @@ TEST_CASE("theme_builder - from existing theme") {
 }
 
 TEST_CASE("theme_builder - extend from registry") {
-    scoped_ui_context<test_backend> ctx{make_terminal_metrics<test_backend>()};
+    ui_host<test_backend> ctx{make_terminal_metrics<test_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
 
     auto base = theme_builder<test_backend>::create("Base", "Base theme")
         .with_palette(0x0000AA, 0xFFFFFF, 0xFFFF00)

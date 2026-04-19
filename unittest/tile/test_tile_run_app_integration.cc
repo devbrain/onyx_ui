@@ -499,7 +499,7 @@ TEST_CASE("tile backend - nested widget tree layout") {
 //
 // Critical code paths in run_app() that these tests DO verify (using test_backend):
 // - resolved_style field initialization (via test_backend's resolved_style)
-// - scoped_ui_context pattern (via ui_services tests)
+// - ui_host scope pattern (via ui_services tests)
 // - hit_test_logical() + route_event() event routing (tests above)
 // - keyboard/resize event dispatch patterns (tests above)
 // - Widget tree traversal and layout (tests above)

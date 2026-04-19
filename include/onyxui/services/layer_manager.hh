@@ -1080,7 +1080,7 @@ namespace onyxui {
          *
          * @details
          * Should be called after the dirty regions have been processed/marked.
-         * Typically called by ui_handle::display() after incorporating the
+         * Typically called by the host::display() after incorporating the
          * regions into the dirty region tracking system.
          */
         void clear_removed_layer_dirty_regions() noexcept {

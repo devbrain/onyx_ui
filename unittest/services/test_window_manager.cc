@@ -7,7 +7,7 @@
 
 #include <doctest/doctest.h>
 #include <onyxui/widgets/window/window.hh>
-#include <onyxui/services/ui_context.hh>
+#include <onyxui/ui_host.hh>
 #include "../utils/test_canvas_backend.hh"
 #include "../utils/test_helpers.hh"
 
@@ -19,7 +19,7 @@ using namespace onyxui::testing;
 // ============================================================================
 
 TEST_CASE("window_manager - Window registration") {
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -81,7 +81,7 @@ TEST_CASE("window_manager - Window registration") {
 }
 
 TEST_CASE("window_manager - Window unregistration") {
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -153,7 +153,7 @@ TEST_CASE("window_manager - Window unregistration") {
 // ============================================================================
 
 TEST_CASE("window_manager - Get all windows") {
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -282,7 +282,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Get
 
 TEST_CASE("window_manager - Get minimized windows") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -347,7 +347,7 @@ TEST_CASE("window_manager - Get minimized windows") {
 
 TEST_CASE("window_manager - Get modal windows") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -409,7 +409,7 @@ TEST_CASE("window_manager - Get modal windows") {
 // ============================================================================
 
 TEST_CASE("window_manager - Signals - window_registered") {
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -461,7 +461,7 @@ TEST_CASE("window_manager - Signals - window_registered") {
 }
 
 TEST_CASE("window_manager - Signals - window_unregistered") {
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -503,7 +503,7 @@ TEST_CASE("window_manager - Signals - window_unregistered") {
 
 TEST_CASE("window_manager - Signals - window_minimized") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -610,7 +610,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window_manager - Sig
 
 TEST_CASE("window_manager - Custom minimize handler") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -686,7 +686,7 @@ TEST_CASE("window_manager - Custom minimize handler") {
 
 TEST_CASE("window_manager - Window cycling") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -893,7 +893,7 @@ TEST_CASE("window_manager - Window cycling") {
 
 TEST_CASE("window_manager - Multi-window scenarios") {
     layer_manager<test_canvas_backend> layers;
-    scoped_ui_context<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()};
+    ui_host<test_canvas_backend> ctx{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     auto* mgr = ui_services<test_canvas_backend>::windows();
     REQUIRE(mgr != nullptr);
 
@@ -990,7 +990,7 @@ TEST_CASE("window_manager - Multi-window scenarios") {
 
 TEST_CASE("window_manager - Per-context isolation") {
     SUBCASE("Each context has independent window_manager") {
-        scoped_ui_context<test_canvas_backend> ctx1{make_terminal_metrics<test_canvas_backend>()};
+        ui_host<test_canvas_backend> ctx1{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx1_scope = ctx1.push_scope();
         auto* mgr1 = ui_services<test_canvas_backend>::windows();
         REQUIRE(mgr1 != nullptr);
 
@@ -998,7 +998,7 @@ TEST_CASE("window_manager - Per-context isolation") {
         CHECK(mgr1->get_window_count() == 1);
 
         {
-            scoped_ui_context<test_canvas_backend> ctx2{make_terminal_metrics<test_canvas_backend>()};
+            ui_host<test_canvas_backend> ctx2{make_terminal_metrics<test_canvas_backend>()}; [[maybe_unused]] auto ctx2_scope = ctx2.push_scope();
             auto* mgr2 = ui_services<test_canvas_backend>::windows();
             REQUIRE(mgr2 != nullptr);
             CHECK(mgr2 != mgr1);  // Different instances

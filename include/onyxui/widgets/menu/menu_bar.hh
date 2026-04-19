@@ -77,10 +77,6 @@
 
 namespace onyxui {
 
-    // Forward declaration
-    template<UIBackend Backend>
-    class ui_handle;
-
     /**
      * @struct menu_entry
      * @brief Associates a menu title item with its dropdown menu

@@ -729,7 +729,7 @@ private:
 #include <sdlpp/core/core.hh>
 #include <sdlpp/video/window.hh>
 #include <sdlpp/events/events.hh>
-#include <onyxui/services/ui_context.hh>
+#include <onyxui/ui_host.hh>
 #include <onyxui/core/backend_metrics.hh>
 #include <onyxui/events/hit_test_path.hh>
 #include <onyxui/events/event_router.hh>
@@ -756,7 +756,8 @@ int main()
             .logical_to_physical_y = 1.0,
             .dpi_scale = 1.0
         };
-        scoped_ui_context<sdlpp_tile_backend> ui_ctx(tile_metrics);
+        ui_host<sdlpp_tile_backend> ui_ctx(tile_metrics);
+        [[maybe_unused]] auto ui_scope = ui_ctx.push_scope();
 
         // Initialize SDL
         ::sdlpp::init sdl(::sdlpp::init_flags::video);

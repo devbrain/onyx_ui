@@ -56,8 +56,11 @@ int sdlpp_backend::run_app(
             return 1;
         }
 
-        // Create UI context with GUI metrics (1 logical unit = 8 pixels)
-        scoped_ui_context<sdlpp_backend> ui_ctx(make_gui_metrics<sdlpp_backend>());
+        // Create UI host with GUI metrics (1 logical unit = 8 pixels).
+        // The host's scope must be active for widget construction
+        // (widget ctors consult ui_services<B>::themes() during init).
+        ui_host<sdlpp_backend> host(make_gui_metrics<sdlpp_backend>());
+        [[maybe_unused]] auto host_scope = host.push_scope();
 
         // Create widget
         auto widget = std::make_unique<Widget<sdlpp_backend>>();
@@ -68,18 +71,20 @@ int sdlpp_backend::run_app(
             setup(*widget_ptr);
         }
 
+        // Mount widget onto the host.
+        host.mount(std::move(widget));
+
         // Create OnyxUI renderer wrapping SDL renderer
         sdlpp_renderer onyx_renderer(sdl_renderer);
-
-        // Create UI handle
-        ui_handle<sdlpp_backend> ui(std::move(widget), std::move(onyx_renderer));
 
         // Clear quit flag
         clear_quit_flag();
 
         // Initial display
-        ui.display();
-        ui.present();
+        sdl_renderer.set_draw_color(::sdlpp::color{192, 192, 192, 255});
+        sdl_renderer.clear();
+        host.render(onyx_renderer);
+        sdl_renderer.present();
 
         // Main event loop
         // Check widget's should_quit if available, otherwise use backend's
@@ -98,8 +103,8 @@ int sdlpp_backend::run_app(
                     goto exit_loop;
                 }
 
-                // Pass native event to ui_handle
-                ui.handle_event(*event);
+                // Pass native event to host
+                (void)host.handle_event(*event);
             }
 
             // Clear background
@@ -107,7 +112,7 @@ int sdlpp_backend::run_app(
             sdl_renderer.clear();
 
             // Display UI
-            ui.display();
+            host.render(onyx_renderer);
 
             // Present frame (with vsync this limits to ~60fps)
             sdl_renderer.present();
@@ -169,8 +174,9 @@ int sdlpp_backend::run_app(
             return 1;
         }
 
-        // Create UI context with GUI metrics (1 logical unit = 8 pixels)
-        scoped_ui_context<sdlpp_backend> ui_ctx(make_gui_metrics<sdlpp_backend>());
+        // Create UI host with GUI metrics (1 logical unit = 8 pixels).
+        ui_host<sdlpp_backend> host(make_gui_metrics<sdlpp_backend>());
+        [[maybe_unused]] auto host_scope = host.push_scope();
 
         // Create widget (concrete type, not template)
         auto widget = std::make_unique<Widget>();
@@ -181,18 +187,20 @@ int sdlpp_backend::run_app(
             setup(*widget_ptr);
         }
 
+        // Mount onto the host.
+        host.mount(std::move(widget));
+
         // Create OnyxUI renderer wrapping SDL renderer
         sdlpp_renderer onyx_renderer(sdl_renderer);
-
-        // Create UI handle
-        ui_handle<sdlpp_backend> ui(std::move(widget), std::move(onyx_renderer));
 
         // Clear quit flag
         clear_quit_flag();
 
         // Initial display
-        ui.display();
-        ui.present();
+        sdl_renderer.set_draw_color(::sdlpp::color{192, 192, 192, 255});
+        sdl_renderer.clear();
+        host.render(onyx_renderer);
+        sdl_renderer.present();
 
         // Main event loop
         // Check widget's should_quit if available, otherwise use backend's
@@ -211,8 +219,8 @@ int sdlpp_backend::run_app(
                     goto exit_loop;
                 }
 
-                // Pass native event to ui_handle
-                ui.handle_event(*event);
+                // Pass native event to host
+                (void)host.handle_event(*event);
             }
 
             // Clear background
@@ -220,7 +228,7 @@ int sdlpp_backend::run_app(
             sdl_renderer.clear();
 
             // Display UI
-            ui.display();
+            host.render(onyx_renderer);
 
             // Present frame (with vsync this limits to ~60fps)
             sdl_renderer.present();

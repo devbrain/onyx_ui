@@ -10,7 +10,7 @@
 #include "../utils/test_helpers.hh"
 #include <../../include/onyxui/widgets/containers/vbox.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_handle.hh>
+#include <onyxui/ui_host.hh>
 #include "../utils/test_helpers.hh"
 #include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"

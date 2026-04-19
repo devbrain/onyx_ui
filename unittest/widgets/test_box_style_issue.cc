@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include <onyxui/ui_host.hh>
 #include <onyxui/widgets/panel.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/ui_context.hh>
@@ -11,7 +12,7 @@ using namespace onyxui::testing;
 using Backend = test_canvas_backend;
 
 TEST_CASE("Debug box_style resolution") {
-    scoped_ui_context<Backend> ctx{make_terminal_metrics<Backend>()};
+    ui_host<Backend> ctx{make_terminal_metrics<Backend>()}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
     ctx.themes().set_current_theme("Canvas Test Theme");
     
     auto* theme = ui_services<Backend>::themes()->get_current_theme();

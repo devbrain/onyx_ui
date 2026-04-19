@@ -7,7 +7,7 @@
 #include <onyxui/widgets/containers/tab_widget.hh>
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/widgets/label.hh>
-#include <onyxui/services/ui_context.hh>
+#include <onyxui/ui_host.hh>
 #include "../utils/test_backend.hh"
 
 using namespace onyxui;
@@ -32,7 +32,8 @@ namespace {
 
     struct scaled_ui_fixture {
         scaled_ui_fixture()
-            : ctx(make_terminal_metrics<scaled_test_backend>()) {
+            : ctx(make_terminal_metrics<scaled_test_backend>())
+            , m_scope(ctx.push_scope()) {
             ui_theme<scaled_test_backend> theme;
             theme.name = "ScaledTestTheme";
             theme.window_bg = typename scaled_test_backend::color_type{50, 50, 50};
@@ -42,7 +43,10 @@ namespace {
             ctx.themes().set_current_theme("ScaledTestTheme");
         }
 
-        scoped_ui_context<scaled_test_backend> ctx;
+        ui_host<scaled_test_backend> ctx;
+
+    private:
+        typename ui_host<scaled_test_backend>::scope_token m_scope;
     };
 }  // namespace
 

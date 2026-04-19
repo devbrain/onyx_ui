@@ -8,7 +8,7 @@
 #include <doctest/doctest.h>
 #include <../../include/onyxui/core/element.hh>
 #include <../../include/onyxui/services/ui_services.hh>
-#include <../../include/onyxui/services/ui_context.hh>
+#include <../../include/onyxui/ui_host.hh>
 #include "test_backend.hh"
 #include <vector>
 #include <iostream>
@@ -38,6 +38,7 @@ template<UIBackend Backend>
 struct ui_context_fixture {
     ui_context_fixture()
         : ctx(make_terminal_metrics<Backend>())  // Tests use 1:1 mapping for simplicity
+        , m_scope(ctx.push_scope())              // keep ambient for test body
     {
         // Setup theme with minimal required properties
         ui_theme<Backend> theme;
@@ -72,8 +73,13 @@ struct ui_context_fixture {
 
     ~ui_context_fixture() = default;
 
-    // Make context accessible to tests if needed
-    scoped_ui_context<Backend> ctx;
+    // The fixture's host — declaration order matters: ctx must
+    // construct before m_scope (which references it), and destruct
+    // after m_scope (which pops on destruction).
+    ui_host<Backend> ctx;
+
+private:
+    typename ui_host<Backend>::scope_token m_scope;
 };
 
 // Use the test_backend for all tests
@@ -196,7 +202,7 @@ namespace onyxui::testing {
         if (!themes_registry) {
             throw std::runtime_error(
                 "render_to_canvas() requires an active UI context on the stack. "
-                "Ensure your test creates a scoped_ui_context<Backend> before calling render_to_canvas()."
+                "Ensure your test creates a ui_host<Backend> (and holds its push_scope() token) before calling render_to_canvas()."
             );
         }
 

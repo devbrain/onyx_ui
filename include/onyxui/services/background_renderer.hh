@@ -64,7 +64,7 @@ namespace onyxui {
      * // Clear background (transparent mode)
      * bg->clear_style();
      *
-     * // Render (called by ui_handle)
+     * // Render (called by the host)
      * bg->render(renderer, viewport_bounds, dirty_regions);
      * @endcode
      *
@@ -147,7 +147,7 @@ namespace onyxui {
          * Sets the background style and enables background rendering.
          *
          * **Frame-Based Behavior:**
-         * - Changes take effect on the **next frame** (next `ui_handle::display()` call)
+         * - Changes take effect on the **next frame** (next `the host render path` call)
          * - No UI invalidation is triggered
          * - Application controls when to redraw
          */
@@ -165,7 +165,7 @@ namespace onyxui {
          * **Frame-Based Behavior:**
          * - Color change takes effect on the **next frame**
          * - No immediate redraw is triggered
-         * - Application controls rendering via `ui_handle::display()`
+         * - Application controls rendering via `the host render path`
          *
          * @example Changing background color
          * @code

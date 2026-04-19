@@ -1051,7 +1051,18 @@ namespace onyxui {
      *
      * @note This is the **only recommended way** to manage UI contexts.
      *       Direct use of ui_context + manual push/pop is discouraged.
+     *
+     * @note Retired (WAR-58) from the public `onyxui::` namespace and
+     *       moved to `onyxui::detail::` — consumers should use
+     *       `ui_host<B>` + `host.push_scope()` instead. This class
+     *       remains only to back internal tests and the legacy
+     *       `*_backend::run_app<>` templates that haven't been
+     *       retired yet.
      */
+    } // namespace onyxui (temporarily closed to host scoped_ui_context in detail::)
+
+namespace onyxui::detail {
+
     template<UIBackend Backend>
     class scoped_ui_context {
     public:
@@ -1177,4 +1188,4 @@ namespace onyxui {
     // Implementation of scoped_ui_context methods (needs ui_services definition)
     // These are defined at the end of ui_services.hh to avoid circular dependencies
 
-} // namespace onyxui
+} // namespace onyxui::detail

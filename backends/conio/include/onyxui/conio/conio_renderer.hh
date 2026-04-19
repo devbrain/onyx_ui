@@ -343,7 +343,7 @@ namespace onyxui::conio {
              * @brief Handle window resize event
              *
              * @details
-             * Called by ui_handle when a resize event is detected.
+             * Called by the host when a resize event is detected.
              * Resizes the internal vram buffer to match new terminal dimensions.
              */
             void on_resize();
@@ -354,7 +354,7 @@ namespace onyxui::conio {
              *
              * @details
              * Returns the full vram dimensions as a viewport rect.
-             * This is used by ui_handle::display() to get rendering bounds.
+             * This is used by the host's render() path to get rendering bounds.
              */
             [[nodiscard]] rect get_viewport() const;
 

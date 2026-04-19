@@ -4,6 +4,7 @@
 //
 
 #include <doctest/doctest.h>
+#include <onyxui/ui_host.hh>
 
 #include <onyxui/mvc/views/table_view.hh>
 #include <onyxui/mvc/models/table_model.hh>
@@ -845,7 +846,7 @@ TEST_CASE("table_view - contiguous_selection ignores Ctrl for toggle") {
 TEST_CASE("table_view - HiDPI visible region calculation") {
     // Set up HiDPI metrics (8 pixels per logical unit)
     auto metrics = make_gui_metrics<Backend>();
-    scoped_ui_context<Backend> ctx{metrics};
+    ui_host<Backend> ctx{metrics}; [[maybe_unused]] auto ctx_scope = ctx.push_scope();
 
     auto model = std::make_shared<test_table_model<Backend>>();
     // Add 20 rows

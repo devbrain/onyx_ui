@@ -5,7 +5,7 @@
  * This demo forces instantiation of sdlpp_tile_backend::run_app<> templates,
  * catching any compilation errors in:
  * - resolved_style initialization (all 12 fields required)
- * - scoped_ui_context setup
+ * - ui_host setup
  * - backend_metrics initialization
  * - keyboard/resize event routing
  */

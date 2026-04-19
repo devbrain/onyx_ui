@@ -18,7 +18,7 @@
 #include "../utils/test_helpers.hh"
 #include <../../include/onyxui/services/ui_context.hh>
 #include "../utils/test_helpers.hh"
-#include <onyxui/ui_handle.hh>
+#include <onyxui/ui_host.hh>
 #include "../utils/test_helpers.hh"
 #include <../../include/onyxui/widgets/containers/panel.hh>
 #include "../utils/test_helpers.hh"
@@ -168,15 +168,16 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "Layer removal marks area as
     }
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates removed layer dirty regions") {
-    // Use the fixture's context which already has a properly registered theme
+TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "ui_host integrates removed layer dirty regions") {
+    // Use the fixture's host (already has a properly registered theme + active scope)
 
     // Create root widget
     auto root = std::make_unique<panel<Backend>>();
     root->set_has_border(true);
 
-    // Create UI handle
-    ui_handle<Backend> ui(std::move(root));
+    // Mount onto the fixture's host; render via its ui_host::render path.
+    ctx.mount(std::move(root));
+    typename Backend::renderer_type renderer;
 
     auto* layer_mgr = ui_services<Backend>::layers();
     REQUIRE(layer_mgr != nullptr);
@@ -197,7 +198,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates remove
     popup_ptr->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
     // Display once (popup visible)
-    ui.display();
+    ctx.render(renderer);
 
     // Remove popup
     layer_mgr->remove_layer(popup_id);
@@ -209,7 +210,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_backend>, "UI handle integrates remove
     CHECK(dirty[0].y == 23.0_lu);  // 25 - 2 for shadow margin
 
     // Display again - dirty regions should be used and cleared
-    ui.display();
+    ctx.render(renderer);
 
     // After display, dirty regions should be cleared
     auto dirty_after = layer_mgr->get_removed_layer_dirty_regions();
