@@ -6,11 +6,18 @@
  *
  * ## v1 single-window restriction
  *
- * Same as the sdlpp backend: the registry can hold multiple
- * `app_window`s but only one is routed events in v1. Unlike SDL,
- * conio's termbox2 library owns a single terminal surface — there is
- * no OS-window-id multiplexing to add later; true multi-window
- * conio would require tiling panels inside the terminal.
+ * Conio is **strictly single-window**. Termbox2 owns a single
+ * process-global terminal surface; there is no OS-window-id
+ * multiplexing to add later. `app_window::show()` already refuses
+ * the second concurrent registration (see
+ * `backends/conio/src/simple/app_window.cc`), but just in case a
+ * caller uses a non-blessed path to wire a second window into the
+ * registry, this loop routes **both** input and rendering to the
+ * first-registered window only. The old behaviour of rendering every
+ * registered window onto the same terminal produced "see B, control
+ * A" — one window rendered last was visually on top while the
+ * first window kept receiving input. Matching the routing on output
+ * avoids that.
  *
  * The loop polls termbox2 ONCE per frame via `conio_poll_event()`
  * (non-blocking) and forwards each event to the single registered
@@ -74,19 +81,22 @@ namespace onyxui::simple {
                     std::cerr
                         << "[onyxui::simple::run] warning: "
                         << windows.size()
-                        << " app_windows are registered. v1 only "
-                           "correctly routes events to the first-"
-                           "registered window — conio's terminal "
-                           "surface cannot host multiple interactive "
-                           "windows natively.\n";
+                        << " app_windows are registered. Conio is "
+                           "single-window — only the first-registered "
+                           "window will be driven (input AND output). "
+                           "The others are frozen.\n";
                     warned_once = true;
                 }
             }
 
-            // One termbox2 event poll per frame. Route to the first
-            // registered window (the v1 single-window contract).
+            // One termbox2 event poll per frame. Route everything —
+            // input and rendering — to the first registered window.
+            // Secondary windows stay frozen to avoid the "see B,
+            // control A" glitch from rendering all windows onto the
+            // shared terminal.
             if (!windows.empty()) {
                 auto* primary = windows.front();
+
                 tb_event ev;
                 const int result = ::onyxui::conio::conio_poll_event(&ev);
                 if (result == TB_OK) {
@@ -98,16 +108,9 @@ namespace onyxui::simple {
                     break;
                 }
                 // TB_ERR_NO_EVENT just means nothing to do this tick.
-            }
 
-            // Render + present every registered window. On conio,
-            // the "present" step is `tb_present()` inside the
-            // renderer, which flips the vram buffer to the terminal.
-            for (auto* w : windows) {
-                w->render_frame();
-            }
-            for (auto* w : windows) {
-                w->present();
+                primary->render_frame();
+                primary->present();
             }
         }
 

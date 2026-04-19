@@ -61,10 +61,12 @@ namespace onyxui::simple {
         int initial_height;
 
         // `conio_renderer` owns the `vram` that calls tb_init() on
-        // construction and tb_shutdown() on destruction. Wrapping in
-        // std::optional lets us defer termbox initialisation — the
-        // host tree is built (inside push_scope) before any terminal
-        // output is drawn.
+        // construction and tb_shutdown() on destruction. It is
+        // deliberately NOT constructed here — deferred to `show()` —
+        // so that merely constructing an `app_window` does not grab
+        // the terminal. Multiple unstarted app_window instances can
+        // therefore coexist, matching the "hidden until show()"
+        // contract in app_window.hh.
         std::optional<::onyxui::conio::conio_renderer> onyx_renderer;
         std::unique_ptr<ui_host> host;
 
@@ -88,19 +90,13 @@ namespace onyxui::simple {
             : title(std::move(t)),
               initial_width(w),
               initial_height(h) {
-            // Configure metrics. Terminal is 1 logical unit = 1
-            // character cell; no DPI scaling.
+            // Build the host now so `set_content(...)` works between
+            // construction and `show()`. The host doesn't touch the
+            // terminal — it just owns ambient services and the
+            // mounted widget tree.
             auto metrics =
                 ::onyxui::make_terminal_metrics<backend>();
             host = std::make_unique<ui_host>(metrics);
-
-            // Bring up termbox2 via the renderer. This must happen
-            // AFTER the host is constructed; constructing the renderer
-            // captures the current terminal dimensions, so the host's
-            // mount() / render() calls see a live surface. Any output
-            // written to stdout/stderr before this point is fine —
-            // termbox2 clears the screen on init.
-            onyx_renderer.emplace();
         }
 
         ~impl() {
@@ -109,7 +105,7 @@ namespace onyxui::simple {
             }
             // Reverse-declaration-order destruction does the rest:
             //   modals → host → onyx_renderer (which tears down
-            //   termbox via vram).
+            //   termbox via vram if we made it through show()).
         }
     };
 
@@ -136,9 +132,29 @@ namespace onyxui::simple {
 
     void app_window::show() {
         if (pimpl_->open) return;
-        // termbox2 has no separate "show" — it's already displaying
-        // into the terminal. Register with the run loop so run()
-        // drives frames for us.
+
+        // Termbox2 is a process-global single-instance library — it
+        // owns the terminal surface, and a second `tb_init()` while
+        // another one is live is undefined. Refuse to show if any
+        // other app_window is already registered. Consumers that
+        // legitimately need sequenced single-window usage should
+        // `close()` the previous window first.
+        if (detail::registered_window_count() > 0) {
+            std::cerr
+                << "[onyxui::simple::app_window] show() refused: "
+                << "another conio app_window is already active. "
+                << "Termbox2 can only drive one terminal surface at a "
+                << "time — close the existing window before showing "
+                << "another.\n";
+            return;
+        }
+
+        // Bring up termbox2 via the renderer. This is the moment
+        // terminal output starts; any stdout/stderr printed BEFORE
+        // here is preserved in the terminal scrollback. After this
+        // point, tb_present() controls what's on-screen.
+        pimpl_->onyx_renderer.emplace();
+
         detail::register_window(this);
         pimpl_->open = true;
     }
@@ -154,6 +170,12 @@ namespace onyxui::simple {
 
         detail::unregister_window(this);
         pimpl_->open = false;
+
+        // Tear down termbox2 by dropping the renderer. The next
+        // `show()` can now bring it back up (or another app_window
+        // can claim the terminal, since the registry is empty).
+        pimpl_->onyx_renderer.reset();
+
         // As with the sdlpp backend, leave the mounted root for
         // pimpl destruction to handle in declaration order so it
         // runs with the host still alive.
