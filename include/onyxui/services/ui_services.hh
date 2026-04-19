@@ -57,6 +57,7 @@
 
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/services/ui_context.hh>
+#include <algorithm>
 #include <vector>
 #include <cassert>
 
@@ -172,12 +173,41 @@ namespace onyxui {
          * Removes the top context, restoring the previous context (if any).
          * Does nothing if the stack is empty.
          *
-         * @note Use scoped_ui_context for automatic push/pop management
+         * @note Use ui_host::push_scope() for automatic push/pop management
          */
         static void pop_context() noexcept {
             auto& stack = context_stack();
             if (!stack.empty()) {
                 stack.pop_back();
+            }
+        }
+
+        /**
+         * @brief Pop @p expected from the context stack.
+         *
+         * Fast path: if @p expected is on top, pop it — same as the
+         * zero-arg overload. Slow path: if @p expected is deeper in
+         * the stack (scope tokens destroyed out of LIFO order),
+         * erase it in place so the stack stays consistent with the
+         * set of live tokens. No-op if @p expected is not on the
+         * stack.
+         *
+         * This is the pop `ui_host::scope_token` uses, so that
+         * out-of-order destruction can't silently pop the wrong
+         * host's context.
+         */
+        static void pop_context(ui_context<Backend>* expected) noexcept {
+            if (!expected) return;
+            auto& stack = context_stack();
+            if (stack.empty()) return;
+            if (stack.back() == expected) {
+                stack.pop_back();
+                return;
+            }
+            // Out-of-order destruction: find and erase in place.
+            auto it = std::find(stack.begin(), stack.end(), expected);
+            if (it != stack.end()) {
+                stack.erase(it);
             }
         }
 

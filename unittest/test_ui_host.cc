@@ -397,3 +397,52 @@ TEST_CASE("ui_host - destruction with live overlays is safe (layer_manager teard
     presenter.reset();
     CHECK(true);  // Reaching here without a crash IS the assertion.
 }
+
+TEST_CASE("ui_host::push_scope — tokens destroyed LIFO leave the stack empty") {
+    // Sanity-check the happy path before pinning the misuse path
+    // below. Two nested scope_tokens from independent hosts: ambient
+    // context walks h1 → h2 → h1 → null as tokens go in and out.
+    ui_host<Backend> h1;
+    ui_host<Backend> h2;
+    REQUIRE(ui_services<Backend>::current() == nullptr);
+
+    {
+        auto t1 = h1.push_scope();
+        REQUIRE(ui_services<Backend>::current() != nullptr);
+        CHECK(&ui_services<Backend>::current()->themes() == &h1.themes());
+        {
+            auto t2 = h2.push_scope();
+            CHECK(&ui_services<Backend>::current()->themes() == &h2.themes());
+        }
+        CHECK(&ui_services<Backend>::current()->themes() == &h1.themes());
+    }
+    CHECK(ui_services<Backend>::current() == nullptr);
+}
+
+TEST_CASE("ui_host::push_scope — out-of-order destruction does not pop the wrong host") {
+    // Out-of-LIFO-order is NOT a design we endorse — scope_tokens
+    // are non-movable for a reason — but the destructor is noexcept
+    // and must not silently corrupt the ambient stack if a
+    // programmer nevertheless forces the ordering via heap
+    // allocation. The fix for that: the token remembers WHICH
+    // context it pushed and pops that specific one (find-and-erase
+    // if it's not on top).
+    ui_host<Backend> h1;
+    ui_host<Backend> h2;
+    REQUIRE(ui_services<Backend>::current() == nullptr);
+
+    auto t1 = std::make_unique<typename ui_host<Backend>::scope_token>(h1);
+    auto t2 = std::make_unique<typename ui_host<Backend>::scope_token>(h2);
+
+    // Stack: [h1, h2]. Top is h2.
+    CHECK(&ui_services<Backend>::current()->themes() == &h2.themes());
+
+    // Destroy t1 FIRST — forcing the pop to find-and-erase h1 from
+    // the middle of the stack. h2 must remain current.
+    t1.reset();
+    CHECK(&ui_services<Backend>::current()->themes() == &h2.themes());
+
+    // Drop t2; stack drains.
+    t2.reset();
+    CHECK(ui_services<Backend>::current() == nullptr);
+}

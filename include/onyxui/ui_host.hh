@@ -253,16 +253,25 @@ namespace onyxui {
             ///     typename ui_host<B>::scope_token scope{host};
             /// };
             /// @endcode
-            explicit scope_token(ui_host& host) noexcept {
-                ui_services<Backend>::push_context(&host.m_ctx);
+            ///
+            /// Remembers a pointer to the host's context so that
+            /// destruction pops *this* context rather than whatever
+            /// happens to be on top. Tokens destroyed out of LIFO
+            /// order therefore never silently pop the wrong host's
+            /// scope — see `ui_services::pop_context(ctx*)`.
+            explicit scope_token(ui_host& host) noexcept
+                : m_ctx(&host.m_ctx) {
+                ui_services<Backend>::push_context(m_ctx);
             }
             ~scope_token() noexcept {
-                ui_services<Backend>::pop_context();
+                ui_services<Backend>::pop_context(m_ctx);
             }
             scope_token(const scope_token&) = delete;
             scope_token& operator=(const scope_token&) = delete;
             scope_token(scope_token&&) = delete;
             scope_token& operator=(scope_token&&) = delete;
+        private:
+            ui_context<Backend>* m_ctx;
         };
 
         /// Push this host's context onto the ambient services stack
