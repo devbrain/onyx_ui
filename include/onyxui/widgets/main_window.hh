@@ -10,8 +10,11 @@
  * - Central widget in middle (fills remaining space)
  * - Optional status bar at bottom
  *
- * Windows created via create_window() automatically have central_widget as parent,
- * enabling proper maximize behavior.
+ * Windows created via create_window() have their workspace pointer set to
+ * the central widget via set_workspace(), so maximize() fills the central
+ * area (respecting menu and status bars). The windows are NOT parented to
+ * the central widget — they are overlay windows hosted in a layer_manager,
+ * not tree children.
  *
  * ## Usage
  *
@@ -19,9 +22,9 @@
  * auto main = std::make_unique<main_window<Backend>>();
  * main->set_menu_bar(std::make_unique<menu_bar<Backend>>());
  *
- * // Create windows - they automatically use central widget as parent
+ * // Create windows — workspace is wired to central widget automatically
  * auto win = main->create_window("Document 1", window_flags{});
- * win->show();
+ * win->show(*layers);
  *
  * main->set_status_bar(std::make_unique<status_bar<Backend>>());
  * @endcode
@@ -50,9 +53,11 @@ namespace onyxui {
      * 2. Central widget (required, middle, fills remaining space)
      * 3. Status bar (optional, bottom, content-sized)
      *
-     * The central widget serves as the parent for all child windows, enabling
-     * proper maximize behavior where windows fill the central area without
-     * occluding the menu or status bars.
+     * The central widget serves as the *workspace* for windows created via
+     * create_window() — it's wired through `window::set_workspace()`, so
+     * maximize() fills the central area instead of the whole viewport.
+     * Windows are not tree children of the central widget; they are
+     * overlay windows living in the layer_manager.
      *
      * ## Signals
      *
@@ -153,18 +158,21 @@ namespace onyxui {
         }
 
         /**
-         * @brief Create window as child of central widget
+         * @brief Create a window wired to the central widget as its workspace
          * @tparam Args Constructor arguments for window
          * @param args Arguments forwarded to window constructor
          * @return Shared pointer to created window
          *
          * @details
-         * Convenience method that creates a window with central_widget as parent.
-         * This ensures windows maximize to fill the central area only.
+         * Constructs a floating overlay window (no parent) and calls
+         * `set_workspace(central_widget)` so maximize() fills the central
+         * area only — not the whole viewport. The window is not a tree
+         * child of the central widget; show it via a layer_manager to
+         * make it visible.
          *
          * @code
          * auto win = main->create_window("My Window", window_flags{});
-         * win->show();
+         * win->show(*layers);
          * @endcode
          */
         template<typename... Args>

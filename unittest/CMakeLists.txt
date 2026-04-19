@@ -111,6 +111,9 @@ add_executable(ui_unittest
         widgets/test_text_view_focus_debug.cc
         widgets/test_border_corruption.cc
         widgets/test_window.cc
+        widgets/test_window_drag.cc
+        widgets/test_window_show.cc
+        widgets/test_presented_window.cc
         widgets/test_main_window.cc
         widgets/test_window_list_dialog.cc
         widgets/test_dialog.cc
@@ -199,3 +202,10 @@ if(NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO AND TARGET conio_unittest)
     target_compile_definitions(ui_unittest PRIVATE NEUTRINO_ONYX_UI_BUILD_BACKEND_CONIO=1)
     message(STATUS "ui_unittest: Linked with conio_unittest DLL (doctest auto-discovery)")
 endif()
+
+# Register ui_unittest with CTest so `ctest` finds it. Without this the
+# executable still builds but a plain `ctest --test-dir <build>` reports
+# "No tests were found" and CI/developer workflows fall back to invoking
+# the binary by path.
+include(CTest)
+add_test(NAME ui_unittest COMMAND ui_unittest)

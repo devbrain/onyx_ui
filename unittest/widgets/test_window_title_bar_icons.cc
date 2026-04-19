@@ -500,10 +500,15 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         // Create visual harness - canvas represents the screen/layer
         testing::visual_test_harness<Backend> harness(80, 25);
 
-        // Create parent panel that fills the canvas (for window to have a parent to maximize within)
+        // NOTE: this test embeds the window in a panel's child tree to
+        // drive rendering through the harness. `window<Backend>` is
+        // formally overlay-only, but nothing forbids it from being placed
+        // in a widget tree — the test takes advantage of that to exercise
+        // title-bar rendering without having to spin up a layer manager
+        // + full render pipeline. The panel also happens to serve as the
+        // workspace the window maximizes into.
         auto parent = std::make_unique<panel<Backend>>();
 
-        // Create window with maximize button as child of panel
         typename window<Backend>::window_flags flags;
         flags.has_menu_button = false;
         flags.has_minimize_button = false;
@@ -511,6 +516,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         flags.has_close_button = false;
 
         auto* win = parent->template emplace_child<window>("Visual Test", flags);
+        win->set_workspace(parent.get());
 
         // Render using harness (this will measure, arrange, and render the whole tree)
         // Panel's default layout will position children at (0,0) and size them to fill
@@ -581,8 +587,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         }
 
 
-        // Window has parent, so maximize should fill parent (80x25)
-        // Window should now be maximized to fill the entire canvas
+        // Window has workspace=parent, so maximize fills the 80x25 area.
+        // Window should now cover the entire canvas.
         auto final_bounds = win->bounds();
         CHECK(final_bounds.x.to_int() == 0);
         CHECK(final_bounds.y.to_int() == 0);

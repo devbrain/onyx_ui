@@ -22,7 +22,7 @@ namespace widgets_demo_windows {
  * @details
  * Simple informational dialog about the OnyxUI Widgets Demo application.
  */
-inline std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
+inline std::unique_ptr<onyxui::window<Backend>> create_about_dialog() {
     // Create window with minimal flags
     typename onyxui::window<Backend>::window_flags flags;
     flags.has_close_button = true;
@@ -33,7 +33,8 @@ inline std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     flags.is_movable = false;
     flags.is_scrollable = false;
 
-    auto dialog = std::make_shared<onyxui::window<Backend>>("About OnyxUI", flags);
+    auto dialog = std::make_unique<onyxui::window<Backend>>("About OnyxUI", flags);
+    auto* dialog_ptr = dialog.get();
 
     // Create content
     auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
@@ -94,8 +95,8 @@ inline std::shared_ptr<onyxui::window<Backend>> create_about_dialog() {
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* close_btn = button_row->emplace_child<onyxui::button>("OK");
-    close_btn->clicked.connect([dialog]() {
-        dialog->close();
+    close_btn->clicked.connect([dialog_ptr]() {
+        dialog_ptr->close();
     });
 
     // Set content

@@ -1,8 +1,6 @@
 /**
  * @file window.hh
  * @brief Draggable, resizable window widget with optional title bar
- * @author Claude Code
- * @date 2025-11-08
  *
  * @details
  * Provides a complete windowing system with:
@@ -11,6 +9,26 @@
  * - Modal and non-modal support
  * - Minimize/maximize/restore state management
  * - Integration with window_manager service
+ *
+ * ## Intended lifecycle
+ *
+ * `window<Backend>` is an OVERLAY widget — it is designed to be hosted
+ * in a `layer_manager<Backend>`, not placed inside a widget layout tree.
+ * Typical usage:
+ *
+ * ```
+ * auto w = std::make_unique<window<Backend>>("Title", flags);
+ * w->set_content(build_content());
+ * w->show(*layers);            // non-modal
+ * // or: w->show_modal(*layers);
+ * ```
+ *
+ * Putting a `window` inside a `vbox`, `hbox`, or any other container is
+ * unsupported: the parent's content-area clip will cut off drags, and
+ * parent-driven layout passes will fight the window's own positioning.
+ * For a tree-hosted framed container (title + border + children), use
+ * `group_box<Backend>` — same visual family, tree-friendly, no modal /
+ * layer semantics.
  */
 
 #pragma once
@@ -142,12 +160,16 @@ namespace onyxui {
          * @brief Construct a window
          * @param title Window title text
          * @param flags Window configuration flags
-         * @param parent Parent element (nullptr for none)
+         *
+         * @note `window<Backend>` is designed to be hosted in a
+         *       `layer_manager<Backend>` via `show()` / `show_modal()`. It
+         *       is not intended to live inside a widget layout tree. For a
+         *       tree-hosted framed container (title + border + children),
+         *       use `group_box<Backend>` instead.
          */
         explicit window(
             std::string title = "",
-            window_flags flags = {},
-            ui_element<Backend>* parent = nullptr
+            window_flags flags = {}
         );
 
         /**
@@ -357,21 +379,41 @@ namespace onyxui {
 
         // ====================================================================
         // Display
+        //
+        // Preferred form: pass the target layer_manager explicitly. This
+        // makes "I am showing this window as a layer" visible at the call
+        // site and removes the ambient ui_services lookup — callers cannot
+        // accidentally call show() on a window that has no layer manager
+        // in scope. The parameterless overloads are kept as deprecated
+        // wrappers that look up the ambient layer manager.
         // ====================================================================
 
-        /**
-         * @brief Show window (adds to layer_manager)
-         */
+        /// @brief Show window as a non-modal layer in the given manager.
+        void show(layer_manager<Backend>& layers);
+
+        /// @brief Show window as a modal layer in the given manager.
+        void show_modal(layer_manager<Backend>& layers,
+                        dialog_position pos = dialog_position::center);
+
+        /// @brief Remove the window's layer from the given manager.
+        void hide(layer_manager<Backend>& layers);
+
+        /// @brief DEPRECATED — ambient ui_services::layers() lookup.
+        /// Prefer the overload taking an explicit layer_manager.
+        [[deprecated("pass layer_manager explicitly: win.show(*layers)")]]
         void show();
 
-        /**
-         * @brief Show window as modal (blocks other windows)
-         */
+        /// @brief DEPRECATED — ambient ui_services::layers() lookup.
+        [[deprecated("pass layer_manager explicitly: win.show_modal(*layers)")]]
         void show_modal();
 
-        /**
-         * @brief Hide window (removes from layer_manager)
-         */
+        /// @brief Hide via the ambient layer_manager.
+        ///
+        /// Not deprecated: hide() is called from the destructor and close(),
+        /// neither of which can reasonably require an explicit
+        /// layer_manager reference. For typical caller-initiated hiding,
+        /// prefer the overload that takes an explicit layer_manager so the
+        /// intent matches show(*layers).
         void hide();
 
         /**
@@ -464,6 +506,11 @@ namespace onyxui {
         resize_handle get_resize_handle_at(double x, double y) const;
         void apply_size_constraints(logical_rect& bounds) const;
 
+        /// Clamp the proposed bounds during a title-bar drag so the title
+        /// bar remains reachable (enough overlap with the viewport to grab
+        /// on a subsequent drag). Does nothing if no viewport is known.
+        void clamp_drag_bounds(logical_rect& bounds) const;
+
         /**
          * @brief Hook called when window is closing (Phase 5)
          * @details
@@ -503,7 +550,23 @@ namespace onyxui {
         logical_unit m_resize_start_y{};    // Mouse Y when resize started (logical)
 
         // Phase 5: Layer manager integration
+        //
+        // A window keeps track of which layer_manager owns its current
+        // layer. Every show()/show_modal() call records the manager that
+        // received the layer; subsequent show/hide on a *different*
+        // manager first removes the layer from the old owner, so the
+        // window never leaves an orphaned entry behind.
+        //
+        // The back-pointer is a raw `layer_manager<Backend>*`; we defend
+        // against use-after-free by subscribing to layer_manager's
+        // `destroying` signal through `m_layer_owner_conn`. When the
+        // manager is torn down first (e.g. a scene's scoped_ui_context
+        // destructs before the dialog holding this window), the signal
+        // clears m_layer_owner so our own destructor can no longer
+        // dereference it.
         layer_id m_layer_id{};              // Layer ID when shown in layer_manager
+        layer_manager<Backend>* m_layer_owner = nullptr;  // Manager that holds m_layer_id, if any
+        scoped_connection m_layer_owner_conn;  // Fires when m_layer_owner goes away
         std::shared_ptr<ui_element<Backend>> m_layer_handle;  // Keeps weak_ptr in layer_manager alive
         window<Backend>* m_previous_active_window = nullptr;  // For restoring focus after modal closes
 

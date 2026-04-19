@@ -29,7 +29,7 @@ namespace widgets_demo_windows {
  * - ESC to close
  * - OK/Cancel buttons
  */
-inline std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& message) {
+inline std::unique_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& message) {
     // Create window with minimal flags (dialogs don't need all window features)
     typename onyxui::window<Backend>::window_flags flags;
     flags.has_close_button = true;
@@ -40,7 +40,8 @@ inline std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::s
     flags.is_movable = true;   // Allow dragging
     flags.is_scrollable = false;
 
-    auto dialog = std::make_shared<onyxui::window<Backend>>("Modal Dialog", flags);
+    auto dialog = std::make_unique<onyxui::window<Backend>>("Modal Dialog", flags);
+    auto* dialog_ptr = dialog.get();
 
     // Create content
     auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
@@ -72,13 +73,13 @@ inline std::shared_ptr<onyxui::window<Backend>> create_modal_dialog(const std::s
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* ok_btn = button_row->emplace_child<onyxui::button>("OK");
-    ok_btn->clicked.connect([dialog]() {
-        dialog->close();
+    ok_btn->clicked.connect([dialog_ptr]() {
+        dialog_ptr->close();
     });
 
     auto* cancel_btn = button_row->emplace_child<onyxui::button>("Cancel");
-    cancel_btn->clicked.connect([dialog]() {
-        dialog->close();
+    cancel_btn->clicked.connect([dialog_ptr]() {
+        dialog_ptr->close();
     });
 
     // Set content

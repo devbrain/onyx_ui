@@ -261,15 +261,24 @@ namespace onyxui {
         }
 
         /**
-         * @brief Destructor
+         * @brief Destructor. Emits `destroying` so consumers holding a raw
+         * pointer to this manager (e.g. `window::m_layer_owner`) can null
+         * their back-reference before the object is torn down.
          */
-        ~layer_manager() = default;
+        ~layer_manager() {
+            destroying.emit();
+        }
 
         // Disable copy/move
         layer_manager(const layer_manager&) = delete;
         layer_manager& operator=(const layer_manager&) = delete;
         layer_manager(layer_manager&&) noexcept = delete;
         layer_manager& operator=(layer_manager&&) noexcept = delete;
+
+        /// Fired from the destructor, before any member has been
+        /// destroyed. Used by `window` to clear its owning-manager
+        /// back-pointer and avoid a use-after-free in its own destructor.
+        mutable signal<> destroying;
 
         /**
          * @brief Set input manager for capture handling

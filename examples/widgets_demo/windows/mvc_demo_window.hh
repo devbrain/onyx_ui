@@ -32,7 +32,7 @@ namespace widgets_demo_windows {
  * - Selection display
  * - Signal/slot communication
  */
-inline std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
+inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     // Create window with flags
     typename onyxui::window<Backend>::window_flags flags;
     flags.has_close_button = true;
@@ -43,7 +43,7 @@ inline std::shared_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     flags.is_movable = true;
     flags.is_scrollable = true;
 
-    auto win = std::make_shared<onyxui::window<Backend>>("MVC Demo", flags);
+    auto win = std::make_unique<onyxui::window<Backend>>("MVC Demo", flags);
 
     // Create content container
     auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);

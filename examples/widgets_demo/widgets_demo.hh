@@ -33,11 +33,13 @@
 #include "tabs/tab_events_interaction.hh"
 
 // Window implementations
-#include "windows/window_registry.hh"
 #include "windows/mvc_demo_window.hh"
 #include "windows/modal_dialog_example.hh"
 #include "windows/modeless_dialog_example.hh"
 #include "windows/about_dialog.hh"
+
+#include <onyxui/services/layer_manager.hh>
+#include <onyxui/widgets/window/presented_window.hh>
 
 /**
  * @brief Main application class for OnyxUI Widgets Demo
@@ -176,14 +178,8 @@ public:
      * @brief Show MVC Demo window (Ctrl+M)
      */
     void show_mvc_demo() {
-        // Create MVC demo window (factory function)
-        auto win = widgets_demo_windows::create_mvc_demo_window();
-
-        // Register for lifetime management
-        widgets_demo_windows::register_window(win);
-
-        // Show window
-        win->show();
+        present_window(widgets_demo_windows::create_mvc_demo_window(),
+                       onyxui::presentation_kind::modeless);
     }
 
     /**
@@ -464,46 +460,27 @@ private:
      * @brief Show Modal Dialog Example
      */
     void show_modal_dialog() {
-        // Create modal dialog
-        auto dialog = widgets_demo_windows::create_modal_dialog(
-            "This is a modal dialog!\n\n"
-            "Try clicking the main window - it's blocked.\n"
-            "Focus is trapped within this dialog."
-        );
-
-        // Register for lifetime management
-        widgets_demo_windows::register_window(dialog);
-
-        // Show as modal (blocks other windows)
-        dialog->show_modal();
+        present_window(widgets_demo_windows::create_modal_dialog(
+                           "This is a modal dialog!\n\n"
+                           "Try clicking the main window - it's blocked.\n"
+                           "Focus is trapped within this dialog."),
+                       onyxui::presentation_kind::modal);
     }
 
     /**
      * @brief Show Modeless Dialog Example
      */
     void show_modeless_dialog() {
-        // Create modeless dialog
-        auto dialog = widgets_demo_windows::create_modeless_dialog();
-
-        // Register for lifetime management
-        widgets_demo_windows::register_window(dialog);
-
-        // Show normally (non-blocking)
-        dialog->show();
+        present_window(widgets_demo_windows::create_modeless_dialog(),
+                       onyxui::presentation_kind::modeless);
     }
 
     /**
      * @brief Show About Dialog
      */
     void show_about_dialog() {
-        // Create about dialog
-        auto dialog = widgets_demo_windows::create_about_dialog();
-
-        // Register for lifetime management
-        widgets_demo_windows::register_window(dialog);
-
-        // Show as modal
-        dialog->show_modal();
+        present_window(widgets_demo_windows::create_about_dialog(),
+                       onyxui::presentation_kind::modal);
     }
 
 private:
@@ -523,4 +500,32 @@ private:
     std::shared_ptr<onyxui::action<Backend>> m_mvc_action;
     std::shared_ptr<onyxui::action<Backend>> m_theme_editor_action;
     std::shared_ptr<onyxui::action<Backend>> m_debug_tools_action;
+
+    // Open spawned windows — each entry owns its window and its layer.
+    // Subscribing to window::closed erases the presenter, which removes
+    // the layer and destroys the window.
+    std::vector<std::unique_ptr<onyxui::presented_window<Backend>>> m_open_windows;
+
+    void present_window(std::unique_ptr<onyxui::window<Backend>> win,
+                        onyxui::presentation_kind kind) {
+        auto* layers = onyxui::ui_services<Backend>::layers();
+        if (!layers) return;
+
+        auto presenter = std::make_unique<onyxui::presented_window<Backend>>(
+            *layers, std::move(win), kind);
+        auto* presenter_ptr = presenter.get();
+
+        // When the window closes itself (title-bar X, OK/Close button),
+        // drop the presenter so its layer and the window are freed.
+        presenter_ptr->get()->closed.connect([this, presenter_ptr]() {
+            auto it = std::find_if(
+                m_open_windows.begin(), m_open_windows.end(),
+                [presenter_ptr](const auto& p) { return p.get() == presenter_ptr; });
+            if (it != m_open_windows.end()) {
+                m_open_windows.erase(it);
+            }
+        });
+
+        m_open_windows.push_back(std::move(presenter));
+    }
 };

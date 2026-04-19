@@ -28,7 +28,7 @@ namespace widgets_demo_windows {
  * - Window z-order (click to bring to front)
  * - Normal window features (move, close, etc.)
  */
-inline std::shared_ptr<onyxui::window<Backend>> create_modeless_dialog() {
+inline std::unique_ptr<onyxui::window<Backend>> create_modeless_dialog() {
     // Create window with typical dialog flags
     typename onyxui::window<Backend>::window_flags flags;
     flags.has_close_button = true;
@@ -39,7 +39,8 @@ inline std::shared_ptr<onyxui::window<Backend>> create_modeless_dialog() {
     flags.is_movable = true;  // Can be moved around
     flags.is_scrollable = false;
 
-    auto dialog = std::make_shared<onyxui::window<Backend>>("Modeless Dialog", flags);
+    auto dialog = std::make_unique<onyxui::window<Backend>>("Modeless Dialog", flags);
+    auto* dialog_ptr = dialog.get();
 
     // Create content
     auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
@@ -85,8 +86,8 @@ inline std::shared_ptr<onyxui::window<Backend>> create_modeless_dialog() {
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     auto* close_btn = button_row->emplace_child<onyxui::button>("Close");
-    close_btn->clicked.connect([dialog]() {
-        dialog->close();
+    close_btn->clicked.connect([dialog_ptr]() {
+        dialog_ptr->close();
     });
 
     // Set content

@@ -18,15 +18,14 @@ namespace onyxui {
     template<UIBackend Backend>
     window <Backend>::window(
         std::string title,
-        window_flags flags,
-        ui_element <Backend>* parent
+        window_flags flags
     )
         : base(
               std::make_unique <linear_layout <Backend>>(
                   direction::vertical,
                   0 // No spacing between title bar and content
               ),
-              parent
+              /*parent=*/nullptr
           )
           , m_title(std::move(title))
           , m_flags(flags) {
@@ -54,14 +53,17 @@ namespace onyxui {
                     logical_rect new_bounds = m_drag_initial_bounds;
                     new_bounds.x = new_bounds.x + logical_unit(static_cast<double>(delta_x));
                     new_bounds.y = new_bounds.y + logical_unit(static_cast<double>(delta_y));
+
+                    // Keep the title bar reachable — don't let the user park
+                    // the window off-screen with no way to grab it back.
+                    clamp_drag_bounds(new_bounds);
+
                     this->arrange(new_bounds);
 
-                    // Update layer bounds so the window visually moves
-                    if (m_layer_id.is_valid()) {
-                        auto* layers = ui_services<Backend>::layers();
-                        if (layers) {
-                            layers->set_layer_bounds(m_layer_id, new_bounds);
-                        }
+                    // Update layer bounds on the manager that actually owns
+                    // the layer (the one show()/show_modal() last used).
+                    if (m_layer_id.is_valid() && m_layer_owner) {
+                        m_layer_owner->set_layer_bounds(m_layer_id, new_bounds);
                     }
 
                     moved.emit();
@@ -229,22 +231,30 @@ namespace onyxui {
         // Change state
         m_state = window_state::maximized;
 
-        // Phase 4: Fill parent container or screen (all in logical coordinates)
+        // Phase 4: Fill workspace or viewport (all in logical coordinates).
+        //
+        // Historically this branch also consulted parent() first, so that a
+        // window passed "central_widget as parent" by main_window::create_window
+        // would maximize within the central area. That was an overload of
+        // `parent`: for a layer-mode window, parent is not a real tree parent
+        // (add_child was never called) — it was just a workspace hint. The
+        // correct seam for that is set_workspace(). We now look at workspace
+        // only; callers that want the old "fill my tree parent" semantic can
+        // pass the parent via set_workspace() explicitly.
         logical_rect maximized_bounds;
 
-        // Determine maximize bounds (priority order: parent > workspace > viewport)
-        auto* parent_elem = this->parent();
-        if (parent_elem) {
-            // Case 1: Window has parent (MDI) - maximize to fill parent
-            auto parent_bounds = parent_elem->bounds();
-            // Window fills entire parent (positioned at 0,0 relative to parent)
-            maximized_bounds = logical_rect{0.0_lu, 0.0_lu, parent_bounds.width, parent_bounds.height};
-        } else if (m_workspace) {
-            // Case 2: Floating window with workspace - maximize to fill workspace
-            // Use workspace's full bounds (already in logical coordinates)
-            maximized_bounds = m_workspace->bounds();
+        if (m_workspace) {
+            // Floating window with workspace — maximize to fill it.
+            //
+            // The window is a layer in layer_manager, so its bounds are in
+            // absolute viewport coordinates. The workspace, by contrast,
+            // is a widget somewhere in the main widget tree — its
+            // `bounds()` are parent-relative. We must translate to
+            // absolute space so the maximized layer lands in the right
+            // place when the workspace isn't at the root.
+            maximized_bounds = m_workspace->get_absolute_logical_bounds();
         } else {
-            // Case 3: Floating window without workspace - maximize to fill viewport
+            // Floating window without workspace — maximize to fill viewport.
             auto* layers = ui_services <Backend>::layers();
             auto* metrics = ui_services <Backend>::metrics();
             if (layers && metrics) {
@@ -279,11 +289,8 @@ namespace onyxui {
                  ui_services <Backend>::themes());
 
         // Update layer bounds if this window is shown as a layer
-        if (m_layer_id.is_valid()) {
-            auto* layers = ui_services <Backend>::layers();
-            if (layers) {
-                layers->set_layer_bounds(m_layer_id, maximized_bounds);
-            }
+        if (m_layer_id.is_valid() && m_layer_owner) {
+            m_layer_owner->set_layer_bounds(m_layer_id, maximized_bounds);
         }
 
         // Update title bar icons (show restore icon instead of maximize)
@@ -328,12 +335,9 @@ namespace onyxui {
             if (m_before_minimize.width.value > 0 && m_before_minimize.height.value > 0) {
                 this->arrange(m_before_minimize);
 
-                // Update layer bounds
-                if (m_layer_id.is_valid()) {
-                    auto* layers = ui_services <Backend>::layers();
-                    if (layers) {
-                        layers->set_layer_bounds(m_layer_id, m_before_minimize);
-                    }
+                // Update layer bounds on the manager that owns this layer
+                if (m_layer_id.is_valid() && m_layer_owner) {
+                    m_layer_owner->set_layer_bounds(m_layer_id, m_before_minimize);
                 }
             }
         } else if (old_state == window_state::maximized) {
@@ -341,12 +345,9 @@ namespace onyxui {
             if (m_normal_bounds.width.value > 0 && m_normal_bounds.height.value > 0) {
                 this->arrange(m_normal_bounds);
 
-                // Update layer bounds
-                if (m_layer_id.is_valid()) {
-                    auto* layers = ui_services <Backend>::layers();
-                    if (layers) {
-                        layers->set_layer_bounds(m_layer_id, m_normal_bounds);
-                    }
+                // Update layer bounds on the owning manager
+                if (m_layer_id.is_valid() && m_layer_owner) {
+                    m_layer_owner->set_layer_bounds(m_layer_id, m_normal_bounds);
                 }
             }
 
@@ -537,98 +538,186 @@ namespace onyxui {
         }
     }
 
-    template<UIBackend Backend>
-    void window <Backend>::show() {
-        // Phase 5: Integrate with layer_manager
-        auto* layers = ui_services <Backend>::layers();
-
-        if (layers) {
-            // Remove existing layer if already shown
-            if (m_layer_id.is_valid()) {
-                layers->remove_layer(m_layer_id);
+    namespace detail_window {
+        // Remove the current layer registration from its *actual* owner.
+        // Used by show/show_modal/hide before touching a (possibly
+        // different) manager, so we never leave a dangling layer behind.
+        template<UIBackend Backend>
+        void clear_current_layer(layer_id& id,
+                                  layer_manager<Backend>*& owner,
+                                  scoped_connection& owner_conn,
+                                  std::shared_ptr<ui_element<Backend>>& handle) {
+            if (owner && id.is_valid()) {
+                owner->remove_layer(id);
             }
+            owner_conn = scoped_connection{};   // disconnect before nulling
+            id = layer_id::invalid();
+            owner = nullptr;
+            handle.reset();
+        }
+    }
 
-            // Create non-owning shared_ptr (window manages its own lifetime)
-            // Store in m_layer_handle to keep weak_ptr in layer_manager alive
-            m_layer_handle = std::shared_ptr <ui_element <Backend>>(
-                static_cast <ui_element <Backend>*>(this),
-                [](ui_element <Backend>*) {
-                } // No-op deleter
-            );
+    template<UIBackend Backend>
+    void window <Backend>::show(layer_manager<Backend>& layers) {
+        // Any prior registration goes back to whichever manager actually
+        // owns it, not necessarily `layers`.
+        detail_window::clear_current_layer(m_layer_id, m_layer_owner,
+                                            m_layer_owner_conn, m_layer_handle);
 
-            // Show as window layer (z=150, below popups z=200)
-            m_layer_id = layers->add_layer(layer_type::window, m_layer_handle);
+        // Create a non-owning shared_ptr so layer_manager can hold a
+        // weak_ptr without participating in window lifetime.
+        m_layer_handle = std::shared_ptr<ui_element<Backend>>(
+            static_cast<ui_element<Backend>*>(this),
+            [](ui_element<Backend>*) {} // No-op deleter
+        );
 
-            // Set layer bounds to window's position/size
-            // Window uses absolute coordinates (layer and window have same bounds)
-            // Layer manager now works with logical coordinates directly
-            layers->set_layer_bounds(m_layer_id, this->bounds());
+        // Add as a window-type layer (z=150, below popups).
+        m_layer_id = layers.add_layer(layer_type::window, m_layer_handle);
+        m_layer_owner = &layers;
+        // Subscribe to the manager's destructor so an out-of-order
+        // teardown (manager dies before window) doesn't leave us with a
+        // dangling owning-pointer.
+        m_layer_owner_conn = scoped_connection(layers.destroying, [this]() {
+            m_layer_owner = nullptr;
+            m_layer_id = layer_id::invalid();
+            m_layer_handle.reset();
+        });
+
+        // If the caller pre-placed the window (via set_position / set_size /
+        // arrange) we honour those bounds. Otherwise bounds are (0,0,0,0)
+        // and the layer manager would render the window invisibly — ask it
+        // to auto-position on first render, matching show_modal's default.
+        const auto current = this->bounds();
+        if (current.width.value > 0 && current.height.value > 0) {
+            layers.set_layer_bounds(m_layer_id, current);
+        } else {
+            layers.request_layer_positioning(m_layer_id);
         }
 
-        // Clear modal flag (show() is non-modal, use show_modal() for modal)
         m_flags.is_modal = false;
+        this->set_visible(true);
+        set_window_focus(true);
+    }
 
+    template<UIBackend Backend>
+    void window <Backend>::show_modal(layer_manager<Backend>& layers,
+                                       dialog_position pos) {
+        detail_window::clear_current_layer(m_layer_id, m_layer_owner,
+                                            m_layer_owner_conn, m_layer_handle);
+
+        m_layer_id = layers.show_modal_dialog(this, pos);
+        m_layer_owner = &layers;
+        m_layer_owner_conn = scoped_connection(layers.destroying, [this]() {
+            m_layer_owner = nullptr;
+            m_layer_id = layer_id::invalid();
+            m_layer_handle.reset();
+        });
+        // show_modal_dialog uses its own shared_ptr internally; we don't
+        // need to retain m_layer_handle, but clear_current_layer above
+        // already reset it.
+
+        m_flags.is_modal = true;
         this->set_visible(true);
 
-        // Set window focus so title bar shows as focused (blue)
+        // Swap focus to the modal and save the previous active window so
+        // it can be restored when the modal closes.
+        if (auto* win_mgr = ui_services<Backend>::windows()) {
+            m_previous_active_window = win_mgr->get_active_window();
+            win_mgr->set_active_window(this);
+        }
+        if (auto* focus_mgr = ui_services<Backend>::input()) {
+            focus_mgr->release_capture();
+            focus_mgr->clear_hover();
+            focus_mgr->set_focus(this);
+        }
+        set_window_focus(true);
+    }
+
+    template<UIBackend Backend>
+    void window <Backend>::hide(layer_manager<Backend>& layers) {
+        // Caller passed a manager; if they're hiding against a different
+        // manager than the one that actually holds this window's layer,
+        // fall back to removing from the real owner. That way we don't
+        // silently leave the original registration in place.
+        if (m_layer_id.is_valid()) {
+            layer_manager<Backend>* target = m_layer_owner ? m_layer_owner : &layers;
+            target->remove_layer(m_layer_id);
+        }
+        m_layer_owner_conn = scoped_connection{};
+        m_layer_id = layer_id::invalid();
+        m_layer_owner = nullptr;
+        m_layer_handle.reset();
+        this->set_visible(false);
+    }
+
+    // ----------------------------------------------------------------
+    // Deprecated legacy: ambient ui_services::layers() lookup.
+    //
+    // These match the historical contract: even if no layer manager is
+    // available (e.g. a test context that didn't install one), the window's
+    // own state (visible / focus / modal flags) still gets updated. Only
+    // the layer-manipulation step is skipped when there's nothing to
+    // manipulate.
+    // ----------------------------------------------------------------
+
+    template<UIBackend Backend>
+    void window <Backend>::show() {
+        if (auto* layers = ui_services<Backend>::layers()) {
+            show(*layers);
+            return;
+        }
+        m_flags.is_modal = false;
+        this->set_visible(true);
         set_window_focus(true);
     }
 
     template<UIBackend Backend>
     void window <Backend>::show_modal() {
-        // Integrate with layer_manager modal layer
-        if (auto* layers = ui_services <Backend>::layers()) {
-            // Remove existing layer if already shown
-            if (m_layer_id.is_valid()) {
-                layers->remove_layer(m_layer_id);
-            }
-
-            // Show as modal dialog (blocks underlying UI)
-            m_layer_id = layers->show_modal_dialog(this, dialog_position::center);
+        if (auto* layers = ui_services<Backend>::layers()) {
+            show_modal(*layers);
+            return;
         }
-
-        // Set modal flag so is_modal() returns true
         m_flags.is_modal = true;
-
         this->set_visible(true);
-
-        // Auto-focus modal window
-        // Save previous active window for restoration when modal closes
-        if (auto* win_mgr = ui_services <Backend>::windows()) {
+        if (auto* win_mgr = ui_services<Backend>::windows()) {
             m_previous_active_window = win_mgr->get_active_window();
             win_mgr->set_active_window(this);
         }
-
-        // Request focus for modal
-        if (auto* focus_mgr = ui_services <Backend>::input()) {
-            // Clear any stale hover/capture from the underlying UI before modal input
+        if (auto* focus_mgr = ui_services<Backend>::input()) {
             focus_mgr->release_capture();
             focus_mgr->clear_hover();
             focus_mgr->set_focus(this);
         }
-
-        // Set window focus so title bar shows as focused (blue)
         set_window_focus(true);
     }
 
     template<UIBackend Backend>
     void window <Backend>::hide() {
-        // Remove from layer_manager (cleanup on window destruction)
-        auto* layers = ui_services <Backend>::layers();
-        if (layers && m_layer_id.is_valid()) {
-            layers->remove_layer(m_layer_id);
+        // Prefer the owning manager (set by the last show/show_modal) over
+        // whatever ambient layer_manager happens to be current. If the
+        // owner has already been torn down, the `destroying` signal has
+        // cleared m_layer_owner, so this branch is correctly skipped and
+        // we just toggle the visible flag.
+        if (m_layer_id.is_valid() && m_layer_owner) {
+            m_layer_owner->remove_layer(m_layer_id);
+            m_layer_owner_conn = scoped_connection{};
             m_layer_id = layer_id::invalid();
+            m_layer_owner = nullptr;
+            m_layer_handle.reset();
+        } else if (auto* layers = ui_services<Backend>::layers()) {
+            hide(*layers);
+            return;
         }
-
         this->set_visible(false);
     }
 
     template<UIBackend Backend>
     void window <Backend>::bring_to_front() {
-        // Bring layer to front in layer_manager
-        auto* layers = ui_services <Backend>::layers();
-        if (layers && m_layer_id.is_valid()) {
-            layers->bring_to_front(m_layer_id);
+        // Bring to front on the layer manager that owns this window's
+        // layer. Falls back to nothing if the window isn't currently
+        // hosted anywhere.
+        if (m_layer_id.is_valid() && m_layer_owner) {
+            m_layer_owner->bring_to_front(m_layer_id);
         }
 
         // Request keyboard focus from input_manager
@@ -863,6 +952,96 @@ namespace onyxui {
         if (m_flags.max_height > 0 && bounds.height > max_height) {
             bounds.height = max_height;
         }
+    }
+
+    template<UIBackend Backend>
+    void window <Backend>::clamp_drag_bounds(logical_rect& bounds) const {
+        // Resolve the rect the drag target must remain inside.
+        //
+        // The window is a layer (overlay), so its bounds are in absolute
+        // viewport coordinates. The workspace, by contrast, is a widget
+        // somewhere in the main widget tree — its `bounds()` are
+        // parent-relative. We translate to absolute space so the clamp
+        // works regardless of where the workspace lives in the tree.
+        //
+        // Order of preference: workspace → viewport. `parent()` is now
+        // meaningless for overlay windows (they are always parent=null),
+        // so we don't consult it.
+        logical_rect container{};
+        bool have_container = false;
+
+        if (m_workspace) {
+            container = m_workspace->get_absolute_logical_bounds();
+            have_container = true;
+        } else {
+            auto* layers = ui_services<Backend>::layers();
+            auto* metrics = ui_services<Backend>::metrics();
+            if (layers && metrics) {
+                auto physical = layers->get_viewport();
+                if (rect_utils::get_width(physical) > 0 &&
+                    rect_utils::get_height(physical) > 0) {
+                    container = metrics->physical_to_logical_rect(physical);
+                    have_container = true;
+                }
+            }
+        }
+
+        if (!have_container) {
+            return;  // No reference frame — leave bounds untouched.
+        }
+
+        // Keep at least this much of the title bar inside the container on
+        // each horizontal side, and keep the title bar's top edge within
+        // the container vertically. 64 lu is a small-but-grabbable width.
+        constexpr double min_grip_width = 64.0;
+
+        // Title bar height: query the theme; fall back to a conservative
+        // default if no theme / no title bar.
+        double title_bar_height = 20.0;
+        if (m_title_bar) {
+            const auto tb = m_title_bar->bounds();
+            if (tb.height.value > 0.0) {
+                title_bar_height = tb.height.value;
+            }
+        }
+        if (auto* themes = ui_services<Backend>::themes()) {
+            if (auto* theme = themes->get_current_theme()) {
+                if (theme->window.title_bar_height > 1) {
+                    title_bar_height = static_cast<double>(
+                        theme->window.title_bar_height);
+                }
+            }
+        }
+
+        const double c_left   = container.x.value;
+        const double c_top    = container.y.value;
+        const double c_right  = c_left + container.width.value;
+        const double c_bottom = c_top + container.height.value;
+
+        // Horizontal: at least min_grip_width of the window must overlap
+        // the container on each side. Equivalently, the window's right
+        // edge must be >= c_left + min_grip and the left edge must be
+        // <= c_right - min_grip.
+        const double min_x = c_left - bounds.width.value + min_grip_width;
+        const double max_x = c_right - min_grip_width;
+        double new_x = bounds.x.value;
+        if (max_x >= min_x) {
+            if (new_x < min_x) new_x = min_x;
+            if (new_x > max_x) new_x = max_x;
+        }
+        bounds.x = logical_unit(new_x);
+
+        // Vertical: don't let the title bar escape above the container,
+        // and keep its top edge from going past the container's bottom
+        // minus the title bar height so the user can still grab it.
+        const double min_y = c_top;
+        const double max_y = c_bottom - title_bar_height;
+        double new_y = bounds.y.value;
+        if (max_y >= min_y) {
+            if (new_y < min_y) new_y = min_y;
+            if (new_y > max_y) new_y = max_y;
+        }
+        bounds.y = logical_unit(new_y);
     }
 
     template<UIBackend Backend>

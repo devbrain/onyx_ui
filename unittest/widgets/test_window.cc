@@ -881,18 +881,23 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Window - Visual cont
     }
 }
 
-// Phase 1: Tests for window maximize with and without parent
-TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize behavior with parent") {
-    auto parent = std::make_unique<panel<test_canvas_backend>>();
+// Phase 1: Tests for window maximize with and without workspace
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize behavior with workspace") {
+    // Previously this test put the window inside `parent` as a tree child
+    // and relied on maximize() filling the parent. `window` is now
+    // overlay-only — the equivalent "fill a specific region when
+    // maximized" hint is expressed via set_workspace().
+    auto workspace = std::make_unique<panel<test_canvas_backend>>();
 
     typename window<test_canvas_backend>::window_flags flags;
     flags.has_maximize_button = true;
 
-    auto* win = parent->template emplace_child<window>("Test", flags);
+    auto win = std::make_unique<window<test_canvas_backend>>("Test", flags);
+    win->set_workspace(workspace.get());
 
-    // Arrange parent to 80x25
-    [[maybe_unused]] auto measured = parent->measure(80_lu, 25_lu);
-    parent->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
+    // Arrange workspace to 80x25
+    [[maybe_unused]] auto measured = workspace->measure(80_lu, 25_lu);
+    workspace->arrange(logical_rect{0_lu, 0_lu, 80_lu, 25_lu});
 
     // Window starts small
     win->set_size(20, 10);
@@ -903,7 +908,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "window - maximize be
     // Maximize
     win->maximize();
 
-    // Should fill parent
+    // Should fill workspace
     CHECK(win->bounds().x.to_int() == 0);
     CHECK(win->bounds().y.to_int() == 0);
     CHECK(win->bounds().width.to_int() == 80);

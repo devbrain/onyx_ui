@@ -72,7 +72,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - set_central_widget
     CHECK(main->central_widget() == central_ptr);
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - create_window sets central widget as parent") {
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - create_window wires central widget as workspace") {
     auto main = std::make_unique<main_window<Backend>>();
 
     typename window<Backend>::window_flags flags;
@@ -80,11 +80,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - create_window sets
 
     auto win = main->create_window("Test Window", flags);
 
-    // Central widget should be created automatically
+    // Central widget is created automatically on first create_window.
     REQUIRE(main->central_widget() != nullptr);
 
-    // Window should have central widget as parent
-    CHECK(win->parent() == main->central_widget());
+    // The window is an overlay — it is NOT a tree child of central widget.
+    // Instead, its workspace (maximize bounds reference) points at central.
+    CHECK(win->parent() == nullptr);
+    CHECK(win->get_workspace() == main->central_widget());
 }
 
 TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - layout order is menu, central, status") {
@@ -134,22 +136,25 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - window maximizes t
     // Maximize window
     win->maximize();
 
-    // Window should fill central widget (which is between menu and status)
-    // For now, we just verify that window has a parent
-    REQUIRE(win->parent() != nullptr);
-    CHECK(win->parent() == main->central_widget());
+    // Window is an overlay — no tree parent. Its workspace points at
+    // central_widget, which is what maximize() fills into.
+    CHECK(win->parent() == nullptr);
+    CHECK(win->get_workspace() == main->central_widget());
 
     // Window state should be maximized
     CHECK(win->get_state() == window<Backend>::window_state::maximized);
 }
 
-TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - multiple windows share same central widget parent") {
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "main_window - multiple windows share same central widget workspace") {
     auto main = std::make_unique<main_window<Backend>>();
 
     auto win1 = main->create_window("Window 1", typename window<Backend>::window_flags{});
     auto win2 = main->create_window("Window 2", typename window<Backend>::window_flags{});
 
-    // Both windows should have same parent (central widget)
-    CHECK(win1->parent() == win2->parent());
-    CHECK(win1->parent() == main->central_widget());
+    // Both windows are overlays (no tree parent); they share the same
+    // workspace, which is the central widget.
+    CHECK(win1->parent() == nullptr);
+    CHECK(win2->parent() == nullptr);
+    CHECK(win1->get_workspace() == win2->get_workspace());
+    CHECK(win1->get_workspace() == main->central_widget());
 }
