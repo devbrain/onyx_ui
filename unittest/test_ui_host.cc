@@ -6,6 +6,7 @@
 #include "utils/test_backend.hh"
 #include "utils/test_helpers.hh"
 
+#include <onyxui/services/ui_services.hh>
 #include <onyxui/ui_host.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/containers/vbox.hh>
@@ -204,6 +205,98 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
 // ============================================================================
 // Destruction with live overlays
 // ============================================================================
+
+// ============================================================================
+// Dormancy between calls (§7 of the design)
+// ============================================================================
+
+TEST_CASE("ui_host - host is dormant between render/event calls") {
+    ui_host<Backend> host;
+
+    // Outside any call, there must be no ambient context for this
+    // backend — the host does NOT push on construction.
+    CHECK(ui_services<Backend>::layers() == nullptr);
+    CHECK(ui_services<Backend>::themes() == nullptr);
+    CHECK(ui_services<Backend>::input() == nullptr);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - scope is pushed inside render and popped after") {
+    // The fixture has already pushed its own context; that's our
+    // baseline. ui_host must push on top and pop back to it.
+    auto* outer_layers = ui_services<Backend>::layers();
+    REQUIRE(outer_layers != nullptr);
+
+    ui_host<Backend> host;
+    host.mount(make_root());
+
+    // Nothing pushed yet (host is dormant).
+    CHECK(ui_services<Backend>::layers() == outer_layers);
+
+    typename Backend::renderer_type r{};
+    host.render(r, logical_rect{0.0_lu, 0.0_lu, 100.0_lu, 100.0_lu});
+
+    // After render returns, the scope guard has popped; we're back
+    // to the outer context.
+    CHECK(ui_services<Backend>::layers() == outer_layers);
+}
+
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - two hosts on one thread do not fight for ambient slot") {
+    auto* outer_layers = ui_services<Backend>::layers();
+    REQUIRE(outer_layers != nullptr);
+
+    ui_host<Backend> host_a;
+    ui_host<Backend> host_b;
+
+    // Neither host is "ambient" between calls — the outer context
+    // (the fixture's) stays on top. Critical: constructing host_b
+    // doesn't shadow host_a.
+    CHECK(ui_services<Backend>::layers() == outer_layers);
+
+    // host_a.layers() returns host_a's own layer_manager (not ambient).
+    CHECK(&host_a.layers() != outer_layers);
+    CHECK(&host_b.layers() != outer_layers);
+    CHECK(&host_a.layers() != &host_b.layers());
+
+    // When host_a is inside a call, ambient resolves to host_a's
+    // layers — not host_b's.
+    typename Backend::renderer_type r{};
+    host_a.mount(make_root());
+    host_a.render(r, logical_rect{0.0_lu, 0.0_lu, 50.0_lu, 50.0_lu});
+    // After the call returns, host_a is dormant again.
+    CHECK(ui_services<Backend>::layers() == outer_layers);
+}
+
+// ============================================================================
+// Viewport origin (sub-viewport hosting)
+// ============================================================================
+
+TEST_CASE_FIXTURE(ui_context_fixture<Backend>,
+                   "ui_host - render honors the viewport origin") {
+    ui_host<Backend> host;
+
+    // Give the root a fixed intrinsic size that measure/arrange will
+    // realize at the arranged origin.
+    auto root = std::make_unique<vbox<Backend>>();
+    root->set_width_constraint({size_policy::fixed, logical_unit(80.0)});
+    root->set_height_constraint({size_policy::fixed, logical_unit(40.0)});
+    auto* root_ptr = root.get();
+    host.mount(std::move(root));
+
+    typename Backend::renderer_type r{};
+    // Ask the host to place the root inside a viewport that does NOT
+    // start at the origin.
+    const logical_rect viewport{10.0_lu, 20.0_lu, 80.0_lu, 40.0_lu};
+    host.render(r, viewport);
+
+    // The root must be arranged at the viewport's origin, not (0, 0).
+    const auto& bounds = root_ptr->bounds();
+    CHECK(bounds.x.value == doctest::Approx(10.0));
+    CHECK(bounds.y.value == doctest::Approx(20.0));
+    CHECK(bounds.width.value == doctest::Approx(80.0));
+    CHECK(bounds.height.value == doctest::Approx(40.0));
+}
 
 TEST_CASE("ui_host - destruction with live overlays is safe (layer_manager teardown)") {
     // Heap-allocate the presenter too so we can sequence its destruction

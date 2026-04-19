@@ -78,9 +78,12 @@ namespace onyxui {
 
         explicit ui_host(backend_metrics<Backend> metrics = backend_metrics<Backend>{})
             : m_ctx(std::move(metrics)) {
-            // scoped_ui_context<Backend>'s constructor has already pushed
-            // the services onto the ambient scope stack. They remain
-            // pushed for the lifetime of this host.
+            // The ui_context services live here for the host's lifetime
+            // but are NOT pushed onto the ambient scope stack. Push/pop
+            // happens per-call inside render() / handle_event() /
+            // present() / present_modal() via the RAII `scope` guard
+            // below — between calls the host is dormant, matching the
+            // contract in docs/ONYXUI_UI_HOST_DESIGN.md §7.
         }
 
         ~ui_host() = default;
@@ -121,41 +124,48 @@ namespace onyxui {
 
         /// Render the mounted tree (if any) and any overlay layers into
         /// @p renderer. @p viewport is the logical bounds the UI should
-        /// fill. If no root is mounted, overlays still render over an
-        /// empty background.
+        /// fill — the origin is honored, so sub-viewport hosts lay out
+        /// and paint at the supplied (x, y) rather than (0, 0). If no
+        /// root is mounted, overlays still render over an empty
+        /// background.
         void render(renderer_type& renderer, logical_rect viewport) {
+            scope guard(m_ctx);
             const auto& metrics = m_ctx.metrics();
-
-            // Convert logical viewport → physical for background /
-            // overlay rendering (matches the current ui_handle pipeline).
             const physical_rect physical_viewport = metrics.snap_rect(viewport);
             const rect_type bounds =
                 to_backend_rect<Backend>(physical_viewport);
-
             dispatch_render(renderer, bounds, viewport);
         }
 
         /// Convenience overload: query @p renderer for its physical
-        /// viewport and render into that. Matches the shape of the
-        /// legacy `ui_handle::display()` call.
+        /// viewport (including its physical origin, if non-zero) and
+        /// render into that. Matches the shape of the legacy
+        /// `ui_handle::display()` call.
         void render(renderer_type& renderer) {
             const rect_type bounds = renderer.get_viewport();
             const auto& metrics = m_ctx.metrics();
-            const logical_size logical_viewport =
+            const logical_unit logical_x =
+                metrics.physical_to_logical_x(
+                    physical_x(rect_utils::get_x(bounds)));
+            const logical_unit logical_y =
+                metrics.physical_to_logical_y(
+                    physical_y(rect_utils::get_y(bounds)));
+            const logical_size logical_viewport_size =
                 metrics.physical_to_logical_size(
                     typename Backend::size_type{
                         rect_utils::get_width(bounds),
                         rect_utils::get_height(bounds)
                     });
-            dispatch_render(renderer, bounds,
-                            logical_rect{0.0_lu, 0.0_lu,
-                                         logical_viewport.width,
-                                         logical_viewport.height});
+            render(renderer,
+                   logical_rect{logical_x, logical_y,
+                                logical_viewport_size.width,
+                                logical_viewport_size.height});
         }
 
         /// Dispatch a backend-native event through the UI. Returns true
         /// if the event was consumed.
         [[nodiscard]] bool handle_event(const event_type& native_event) {
+            scope guard(m_ctx);
             return dispatch_event(native_event);
         }
 
@@ -167,6 +177,11 @@ namespace onyxui {
         /// window; dropping it dismisses the overlay.
         [[nodiscard]] presented_window<Backend> present(
             std::unique_ptr<window_type> win) {
+            // The `window<Backend>::show()` path itself doesn't hit
+            // ambient services, but downstream widget construction and
+            // theme resolution inside the overlay's content may — so
+            // we push the scope for the duration of presentation.
+            scope guard(m_ctx);
             return presented_window<Backend>(
                 m_ctx.layers(), std::move(win),
                 presentation_kind::modeless);
@@ -177,6 +192,10 @@ namespace onyxui {
         [[nodiscard]] presented_window<Backend> present_modal(
             std::unique_ptr<window_type> win,
             dialog_position pos = dialog_position::center) {
+            // `window::show_modal` consults ambient window_manager and
+            // focus_manager to swap active-window and focus state, so
+            // the scope must be pushed here.
+            scope guard(m_ctx);
             return presented_window<Backend>(
                 m_ctx.layers(), std::move(win),
                 presentation_kind::modal, pos);
@@ -194,16 +213,40 @@ namespace onyxui {
 
     private:
         // --------------------------------------------------------------
+        // Scope guard: pushes the host's context onto the ui_services
+        // stack for the duration of a call, pops on exit. This is how
+        // ui_host honors "dormant between calls" — two hosts on one
+        // thread don't fight for the ambient slot; only the one
+        // currently inside render() / handle_event() / present() is
+        // the ambient owner.
+        // --------------------------------------------------------------
+
+        class scope {
+        public:
+            explicit scope(ui_context<Backend>& ctx) noexcept {
+                ui_services<Backend>::push_context(&ctx);
+            }
+            ~scope() noexcept {
+                ui_services<Backend>::pop_context();
+            }
+            scope(const scope&) = delete;
+            scope& operator=(const scope&) = delete;
+            scope(scope&&) = delete;
+            scope& operator=(scope&&) = delete;
+        };
+
+        // --------------------------------------------------------------
         // Render pipeline
         //
         // Duplicates ui_handle::display_impl logic minus the owned
         // renderer. When ui_handle is retired (WAR-58) the shared
-        // pipeline moves into a common helper.
+        // pipeline moves into a common helper. The caller is expected
+        // to have already pushed a `scope` guard.
         // --------------------------------------------------------------
 
         void dispatch_render(renderer_type& renderer,
                              const rect_type& bounds,
-                             logical_rect /*logical_viewport*/) {
+                             logical_rect logical_viewport) {
             // Gather dirty regions (from root + layer removals) before
             // painting.
             std::vector<rect_type> dirty_regions;
@@ -225,23 +268,15 @@ namespace onyxui {
             }
 
             // Measure/arrange the root tree in logical coordinates.
+            // Honor the viewport's ORIGIN, not just its size — a
+            // sub-viewport host positions its root at (viewport.x,
+            // viewport.y) so absolute child coordinates are correct.
             auto* theme_ptr = themes_current_or_null();
             if (m_root) {
-                const logical_size logical_viewport_size =
-                    m_ctx.metrics().physical_to_logical_size(
-                        typename Backend::size_type{
-                            rect_utils::get_width(bounds),
-                            rect_utils::get_height(bounds)
-                        });
-
                 [[maybe_unused]] auto measured =
-                    m_root->measure(logical_viewport_size.width,
-                                    logical_viewport_size.height);
-                m_root->arrange(logical_rect{
-                    logical_unit(0.0),
-                    logical_unit(0.0),
-                    logical_viewport_size.width,
-                    logical_viewport_size.height});
+                    m_root->measure(logical_viewport.width,
+                                    logical_viewport.height);
+                m_root->arrange(logical_viewport);
 
                 if (theme_ptr) {
                     m_root->render(renderer, theme_ptr, m_ctx.metrics());
@@ -422,9 +457,14 @@ namespace onyxui {
         // --------------------------------------------------------------
         // Members. m_ctx is declared first so it is destroyed LAST —
         // after the root tree and any overlay wrappers hosted in it.
+        //
+        // Note: it's a plain `ui_context`, not a `scoped_ui_context`.
+        // The scope-stack push/pop lives in the `scope` RAII guard
+        // created per-call inside render() / handle_event() / present()
+        // / present_modal(), so the host is dormant between calls.
         // --------------------------------------------------------------
 
-        scoped_ui_context<Backend> m_ctx;
+        ui_context<Backend> m_ctx;
         std::unique_ptr<widget_type> m_root;
     };
 
