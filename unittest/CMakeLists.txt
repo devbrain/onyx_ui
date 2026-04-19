@@ -37,6 +37,13 @@ add_executable(ui_unittest
         main.cc
         test_ui_host.cc
         test_backend_aliases.cc
+        simple/test_runtime.cc
+        # Compile the simple-shell runtime source directly into the
+        # test binary so the registry is testable in every build
+        # config — the file is backend-agnostic (no sdlpp includes)
+        # and living under backends/sdlpp/src/simple/ is just where
+        # the first backend happened to land it.
+        ${CMAKE_SOURCE_DIR}/backends/sdlpp/src/simple/runtime.cc
         utils/test_backend.hh
         utils/test_helpers.hh
         utils/test_canvas.hh
