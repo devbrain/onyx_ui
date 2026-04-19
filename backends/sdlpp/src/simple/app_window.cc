@@ -91,12 +91,21 @@ namespace onyxui::simple {
 
         // Live modal presenters, keyed by raw `window*`. Declared
         // AFTER `host` so destruction order (reverse) runs the
-        // presenters' dtors before the host they target. Each entry
-        // is auto-erased from this vector when its window fires
-        // `closed` — see `app_window::show_modal`.
+        // presenters' dtors before the host they target.
+        //
+        // Entries are NOT destroyed from inside the window's `closed`
+        // signal — they're just marked `pending_destroy`. Actual
+        // removal happens in `drain_pending_modals()`, which runs
+        // between frames. This decouples destruction from slot-
+        // dispatch order, so caller-connected `closed` slots and our
+        // cleanup slot can fire in any order without the window
+        // being destroyed out from under slots that haven't run yet.
+        // (Signal emission order is documented as unspecified — see
+        // signal.hh.)
         struct live_modal {
             window* key;
             presented_window presenter;
+            bool pending_destroy = false;
         };
         std::vector<live_modal> modals;
 
@@ -227,15 +236,19 @@ namespace onyxui::simple {
     void app_window::show_modal(std::unique_ptr<window> win) {
         if (!pimpl_->open || !win) return;
 
+        // Drain any stale entries from previous ticks before we
+        // push a new one — keeps `modals` bounded during churn.
+        drain_pending_modals();
+
         auto* raw = win.get();
         auto presenter = pimpl_->host->present_modal(std::move(win));
-        pimpl_->modals.push_back({raw, std::move(presenter)});
+        pimpl_->modals.push_back({raw, std::move(presenter), false});
 
-        // Auto-erase when the window fires `closed`. Caller-connected
-        // slots on `closed` run first (signal dispatches in connection
-        // order and callers wire up before calling show_modal), so
-        // the window is still alive when their slots execute. This
-        // slot runs last and destroys it.
+        // Mark-don't-destroy. The actual removal happens in
+        // `drain_pending_modals()` on the next run-loop tick, not
+        // from inside this slot — so slot-dispatch order relative to
+        // caller-connected `closed` handlers cannot cause the window
+        // to vanish while another slot still expects it alive.
         //
         // Capturing `this` is safe: if the app_window dies before
         // `closed` fires, pimpl destruction drops `modals`, which
@@ -246,7 +259,7 @@ namespace onyxui::simple {
             auto it = std::find_if(m.begin(), m.end(),
                 [raw](const impl::live_modal& lm) { return lm.key == raw; });
             if (it != m.end()) {
-                m.erase(it);  // destroys the presenter → the window
+                it->pending_destroy = true;
             }
         });
     }
@@ -255,12 +268,30 @@ namespace onyxui::simple {
         return pimpl_ ? pimpl_->modals.size() : 0;
     }
 
+    void app_window::drain_pending_modals() {
+        if (!pimpl_) return;
+        auto& m = pimpl_->modals;
+        m.erase(
+            std::remove_if(m.begin(), m.end(),
+                [](const impl::live_modal& lm) {
+                    return lm.pending_destroy;
+                }),
+            m.end());
+    }
+
     // --- runtime helpers (called by WAR-54's run()) ---
 
     void app_window::render_frame() {
         if (!pimpl_->open || !pimpl_->onyx_renderer || !pimpl_->sdl_renderer) {
             return;
         }
+
+        // Drain any modals that `closed` fired on last frame. Doing
+        // this at the top of the frame — outside any signal emit —
+        // means destroying the window never races with in-flight
+        // slots.
+        drain_pending_modals();
+
         // Clear the SDL back buffer to a neutral background. Dialog
         // helpers and widget chrome paint on top.
         pimpl_->sdl_renderer->set_draw_color(::sdlpp::color{192, 192, 192, 255});

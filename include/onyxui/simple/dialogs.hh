@@ -140,9 +140,6 @@ namespace onyxui::simple {
             });
         }
 
-        // Connect BEFORE show_modal so our slot runs before the
-        // host's cleanup slot — the window is still alive when
-        // `on_result` runs.
         raw->closed.connect(
             [result, cb = std::move(on_result)]() {
                 if (cb) cb(*result);
@@ -203,7 +200,6 @@ namespace onyxui::simple {
 
         w->set_content(std::move(content));
 
-        // Connect BEFORE show_modal (see confirm() for the rationale).
         raw->closed.connect(
             [result_ok, result_value, cb = std::move(on_result)]() {
                 if (cb) cb(*result_ok, *result_value);

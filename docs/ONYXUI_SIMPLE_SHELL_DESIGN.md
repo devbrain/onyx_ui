@@ -103,8 +103,14 @@ aliases without the simple-shell types can take just the first.
 <onyxui/backend/conio.hh>
 
 <onyxui/for/sdlpp.hh>       — aliases + simple-shell bundle (simple tier)
-<onyxui/for/conio.hh>
 ```
+
+The conio backend will grow its own `<onyxui/for/conio.hh>` bundle
+header once the simple-shell `app_window`, `run()`, and dialog
+helpers have conio implementations — tracked under WAR-59. The
+header is NOT shipped in the meantime: publishing it before the
+backing implementations land would advertise a public API that
+fails at link time, so it returns with its implementations.
 
 ### 5.1 Aliases-only header
 
@@ -259,10 +265,10 @@ namespace onyxui::simple {
 
 **The `onyxui/simple/*.hh` headers are not standalone.** They
 must be included through a bundle header (`<onyxui/for/sdlpp.hh>`
-or `<onyxui/for/conio.hh>`) that has already performed the
-alias-promotion step above. Including them directly is a build
-error by construction — `ui_host` and `ui_element` are undeclared
-in `onyxui::simple::` without the promotion step.
+today; `<onyxui/for/conio.hh>` once WAR-59 ships) that has already
+performed the alias-promotion step above. Including them directly
+is a build error by construction — `ui_host` and `ui_element` are
+undeclared in `onyxui::simple::` without the promotion step.
 
 This is a deliberate constraint, not an accident: a consumer who
 wanted to author a `simple/*` header without committing to a
@@ -563,15 +569,15 @@ to veneer.
 2. Port warlords' `scene_with_ui` onto `ui_host` (step 2 of its
    plan). This validates `ui_host` against the serious embedding
    consumer.
-3. Add `<onyxui/for/sdlpp.hh>` and `<onyxui/for/conio.hh>` shell
-   headers with the aliases.
+3. Add `<onyxui/for/sdlpp.hh>` shell header with the aliases.
 4. Implement `onyxui::simple::app_window` for sdlpp.
 5. Implement `onyxui::simple::run()` / `quit()` for sdlpp.
 6. Implement dialog helpers (`message_box`, etc.) for sdlpp.
 7. Port `widgets_demo` onto the simple shell.
-8. Implement conio variants of steps 4–6. Verify `widgets_demo`
-   runs under conio too (re-include the conio shell header,
-   recompile).
+8. Add `<onyxui/for/conio.hh>` and the conio variants of steps
+   4–6 together (landing the header without the impls advertises
+   an unlinkable public API). Verify `widgets_demo` runs under
+   conio too (re-include the conio shell header, recompile).
 
 Steps 3–7 are the sdlpp path; step 8 proves the abstraction holds
 across backends.

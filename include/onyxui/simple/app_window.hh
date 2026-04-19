@@ -93,14 +93,18 @@ namespace onyxui::simple {
 
         /// Present a top-level `window` widget modally over this app
         /// window. Takes ownership; the presenter is stored
-        /// internally and dropped automatically when the window's
-        /// `closed` signal fires (typically when the user clicks a
-        /// dismiss button that calls `window::close()`).
+        /// internally and dropped automatically on the next run-loop
+        /// tick after the window's `closed` signal fires (typically
+        /// when the user clicks a dismiss button that calls
+        /// `window::close()`).
         ///
-        /// Consumers needing a result callback should connect to
-        /// `win->closed` BEFORE calling this — the host's internal
-        /// cleanup slot runs after caller-connected slots, so the
-        /// window is still alive when the caller's callback fires.
+        /// Consumers needing a result callback may connect to
+        /// `win->closed` in any order relative to the internal
+        /// cleanup slot — the window is not destroyed from inside
+        /// `closed` emission. Removal is deferred to
+        /// `drain_pending_modals()`, which runs between frames, so
+        /// every slot in the signal sees the window alive regardless
+        /// of dispatch order.
         ///
         /// No-op if this app_window is not `is_open()` — the dialog
         /// would otherwise attach to a host that's being torn down.
@@ -110,7 +114,8 @@ namespace onyxui::simple {
         void show_modal(std::unique_ptr<window> win);
 
         /// Number of modal windows currently presented via
-        /// `show_modal`. For tests and diagnostics.
+        /// `show_modal`, including any that have fired `closed` but
+        /// haven't been drained yet. For tests and diagnostics.
         [[nodiscard]] std::size_t modal_count() const noexcept;
 
         /// Access the underlying `ui_host`. Advanced hatch for
@@ -127,8 +132,18 @@ namespace onyxui::simple {
         // ----------------------------------------------------------
 
         /// Render one frame (called by `onyxui::simple::run()` each
-        /// loop iteration).
+        /// loop iteration). Drains any `show_modal` presenters whose
+        /// window has already fired `closed` before drawing, so
+        /// dismissals that landed during last frame's event pump
+        /// take effect before this frame paints.
         void render_frame();
+
+        /// Remove any modals that have fired `closed` and are
+        /// awaiting cleanup. Exposed for tests and for unusual
+        /// embed-the-run-loop callers that need to poke the deferred
+        /// teardown at a specific point. `render_frame()` calls this
+        /// on every tick; most consumers never need it directly.
+        void drain_pending_modals();
 
         /// Flip the back buffer (called by `run()` after all windows
         /// have rendered).
