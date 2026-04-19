@@ -17,7 +17,6 @@ add_backend_library(
         src/tile_renderer.cc
         src/tile_backend.cc
         src/procedural_atlas.cc
-        src/simple/runtime.cc
         src/simple/app_window.cc
         src/simple/run.cc
         src/simple/dialogs.cc
