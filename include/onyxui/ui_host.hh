@@ -88,7 +88,19 @@ namespace onyxui {
             // contract in docs/ONYXUI_UI_HOST_DESIGN.md §7.
         }
 
-        ~ui_host() = default;
+        ~ui_host() {
+            // WAR-64: if a tree is still mounted when the host goes
+            // away, fire on_detached on it first. Without this,
+            // widgets that unregister hotkeys or drop cached theme
+            // pointers in on_detached leak that state on normal
+            // host teardown — the most common path in tests and
+            // short-lived tools. The unique_ptr destroys the tree
+            // afterwards.
+            if (m_root) {
+                scope guard(m_ctx);
+                m_root->detach_subtree(*this);
+            }
+        }
 
         ui_host(const ui_host&) = delete;
         ui_host& operator=(const ui_host&) = delete;

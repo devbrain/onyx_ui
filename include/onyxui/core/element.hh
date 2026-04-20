@@ -1362,7 +1362,17 @@ namespace onyxui {
         }
 
         for (auto& child : m_children) {
-            child->m_parent = nullptr;
+            if (child) {
+                // WAR-64: fire on_detached on mounted subtrees before
+                // their parent pointer is severed. Without this a
+                // removed subtree keeps a stale `attached_host()`
+                // pointer and re-adding it would double-fire
+                // on_attached with no intervening on_detached.
+                if (auto* host = child->m_host) {
+                    child->detach_subtree(*host);
+                }
+                child->m_parent = nullptr;
+            }
         }
 
         m_children.clear();
@@ -1383,6 +1393,14 @@ namespace onyxui {
             // Basic guarantee: child removed from vector even if cleanup throws.
             ui_element_ptr removed = std::move(*it);
             m_children.erase(it);
+
+            // WAR-64: symmetric to `add_child`'s attach propagation
+            // — if the subtree was mounted, fire on_detached before
+            // ownership transfers. Keeps attach_count == detach_count
+            // when consumers move a subtree from one host to another.
+            if (auto* host = removed->m_host) {
+                removed->detach_subtree(*host);
+            }
             removed->m_parent = nullptr;
 
             // Cleanup can throw, but child is already removed at this point

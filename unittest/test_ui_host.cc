@@ -594,3 +594,67 @@ TEST_CASE("ui_host — attached_host() returns the host while mounted, nullptr w
     CHECK(root_ptr->attached_host() == nullptr);
     (void)detached;
 }
+
+TEST_CASE("ui_host — destructor fires on_detached for still-mounted root") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    {
+        ui_host<Backend> host;
+        host.mount(std::move(root));
+        log.clear();
+        // Let the host go out of scope — the root is still mounted
+        // from the caller's view; the destructor must detach.
+    }
+    REQUIRE(log.size() == 1);
+    CHECK(log[0].tag == "root");
+    CHECK(log[0].kind == "detach");
+}
+
+TEST_CASE("ui_element — remove_child fires on_detached for mounted subtree") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    auto* child = root->emplace_child<life_probe>("child", log);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    log.clear();
+
+    auto removed = root_ptr->remove_child(child);
+    REQUIRE(removed != nullptr);
+
+    REQUIRE(log.size() == 1);
+    CHECK(log[0].tag == "child");
+    CHECK(log[0].kind == "detach");
+
+    // m_host cleared by detach_subtree
+    CHECK(child->attached_host() == nullptr);
+
+    // Re-add — exactly one attach, no stale pre-mount attach left.
+    log.clear();
+    root_ptr->add_child(std::move(removed));
+    REQUIRE(log.size() == 1);
+    CHECK(log[0].tag == "child");
+    CHECK(log[0].kind == "attach");
+}
+
+TEST_CASE("ui_element — clear_children fires on_detached for each mounted subtree") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    root->emplace_child<life_probe>("a", log);
+    root->emplace_child<life_probe>("b", log);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    log.clear();
+
+    root_ptr->clear_children();
+
+    REQUIRE(log.size() == 2);
+    CHECK(log[0].tag == "a"); CHECK(log[0].kind == "detach");
+    CHECK(log[1].tag == "b"); CHECK(log[1].kind == "detach");
+}
