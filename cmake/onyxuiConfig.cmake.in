@@ -78,15 +78,4 @@ if(TARGET onyxui::onyxui_conio_backend)
     # surfaces.
 endif()
 
-# Backward-compatible alias so existing consumers using
-# `neutrino::onyxui` continue to link correctly.
-if(NOT TARGET neutrino::onyxui)
-    add_library(neutrino::onyxui ALIAS onyxui::onyxui)
-endif()
-
-# Legacy unnamespaced alias — keep until consumers have migrated.
-if(NOT TARGET onyxui)
-    add_library(onyxui ALIAS onyxui::onyxui)
-endif()
-
 check_required_components(onyxui)

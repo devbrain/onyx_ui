@@ -118,7 +118,7 @@ function(add_backend_library)
     # `backends/<name>/include/onyxui/` (typically `onyxui/<name>/` and
     # possibly `onyxui/tile/` etc.). Without explicit install rules
     # they never reach the installed package — consumers who do
-    # `#include <onyxui/<name>/...>` via neutrino::onyxui get a broken
+    # `#include <onyxui/<name>/...>` via onyxui::onyxui get a broken
     # public header even after `make install`.
     #
     # This rule merges the backend's `include/onyxui/*` subdirectories

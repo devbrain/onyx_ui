@@ -268,8 +268,11 @@ add_library(onyxui INTERFACE
 
 )
 
-# Create neutrino:: alias
-add_library(neutrino::onyxui ALIAS onyxui)
+# Canonical namespaced alias. Consumers using this source tree via
+# add_subdirectory get the same name (`onyxui::onyxui`) that the
+# installed config package exports, so CMake code is identical in
+# both consumption modes.
+add_library(onyxui::onyxui ALIAS onyxui)
 
 target_include_directories(onyxui INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
