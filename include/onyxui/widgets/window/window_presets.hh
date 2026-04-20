@@ -1,23 +1,40 @@
 /**
  * @file window_presets.hh
- * @brief Convenience functions and presets for common window/dialog patterns
- * @author Claude Code
- * @date 2025-11-08
+ * @brief Convenience factories for common message / confirmation dialog
+ *        shapes, built on the `ui_host::present_modal` →
+ *        `presented_window<B>` ownership model.
  *
  * @details
- * Provides helper functions for common dialog patterns:
- * - show_message_box(): Full-featured message box with custom buttons
- * - show_info(): Simple info message (OK button only)
- * - show_confirm(): Yes/No confirmation dialog
+ * Three kinds of helpers:
+ * - `show_message_box` — full button-combination control (OK,
+ *   OK/Cancel, Yes/No, Yes/No/Cancel, Abort/Retry/Ignore) with a
+ *   callback that receives the raw `dialog_result`.
+ * - `show_confirm` / `show_warning` — shortcut wrappers around
+ *   `yes_no` / `ok_cancel` that translate `dialog_result` into a
+ *   boolean.
+ * - `show_info` / `show_error` — fire-and-forget notice dialogs
+ *   (OK button only, no callback).
+ *
+ * Each helper returns a `presented_window<B>` that the caller must
+ * retain until the dialog closes. The returned presenter is the
+ * only handle that keeps the dialog alive — dropping it closes the
+ * dialog. Callers who want fire-and-forget semantics on a
+ * simple-shell `app_window` should use the helpers in
+ * `<onyxui/simple/dialogs.hh>` (`message_box`, `confirm`,
+ * `input_dialog`, `error_box`) instead; those route through
+ * `app_window::show_modal` and take care of ownership automatically.
  */
 
 #pragma once
 
-#include <onyxui/services/layer_manager.hh>
+#include <onyxui/ui_host.hh>
 #include <onyxui/widgets/window/dialog.hh>
-#include <string>
+#include <onyxui/widgets/window/presented_window.hh>
+
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 
 namespace onyxui {
 
@@ -33,243 +50,142 @@ namespace onyxui {
         abort_retry_ignore      ///< Abort, Retry, and Ignore buttons
     };
 
+    namespace detail {
+
+        template<UIBackend Backend>
+        inline std::unique_ptr<dialog<Backend>> build_message_dialog(
+            std::string title,
+            std::string message,
+            message_box_buttons buttons) {
+            auto dlg = std::make_unique<dialog<Backend>>(std::move(title));
+            dlg->set_message(std::move(message));
+
+            switch (buttons) {
+                case message_box_buttons::ok:
+                    dlg->add_ok_button();
+                    break;
+                case message_box_buttons::ok_cancel:
+                    dlg->add_ok_cancel_buttons();
+                    break;
+                case message_box_buttons::yes_no:
+                    dlg->add_yes_no_buttons();
+                    break;
+                case message_box_buttons::yes_no_cancel:
+                    dlg->add_yes_no_cancel_buttons();
+                    break;
+                case message_box_buttons::abort_retry_ignore:
+                    dlg->add_abort_retry_ignore_buttons();
+                    break;
+            }
+            return dlg;
+        }
+
+    } // namespace detail
+
     /**
-     * @brief Show a message box dialog (Pattern 3: Maximum Convenience)
+     * @brief Present a modal message box with a button combination and
+     *        a typed result callback.
      *
-     * @tparam Backend UI backend type
-     * @param title Dialog title
-     * @param message Message text to display
-     * @param buttons Button combination
-     * @param callback Callback invoked with dialog result
+     * @param host Host to present on; takes ownership of the dialog.
+     * @param title Window title.
+     * @param message Message text.
+     * @param buttons Button combination to show.
+     * @param on_result Invoked with the raw `dialog_result` when the
+     *                  user dismisses the dialog. May be null.
+     * @return RAII presenter — keep it alive until the dialog closes.
      *
-     * @details
-     * Creates and shows a modal message box dialog with the specified button combination.
-     * The dialog is owned by the caller who must keep it alive until closed.
-     *
-     * ## Usage
      * @code
-     * show_message_box<Backend>(
+     * auto dlg = show_message_box(
+     *     host,
      *     "Save Changes?",
-     *     "Do you want to save your changes before closing?",
+     *     "Do you want to save?",
      *     message_box_buttons::yes_no_cancel,
-     *     [](dialog<Backend>::dialog_result result) {
-     *         switch (result) {
-     *             case dialog<Backend>::dialog_result::yes:
-     *                 save_file();
-     *                 break;
-     *             case dialog<Backend>::dialog_result::no:
-     *                 discard_changes();
-     *                 break;
-     *             default:
-     *                 break;
-     *         }
-     *     }
-     * );
+     *     [](typename dialog<Backend>::dialog_result r) {
+     *         if (r == dialog<Backend>::dialog_result::yes) save_file();
+     *     });
+     * // Keep `dlg` alive (e.g. stash on a parent) until the user
+     * // dismisses the dialog.
      * @endcode
-     *
-     * @note The returned shared_ptr must be kept alive until the dialog closes.
-     *       The dialog will auto-destroy when the shared_ptr goes out of scope.
      */
     template<UIBackend Backend>
-    std::shared_ptr<dialog<Backend>> show_message_box(
-        onyxui::layer_manager<Backend>& layers,
+    [[nodiscard]] presented_window<Backend> show_message_box(
+        ui_host<Backend>& host,
         std::string title,
         std::string message,
         message_box_buttons buttons,
-        std::function<void(typename dialog<Backend>::dialog_result)> callback
-    ) {
-        // Create dialog (owned by returned shared_ptr)
-        auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
-        dlg->set_message(std::move(message));
+        std::function<void(typename dialog<Backend>::dialog_result)> on_result = {}) {
+        auto dlg = detail::build_message_dialog<Backend>(
+            std::move(title), std::move(message), buttons);
 
-        // Add appropriate buttons
-        switch (buttons) {
-            case message_box_buttons::ok:
-                dlg->add_ok_button();
-                break;
-
-            case message_box_buttons::ok_cancel:
-                dlg->add_ok_cancel_buttons();
-                break;
-
-            case message_box_buttons::yes_no:
-                dlg->add_yes_no_buttons();
-                break;
-
-            case message_box_buttons::yes_no_cancel:
-                dlg->add_yes_no_cancel_buttons();
-                break;
-
-            case message_box_buttons::abort_retry_ignore:
-                dlg->add_abort_retry_ignore_buttons();
-                break;
+        if (on_result) {
+            dlg->result_ready.connect(std::move(on_result));
         }
 
-        // Show modal with callback
-        dlg->show_modal(layers, std::move(callback));
-
-        // Return shared_ptr so caller can keep dialog alive
-        return dlg;
+        return host.present_modal(std::move(dlg));
     }
 
     /**
-     * @brief Show info message (OK button only, no callback)
-     *
-     * @tparam Backend UI backend type
-     * @param message Message text to display
-     * @param title Optional dialog title (defaults to "Information")
-     *
-     * @details
-     * Displays a simple informational message with OK button only.
-     * No callback is needed since there's only one possible result.
-     *
-     * ## Usage
-     * @code
-     * show_info<Backend>("File saved successfully!");
-     * show_info<Backend>("Operation completed.", "Success");
-     * @endcode
-     *
-     * @note The returned shared_ptr must be kept alive until the dialog closes.
+     * @brief Info message — OK button only. Fire-and-forget shape:
+     *        callers typically discard the returned presenter into
+     *        a container whose drop order they own (e.g. vector of
+     *        live dialogs on their scene).
      */
     template<UIBackend Backend>
-    std::shared_ptr<dialog<Backend>> show_info(
-        onyxui::layer_manager<Backend>& layers,
+    [[nodiscard]] presented_window<Backend> show_info(
+        ui_host<Backend>& host,
         std::string message,
-        std::string title = "Information"
-    ) {
-        auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
-        dlg->set_message(std::move(message));
-        dlg->add_ok_button();
-        dlg->show_modal(layers);
-
-        return dlg;
+        std::string title = "Information") {
+        return show_message_box(host, std::move(title), std::move(message),
+                                message_box_buttons::ok);
     }
 
     /**
-     * @brief Show confirmation dialog (yes/no)
-     *
-     * @tparam Backend UI backend type
-     * @param title Dialog title
-     * @param message Message text to display
-     * @param callback Callback with simplified boolean result (true=yes, false=no)
-     *
-     * @details
-     * Shows a Yes/No confirmation dialog with simplified boolean callback.
-     * True means "Yes", false means "No".
-     *
-     * ## Usage
-     * @code
-     * show_confirm<Backend>(
-     *     "Delete File?",
-     *     "This action cannot be undone.",
-     *     [](bool confirmed) {
-     *         if (confirmed) {
-     *             delete_file();
-     *         }
-     *     }
-     * );
-     * @endcode
-     *
-     * @note The returned shared_ptr must be kept alive until the dialog closes.
+     * @brief Yes/No confirmation — callback receives `true` for Yes,
+     *        `false` for No.
      */
     template<UIBackend Backend>
-    std::shared_ptr<dialog<Backend>> show_confirm(
-        onyxui::layer_manager<Backend>& layers,
+    [[nodiscard]] presented_window<Backend> show_confirm(
+        ui_host<Backend>& host,
         std::string title,
         std::string message,
-        std::function<void(bool confirmed)> callback
-    ) {
-        auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
-        dlg->set_message(std::move(message));
-        dlg->add_yes_no_buttons();
-
-        // Wrap callback to convert dialog_result to bool
-        dlg->show_modal(layers,
-            [callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
-                callback(result == dialog<Backend>::dialog_result::yes);
+        std::function<void(bool confirmed)> callback) {
+        return show_message_box(
+            host, std::move(title), std::move(message),
+            message_box_buttons::yes_no,
+            [cb = std::move(callback)](typename dialog<Backend>::dialog_result r) {
+                if (cb) cb(r == dialog<Backend>::dialog_result::yes);
             });
-
-        return dlg;
     }
 
     /**
-     * @brief Show warning message box (OK and Cancel buttons)
-     *
-     * @tparam Backend UI backend type
-     * @param title Dialog title
-     * @param message Warning message text
-     * @param callback Callback with boolean result (true=OK, false=Cancel)
-     *
-     * @details
-     * Shows a warning dialog with OK/Cancel buttons.
-     * Useful for warning users before proceeding with an action.
-     *
-     * ## Usage
-     * @code
-     * show_warning<Backend>(
-     *     "Overwrite File?",
-     *     "The file already exists. Do you want to overwrite it?",
-     *     [](bool proceed) {
-     *         if (proceed) {
-     *             overwrite_file();
-     *         }
-     *     }
-     * );
-     * @endcode
-     *
-     * @note The returned shared_ptr must be kept alive until the dialog closes.
+     * @brief OK/Cancel warning — callback receives `true` for OK,
+     *        `false` for Cancel.
      */
     template<UIBackend Backend>
-    std::shared_ptr<dialog<Backend>> show_warning(
-        onyxui::layer_manager<Backend>& layers,
+    [[nodiscard]] presented_window<Backend> show_warning(
+        ui_host<Backend>& host,
         std::string title,
         std::string message,
-        std::function<void(bool proceed)> callback
-    ) {
-        auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
-        dlg->set_message(std::move(message));
-        dlg->add_ok_cancel_buttons();
-
-        // Wrap callback to convert dialog_result to bool
-        dlg->show_modal(layers,
-            [callback = std::move(callback)](typename dialog<Backend>::dialog_result result) {
-                callback(result == dialog<Backend>::dialog_result::ok);
+        std::function<void(bool proceed)> callback) {
+        return show_message_box(
+            host, std::move(title), std::move(message),
+            message_box_buttons::ok_cancel,
+            [cb = std::move(callback)](typename dialog<Backend>::dialog_result r) {
+                if (cb) cb(r == dialog<Backend>::dialog_result::ok);
             });
-
-        return dlg;
     }
 
     /**
-     * @brief Show error message (OK button only)
-     *
-     * @tparam Backend UI backend type
-     * @param message Error message text
-     * @param title Optional dialog title (defaults to "Error")
-     *
-     * @details
-     * Displays an error message with OK button only.
-     * Similar to show_info() but with "Error" as default title.
-     *
-     * ## Usage
-     * @code
-     * show_error<Backend>("Failed to open file: permission denied");
-     * show_error<Backend>("Network timeout occurred", "Connection Error");
-     * @endcode
-     *
-     * @note The returned shared_ptr must be kept alive until the dialog closes.
+     * @brief Error message — OK button only. Shares the `show_info`
+     *        shape; the default title is "Error".
      */
     template<UIBackend Backend>
-    std::shared_ptr<dialog<Backend>> show_error(
-        onyxui::layer_manager<Backend>& layers,
+    [[nodiscard]] presented_window<Backend> show_error(
+        ui_host<Backend>& host,
         std::string message,
-        std::string title = "Error"
-    ) {
-        auto dlg = std::make_shared<dialog<Backend>>(std::move(title));
-        dlg->set_message(std::move(message));
-        dlg->add_ok_button();
-        dlg->show_modal(layers);
-
-        return dlg;
+        std::string title = "Error") {
+        return show_message_box(host, std::move(title), std::move(message),
+                                message_box_buttons::ok);
     }
 
 } // namespace onyxui

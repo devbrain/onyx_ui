@@ -294,131 +294,104 @@ TEST_CASE("dialog - Signal emission") {
 }
 
 // ============================================================================
-// Callback-Based Pattern
-// ============================================================================
-
-TEST_CASE("dialog - Callback-based pattern") {
-    // Note: Can't easily test show_modal(callback) without a full UI context
-    // These tests verify the API exists and basic behavior
-
-    SUBCASE("Callback invoked on close") {
-        test_dialog<test_backend> dlg;
-
-        dialog<test_backend>::dialog_result received_result = dialog<test_backend>::dialog_result::none;
-
-        // Simulate show_modal with callback
-        auto callback = [&](dialog<test_backend>::dialog_result result) {
-            received_result = result;
-        };
-
-        dlg.set_result(dialog<test_backend>::dialog_result::yes);
-
-        // Manually invoke callback (simulating on_close behavior)
-        callback(dlg.get_result());
-
-        CHECK(received_result == dialog<test_backend>::dialog_result::yes);
-    }
-}
-
-// ============================================================================
-// Helper Functions (window_presets.hh)
+// Helper Functions (window_presets.hh) — presenter-owned API
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper functions") {
-    auto& layers = this->ctx.layers();
-    SUBCASE("show_message_box creates dialog") {
-        bool callback_invoked = false;
-        dialog<test_canvas_backend>::dialog_result received_result = dialog<test_canvas_backend>::dialog_result::none;
+    using Backend = test_canvas_backend;
+    auto& host = this->ctx;
 
-        auto dlg = show_message_box<test_canvas_backend>(layers,
+    auto as_dialog = [](auto& presenter) -> dialog<Backend>* {
+        return dynamic_cast<dialog<Backend>*>(presenter.get());
+    };
+
+    SUBCASE("show_message_box creates dialog") {
+        auto presenter = show_message_box<Backend>(host,
             "Test Title",
             "Test Message",
             message_box_buttons::ok,
-            [&](dialog<test_canvas_backend>::dialog_result result) {
-                callback_invoked = true;
-                received_result = result;
-            }
+            [](dialog<Backend>::dialog_result) {}
         );
 
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Test Title");
+        auto* dlg = as_dialog(presenter);
         REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Test Title");
         CHECK(dlg->get_message() == "Test Message");
     }
 
     SUBCASE("show_message_box with yes_no_cancel buttons") {
-        auto dlg = show_message_box<test_canvas_backend>(layers,
+        auto presenter = show_message_box<Backend>(host,
             "Save Changes?",
             "Do you want to save?",
             message_box_buttons::yes_no_cancel,
-            [](dialog<test_canvas_backend>::dialog_result) {}
+            [](dialog<Backend>::dialog_result) {}
         );
 
-        REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Save Changes?");
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Save Changes?");
     }
 
     SUBCASE("show_info creates dialog") {
-        auto dlg = show_info<test_canvas_backend>(layers, "File saved successfully!");
+        auto presenter = show_info<Backend>(host, "File saved successfully!");
 
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Information");
+        auto* dlg = as_dialog(presenter);
         REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Information");
         CHECK(dlg->get_message() == "File saved successfully!");
     }
 
     SUBCASE("show_info with custom title") {
-        auto dlg = show_info<test_canvas_backend>(layers, "Operation completed.", "Success");
+        auto presenter = show_info<Backend>(host, "Operation completed.", "Success");
 
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Success");
+        auto* dlg = as_dialog(presenter);
         REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Success");
         CHECK(dlg->get_message() == "Operation completed.");
     }
 
     SUBCASE("show_confirm creates dialog") {
-        bool callback_invoked = false;
-        bool confirmed = false;
-
-        auto dlg = show_confirm<test_canvas_backend>(layers, 
+        auto presenter = show_confirm<Backend>(host,
             "Delete File?",
             "This cannot be undone.",
-            [&](bool result) {
-                callback_invoked = true;
-                confirmed = result;
-            }
+            [](bool) {}
         );
 
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Delete File?");
+        auto* dlg = as_dialog(presenter);
         REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Delete File?");
         CHECK(dlg->get_message() == "This cannot be undone.");
     }
 
     SUBCASE("show_warning creates dialog") {
-        bool proceed = false;
-
-        auto dlg = show_warning<test_canvas_backend>(layers, 
+        auto presenter = show_warning<Backend>(host,
             "Overwrite File?",
             "The file already exists.",
-            [&](bool result) {
-                proceed = result;
-            }
+            [](bool) {}
         );
 
-        REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Overwrite File?");
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Overwrite File?");
     }
 
     SUBCASE("show_error creates dialog") {
-        auto dlg = show_error<test_canvas_backend>(layers, "Failed to open file");
+        auto presenter = show_error<Backend>(host, "Failed to open file");
 
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Error");
+        auto* dlg = as_dialog(presenter);
         REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Error");
         CHECK(dlg->get_message() == "Failed to open file");
     }
 
     SUBCASE("show_error with custom title") {
-        auto dlg = show_error<test_canvas_backend>(layers, "Network timeout", "Connection Error");
+        auto presenter = show_error<Backend>(host, "Network timeout", "Connection Error");
 
-        REQUIRE(dlg != nullptr);
-        CHECK(dlg->get_title() == "Connection Error");
+        REQUIRE(static_cast<bool>(presenter));
+        CHECK(presenter->get_title() == "Connection Error");
     }
 }
 
@@ -427,7 +400,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Helper func
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Integration") {
-    auto& layers = this->ctx.layers();
+    auto& host = this->ctx;
     SUBCASE("Complete workflow: create, set message, add buttons, simulate close") {
         test_dialog<test_canvas_backend> dlg("Confirmation");
         dlg.set_message("Are you sure?");
@@ -527,7 +500,7 @@ TEST_CASE("dialog - Edge cases") {
 // ============================================================================
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rendering verification") {
-    auto& layers = this->ctx.layers();
+    auto& host = this->ctx;
     SUBCASE("Dialog with message and buttons renders correctly") {
         test_dialog<test_canvas_backend> dlg("Confirmation");
         dlg.set_message("Are you sure you want to continue?");
@@ -591,9 +564,10 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "dialog - Visual rend
     }
 
     SUBCASE("Simple info dialog renders correctly") {
-        auto dlg = show_info<test_canvas_backend>(layers, "Operation completed successfully!");
+        auto presenter = show_info<test_canvas_backend>(host, "Operation completed successfully!");
 
-        REQUIRE(dlg != nullptr);
+        REQUIRE(static_cast<bool>(presenter));
+        auto* dlg = presenter.get();
 
         // Measure
         auto size = dlg->measure(50_lu, 15_lu);

@@ -37,9 +37,9 @@ namespace onyxui {
      *
      * @details
      * Extends window<Backend> with result code management for common dialog patterns.
-     * Provides three API styles:
+     * Two API styles, both signal-based:
      *
-     * ## Pattern 1: Signal-Based (Event-Driven)
+     * ## Direct use — connect the `result_ready` signal
      * @code
      * auto dlg = std::make_unique<dialog<Backend>>("Save Changes?");
      * dlg->set_message("Do you want to save?");
@@ -51,30 +51,21 @@ namespace onyxui {
      *     }
      * });
      *
-     * dlg->show_modal(layers);  // Non-blocking
+     * auto presenter = host.present_modal(std::move(dlg));
+     * // Retain `presenter` until the dialog is dismissed.
      * @endcode
      *
-     * ## Pattern 2: Callback-Based (Convenience)
-     * @code
-     * auto dlg = std::make_unique<dialog<Backend>>("Save Changes?");
-     * dlg->set_message("Do you want to save?");
-     * dlg->add_yes_no_cancel_buttons();
+     * ## Helper factories — see `<onyxui/widgets/window/window_presets.hh>`
+     * `show_message_box` / `show_confirm` / `show_warning` /
+     * `show_info` / `show_error` build the dialog, wire the result
+     * callback onto `result_ready`, and return the `presented_window`
+     * — the same shape as calling `present_modal` yourself but with
+     * the buttons and `dialog_result → bool` translation pre-baked.
      *
-     * dlg->show_modal([](dialog<Backend>::dialog_result result) {
-     *     if (result == dialog<Backend>::dialog_result::yes) {
-     *         save_file();
-     *     }
-     * });
-     * @endcode
-     *
-     * ## Pattern 3: Helper Functions (Maximum Convenience)
-     * @code
-     * // Defined in window_presets.hh
-     * show_confirm<Backend>("Delete File?", "This cannot be undone.",
-     *     [](bool confirmed) {
-     *         if (confirmed) delete_file();
-     *     });
-     * @endcode
+     * Fire-and-forget standalone-tool consumers should reach for
+     * `<onyxui/simple/dialogs.hh>` instead (`message_box`,
+     * `confirm`, `input_dialog`, `error_box`), which route through
+     * `app_window::show_modal` and hide the presenter entirely.
      */
     template<UIBackend Backend>
     class dialog : public window<Backend> {
@@ -157,20 +148,12 @@ namespace onyxui {
         // Display Methods
         // ====================================================================
 
-        // Bring base-class show_modal overloads into scope (prevents
-        // name hiding by the callback overload below).
-        using base::show_modal;
-
-        /**
-         * @brief Show modal dialog with callback (callback-based pattern)
-         * @param layers    Host layer_manager (same contract as window::show_modal)
-         * @param on_result Callback invoked when dialog closes with result
-         */
-        void show_modal(onyxui::layer_manager<Backend>& layers,
-                         std::function<void(dialog_result)> on_result) {
-            m_callback = std::move(on_result);
-            base::show_modal(layers);
-        }
+        // Callers use the base `show_modal(layers)` when driving the
+        // dialog manually. The callback-style overload that stored a
+        // std::function and fired it from on_close() was retired in
+        // WAR-63 — consumers now connect `result_ready` directly (or
+        // go through the preset factories, which do the same thing
+        // on their behalf).
 
         // ====================================================================
         // Content Setup
@@ -298,21 +281,11 @@ namespace onyxui {
          * @brief Called when dialog closes (override from window)
          */
         void on_close() {
-            // Emit result signal
             result_ready.emit(m_result);
-
-            // Invoke callback if provided
-            if (m_callback) {
-                m_callback(m_result);
-            }
-
-            // Reset callback for reuse
-            m_callback = nullptr;
         }
 
     private:
         dialog_result m_result;
-        std::function<void(dialog_result)> m_callback;
 
         // Child widgets (non-owning pointers)
         vbox<Backend>* m_layout = nullptr;
