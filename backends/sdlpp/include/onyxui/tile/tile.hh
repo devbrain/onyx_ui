@@ -12,15 +12,25 @@
  * Usage:
  * @code
  * #include <onyxui/tile/tile.hh>           // Core tile types
- * #include <onyxui/tile/tile_backend.hh>   // SDL backend (requires SDL include path)
+ * #include <onyxui/tile/tile_backend.hh>   // SDL tile backend
+ * #include <onyxui/ui_host.hh>
  *
- * // Set up your theme
+ * // Set up your theme and a live tile_renderer (which the tile
+ * // widgets consult via tile::get_renderer()) before you build the
+ * // widget tree. See `backends/sdlpp/strategy_ui_demo.cc` for the
+ * // full init sequence.
  * onyxui::tile::tile_theme my_theme = { ... };
  * onyxui::tile::set_theme(my_theme);
  *
- * // Run application
- * #include <onyxui/for/sdlpp.hh>
- * // Use onyxui::simple::app_window + onyxui::simple::run().
+ * // Embed via ui_host<sdlpp_tile_backend> and drive your own
+ * // render/event loop — the simple shell (<onyxui/for/sdlpp.hh>)
+ * // hard-wires `sdlpp_backend` and does not yet thread the tile
+ * // renderer through its `app_window`. Direct ui_host embedding is
+ * // the supported path until a tile-specific bundle header lands.
+ * onyxui::ui_host<onyxui::tile::sdlpp_tile_backend> host(metrics);
+ * host.mount(build_ui());
+ * // ... call host.render(renderer, viewport) and host.handle_event(ev)
+ * //     from your existing loop.
  * @endcode
  */
 

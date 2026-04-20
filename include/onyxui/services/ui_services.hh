@@ -10,44 +10,44 @@
  *
  * ## Design Rationale
  *
- * Uses a stack-based approach with thread-local storage:
- * 1. **Zero Boilerplate**: Just create ui_host
- * 2. **Multiple UIs**: Each context is independent
- * 3. **Nested Contexts**: Modal dialogs, popups, etc.
- * 4. **Thread Safe**: Each thread has its own stack
- * 5. **RAII Cleanup**: Automatic push/pop via ui_host
+ * Stack-based, thread-local:
+ *
+ * 1. **Per-call scoping**: `ui_host<B>` owns its services but is
+ *    dormant between calls. `render()` / `handle_event()` /
+ *    `present()` push the context for their duration via an
+ *    internal RAII guard, then pop on return. The host does NOT
+ *    auto-push from its constructor.
+ * 2. **Opt-in lifetime scoping**: code that needs ambient services
+ *    outside the per-call entry points (widget factories, test
+ *    fixtures) can use `ui_host::push_scope()` — it returns a
+ *    `scope_token` that keeps the context on the stack for its
+ *    own lifetime.
+ * 3. **Multiple UIs**: Each `ui_host<B>` owns an independent
+ *    context; stack depth >1 represents legitimate nesting
+ *    (e.g. an embedded host whose `render()` is called from inside
+ *    another host's event handler).
+ * 4. **Thread Safe**: Each thread has its own context stack.
  *
  * ## Thread Safety
  *
  * Context stacks are thread_local, so each thread maintains its own stack.
  * This allows multi-threaded rendering with independent UI contexts per thread.
  *
- * ## Usage Example
+ * ## Usage
+ *
+ * Consumers of the simple shell (`<onyxui/for/sdlpp.hh>`) never
+ * touch `ui_services` directly — `app_window` drives the scope
+ * push/pop for them. Engine embedders holding a `ui_host<B>`
+ * query `ui_services<B>::themes()` etc. from inside handler
+ * callbacks (where a scope is already active).
+ *
+ * For arbitrary out-of-call access (test setup, factories):
  *
  * @code
- * // Single UI context (most common)
- * int main() {
- *     ui_host<Backend> ctx;
- *
- *     // Register themes
- *     ctx.themes().register_theme(my_theme);
- *
- *     // Create UI
- *     auto ui = ui_host<Backend>(...);
- *     ui.display();
- *
- *     // Context auto-cleaned up
- * }
- *
- * // Multiple contexts
- * ui_host<Backend> hud_ctx;
- * auto hud = create_hud();
- *
- * {
- *     ui_host<Backend> menu_ctx;
- *     auto menu = create_menu();
- *     // Each UI uses its own context
- * }
+ * ui_host<Backend> host(metrics);
+ * auto guard = host.push_scope();       // ambient active from here
+ * ui_services<Backend>::themes()->...; // lookups now resolve
+ * // guard dies at end of scope — ambient pops
  * @endcode
  */
 
@@ -97,44 +97,38 @@ namespace onyxui {
      *
      * All accessors return nullptr if no context is active (safe).
      *
-     * ## Best Practice
+     * ## When are the accessors non-null?
      *
-     * Use ui_host for RAII management:
+     * - **Inside a `ui_host` per-call entry point**
+     *   (`render()` / `handle_event()` / `present()`): yes.
+     *   The host's RAII scope guard has pushed its context.
+     * - **Inside code guarded by `ui_host::push_scope()`**:
+     *   yes. The returned `scope_token` keeps the context on
+     *   the stack for its own lifetime.
+     * - **Everywhere else** (from a freshly-constructed `ui_host`'s
+     *   perspective, or from unrelated code on the same thread):
+     *   the accessors return nullptr. `ui_host<B>` does NOT
+     *   auto-push from its constructor.
      *
+     * @example Typical engine embedder flow
      * @code
-     * {
-     *     ui_host<Backend> ctx;
-     *     // Use ui services...
-     * }  // Context automatically popped
+     * onyxui::ui_host<Backend> host(metrics);
+     * host.mount(build_ui());
+     *
+     * while (running) {
+     *     // Per-call scope guard pushes/pops internally:
+     *     host.handle_event(evt);   // ui_services::... works during this call
+     *     host.render(renderer);    // and during this one
+     * }                             // between calls, accessors return nullptr
      * @endcode
      *
-     * @example Multiple Independent UIs
+     * @example Ambient-outside-calls (tests / factories)
      * @code
-     * // Game with HUD + pause menu
-     * ui_host<Backend> hud_ctx;
-     * ui_host<Backend> hud(...);
-     *
-     * // Later, show pause menu
-     * {
-     *     ui_host<Backend> menu_ctx;
-     *     ui_host<Backend> menu(...);
-     *     // menu uses menu_ctx, hud uses hud_ctx
-     * }
-     * @endcode
-     *
-     * @example Nested Modal Dialog
-     * @code
-     * // Main UI active
-     * ui_host<Backend> main_ctx;
-     * ui_host<Backend> main_ui(...);
-     *
-     * // Show modal dialog
-     * {
-     *     ui_host<Backend> dialog_ctx;
-     *     ui_host<Backend> dialog(...);
-     *     // Dialog loop...
-     * }
-     * // Back to main UI
+     * onyxui::ui_host<Backend> host(metrics);
+     * auto guard = host.push_scope();   // RAII token
+     * // ui_services<Backend>::themes() etc. work here.
+     * auto widget = std::make_unique<my_root>(...);
+     * // guard destructs → pop.
      * @endcode
      */
     template<UIBackend Backend>

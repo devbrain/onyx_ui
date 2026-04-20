@@ -16,16 +16,14 @@
  * - Bitmap font support
  * - Tile atlas management
  *
- * Usage:
- * @code
- * // Set up theme at startup
- * tile::set_theme(my_theme);
- *
- * // Run application via the simple shell — all standard widgets
- * // work, plus tile widgets.
- * // #include <onyxui/for/sdlpp.hh>
- * // Use onyxui::simple::app_window + onyxui::simple::run().
- * @endcode
+ * Usage: the tile backend does NOT have a simple-shell bundle
+ * header yet — `<onyxui/for/sdlpp.hh>` is wired to `sdlpp_backend`,
+ * not `sdlpp_tile_backend`, and the simple shell's `app_window`
+ * owns an `sdlpp_renderer` rather than a `tile_renderer`. Until a
+ * tile-specific bundle lands, tile-backed applications embed via
+ * `ui_host<sdlpp_tile_backend>` and drive their own render/event
+ * loop (see `backends/sdlpp/strategy_ui_demo.cc` for a worked
+ * example and the full tile_renderer setup sequence).
  */
 
 #pragma once

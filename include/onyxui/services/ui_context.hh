@@ -119,15 +119,27 @@
  *
  * ### Stack Management
  *
- * Contexts are managed via a thread-local stack in ui_services:
- * - **Push**: `ui_host` constructor pushes context onto stack
- * - **Pop**: `ui_host` destructor pops context from stack
- * - **Current**: `ui_services<Backend>::current()` returns top of stack
+ * Contexts are managed via a thread-local stack in ui_services.
+ * `ui_host<B>` owns a context for its lifetime but is **dormant
+ * between calls** — it does NOT push itself on the ambient stack
+ * from its constructor. Instead, the per-call entry points push
+ * the host's context for the duration of the call:
  *
- * Stack depth determines active context:
- * - Depth 0: No context (services return nullptr)
- * - Depth 1: Single UI context (most common)
- * - Depth >1: Nested contexts (modal dialogs, popups)
+ * - `ui_host::render(...)` pushes on entry, pops on return
+ * - `ui_host::handle_event(...)` pushes on entry, pops on return
+ * - `ui_host::present(...)` / `present_modal(...)` — same pattern
+ *
+ * For code that needs ambient services **outside** those calls
+ * (widget tree construction in a factory, test fixtures, one-shot
+ * utilities), `ui_host::push_scope()` returns a `scope_token` RAII
+ * object that keeps the host's context on the stack for its own
+ * lifetime. See `ui_host.hh` for both helpers.
+ *
+ * `ui_services<Backend>::current()` returns the top of the stack
+ * (nullptr if none is active). Stack depth reflects nesting —
+ * depth 0 = no ambient context, depth 1 = one ui_host's per-call
+ * guard or one `scope_token` in scope, depth >1 = nested (e.g. a
+ * render call from inside another host's callback).
  *
  * ### Service Access
  *
