@@ -248,23 +248,17 @@ namespace onyxui {
         [[nodiscard]] auto& windows()        noexcept { return m_ctx.windows(); }
         [[nodiscard]] const auto& metrics() const noexcept { return m_ctx.metrics(); }
 
-        /// Invoke @p f with this host's context pushed as the
-        /// ambient one. Use this when building a widget tree OUTSIDE
-        /// `render()` / `handle_event()` — widget constructors that
-        /// call `ui_services<B>::themes()` etc. need the ambient
-        /// slot populated.
-        ///
-        /// Typical use from a factory that runs before mount:
-        /// @code
-        /// auto root = host.with_scope([&] {
-        ///     return std::make_unique<my_root_widget>(...);
-        /// });
-        /// @endcode
-        template<typename F>
-        decltype(auto) with_scope(F&& f) {
-            scope guard(m_ctx);
-            return std::forward<F>(f)();
-        }
+        // `with_scope(F&&)` was retired in WAR-64. It existed to
+        // paper over constructor-time ambient lookups in widgets
+        // (menu_bar's hotkey registration, text_view's theme
+        // padding). Now those lookups happen in `on_attached`,
+        // which `mount()` / `add_child` already run inside a
+        // pushed scope — no wrapping call-site helper is needed.
+        //
+        // If you still need ambient services during arbitrary code
+        // between render/event ticks (tests, one-shot utilities),
+        // use `push_scope()` below and hold the returned RAII
+        // token for the duration of the call block.
 
         /// RAII token that keeps this host's context pushed as the
         /// ambient one for its lifetime. Returned from

@@ -365,15 +365,12 @@ private:
 // back to the hosting app_window and returns it as the root widget
 // tree for `app_window::set_content`.
 //
-// Built inside `host().with_scope(...)` because widget constructors
-// across the tree (text_view, menu_bar, etc.) consult
-// `ui_services<Backend>::themes()` during construction. That
-// thread-local slot is only populated when a host scope is active —
-// normally only inside render() / handle_event(). Without this,
-// widgets would see a null theme registry and crash on first access.
+// No scope wrapping is needed: WAR-64 moved constructor-time
+// ambient service lookups (menu_bar's hotkey registration,
+// text_view's theme padding) onto the `on_attached` hook, which
+// the host dispatches with a scope already pushed. Widget
+// construction is now pure.
 inline std::unique_ptr<onyxui::main_window<Backend>>
 build_widgets_demo(onyxui::simple::app_window& parent) {
-    return parent.host().with_scope([&] {
-        return std::make_unique<widgets_demo>(parent);
-    });
+    return std::make_unique<widgets_demo>(parent);
 }
