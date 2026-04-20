@@ -266,30 +266,40 @@ private:
 };
 ```
 
-### 5.1 Late-added children
+### 5.1 Late-added / removed children — v1 limitation
 
-`add_child` during a running tree must also dispatch `on_attached`
-for the new subtree. Inject the check into `ui_element::add_child`:
+**v1 does NOT fire `on_attached` / `on_detached` on the
+late-mutation paths** (`ui_element::add_child` /
+`clear_children` / `remove_child` invoked on a subtree that is
+already part of a mounted tree). The reason is mechanical rather
+than design-driven:
+
+- `ui_services.hh` transitively depends on `ui_element` (via
+  `hotkey_manager`, `input_manager`, …).
+- So `element.hh` cannot include `ui_services.hh`, which means
+  `ui_element::add_child` has no way to push the host's ambient
+  scope around a hook dispatch.
+- Firing the hook without a pushed scope is *worse* than not
+  firing it — `ui_services<B>::themes()` / `::hotkeys()` return
+  nullptr, silently breaking any widget that reads them.
+
+Until a cycle break lets `element.hh` see `ui_services.hh`,
+late-mutation paths clear parent/host pointers without
+dispatching. Consumers that mutate a mounted tree and need
+lifecycle hooks on the new shape should **re-mount**:
 
 ```cpp
-void ui_element<Backend>::add_child(ui_element_ptr child) {
-    if (!child) return;
-    m_children.push_back(std::move(child));
-    m_children.back()->m_parent = this;
-    invalidate_measure();
-
-    // If we're already part of a mounted tree, walk up to the host
-    // and fire on_attached for the new subtree.
-    if (auto* host = find_host()) {
-        host->dispatch_attached(*m_children.back());
-    }
-}
+// Want late-attach semantics? Unmount + re-mount.
+auto root = host.unmount();
+root->add_child(std::move(new_subtree));
+host.mount(std::move(root));   // fires on_attached across the whole tree
 ```
 
-Where `find_host()` walks up the parent chain to a sentinel that
-`ui_host::mount()` sets when it takes ownership. Storing a
-`ui_host<Backend>*` back-pointer on the root is the cheapest
-option; every other widget reaches the host via the parent chain.
+In practice widgets_demo, the simple-shell samples, and
+warlords build their trees entirely before `host.mount()`, so
+this limitation never bites them. The reviewer's original
+concern is resolved: the mount/unmount paths are the ONLY ones
+that fire hooks, and they're the ones that DO push scope.
 
 ### 5.2 Pre-construction services — not in scope
 

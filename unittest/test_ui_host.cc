@@ -534,7 +534,12 @@ TEST_CASE("ui_host — on_detached fires reverse-pre-order on unmount") {
     (void)detached;  // let the returned root drop at scope exit
 }
 
-TEST_CASE("ui_host — add_child on a mounted parent fires attach for late subtree") {
+TEST_CASE("ui_host — late add_child does NOT fire on_attached (v1 limitation)") {
+    // See add_child() in core/element.hh for the rationale: the
+    // element-side path can't push the host's ambient scope
+    // without a cyclic include, so we skip dispatching the hook
+    // rather than firing it inside a null-services scope. The
+    // mount-side path does fire cleanly.
     life_probe::log_type log;
 
     auto root = std::make_unique<life_probe>("root", log);
@@ -543,15 +548,16 @@ TEST_CASE("ui_host — add_child on a mounted parent fires attach for late subtr
     host.mount(std::move(root));
     log.clear();
 
-    // Add a late child — its subtree should receive attach
-    // dispatched from the parent's own back-pointer.
     auto late = std::make_unique<life_probe>("late", log);
     late->emplace_child<life_probe>("late.child", log);
     root_ptr->add_child(std::move(late));
 
-    REQUIRE(log.size() == 2);
-    CHECK(log[0].tag == "late");        CHECK(log[0].kind == "attach");
-    CHECK(log[1].tag == "late.child");  CHECK(log[1].kind == "attach");
+    // No attach fires for the late subtree — by design.
+    CHECK(log.empty());
+
+    // Re-mounting the entire tree would fire attach for everything
+    // (including the late-added subtree) with a proper scope push.
+    // That's the documented workaround.
 }
 
 TEST_CASE("ui_host — remount fires detach+attach a second time") {
@@ -611,7 +617,13 @@ TEST_CASE("ui_host — destructor fires on_detached for still-mounted root") {
     CHECK(log[0].kind == "detach");
 }
 
-TEST_CASE("ui_element — remove_child fires on_detached for mounted subtree") {
+TEST_CASE("ui_element — remove_child does NOT fire on_detached (v1 limitation)") {
+    // Same reason as the late-add_child case: element.hh can't
+    // push the host's ambient scope, so we skip dispatching the
+    // hook rather than firing it with null services. Removed
+    // subtrees still have `m_parent` and `m_host` cleared, so a
+    // subsequent re-mount via `host.mount(subtree)` fires
+    // on_attached cleanly.
     life_probe::log_type log;
 
     auto root = std::make_unique<life_probe>("root", log);
@@ -625,22 +637,11 @@ TEST_CASE("ui_element — remove_child fires on_detached for mounted subtree") {
     auto removed = root_ptr->remove_child(child);
     REQUIRE(removed != nullptr);
 
-    REQUIRE(log.size() == 1);
-    CHECK(log[0].tag == "child");
-    CHECK(log[0].kind == "detach");
-
-    // m_host cleared by detach_subtree
+    CHECK(log.empty());
     CHECK(child->attached_host() == nullptr);
-
-    // Re-add — exactly one attach, no stale pre-mount attach left.
-    log.clear();
-    root_ptr->add_child(std::move(removed));
-    REQUIRE(log.size() == 1);
-    CHECK(log[0].tag == "child");
-    CHECK(log[0].kind == "attach");
 }
 
-TEST_CASE("ui_element — clear_children fires on_detached for each mounted subtree") {
+TEST_CASE("ui_element — clear_children does NOT fire on_detached (v1 limitation)") {
     life_probe::log_type log;
 
     auto root = std::make_unique<life_probe>("root", log);
@@ -654,7 +655,54 @@ TEST_CASE("ui_element — clear_children fires on_detached for each mounted subt
 
     root_ptr->clear_children();
 
-    REQUIRE(log.size() == 2);
-    CHECK(log[0].tag == "a"); CHECK(log[0].kind == "detach");
-    CHECK(log[1].tag == "b"); CHECK(log[1].kind == "detach");
+    CHECK(log.empty());
+}
+
+namespace {
+
+    // Probe that records whether `ui_services<Backend>::themes()`
+    // was non-null at the moment its hooks fired — i.e. was the
+    // host scope actually pushed when the walk hit this widget?
+    class ambient_probe : public ui_element<Backend> {
+    public:
+        ambient_probe() : ui_element<Backend>(nullptr) {}
+        void on_attached(ui_host<Backend>& host) override {
+            attach_saw_themes = (ui_services<Backend>::themes() != nullptr);
+            ui_element<Backend>::on_attached(host);
+        }
+        void on_detached(ui_host<Backend>& host) override {
+            detach_saw_themes = (ui_services<Backend>::themes() != nullptr);
+            ui_element<Backend>::on_detached(host);
+        }
+        bool attach_saw_themes = false;
+        bool detach_saw_themes = false;
+    };
+
+}  // namespace
+
+TEST_CASE("ui_host — on_attached/on_detached from mount path see ambient services") {
+    // The primary contract the framework does guarantee:
+    // hooks dispatched from `ui_host::mount` / `unmount` /
+    // `~ui_host()` fire inside the host's pushed scope, so
+    // widgets that call `ui_services<B>::...` from their hooks
+    // (e.g. menu_bar's hotkey registration) find live services.
+    //
+    // This is the positive version of the late-mutation
+    // limitation above: late add/remove/clear do NOT dispatch
+    // (scope can't be pushed from element.hh), but the framework-
+    // controlled mount/unmount paths DO. That's what the ported
+    // widgets rely on.
+    auto probe_ptr = std::make_unique<ambient_probe>();
+    auto* probe = probe_ptr.get();
+
+    ui_host<Backend> host;
+    host.mount(std::move(probe_ptr));
+    CHECK(probe->attach_saw_themes);
+
+    // Unmount returns the root so we keep it alive past the
+    // detach — otherwise reading detach_saw_themes would be a
+    // use-after-free.
+    auto detached = host.unmount();
+    REQUIRE(detached != nullptr);
+    CHECK(probe->detach_saw_themes);
 }

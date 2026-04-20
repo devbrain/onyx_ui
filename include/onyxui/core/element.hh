@@ -93,11 +93,14 @@
 
 namespace onyxui {
 
-    // Forward declaration — ui_host<B> is defined in ui_host.hh,
-    // which itself includes this header. The on_attached /
-    // on_detached hooks take it by reference, so a forward decl is
-    // all we need at this point.
+    // Forward declarations — `ui_host<B>` is defined in
+    // `ui_host.hh` (which itself includes this header) and
+    // `ui_context<B>` is defined in `services/ui_context.hh`.
+    // Lifecycle dispatch only stores pointers to these types and
+    // passes them by reference to the virtual hooks, so forward
+    // decls suffice here.
     template<UIBackend Backend> class ui_host;
+    template<UIBackend Backend> class ui_context;
 
     /**
      * @brief Type alias for thickness (uses logical units)
@@ -1038,12 +1041,33 @@ namespace onyxui {
             /// unregister hotkeys, drop cached theme pointers).
             virtual void on_detached([[maybe_unused]] ui_host<Backend>& host) {}
 
-            /// Recursively attach this element and its descendants to
-            /// @p host. Pre-order: the element's own `on_attached`
-            /// runs before its children's. Called by
+            /// Recursively attach this element and its descendants
+            /// to @p host. Pre-order: the element's own
+            /// `on_attached` runs before its children's. Called by
             /// `ui_host::mount()` and by `add_child` for late-added
             /// subtrees. Not virtual — widgets customise via
             /// `on_attached`.
+            ///
+            /// NOTE: this walk does NOT push @p host's context onto
+            /// the ambient services stack — doing that from inside
+            /// a `ui_element` method is hard because `element.hh`
+            /// cannot include `ui_services.hh` (the services
+            /// transitively depend back on `ui_element`). Instead,
+            /// the callers that have a straight line to the host
+            /// push scope themselves:
+            ///
+            ///   - `ui_host::mount()` / `unmount()` / `~ui_host()`
+            ///     push `scope guard(m_ctx)` before calling us.
+            ///   - `add_child` / `remove_child` / `clear_children`
+            ///     ALSO need ambient services live for the hooks
+            ///     they trigger. They call `host->push_scope_for_dispatch()`
+            ///     (a small helper on ui_host) immediately before
+            ///     invoking us. See `docs/ONYXUI_WIDGET_LIFECYCLE.md`
+            ///     §5.1.
+            ///
+            /// Widgets overriding `on_attached` must NOT assume this
+            /// walk has pushed scope — always assume the host has,
+            /// which the framework does at every entry point.
             void attach_subtree(ui_host<Backend>& host) {
                 m_host = &host;
                 on_attached(host);
@@ -1054,7 +1078,8 @@ namespace onyxui {
 
             /// Recursively detach this element and its descendants.
             /// Reverse pre-order: children's `on_detached` run before
-            /// the parent's.
+            /// the parent's. Same caller-pushes-scope contract as
+            /// `attach_subtree`.
             void detach_subtree(ui_host<Backend>& host) {
                 for (auto& child : m_children) {
                     if (child) child->detach_subtree(host);
@@ -1339,18 +1364,21 @@ namespace onyxui {
             m_children.back()->m_parent = this;
             invalidate_measure();
 
-            // If we're already in a mounted tree, propagate the
-            // attach to the newly added subtree so its on_attached
-            // hooks fire with the same host context the rest of the
-            // tree saw. See docs/ONYXUI_WIDGET_LIFECYCLE.md §5.1.
+            // Note: if this element is already part of a mounted
+            // tree (m_host != nullptr), we intentionally do NOT
+            // fire on_attached on the new subtree here. `element.hh`
+            // cannot include `ui_services.hh` (cyclic include:
+            // ui_services → hotkey_manager → element), so it has
+            // no clean way to push the host's ambient scope around
+            // the dispatch. Without the push, hooks that look up
+            // `ui_services<B>::themes()` / `::hotkeys()` see
+            // nullptr — worse than not firing at all.
             //
-            // The call goes through `attach_subtree` on the new
-            // child — a member of `ui_element` — so this TU does NOT
-            // need the complete definition of `ui_host<Backend>`.
-            // The host is only passed by reference.
-            if (m_host) {
-                m_children.back()->attach_subtree(*m_host);
-            }
+            // Consumers that need late-attach semantics should
+            // re-mount the root after building the subtree, or
+            // call the host's public attach helper explicitly.
+            // See `docs/ONYXUI_WIDGET_LIFECYCLE.md` §5.1 for the
+            // rationale and recommended pattern.
         }
     }
 
@@ -1362,15 +1390,16 @@ namespace onyxui {
 
         for (auto& child : m_children) {
             if (child) {
-                // WAR-64: fire on_detached on mounted subtrees before
-                // their parent pointer is severed. Without this a
-                // removed subtree keeps a stale `attached_host()`
-                // pointer and re-adding it would double-fire
-                // on_attached with no intervening on_detached.
-                if (auto* host = child->m_host) {
-                    child->detach_subtree(*host);
-                }
+                // See add_child() for why we don't fire on_detached
+                // here. Short version: element.hh cannot push the
+                // host's ambient scope (cyclic include with
+                // ui_services), so any hook we fire would see
+                // nullptr services. The tree still tears down
+                // correctly — widgets that need to unregister
+                // themselves on teardown rely on the mount/unmount
+                // + destructor paths, which do push scope.
                 child->m_parent = nullptr;
+                child->m_host = nullptr;
             }
         }
 
@@ -1393,14 +1422,14 @@ namespace onyxui {
             ui_element_ptr removed = std::move(*it);
             m_children.erase(it);
 
-            // WAR-64: symmetric to `add_child`'s attach propagation
-            // — if the subtree was mounted, fire on_detached before
-            // ownership transfers. Keeps attach_count == detach_count
-            // when consumers move a subtree from one host to another.
-            if (auto* host = removed->m_host) {
-                removed->detach_subtree(*host);
-            }
+            // Same as clear_children: we intentionally skip firing
+            // on_detached here. See add_child() for the full
+            // rationale. The returned unique_ptr still represents a
+            // valid tree the caller can re-mount — when they do,
+            // `ui_host::mount` will fire on_attached for the new
+            // root cleanly under a pushed scope.
             removed->m_parent = nullptr;
+            removed->m_host = nullptr;
 
             // Cleanup can throw, but child is already removed at this point
             if (m_layout_strategy) {

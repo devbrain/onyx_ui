@@ -89,13 +89,12 @@ namespace onyxui {
         }
 
         ~ui_host() {
-            // WAR-64: if a tree is still mounted when the host goes
-            // away, fire on_detached on it first. Without this,
+            // WAR-64: fire on_detached on any still-mounted tree
+            // before `m_root`'s unique_ptr tears it down, so
             // widgets that unregister hotkeys or drop cached theme
-            // pointers in on_detached leak that state on normal
-            // host teardown — the most common path in tests and
-            // short-lived tools. The unique_ptr destroys the tree
-            // afterwards.
+            // pointers in `on_detached` don't leak that state.
+            // Push our ambient scope so those hook bodies see live
+            // `ui_services<B>::...`.
             if (m_root) {
                 scope guard(m_ctx);
                 m_root->detach_subtree(*this);
@@ -112,9 +111,8 @@ namespace onyxui {
         // --------------------------------------------------------------
 
         void mount(std::unique_ptr<widget_type> root) {
-            // Detach any prior root first, inside its own scope so
-            // its on_detached hooks see the ambient services one
-            // last time.
+            // Detach any prior root first under our pushed scope so
+            // its `on_detached` hooks see live ambient services.
             if (m_root) {
                 scope guard(m_ctx);
                 m_root->detach_subtree(*this);
@@ -122,10 +120,8 @@ namespace onyxui {
 
             m_root = std::move(root);
 
-            // Fire on_attached on the new subtree with the host's
-            // context pushed, so widgets can legally call
-            // `ui_services<Backend>::…` from within the hook. See
-            // `docs/ONYXUI_WIDGET_LIFECYCLE.md`.
+            // Same for the new subtree: push scope before we let
+            // the walk fire on_attached hooks.
             if (m_root) {
                 scope guard(m_ctx);
                 m_root->attach_subtree(*this);
