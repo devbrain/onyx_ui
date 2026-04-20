@@ -100,7 +100,24 @@ namespace onyxui {
         // --------------------------------------------------------------
 
         void mount(std::unique_ptr<widget_type> root) {
+            // Detach any prior root first, inside its own scope so
+            // its on_detached hooks see the ambient services one
+            // last time.
+            if (m_root) {
+                scope guard(m_ctx);
+                m_root->detach_subtree(*this);
+            }
+
             m_root = std::move(root);
+
+            // Fire on_attached on the new subtree with the host's
+            // context pushed, so widgets can legally call
+            // `ui_services<Backend>::…` from within the hook. See
+            // `docs/ONYXUI_WIDGET_LIFECYCLE.md`.
+            if (m_root) {
+                scope guard(m_ctx);
+                m_root->attach_subtree(*this);
+            }
         }
 
         [[nodiscard]] widget_type* root() noexcept {
@@ -117,6 +134,10 @@ namespace onyxui {
         /// presented_window handles stay valid. Re-mount replaces the
         /// root without disturbing overlays.
         [[nodiscard]] std::unique_ptr<widget_type> unmount() {
+            if (m_root) {
+                scope guard(m_ctx);
+                m_root->detach_subtree(*this);
+            }
             return std::move(m_root);
         }
 

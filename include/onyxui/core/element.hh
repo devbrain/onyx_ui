@@ -92,6 +92,13 @@
 #include <onyxui/core/physical_conversions.hh>
 
 namespace onyxui {
+
+    // Forward declaration — ui_host<B> is defined in ui_host.hh,
+    // which itself includes this header. The on_attached /
+    // on_detached hooks take it by reference, so a forward decl is
+    // all we need at this point.
+    template<UIBackend Backend> class ui_host;
+
     /**
      * @brief Type alias for thickness (uses logical units)
      * @details This is an alias for logical_thickness from geometry.hh
@@ -999,6 +1006,73 @@ namespace onyxui {
              */
             [[nodiscard]] std::vector<rect_type> get_and_clear_dirty_regions();
 
+            // -----------------------------------------------------------------------
+            // Lifecycle Hooks (WAR-64)
+            // -----------------------------------------------------------------------
+            //
+            // Fired when this element is attached to / detached from a
+            // widget tree that `ui_host<Backend>::mount()` has claimed.
+            // While these hooks run the host's context is the ambient
+            // one, so `ui_services<Backend>::...` lookups resolve.
+            //
+            // Use `on_attached` to perform setup that previously had to
+            // happen in the constructor inside `ui_host::with_scope` —
+            // theme-derived padding, hotkey registration, etc. Default
+            // is a no-op; widgets that don't need ambient services at
+            // attach-time should not override.
+            //
+            // Ordering: `on_attached` fires pre-order (parent before
+            // children); `on_detached` fires in reverse (children
+            // before parent). Both fire exactly once per mount/unmount
+            // cycle. Re-mounting the same subtree fires them again.
+            //
+            // See `docs/ONYXUI_WIDGET_LIFECYCLE.md` for the full
+            // contract.
+            // -----------------------------------------------------------------------
+
+            /// Called when this element has been inserted into a tree
+            /// owned by @p host. Override to resolve ambient state.
+            virtual void on_attached([[maybe_unused]] ui_host<Backend>& host) {}
+
+            /// Called when this element is about to leave a tree owned
+            /// by @p host. Override to release ambient state (e.g.
+            /// unregister hotkeys, drop cached theme pointers).
+            virtual void on_detached([[maybe_unused]] ui_host<Backend>& host) {}
+
+            /// Recursively attach this element and its descendants to
+            /// @p host. Pre-order: the element's own `on_attached`
+            /// runs before its children's. Called by
+            /// `ui_host::mount()` and by `add_child` for late-added
+            /// subtrees. Not virtual — widgets customise via
+            /// `on_attached`.
+            void attach_subtree(ui_host<Backend>& host) {
+                m_host = &host;
+                on_attached(host);
+                for (auto& child : m_children) {
+                    if (child) child->attach_subtree(host);
+                }
+            }
+
+            /// Recursively detach this element and its descendants.
+            /// Reverse pre-order: children's `on_detached` run before
+            /// the parent's.
+            void detach_subtree(ui_host<Backend>& host) {
+                for (auto& child : m_children) {
+                    if (child) child->detach_subtree(host);
+                }
+                on_detached(host);
+                m_host = nullptr;
+            }
+
+            /// Host this element is currently attached to, or nullptr
+            /// if the subtree has not been mounted. `add_child` reads
+            /// this to decide whether a late-added subtree needs its
+            /// own attach dispatch. Tests use it to verify attach
+            /// lifecycle correctness.
+            [[nodiscard]] ui_host<Backend>* attached_host() const noexcept {
+                return m_host;
+            }
+
         protected:
             // -----------------------------------------------------------------------
             // Protected Virtual Methods (from event_target)
@@ -1131,6 +1205,11 @@ namespace onyxui {
             // Parent element (non-owning)
             ui_element* m_parent = nullptr;
 
+            // Host we're attached to (non-owning). Set by
+            // `ui_host::dispatch_attached` when this element enters
+            // a mounted tree; cleared by `dispatch_detached`.
+            ui_host<Backend>* m_host = nullptr;
+
             // Children (owned)
             std::vector <ui_element_ptr> m_children;
 
@@ -1260,6 +1339,19 @@ namespace onyxui {
             // Now safe to modify the child's parent pointer
             m_children.back()->m_parent = this;
             invalidate_measure();
+
+            // If we're already in a mounted tree, propagate the
+            // attach to the newly added subtree so its on_attached
+            // hooks fire with the same host context the rest of the
+            // tree saw. See docs/ONYXUI_WIDGET_LIFECYCLE.md §5.1.
+            //
+            // The call goes through `attach_subtree` on the new
+            // child — a member of `ui_element` — so this TU does NOT
+            // need the complete definition of `ui_host<Backend>`.
+            // The host is only passed by reference.
+            if (m_host) {
+                m_children.back()->attach_subtree(*m_host);
+            }
         }
     }
 

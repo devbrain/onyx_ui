@@ -446,3 +446,151 @@ TEST_CASE("ui_host::push_scope — out-of-order destruction does not pop the wro
     t2.reset();
     CHECK(ui_services<Backend>::current() == nullptr);
 }
+
+// -----------------------------------------------------------------
+// WAR-64: widget lifecycle (on_attached / on_detached)
+// -----------------------------------------------------------------
+
+namespace {
+
+    // Instrumented widget that records every attach/detach event
+    // (including ordering) into a shared log.
+    class life_probe : public ui_element<Backend> {
+    public:
+        struct event {
+            std::string tag;
+            std::string kind;  // "attach" or "detach"
+        };
+        using log_type = std::vector<event>;
+
+        life_probe(std::string tag, log_type& log)
+            : ui_element<Backend>(nullptr), m_tag(std::move(tag)), m_log(&log) {}
+
+        void on_attached(ui_host<Backend>& /*host*/) override {
+            m_attach_count++;
+            m_log->push_back({m_tag, "attach"});
+        }
+        void on_detached(ui_host<Backend>& /*host*/) override {
+            m_detach_count++;
+            m_log->push_back({m_tag, "detach"});
+        }
+
+        int attach_count() const noexcept { return m_attach_count; }
+        int detach_count() const noexcept { return m_detach_count; }
+
+    private:
+        std::string m_tag;
+        log_type* m_log;
+        int m_attach_count = 0;
+        int m_detach_count = 0;
+    };
+
+}  // namespace
+
+TEST_CASE("ui_host — on_attached fires pre-order on mount") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* child_a = root->emplace_child<life_probe>("a", log);
+    auto* child_b = root->emplace_child<life_probe>("b", log);
+    child_a->emplace_child<life_probe>("a.1", log);
+
+    REQUIRE(root->attach_count() == 0);
+    REQUIRE(child_a->attach_count() == 0);
+    REQUIRE(child_b->attach_count() == 0);
+    REQUIRE(log.empty());
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+
+    // Pre-order: root, a, a.1, b.
+    REQUIRE(log.size() == 4);
+    CHECK(log[0].tag == "root"); CHECK(log[0].kind == "attach");
+    CHECK(log[1].tag == "a");    CHECK(log[1].kind == "attach");
+    CHECK(log[2].tag == "a.1");  CHECK(log[2].kind == "attach");
+    CHECK(log[3].tag == "b");    CHECK(log[3].kind == "attach");
+}
+
+TEST_CASE("ui_host — on_detached fires reverse-pre-order on unmount") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    root->emplace_child<life_probe>("a", log);
+    root->emplace_child<life_probe>("b", log);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    log.clear();
+
+    auto detached = host.unmount();
+
+    // Reverse pre-order: children before their parent.
+    // Root has two children a, b (no grandchildren in this case).
+    // Walk order on detach: a -> b -> root.
+    REQUIRE(log.size() == 3);
+    CHECK(log[0].tag == "a");    CHECK(log[0].kind == "detach");
+    CHECK(log[1].tag == "b");    CHECK(log[1].kind == "detach");
+    CHECK(log[2].tag == "root"); CHECK(log[2].kind == "detach");
+    (void)detached;  // let the returned root drop at scope exit
+}
+
+TEST_CASE("ui_host — add_child on a mounted parent fires attach for late subtree") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    log.clear();
+
+    // Add a late child — its subtree should receive attach
+    // dispatched from the parent's own back-pointer.
+    auto late = std::make_unique<life_probe>("late", log);
+    late->emplace_child<life_probe>("late.child", log);
+    root_ptr->add_child(std::move(late));
+
+    REQUIRE(log.size() == 2);
+    CHECK(log[0].tag == "late");        CHECK(log[0].kind == "attach");
+    CHECK(log[1].tag == "late.child");  CHECK(log[1].kind == "attach");
+}
+
+TEST_CASE("ui_host — remount fires detach+attach a second time") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    CHECK(root_ptr->attach_count() == 1);
+    CHECK(root_ptr->detach_count() == 0);
+
+    // Mount a different root — the old one must see detach, the
+    // new one must see attach.
+    auto root2 = std::make_unique<life_probe>("root2", log);
+    auto* root2_ptr = root2.get();
+    log.clear();
+    host.mount(std::move(root2));
+
+    REQUIRE(log.size() == 2);
+    CHECK(log[0].tag == "root");   CHECK(log[0].kind == "detach");
+    CHECK(log[1].tag == "root2");  CHECK(log[1].kind == "attach");
+
+    CHECK(root2_ptr->attach_count() == 1);
+}
+
+TEST_CASE("ui_host — attached_host() returns the host while mounted, nullptr when not") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    CHECK(root_ptr->attached_host() == nullptr);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+    CHECK(root_ptr->attached_host() == &host);
+
+    auto detached = host.unmount();
+    CHECK(root_ptr->attached_host() == nullptr);
+    (void)detached;
+}
