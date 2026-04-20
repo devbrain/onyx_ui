@@ -706,3 +706,50 @@ TEST_CASE("ui_host — on_attached/on_detached from mount path see ambient servi
     REQUIRE(detached != nullptr);
     CHECK(probe->detach_saw_themes);
 }
+
+TEST_CASE("ui_element — remove_child clears m_host recursively across descendants") {
+    // Regression: the previous narrow fix only cleared `m_host` on
+    // the removed root, leaving grandchildren claiming the old
+    // host via `attached_host()`. That left re-mount semantics
+    // broken for subtrees with depth > 1 and violated the
+    // "removed subtrees report detached" half of the v1 contract.
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    auto* mid   = root->emplace_child<life_probe>("mid", log);
+    auto* leaf  = mid->emplace_child<life_probe>("leaf", log);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+
+    REQUIRE(mid->attached_host() == &host);
+    REQUIRE(leaf->attached_host() == &host);
+
+    auto removed = root_ptr->remove_child(mid);
+    REQUIRE(removed != nullptr);
+
+    CHECK(mid->attached_host() == nullptr);
+    CHECK(leaf->attached_host() == nullptr);   // the regression
+}
+
+TEST_CASE("ui_element — clear_children clears m_host recursively across descendants") {
+    life_probe::log_type log;
+
+    auto root = std::make_unique<life_probe>("root", log);
+    auto* root_ptr = root.get();
+    auto* a        = root->emplace_child<life_probe>("a", log);
+    auto* a_child  = a->emplace_child<life_probe>("a.child", log);
+    auto* b        = root->emplace_child<life_probe>("b", log);
+
+    ui_host<Backend> host;
+    host.mount(std::move(root));
+
+    REQUIRE(a_child->attached_host() == &host);
+
+    root_ptr->clear_children();
+
+    CHECK(a->attached_host() == nullptr);
+    CHECK(a_child->attached_host() == nullptr);   // the regression
+    CHECK(b->attached_host() == nullptr);
+}

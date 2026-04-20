@@ -1043,31 +1043,27 @@ namespace onyxui {
 
             /// Recursively attach this element and its descendants
             /// to @p host. Pre-order: the element's own
-            /// `on_attached` runs before its children's. Called by
-            /// `ui_host::mount()` and by `add_child` for late-added
-            /// subtrees. Not virtual — widgets customise via
-            /// `on_attached`.
+            /// `on_attached` runs before its children's. Not
+            /// virtual — widgets customise via `on_attached`.
             ///
-            /// NOTE: this walk does NOT push @p host's context onto
-            /// the ambient services stack — doing that from inside
-            /// a `ui_element` method is hard because `element.hh`
-            /// cannot include `ui_services.hh` (the services
-            /// transitively depend back on `ui_element`). Instead,
-            /// the callers that have a straight line to the host
-            /// push scope themselves:
+            /// **Invoked from the framework's mount path only.**
+            /// `ui_host::mount()` / `unmount()` / `~ui_host()` call
+            /// this (and `detach_subtree`) after pushing
+            /// `scope guard(m_ctx)` themselves, so every
+            /// `on_attached` hook fires with `ui_services<B>::…`
+            /// live. The walk does NOT push scope on its own —
+            /// doing so from inside `ui_element` is impractical
+            /// because `element.hh` cannot include
+            /// `ui_services.hh` (the services transitively depend
+            /// back on `ui_element`).
             ///
-            ///   - `ui_host::mount()` / `unmount()` / `~ui_host()`
-            ///     push `scope guard(m_ctx)` before calling us.
-            ///   - `add_child` / `remove_child` / `clear_children`
-            ///     ALSO need ambient services live for the hooks
-            ///     they trigger. They call `host->push_scope_for_dispatch()`
-            ///     (a small helper on ui_host) immediately before
-            ///     invoking us. See `docs/ONYXUI_WIDGET_LIFECYCLE.md`
-            ///     §5.1.
-            ///
-            /// Widgets overriding `on_attached` must NOT assume this
-            /// walk has pushed scope — always assume the host has,
-            /// which the framework does at every entry point.
+            /// **Late tree mutations (add_child / remove_child /
+            /// clear_children) do NOT dispatch the hooks** — see
+            /// `docs/ONYXUI_WIDGET_LIFECYCLE.md` §5.1 for the
+            /// rationale and the unmount-+-remount workaround.
+            /// Widgets overriding `on_attached` can therefore
+            /// assume the framework has pushed scope; they don't
+            /// need to push their own.
             void attach_subtree(ui_host<Backend>& host) {
                 m_host = &host;
                 on_attached(host);
@@ -1088,13 +1084,28 @@ namespace onyxui {
                 m_host = nullptr;
             }
 
-            /// Host this element is currently attached to, or nullptr
-            /// if the subtree has not been mounted. `add_child` reads
-            /// this to decide whether a late-added subtree needs its
-            /// own attach dispatch. Tests use it to verify attach
-            /// lifecycle correctness.
+            /// Host this element is currently attached to, or
+            /// nullptr if the subtree has not been mounted. Tests
+            /// use it to verify attach lifecycle correctness.
             [[nodiscard]] ui_host<Backend>* attached_host() const noexcept {
                 return m_host;
+            }
+
+            /// Recursively clear `m_host` on this element and every
+            /// descendant. Used by `clear_children` / `remove_child`
+            /// to keep `attached_host()` consistent across the
+            /// whole removed subtree — without this, nested
+            /// descendants would keep their (now stale) host
+            /// pointer from the pre-removal attach walk.
+            ///
+            /// Does NOT fire `on_detached` — see
+            /// `docs/ONYXUI_WIDGET_LIFECYCLE.md` §5.1 for why late
+            /// mutations can't safely dispatch hooks.
+            void clear_host_recursive() noexcept {
+                m_host = nullptr;
+                for (auto& child : m_children) {
+                    if (child) child->clear_host_recursive();
+                }
             }
 
         protected:
@@ -1398,8 +1409,12 @@ namespace onyxui {
                 // correctly — widgets that need to unregister
                 // themselves on teardown rely on the mount/unmount
                 // + destructor paths, which do push scope.
+                //
+                // Clear the host pointer recursively so
+                // `attached_host()` reports consistent state across
+                // the entire removed subtree (not just its root).
                 child->m_parent = nullptr;
-                child->m_host = nullptr;
+                child->clear_host_recursive();
             }
         }
 
@@ -1426,10 +1441,13 @@ namespace onyxui {
             // on_detached here. See add_child() for the full
             // rationale. The returned unique_ptr still represents a
             // valid tree the caller can re-mount — when they do,
-            // `ui_host::mount` will fire on_attached for the new
-            // root cleanly under a pushed scope.
+            // `ui_host::mount` fires on_attached for the whole tree
+            // (including its descendants) cleanly under a pushed
+            // scope. Clear the host pointer recursively so every
+            // node in the removed subtree reports itself detached,
+            // not just the root.
             removed->m_parent = nullptr;
-            removed->m_host = nullptr;
+            removed->clear_host_recursive();
 
             // Cleanup can throw, but child is already removed at this point
             if (m_layout_strategy) {
