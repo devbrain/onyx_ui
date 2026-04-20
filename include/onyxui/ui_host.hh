@@ -4,8 +4,10 @@
  *
  * See `docs/ONYXUI_UI_HOST_DESIGN.md` for the full design rationale.
  *
- * `ui_host<Backend>` replaces the combination of `scoped_ui_context<Backend>`
- * + `ui_handle<Backend>` that consumers previously had to assemble by hand.
+ * `ui_host<Backend>` is the consolidated embedding type. It
+ * replaces the legacy two-step assembly (a context-scope RAII
+ * wrapper plus a separate render/event handle) that consumers
+ * previously had to wire up by hand.
  * It owns:
  *
  *   - the scoped service stack (themes, focus, hotkeys, input, layers, metrics)
@@ -140,7 +142,7 @@ namespace onyxui {
         /// Convenience overload: query @p renderer for its physical
         /// viewport (including its physical origin, if non-zero) and
         /// render into that. Matches the shape of the legacy
-        /// `ui_handle::display()` call.
+        /// `ui_host::render()` call.
         void render(renderer_type& renderer) {
             const rect_type bounds = renderer.get_viewport();
             const auto& metrics = m_ctx.metrics();
@@ -235,7 +237,7 @@ namespace onyxui {
         /// ambient one for its lifetime. Returned from
         /// `push_scope()`.
         ///
-        /// This replaces the pre-`ui_host` `scoped_ui_context<B>`
+        /// This replaces the pre-`ui_host` `ui_host<B>`
         /// pattern: tests and fixtures that used to rely on the
         /// context being ambient for their whole lifetime can now
         /// hold a `scope_token` instead of the context itself, while
@@ -312,8 +314,8 @@ namespace onyxui {
         // --------------------------------------------------------------
         // Render pipeline
         //
-        // Duplicates ui_handle::display_impl logic minus the owned
-        // renderer. When ui_handle is retired (WAR-58) the shared
+        // Duplicates ui_host::render logic minus the owned
+        // renderer. Now that ui_host is retired (WAR-58) the shared
         // pipeline moves into a common helper. The caller is expected
         // to have already pushed a `scope` guard.
         // --------------------------------------------------------------
@@ -371,7 +373,7 @@ namespace onyxui {
         // --------------------------------------------------------------
         // Event pipeline
         //
-        // Duplicates ui_handle::handle_event. Same retirement note as
+        // Duplicates ui_host::handle_event. Same retirement note as
         // dispatch_render above.
         // --------------------------------------------------------------
 
@@ -532,7 +534,7 @@ namespace onyxui {
         // Members. m_ctx is declared first so it is destroyed LAST —
         // after the root tree and any overlay wrappers hosted in it.
         //
-        // Note: it's a plain `ui_context`, not a `scoped_ui_context`.
+        // Note: it's a plain `ui_context`, not a `ui_host`.
         // The scope-stack push/pop lives in the `scope` RAII guard
         // created per-call inside render() / handle_event() / present()
         // / present_modal(), so the host is dormant between calls.

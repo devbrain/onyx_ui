@@ -11,11 +11,11 @@
  * ## Design Rationale
  *
  * Uses a stack-based approach with thread-local storage:
- * 1. **Zero Boilerplate**: Just create scoped_ui_context
+ * 1. **Zero Boilerplate**: Just create ui_host
  * 2. **Multiple UIs**: Each context is independent
  * 3. **Nested Contexts**: Modal dialogs, popups, etc.
  * 4. **Thread Safe**: Each thread has its own stack
- * 5. **RAII Cleanup**: Automatic push/pop via scoped_ui_context
+ * 5. **RAII Cleanup**: Automatic push/pop via ui_host
  *
  * ## Thread Safety
  *
@@ -27,24 +27,24 @@
  * @code
  * // Single UI context (most common)
  * int main() {
- *     scoped_ui_context<Backend> ctx;
+ *     ui_host<Backend> ctx;
  *
  *     // Register themes
  *     ctx.themes().register_theme(my_theme);
  *
  *     // Create UI
- *     auto ui = ui_handle<Backend>(...);
+ *     auto ui = ui_host<Backend>(...);
  *     ui.display();
  *
  *     // Context auto-cleaned up
  * }
  *
  * // Multiple contexts
- * scoped_ui_context<Backend> hud_ctx;
+ * ui_host<Backend> hud_ctx;
  * auto hud = create_hud();
  *
  * {
- *     scoped_ui_context<Backend> menu_ctx;
+ *     ui_host<Backend> menu_ctx;
  *     auto menu = create_menu();
  *     // Each UI uses its own context
  * }
@@ -99,11 +99,11 @@ namespace onyxui {
      *
      * ## Best Practice
      *
-     * Use scoped_ui_context for RAII management:
+     * Use ui_host for RAII management:
      *
      * @code
      * {
-     *     scoped_ui_context<Backend> ctx;
+     *     ui_host<Backend> ctx;
      *     // Use ui services...
      * }  // Context automatically popped
      * @endcode
@@ -111,13 +111,13 @@ namespace onyxui {
      * @example Multiple Independent UIs
      * @code
      * // Game with HUD + pause menu
-     * scoped_ui_context<Backend> hud_ctx;
-     * ui_handle<Backend> hud(...);
+     * ui_host<Backend> hud_ctx;
+     * ui_host<Backend> hud(...);
      *
      * // Later, show pause menu
      * {
-     *     scoped_ui_context<Backend> menu_ctx;
-     *     ui_handle<Backend> menu(...);
+     *     ui_host<Backend> menu_ctx;
+     *     ui_host<Backend> menu(...);
      *     // menu uses menu_ctx, hud uses hud_ctx
      * }
      * @endcode
@@ -125,13 +125,13 @@ namespace onyxui {
      * @example Nested Modal Dialog
      * @code
      * // Main UI active
-     * scoped_ui_context<Backend> main_ctx;
-     * ui_handle<Backend> main_ui(...);
+     * ui_host<Backend> main_ctx;
+     * ui_host<Backend> main_ui(...);
      *
      * // Show modal dialog
      * {
-     *     scoped_ui_context<Backend> dialog_ctx;
-     *     ui_handle<Backend> dialog(...);
+     *     ui_host<Backend> dialog_ctx;
+     *     ui_host<Backend> dialog(...);
      *     // Dialog loop...
      * }
      * // Back to main UI
@@ -159,7 +159,7 @@ namespace onyxui {
          * Makes the given context the "current" context for this thread.
          * The context must remain alive until pop_context() is called.
          *
-         * @note Use scoped_ui_context for automatic push/pop management
+         * @note Use ui_host for automatic push/pop management
          */
         static void push_context(ui_context<Backend>* ctx) noexcept {
             assert(ctx != nullptr && "Cannot push null context");
@@ -432,24 +432,3 @@ namespace onyxui {
     };
 
 } // namespace onyxui
-
-// ================================================================
-// detail::scoped_ui_context implementation (retired — WAR-58)
-// ================================================================
-
-namespace onyxui::detail {
-
-    template<UIBackend Backend>
-    scoped_ui_context<Backend>::scoped_ui_context(metrics_type metrics)
-        : m_metrics(metrics)
-        , m_context(m_metrics)
-    {
-        ui_services<Backend>::push_context(&m_context);
-    }
-
-    template<UIBackend Backend>
-    scoped_ui_context<Backend>::~scoped_ui_context() {
-        ui_services<Backend>::pop_context();
-    }
-
-} // namespace onyxui::detail

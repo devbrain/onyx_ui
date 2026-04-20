@@ -21,8 +21,10 @@
  * // Set up theme at startup
  * tile::set_theme(my_theme);
  *
- * // Run application - all standard widgets work, plus tile widgets
- * return sdlpp_tile_backend::run_app<MyGameUI>("My Game", 1280, 720);
+ * // Run application via the simple shell — all standard widgets
+ * // work, plus tile widgets.
+ * // #include <onyxui/for/sdlpp.hh>
+ * // Use onyxui::simple::app_window + onyxui::simple::run().
  * @endcode
  */
 
@@ -75,16 +77,16 @@ void set_theme(const tile_theme& theme);
 [[nodiscard]] bool has_theme() noexcept;
 
 /**
- * @brief Set the current tile renderer (called by run_app)
+ * @brief Set the current tile renderer (set during tile-backend setup)
  * @param renderer Tile renderer instance
  *
- * This is called internally by run_app() and should not be called directly.
+ * This is set by the tile-backend setup path and should not be called directly.
  */
 void set_renderer(tile_renderer* renderer);
 
 /**
  * @brief Get the current tile renderer
- * @return Pointer to current renderer, or nullptr if not in run_app
+ * @return Pointer to current renderer, or nullptr if no tile renderer is currently active
  *
  * Tile widgets use this to access the renderer for drawing.
  */
@@ -105,7 +107,7 @@ void set_renderer(tile_renderer* renderer);
  * **Inherited from sdlpp_backend:**
  * - rect_type, size_type, point_type, color_type
  * - All event types (keyboard, mouse, window)
- * - run_app(), init(), shutdown()
+ * - init(), shutdown() (see docs/ONYXUI_SIMPLE_SHELL_DESIGN.md for standalone-tool usage)
  * - TTF font support
  *
  * **Overridden:**
@@ -162,40 +164,6 @@ struct sdlpp_tile_backend : public onyxui::sdlpp::sdlpp_backend {
     static void register_themes(
         onyxui::theme_registry<sdlpp_tile_backend>& registry);
 
-    // ========================================================================
-    // Standalone Application Mode (inherited but re-declared for tile backend)
-    // ========================================================================
-
-    /**
-     * @brief Run a complete standalone application
-     * @tparam Widget Widget class template (must accept Backend parameter)
-     * @param title Window title
-     * @param width Initial window width
-     * @param height Initial window height
-     * @param setup Optional callback to configure widget after creation
-     * @return Exit code (0 for success)
-     */
-    template<template<typename> class Widget>
-    static int run_app(
-        const char* title = "Tile UI",
-        int width = 800,
-        int height = 600,
-        std::function<void(Widget<sdlpp_tile_backend>&)> setup = nullptr);
-
-    /**
-     * @brief Run standalone application with a concrete widget type
-     * @tparam Widget Concrete widget class (not a template)
-     */
-    template<typename Widget>
-        requires (!requires { typename Widget::template rebind<sdlpp_tile_backend>; })
-    static int run_app(
-        const char* title = "Tile UI",
-        int width = 800,
-        int height = 600,
-        std::function<void(Widget&)> setup = nullptr);
 };
 
 } // namespace onyxui::tile
-
-// Include template implementation
-#include <onyxui/tile/tile_backend_impl.hh>

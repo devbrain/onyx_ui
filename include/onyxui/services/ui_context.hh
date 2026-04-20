@@ -54,7 +54,7 @@
  *
  * ### Benefits of Push/Pop Stack Pattern:
  *
- * ✅ **Zero Boilerplate** - One line: `scoped_ui_context<Backend> ctx;`
+ * ✅ **Zero Boilerplate** - One line: `ui_host<Backend> ctx;`
  * ✅ **Automatic Cleanup** - RAII guarantees cleanup (even with exceptions)
  * ✅ **Multiple Independent UIs** - Game HUD + pause menu + debug overlay
  * ✅ **Nested Contexts** - Modal dialogs over main UI with proper stacking
@@ -120,8 +120,8 @@
  * ### Stack Management
  *
  * Contexts are managed via a thread-local stack in ui_services:
- * - **Push**: `scoped_ui_context` constructor pushes context onto stack
- * - **Pop**: `scoped_ui_context` destructor pops context from stack
+ * - **Push**: `ui_host` constructor pushes context onto stack
+ * - **Pop**: `ui_host` destructor pops context from stack
  * - **Current**: `ui_services<Backend>::current()` returns top of stack
  *
  * Stack depth determines active context:
@@ -146,7 +146,7 @@
  * ```cpp
  * int main() {
  *     // Create context - services available automatically
- *     scoped_ui_context<conio_backend> ctx;
+ *     ui_host<conio_backend> ctx;
  *
  *     // Register themes (SHARED - persist for entire application)
  *     ctx.themes().register_theme(dark_theme);
@@ -160,7 +160,7 @@
  *
  *     // Create UI - automatically uses current context
  *     auto root_widget = create_main_window();
- *     ui_handle<conio_backend> ui(std::move(root_widget), renderer);
+ *     ui_host<conio_backend> ui(std::move(root_widget), renderer);
  *
  *     // Main loop
  *     while (!should_quit) {
@@ -180,7 +180,7 @@
  * void demonstrate_persistence() {
  *     // First context - register themes and hotkeys
  *     {
- *         scoped_ui_context<Backend> ctx1;
+ *         ui_host<Backend> ctx1;
  *
  *         // Register themes (SHARED - persist beyond this scope)
  *         ctx1.themes().register_theme(dark_theme);
@@ -197,7 +197,7 @@
  *
  *     // Second context - themes and hotkeys still available!
  *     {
- *         scoped_ui_context<Backend> ctx2;
+ *         ui_host<Backend> ctx2;
  *
  *         // ✅ Theme registered in ctx1 is still available in ctx2
  *         auto* theme = ctx2.themes().get_theme("Dark");
@@ -219,11 +219,11 @@
  * ### Example 3: Game Engine with Multiple Independent UIs
  * ```cpp
  * class Game {
- *     scoped_ui_context<Backend> m_hud_context;    // HUD's layers/focus
- *     ui_handle<Backend> m_hud;
+ *     ui_host<Backend> m_hud_context;    // HUD's layers/focus
+ *     ui_host<Backend> m_hud;
  *
- *     scoped_ui_context<Backend> m_menu_context;   // Menu's layers/focus
- *     ui_handle<Backend> m_menu;
+ *     ui_host<Backend> m_menu_context;   // Menu's layers/focus
+ *     ui_host<Backend> m_menu;
  *
  *     Game() {
  *         // Register themes once (SHARED across HUD and menu)
@@ -257,8 +257,8 @@
  * ### Example 4: Nested Modal Dialog
  * ```cpp
  * // Main UI context
- * scoped_ui_context<Backend> main_ctx;
- * ui_handle<Backend> main_ui(...);
+ * ui_host<Backend> main_ctx;
+ * ui_host<Backend> main_ui(...);
  *
  * // Main event loop
  * while (!quit) {
@@ -266,8 +266,8 @@
  *
  *     if (show_dialog) {
  *         // Push nested context for dialog
- *         scoped_ui_context<Backend> dialog_ctx;
- *         ui_handle<Backend> dialog_ui(...);
+ *         ui_host<Backend> dialog_ctx;
+ *         ui_host<Backend> dialog_ui(...);
  *
  *         // Dialog event loop (blocks main loop)
  *         while (!dialog_closed) {
@@ -287,8 +287,8 @@
  * ### Example 5: Multi-threaded Rendering
  * ```cpp
  * void render_thread_1() {
- *     scoped_ui_context<Backend> ctx_1;  // Thread 1's context
- *     ui_handle<Backend> ui_1(...);
+ *     ui_host<Backend> ctx_1;  // Thread 1's context
+ *     ui_host<Backend> ui_1(...);
  *
  *     while (running) {
  *         ui_1.display();
@@ -297,8 +297,8 @@
  * }
  *
  * void render_thread_2() {
- *     scoped_ui_context<Backend> ctx_2;  // Thread 2's context
- *     ui_handle<Backend> ui_2(...);
+ *     ui_host<Backend> ctx_2;  // Thread 2's context
+ *     ui_host<Backend> ui_2(...);
  *
  *     while (running) {
  *         ui_2.display();
@@ -315,7 +315,7 @@
  * ```cpp
  * TEST_CASE("Menu navigation") {
  *     // Setup - one line!
- *     scoped_ui_context<Backend> ctx;
+ *     ui_host<Backend> ctx;
  *
  *     // Test code - services available automatically
  *     auto menu = create_menu();
@@ -330,8 +330,8 @@
  * ### Example 7: Exception Safety
  * ```cpp
  * void risky_operation() {
- *     scoped_ui_context<Backend> ctx;
- *     ui_handle<Backend> ui(...);
+ *     ui_host<Backend> ctx;
+ *     ui_host<Backend> ui(...);
  *
  *     // Even if this throws...
  *     ui.display();
@@ -361,14 +361,14 @@
  * ## Best Practices
  *
  * ### ✅ DO:
- * - Use `scoped_ui_context` for automatic lifetime management
+ * - Use `ui_host` for automatic lifetime management
  * - Create one context per UI instance
  * - Check for nullptr when accessing services: `if (auto* svc = ui_services<>::layers())`
  * - Use nested contexts for modal dialogs and popups
  * - Create separate contexts for independent UIs (HUD, menu, debug overlay)
  *
  * ### ❌ DON'T:
- * - Create ui_context directly (use scoped_ui_context instead)
+ * - Create ui_context directly (use ui_host instead)
  * - Manually call push_context/pop_context (let RAII handle it)
  * - Share contexts between threads (each thread needs its own)
  * - Access services without nullptr check (no context = nullptr)
@@ -383,7 +383,7 @@
  * layers->show_popup(...);  // CRASH!
  *
  * // ✅ CORRECT: Create context first
- * scoped_ui_context<Backend> ctx;
+ * ui_host<Backend> ctx;
  * auto* layers = ui_services<Backend>::layers();
  * if (layers) {  // Always check!
  *     layers->show_popup(...);
@@ -393,27 +393,27 @@
  * ### Pitfall 2: Context Lifetime Too Short
  * ```cpp
  * // ❌ WRONG: Context destroyed too early
- * ui_handle<Backend> create_ui() {
- *     scoped_ui_context<Backend> ctx;
- *     return ui_handle<Backend>(...);  // Context destroyed when function returns!
+ * ui_host<Backend> create_ui() {
+ *     ui_host<Backend> ctx;
+ *     return ui_host<Backend>(...);  // Context destroyed when function returns!
  * }
  *
  * // ✅ CORRECT: Keep context alive as long as UI exists
  * struct App {
- *     scoped_ui_context<Backend> ctx;  // Member variable
- *     ui_handle<Backend> ui;
+ *     ui_host<Backend> ctx;  // Member variable
+ *     ui_host<Backend> ui;
  * };
  * ```
  *
  * ### Pitfall 3: Wrong Context Order
  * ```cpp
- * // ❌ WRONG: ui_handle created before context
- * ui_handle<Backend> ui(...);
- * scoped_ui_context<Backend> ctx;  // Too late!
+ * // ❌ WRONG: ui_host created before context
+ * ui_host<Backend> ui(...);
+ * ui_host<Backend> ctx;  // Too late!
  *
  * // ✅ CORRECT: Context before UI
- * scoped_ui_context<Backend> ctx;
- * ui_handle<Backend> ui(...);  // Services available
+ * ui_host<Backend> ctx;
+ * ui_host<Backend> ui(...);  // Services available
  * ```
  *
  * ## Performance Considerations
@@ -471,7 +471,7 @@
  * ### After (Push/Pop Pattern):
  * ```cpp
  * // New pattern - one line!
- * scoped_ui_context<Backend> ctx;
+ * ui_host<Backend> ctx;
  *
  * // Use services (automatically available)...
  *
@@ -479,7 +479,7 @@
  * ```
  *
  * ### Migration Checklist:
- * 1. Replace manual service creation with `scoped_ui_context<Backend> ctx;`
+ * 1. Replace manual service creation with `ui_host<Backend> ctx;`
  * 2. Remove all `ui_services::set_*()` calls
  * 3. Remove all `ui_services::clear()` calls
  * 4. Change `&focus_mgr` to `ctx.focus()` for direct access
@@ -492,14 +492,14 @@
  * - **Widgets**: Automatically use services from current context via `ui_services<Backend>::*`
  * - **menu_bar**: Uses layer_manager from current context for popup menus
  * - **menu**: Uses focus_manager from current context for keyboard navigation
- * - **ui_handle**: Renders overlay layers from current context automatically
+ * - **ui_host**: Renders overlay layers from current context automatically
  * - **themeable**: Applies themes from theme_registry in current context
  *
  * No changes required to widget code - services are accessed via ui_services static methods.
  *
  * ## See Also
  * - ui_services.hh - Service locator with push/pop stack implementation
- * - ui_handle.hh - Main UI handle that uses services from current context
+ * - ui_host.hh - Main UI handle that uses services from current context
  * - layer_manager.hh - Overlay layer management service
  * - focus_manager.hh - Focus navigation service
  * - theme_registry.hh - Theme storage and lookup service
@@ -562,7 +562,7 @@ namespace onyxui {
      *
      * ### Stack Management:
      * Contexts are pushed onto a thread-local stack managed by ui_services.
-     * Use scoped_ui_context for automatic RAII-based push/pop.
+     * Use ui_host for automatic RAII-based push/pop.
      *
      * ### Thread Safety:
      * - Each thread has its own context stack (thread_local)
@@ -570,10 +570,10 @@ namespace onyxui {
      * - Create separate contexts per thread for multi-threaded UIs
      *
      * ### Usage Pattern:
-     * **Don't create ui_context directly** - use scoped_ui_context instead:
+     * **Don't create ui_context directly** - use ui_host instead:
      * ```cpp
      * // ✅ Recommended
-     * scoped_ui_context<Backend> ctx;
+     * ui_host<Backend> ctx;
      * ctx.layers().show_popup(...);
      *
      * // ❌ Not recommended (manual stack management)
@@ -584,9 +584,9 @@ namespace onyxui {
      * ```
      *
      * ### Access Patterns:
-     * 1. **Direct access** (via scoped_ui_context):
+     * 1. **Direct access** (via ui_host):
      *    ```cpp
-     *    scoped_ui_context<Backend> ctx;
+     *    ui_host<Backend> ctx;
      *    ctx.layers().show_popup(...);
      *    ```
      *
@@ -606,7 +606,7 @@ namespace onyxui {
      * always constructed. The nullptr checks are only needed when accessing
      * through ui_services (which returns nullptr if no context active).
      *
-     * @see scoped_ui_context for RAII wrapper
+     * @see ui_host for RAII wrapper
      * @see ui_services for service locator access
      */
     template<UIBackend Backend>
@@ -875,317 +875,4 @@ namespace onyxui {
         friend class ui_services<Backend>;
     };
 
-    /**
-     * @class scoped_ui_context
-     * @brief RAII wrapper for UI context with automatic push/pop semantics
-     *
-     * @tparam Backend The UI backend type satisfying UIBackend concept
-     *
-     * @details
-     * **scoped_ui_context** is the primary way to create and manage UI contexts.
-     * It provides automatic lifetime management using the RAII pattern.
-     *
-     * ### What It Does:
-     * 1. **Constructor**: Creates ui_context and pushes it onto ui_services stack
-     * 2. **Destructor**: Pops context from ui_services stack (even if exception thrown)
-     * 3. **Provides Access**: Convenience methods to access owned services
-     *
-     * ### Why RAII?
-     * - **Cannot Forget Cleanup**: Destructor always called (scope exit, exception, return)
-     * - **Exception Safe**: Context cleaned up even if code throws
-     * - **Zero Overhead**: No runtime cost compared to manual push/pop
-     * - **Compiler Enforced**: Non-copyable, non-movable prevents misuse
-     *
-     * ### Lifetime Rules:
-     * - Lives as long as the scope it's declared in
-     * - Cannot be copied (deleted copy constructor/assignment)
-     * - Cannot be moved (deleted move constructor/assignment)
-     * - Must outlive all UI objects using its services
-     *
-     * ### Scope-Based Lifetime:
-     * ```cpp
-     * {
-     *     scoped_ui_context<Backend> ctx;  // Context pushed
-     *     // ... use services ...
-     * }  // Context automatically popped
-     * ```
-     *
-     * ### Member Variable Lifetime:
-     * ```cpp
-     * class Application {
-     *     scoped_ui_context<Backend> m_context;  // Pushed in constructor
-     *     ui_handle<Backend> m_ui;
-     *     // Context popped in destructor (after m_ui destroyed)
-     * };
-     * ```
-     *
-     * ### Service Access Patterns:
-     * 1. **Direct access** (most convenient):
-     *    ```cpp
-     *    scoped_ui_context<Backend> ctx;
-     *    ctx.layers().show_popup(...);      // Direct
-     *    ctx.focus().set_focus(widget);     // Direct
-     *    ctx.themes().register_theme(...);  // Direct
-     *    ```
-     *
-     * 2. **Get underlying context**:
-     *    ```cpp
-     *    scoped_ui_context<Backend> ctx;
-     *    ui_context<Backend>& raw_ctx = ctx.get();
-     *    ```
-     *
-     * 3. **Service locator** (from widgets/internal code):
-     *    ```cpp
-     *    // Widgets use service locator - works with any active context
-     *    if (auto* layers = ui_services<Backend>::layers()) {
-     *        layers->show_popup(...);
-     *    }
-     *    ```
-     *
-     * ### Stack Nesting:
-     * Contexts can be nested - each scope gets its own isolated services:
-     * ```cpp
-     * scoped_ui_context<Backend> main_ctx;  // Stack depth: 1
-     * ui_handle<Backend> main_ui(...);
-     *
-     * {
-     *     scoped_ui_context<Backend> dialog_ctx;  // Stack depth: 2 (pushed)
-     *     ui_handle<Backend> dialog(...);
-     *     // dialog uses dialog_ctx services
-     *     // main_ui continues using main_ctx services
-     * }  // dialog_ctx popped, back to depth: 1
-     * ```
-     *
-     * ### Common Patterns:
-     *
-     * **Pattern 1: Application Context**
-     * ```cpp
-     * int main() {
-     *     scoped_ui_context<Backend> ctx;  // Entire application scope
-     *     auto ui = create_ui();
-     *     run_event_loop(ui);
-     *     return 0;  // Context cleaned up
-     * }
-     * ```
-     *
-     * **Pattern 2: Multiple Independent UIs**
-     * ```cpp
-     * class Game {
-     *     scoped_ui_context<Backend> m_hud_ctx;    // HUD services
-     *     scoped_ui_context<Backend> m_menu_ctx;   // Menu services
-     *     ui_handle<Backend> m_hud;
-     *     ui_handle<Backend> m_menu;
-     * };
-     * ```
-     *
-     * **Pattern 3: Modal Dialog**
-     * ```cpp
-     * void show_settings_dialog() {
-     *     scoped_ui_context<Backend> dialog_ctx;  // Dialog scope
-     *     ui_handle<Backend> dialog = create_dialog();
-     *
-     *     while (!dialog.should_close()) {
-     *         dialog.display();
-     *         dialog.handle_event(get_event());
-     *         dialog.present();
-     *     }
-     * }  // Context automatically cleaned up
-     * ```
-     *
-     * **Pattern 4: Unit Test Isolation**
-     * ```cpp
-     * TEST_CASE("Menu test") {
-     *     scoped_ui_context<Backend> ctx;  // Isolated context per test
-     *     auto menu = create_menu();
-     *     menu->open();
-     *     CHECK(ctx.layers().layer_count() == 1);
-     * }  // Cleanup automatic, even if CHECK fails
-     * ```
-     *
-     * ### Exception Safety Guarantee:
-     * The context is **always** cleaned up, even if exceptions are thrown:
-     * ```cpp
-     * void risky() {
-     *     scoped_ui_context<Backend> ctx;
-     *     ui_handle<Backend> ui(...);
-     *
-     *     might_throw();  // Exception thrown
-     *     // Stack unwinds...
-     *     // ctx destructor called
-     *     // Context popped from stack
-     * }
-     * ```
-     *
-     * ### Member Function Reference:
-     * - `get()` - Get reference to owned ui_context
-     * - `layers()` - Convenience accessor for layer_manager
-     * - `input()` - Convenience accessor for input_manager
-     * - `themes()` - Convenience accessor for theme_registry
-     *
-     * ### Constraints:
-     * - **Non-copyable**: Cannot copy (would corrupt stack)
-     * - **Non-movable**: Cannot move (would corrupt stack)
-     * - **Must be named**: Cannot be temporary (would pop immediately)
-     *
-     * ```cpp
-     * // ❌ WRONG: Temporary immediately destroyed
-     * scoped_ui_context<Backend>();  // Pushed then immediately popped!
-     *
-     * // ✅ CORRECT: Named variable
-     * scoped_ui_context<Backend> ctx;  // Lives until end of scope
-     * ```
-     *
-     * ### Performance:
-     * - **Construction**: O(1) - creates ui_context, pushes pointer onto vector
-     * - **Destruction**: O(1) - pops pointer from vector
-     * - **Size**: sizeof(ui_context<Backend>) - owns three service objects
-     * - **No heap allocation**: Value type, can be stack-allocated
-     *
-     * ### Thread Safety:
-     * - Each thread has independent context stack (thread_local)
-     * - Safe to create contexts in different threads simultaneously
-     * - NOT safe to share single context between threads
-     *
-     * @see ui_context for the underlying context type
-     * @see ui_services for service locator access pattern
-     *
-     * @note This is the **only recommended way** to manage UI contexts.
-     *       Direct use of ui_context + manual push/pop is discouraged.
-     *
-     * @note Retired (WAR-58) from the public `onyxui::` namespace and
-     *       moved to `onyxui::detail::` — consumers should use
-     *       `ui_host<B>` + `host.push_scope()` instead. This class
-     *       remains only to back internal tests and the legacy
-     *       `*_backend::run_app<>` templates that haven't been
-     *       retired yet.
-     */
-    } // namespace onyxui (temporarily closed to host scoped_ui_context in detail::)
-
-namespace onyxui::detail {
-
-    template<UIBackend Backend>
-    class scoped_ui_context {
-    public:
-        using metrics_type = backend_metrics<Backend>;
-
-        /**
-         * @brief Construct and push a new context with backend metrics
-         *
-         * @param metrics Backend metrics for logical-to-physical coordinate conversion
-         *
-         * @details
-         * Creates a ui_context and pushes it onto the ui_services stack,
-         * making it the current context for this thread.
-         *
-         * **Backend metrics are REQUIRED:**
-         * - Use make_terminal_metrics<Backend>() for terminal/conio backends
-         * - Use make_gui_metrics<Backend>() for SDL/pixel-based backends
-         *
-         * @example
-         * @code
-         * // Terminal backend (1 logical unit = 1 char)
-         * scoped_ui_context<conio_backend> ctx(make_terminal_metrics<conio_backend>());
-         *
-         * // GUI backend (1 logical unit = 8 pixels)
-         * scoped_ui_context<sdlpp_backend> ctx(make_gui_metrics<sdlpp_backend>());
-         *
-         * // GUI backend with HiDPI (1 logical unit = 16 pixels)
-         * scoped_ui_context<sdlpp_backend> ctx(make_gui_metrics<sdlpp_backend>(2.0));
-         * @endcode
-         */
-        explicit scoped_ui_context(metrics_type metrics);
-
-        /**
-         * @brief Destructor - pops the context
-         *
-         * @details
-         * Pops this context from the ui_services stack, restoring the
-         * previous context (if any).
-         */
-        ~scoped_ui_context();
-
-        // Non-copyable, non-movable (manages stack state)
-        scoped_ui_context(const scoped_ui_context&) = delete;
-        scoped_ui_context& operator=(const scoped_ui_context&) = delete;
-        scoped_ui_context(scoped_ui_context&&) = delete;
-        scoped_ui_context& operator=(scoped_ui_context&&) = delete;
-
-        /**
-         * @brief Get the underlying context
-         * @return Reference to the ui_context
-         *
-         * @details
-         * Provides direct access to the context's services:
-         * - ctx.get().layers() - layer manager
-         * - ctx.get().focus() - focus manager
-         * - ctx.get().themes() - theme registry
-         */
-        [[nodiscard]] ui_context<Backend>& get() noexcept {
-            return m_context;
-        }
-
-        /**
-         * @brief Get the underlying context (const)
-         * @return Const reference to the ui_context
-         */
-        [[nodiscard]] const ui_context<Backend>& get() const noexcept {
-            return m_context;
-        }
-
-        /**
-         * @brief Convenience accessor for layer manager
-         * @return Reference to layer manager
-         */
-        [[nodiscard]] auto& layers() noexcept {
-            return m_context.layers();
-        }
-
-        /**
-         * @brief Convenience accessor for input manager
-         * @return Reference to input manager
-         */
-        [[nodiscard]] auto& input() noexcept {
-            return m_context.input();
-        }
-
-        /**
-         * @brief Convenience accessor for theme registry
-         * @return Reference to theme registry
-         */
-        [[nodiscard]] auto& themes() noexcept {
-            return m_context.themes();
-        }
-
-        /**
-         * @brief Convenience accessor for hotkey manager
-         * @return Reference to hotkey manager
-         */
-        [[nodiscard]] auto& hotkeys() noexcept {
-            return m_context.hotkeys();
-        }
-
-        /**
-         * @brief Convenience accessor for hotkey scheme registry
-         * @return Reference to hotkey scheme registry
-         */
-        [[nodiscard]] auto& hotkey_schemes() noexcept {
-            return m_context.hotkey_schemes();
-        }
-
-        /**
-         * @brief Convenience accessor for backend metrics
-         * @return Const reference to backend metrics
-         */
-        [[nodiscard]] const auto& metrics() const noexcept {
-            return m_context.metrics();
-        }
-
-    private:
-        metrics_type m_metrics;  // Store metrics to pass to context
-        ui_context<Backend> m_context;
-    };
-
-    // Implementation of scoped_ui_context methods (needs ui_services definition)
-    // These are defined at the end of ui_services.hh to avoid circular dependencies
-
-} // namespace onyxui::detail
+} // namespace onyxui

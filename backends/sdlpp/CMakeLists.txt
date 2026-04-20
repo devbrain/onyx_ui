@@ -27,7 +27,6 @@ add_backend_library(
         include/onyxui/sdlpp/sdlpp_renderer.hh
         include/onyxui/sdlpp/xpm_parser.hh
         include/onyxui/tile/tile_backend.hh
-        include/onyxui/tile/tile_backend_impl.hh
         include/onyxui/tile/procedural_atlas.hh
     DEPENDENCIES
         neutrino::sdlpp
@@ -40,10 +39,6 @@ if(NEUTRINO_ONYX_UI_BUILD_EXAMPLES)
 
 
 endif()
-
-# Tile backend demo - verifies run_app template instantiation
-add_executable(tile_demo tile_demo.cc)
-target_link_libraries(tile_demo PRIVATE onyxui_sdlpp_backend)
 
 # Strategy UI demo - implements design.txt layout
 add_executable(strategy_ui_demo strategy_ui_demo.cc)

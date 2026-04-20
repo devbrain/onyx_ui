@@ -55,9 +55,6 @@ namespace onyxui {
     template<UIBackend Backend> class focus_manager;
     template<UIBackend Backend> class input_manager;
     template<UIBackend Backend> class layer_manager;
-    namespace detail {
-        template<UIBackend Backend> class ui_handle;
-    }
     template<UIBackend Backend> class ui_context;
     template<UIBackend Backend> class ui_element;
 
@@ -95,8 +92,6 @@ namespace onyxui {
         friend class input_manager<Backend>;
         // Allow focus_manager to access protected focus methods (backward compat)
         friend class focus_manager<Backend>;
-        // Allow ui_handle to access protected mouse event handlers
-        friend class detail::ui_handle<Backend>;
         // Allow ui_context to access protected handle_click for semantic actions
         friend class ui_context<Backend>;
         // Allow layer_manager to access protected hover state for layer hover tracking
@@ -139,7 +134,7 @@ namespace onyxui {
              */
             virtual bool process_event([[maybe_unused]] const event_type& event) {
                 // Stub: old API no longer supported
-                // Layer manager and ui_handle should convert to ui_event first
+                // Layer manager and ui_host should convert to ui_event first
                 return false;
             }
 

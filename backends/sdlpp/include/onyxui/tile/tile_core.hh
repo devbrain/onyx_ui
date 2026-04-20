@@ -120,16 +120,16 @@ void set_theme(const tile_theme& theme);
 // ============================================================================
 
 /**
- * @brief Set the current tile renderer (called by run_app)
+ * @brief Set the current tile renderer (set during tile-backend setup)
  * @param renderer Tile renderer instance
  *
- * This is called internally by run_app() and should not be called directly.
+ * This is set by the tile-backend setup path and should not be called directly.
  */
 void set_renderer(tile_renderer* renderer);
 
 /**
  * @brief Get the current tile renderer
- * @return Pointer to current renderer, or nullptr if not in run_app
+ * @return Pointer to current renderer, or nullptr if no tile renderer is currently active
  *
  * Tile widgets use this to access the renderer for drawing.
  */

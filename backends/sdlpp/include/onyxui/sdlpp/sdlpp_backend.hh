@@ -2,30 +2,19 @@
  * @file sdlpp_backend.hh
  * @brief SDL++ backend implementation using lib_sdlpp for SDL3
  *
- * This backend supports two usage modes:
+ * Two supported usage modes:
  *
- * ## Standalone App Mode
- * Use run_app() for a complete application with event loop:
- * @code
- * int main() {
- *     return sdlpp_backend::run_app<MyWidget>("My App", 800, 600);
- * }
- * @endcode
+ * ## Standalone tools — simple shell
+ * Include `<onyxui/for/sdlpp.hh>` and use `onyxui::simple::app_window`
+ * + `onyxui::simple::run()` for a FLTK-grade entry point.
  *
- * ## Game Engine Integration Mode
- * Use init/shutdown/process_event for embedding in existing apps:
- * @code
- * sdlpp_backend::init(my_sdl_renderer);
- * while (running) {
- *     while (auto ev = poll_sdl_event()) {
- *         if (auto ui_ev = sdlpp_backend::process_event(*ev)) {
- *             ui.handle_event(*ui_ev);
- *         }
- *     }
- *     ui.display();
- * }
- * sdlpp_backend::shutdown();
- * @endcode
+ * ## Game engine embedding — `ui_host<B>`
+ * Hold an `onyxui::ui_host<onyxui::sdlpp::sdlpp_backend>` in your
+ * engine class and drive `render()` / `handle_event()` from your
+ * existing event pump and renderer. `sdlpp_backend::init()` /
+ * `shutdown()` / `process_event()` hook the backend-level
+ * one-shots (global renderer registration, native→framework event
+ * translation); the UI lifecycle lives on the host.
  */
 
 #pragma once
@@ -62,7 +51,9 @@ namespace onyxui::sdlpp {
  * Additionally provides static methods for platform integration:
  * - init/shutdown for game engine embedding
  * - process_event for event conversion
- * - run_app for standalone applications
+ *
+ * Standalone-tool consumers should use the simple shell
+ * (`<onyxui/for/sdlpp.hh>`) rather than reaching into this class.
  */
 struct sdlpp_backend {
     // ========================================================================
@@ -163,72 +154,6 @@ struct sdlpp_backend {
      */
     static void clear_quit_flag() noexcept;
 
-    // ========================================================================
-    // Standalone Application Mode
-    // ========================================================================
-
-    /**
-     * @brief Run a complete standalone application
-     * @tparam Widget Widget class template (must accept Backend parameter)
-     * @param title Window title
-     * @param width Initial window width
-     * @param height Initial window height
-     * @param setup Optional callback to configure widget after creation
-     * @return Exit code (0 for success)
-     *
-     * Creates SDL window/renderer, runs event loop, handles cleanup.
-     * The Widget class should have a should_quit() method or use
-     * sdlpp_backend::should_quit() for exit detection.
-     *
-     * @code
-     * template<typename Backend>
-     * class MyApp : public main_window<Backend> {
-     *     // ... widget implementation
-     * };
-     *
-     * int main() {
-     *     return sdlpp_backend::run_app<MyApp>("My App", 800, 600);
-     * }
-     * @endcode
-     */
-    template<template<typename> class Widget>
-    static int run_app(
-        const char* title = "OnyxUI",
-        int width = 800,
-        int height = 600,
-        std::function<void(Widget<sdlpp_backend>&)> setup = nullptr);
-
-    /**
-     * @brief Run standalone application with a concrete widget type
-     * @tparam Widget Concrete widget class (not a template)
-     * @param title Window title
-     * @param width Initial window width
-     * @param height Initial window height
-     * @param setup Optional callback to configure widget after creation
-     * @return Exit code (0 for success)
-     *
-     * This overload is for widgets that are concrete classes (not templates).
-     * Useful when Backend type is determined at compile-time via macros.
-     *
-     * @code
-     * // In backend_config.hh:
-     * using Backend = onyxui::sdlpp::sdlpp_backend;
-     *
-     * // Concrete widget class:
-     * class MyApp : public main_window<Backend> { ... };
-     *
-     * int main() {
-     *     return Backend::run_app<MyApp>("My App", 800, 600);
-     * }
-     * @endcode
-     */
-    template<typename Widget>
-        requires (!requires { typename Widget::template rebind<sdlpp_backend>; })
-    static int run_app(
-        const char* title = "OnyxUI",
-        int width = 800,
-        int height = 600,
-        std::function<void(Widget&)> setup = nullptr);
 };
 
 } // namespace onyxui::sdlpp
@@ -236,6 +161,3 @@ struct sdlpp_backend {
 // Static assertion to verify backend compliance
 static_assert(onyxui::UIBackend<onyxui::sdlpp::sdlpp_backend>,
               "sdlpp_backend must satisfy UIBackend concept");
-
-// Include template implementation
-#include <onyxui/sdlpp/sdlpp_backend_impl.hh>

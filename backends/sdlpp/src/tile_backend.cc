@@ -38,8 +38,8 @@ namespace {
     // LIFETIME: Must remain valid for entire application duration
     const tile_theme* g_theme = nullptr;
 
-    // Global renderer pointer (set during run_app, cleared on exit)
-    // LIFETIME: Valid only within run_app() scope
+    // Global renderer pointer (set during tile-backend setup, cleared on exit)
+    // LIFETIME: Valid only while the tile-backend is initialised
     tile_renderer* g_renderer = nullptr;
 
     /**

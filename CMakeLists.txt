@@ -230,7 +230,6 @@ add_library(onyxui INTERFACE
         include/onyxui/theming/theme_registry.hh
         include/onyxui/theming/themeable.hh
         include/onyxui/ui_constants.hh
-        include/onyxui/ui_handle.hh
         include/onyxui/utils/fkyaml_adapter.hh
         include/onyxui/utils/safe_math.hh
         include/onyxui/actions/action.hh

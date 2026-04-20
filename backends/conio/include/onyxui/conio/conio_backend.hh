@@ -10,13 +10,9 @@
  *
  * This backend supports two usage modes:
  *
- * ## Standalone App Mode
- * Use run_app() for a complete application with event loop:
- * @code
- * int main() {
- *     return conio_backend::run_app<MyWidget>();
- * }
- * @endcode
+ * ## Standalone Tools — simple shell
+ * Include `<onyxui/for/conio.hh>` and use `onyxui::simple::app_window`
+ * + `onyxui::simple::run()`. See `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md`.
  *
  * ## Custom Integration Mode
  * Use init/shutdown/process_event for custom event loops:
@@ -367,32 +363,6 @@ namespace onyxui::conio {
          */
         ONYXUI_CONIO_EXPORT static void request_quit() noexcept;
 
-        // ========================================================================
-        // Standalone Application Mode
-        // ========================================================================
-
-        /**
-         * @brief Run a complete standalone terminal application
-         * @tparam Widget Widget class template (must accept Backend parameter)
-         * @param setup Optional callback to configure widget after creation
-         * @return Exit code (0 for success)
-         *
-         * Initializes termbox2, runs event loop, handles cleanup.
-         * Terminal dimensions are used automatically.
-         *
-         * @code
-         * template<typename Backend>
-         * class MyApp : public main_window<Backend> {
-         *     // ... widget implementation
-         * };
-         *
-         * int main() {
-         *     return conio_backend::run_app<MyApp>();
-         * }
-         * @endcode
-         */
-        template<template<typename> class Widget>
-        static int run_app(std::function<void(Widget<conio_backend>&)> setup = nullptr);
     };
 
     // ======================================================================
@@ -425,6 +395,3 @@ namespace onyxui::conio {
 
 // Static assertion to verify backend compliance (after event_traits specialization)
 static_assert(onyxui::UIBackend<onyxui::conio::conio_backend>, "conio_backend must satisfy UIBackend concept");
-
-// Include template implementation
-#include <onyxui/conio/conio_backend_impl.hh>

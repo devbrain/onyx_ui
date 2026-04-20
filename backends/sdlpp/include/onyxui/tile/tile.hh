@@ -19,7 +19,8 @@
  * onyxui::tile::set_theme(my_theme);
  *
  * // Run application
- * return onyxui::tile::sdlpp_tile_backend::run_app<MyWidget>("My Game", 800, 600);
+ * #include <onyxui/for/sdlpp.hh>
+ * // Use onyxui::simple::app_window + onyxui::simple::run().
  * @endcode
  */
 
