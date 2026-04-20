@@ -476,8 +476,13 @@ namespace onyxui {
                     horizontal_alignment::left,
                     vertical_alignment::top));
 
-            auto* theme = ui_services<Backend>::themes()->get_current_theme();
-            content_container_ptr->set_padding(logical_thickness(logical_unit(theme->text_view.padding)));
+            // Remember the container so we can refresh its padding
+            // from the theme on attach (and on theme changes).
+            // Pre-WAR-64 this pulled the theme directly from
+            // `ui_services<Backend>::themes()`, which crashed when
+            // `text_view` was constructed outside a mounted host
+            // scope (see docs/ONYXUI_WIDGET_LIFECYCLE.md §2).
+            m_content_container = content_container_ptr.get();
 
             // Add all labels to content before adding to scroll view
             for (const auto& line : m_lines) {
@@ -519,14 +524,57 @@ namespace onyxui {
         void rebuild_content() {
             // Recreate entire scroll view with new content
             create_scroll_view();
+
+            // The rebuild dropped the old content container and
+            // constructed a fresh one with default (zero) padding.
+            // If we're already attached to a host, re-apply the
+            // theme-driven padding so the user doesn't see a
+            // temporary "wrong padding" frame.
+            if (this->attached_host()) {
+                apply_content_padding();
+            }
         }
 
+        /**
+         * @brief Resolve the current theme's text_view padding and
+         *        apply it to the content container.
+         *
+         * @details
+         * No-op if the container doesn't exist yet or the theme
+         * registry is empty. Called from `on_attached` (initial
+         * setup) and from `rebuild_content` when the widget is
+         * already mounted.
+         */
+        void apply_content_padding() {
+            if (!m_content_container) return;
+            auto* themes = ui_services<Backend>::themes();
+            if (!themes) return;
+            auto const* theme = themes->get_current_theme();
+            if (!theme) return;
+            m_content_container->set_padding(
+                logical_thickness(logical_unit(theme->text_view.padding)));
+        }
+
+    public:
+        /**
+         * @brief Fire when this widget becomes part of a mounted
+         *        tree. Moved from the constructor under WAR-64 so
+         *        the theme lookup is only done when the ambient
+         *        services are actually populated.
+         */
+        void on_attached(ui_host<Backend>& host) override {
+            ui_element<Backend>::on_attached(host);
+            apply_content_padding();
+        }
+
+    private:
         // =====================================================================
         // Member Variables
         // =====================================================================
 
         std::vector<std::string> m_lines;
         scroll_view_type* m_scroll_view = nullptr;  ///< Non-owning pointer to internal scroll_view
+        panel<Backend>* m_content_container = nullptr;  ///< Non-owning; refreshed by `create_scroll_view`
     };
 
 } // namespace onyxui
