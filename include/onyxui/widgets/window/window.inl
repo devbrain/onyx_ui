@@ -747,9 +747,16 @@ namespace onyxui {
             content.width = max(logical_unit(0.0), content.width - logical_unit(2.0));
 
             // Inset the bottom so children don't overwrite the bottom border.
-            // Top stays flush — `do_render()` paints the top-border row with the
-            // title-bar background and the title bar itself sits on that row.
             content.height = max(logical_unit(0.0), content.height - logical_unit(1.0));
+
+            // Top: a 1-row title bar is painted flush with the top edge and
+            // covers the top border. With no title bar, nothing paints the
+            // top row, so we must inset it too or children will overwrite
+            // the top border.
+            if (!m_title_bar) {
+                content.y = content.y + logical_unit(1.0);
+                content.height = max(logical_unit(0.0), content.height - logical_unit(1.0));
+            }
         }
 
         return content;

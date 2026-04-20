@@ -118,5 +118,33 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window - Border rendering with E
         }
     }
 
+    SUBCASE("Title-bar-less window preserves top border") {
+        // Regression: `get_content_area()` used to inset only L/R/bottom
+        // on the assumption that a 1-row title bar would paint over the
+        // top border row. With `has_title_bar = false` there is no such
+        // cover, so the top row must be inset too or children overwrite
+        // the top border.
+        typename window<Backend>::window_flags flags;
+        flags.has_title_bar = false;
+        flags.has_close_button = false;
+        flags.has_minimize_button = false;
+        flags.has_maximize_button = false;
+        flags.has_menu_button = false;
+
+        auto win = std::make_unique<window<Backend>>("NoTitle", flags);
+        (void)win->measure(20_lu, 8_lu);
+        win->arrange(logical_rect{0_lu, 0_lu, 20_lu, 8_lu});
+
+        auto canvas = render_to_canvas(*win, 20, 8);
+
+        // All four corners and the edges must be visible borders.
+        CHECK(canvas->has_border_at(0, 0));   // Top-left corner
+        CHECK(canvas->has_border_at(19, 0));  // Top-right corner
+        CHECK(canvas->has_border_at(0, 7));   // Bottom-left corner
+        CHECK(canvas->has_border_at(19, 7));  // Bottom-right corner
+        CHECK(canvas->has_vertical_border_line(0, 1, 6));   // Left edge
+        CHECK(canvas->has_vertical_border_line(19, 1, 6));  // Right edge
+    }
+
 }
 
