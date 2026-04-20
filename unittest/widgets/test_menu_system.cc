@@ -37,44 +37,56 @@ static test_backend::test_keyboard_event make_key_event(int key_code) {
 TEST_SUITE("menu_system::lifecycle") {
 
     TEST_CASE("menu_system starts with empty stack") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Note: menu_system is private member, we'll test through menu_bar API
         // Direct menu_system testing would require friend declaration
 
         // Initially no menu is open
-        CHECK_FALSE(menu_bar_widget->has_open_menu());
-        CHECK_FALSE(menu_bar_widget->open_menu_index().has_value());
+        CHECK_FALSE(bar_ptr->has_open_menu());
+        CHECK_FALSE(bar_ptr->open_menu_index().has_value());
     }
 
     TEST_CASE("open_top_level_menu sets menu stack") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         auto file_menu = std::make_unique<menu<Backend>>();
         auto item = std::make_unique<menu_item<Backend>>("New");
         file_menu->add_item(std::move(item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
-        menu_bar_widget->open_menu(0);
+        bar_ptr->add_menu("File", std::move(file_menu));
+        bar_ptr->open_menu(0);
 
         // Menu should be open
-        CHECK(menu_bar_widget->has_open_menu());
-        CHECK(menu_bar_widget->open_menu_index() == 0);
+        CHECK(bar_ptr->has_open_menu());
+        CHECK(bar_ptr->open_menu_index() == 0);
     }
 
     TEST_CASE("close_menu clears menu stack") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         auto file_menu = std::make_unique<menu<Backend>>();
         auto item = std::make_unique<menu_item<Backend>>("New");
         file_menu->add_item(std::move(item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
-        menu_bar_widget->open_menu(0);
-        CHECK(menu_bar_widget->has_open_menu());
+        bar_ptr->add_menu("File", std::move(file_menu));
+        bar_ptr->open_menu(0);
+        CHECK(bar_ptr->has_open_menu());
 
-        menu_bar_widget->close_menu();
-        CHECK_FALSE(menu_bar_widget->has_open_menu());
+        bar_ptr->close_menu();
+        CHECK_FALSE(bar_ptr->has_open_menu());
     }
 
 } // TEST_SUITE menu_system::lifecycle
@@ -128,7 +140,11 @@ TEST_SUITE("menu_system::submenu_stack") {
 TEST_SUITE("menu_system::hotkey_registration") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Hotkeys registered on-demand when menu opens") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // On construction: Only activate_menu_bar registered (ESC fix)
         auto& hotkeys = ctx.hotkeys();
@@ -144,8 +160,8 @@ TEST_SUITE("menu_system::hotkey_registration") {
         // Open a menu - navigation handlers now registered
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
-        menu_bar_widget->open_menu(0);
+        bar_ptr->add_menu("File", std::move(file_menu));
+        bar_ptr->open_menu(0);
 
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_left));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_right));
@@ -156,25 +172,29 @@ TEST_SUITE("menu_system::hotkey_registration") {
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Hotkeys remain registered after menu switch") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Add two menus
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         auto edit_menu = std::make_unique<menu<Backend>>();
         edit_menu->add_item(std::make_unique<menu_item<Backend>>("Cut"));
-        menu_bar_widget->add_menu("Edit", std::move(edit_menu));
+        bar_ptr->add_menu("Edit", std::move(edit_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
         auto& hotkeys = ctx.hotkeys();
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
 
         // Switch to Edit menu
-        menu_bar_widget->open_menu(1);
+        bar_ptr->open_menu(1);
 
         // Phase 4: Handlers remain registered (no re-registration churn)
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_down));
@@ -182,13 +202,17 @@ TEST_SUITE("menu_system::hotkey_registration") {
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Navigation hotkeys unregistered after close_menu (ESC fix)") {
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
         auto& hotkeys = ctx.hotkeys();
         // Verify handlers registered when menu open
@@ -196,7 +220,7 @@ TEST_SUITE("menu_system::hotkey_registration") {
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_select));
         CHECK(hotkeys.has_semantic_handler(hotkey_action::menu_cancel));
 
-        menu_bar_widget->close_menu();
+        bar_ptr->close_menu();
 
         // Navigation handlers unregistered (allows ESC to propagate to app)
         CHECK_FALSE(hotkeys.has_semantic_handler(hotkey_action::menu_down));
@@ -220,18 +244,22 @@ TEST_SUITE("menu_system::context_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Up/Down navigation always targets current menu") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Add menu with multiple items
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
         file_menu->add_item(std::make_unique<menu_item<Backend>>("Open"));
         file_menu->add_item(std::make_unique<menu_item<Backend>>("Save"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         CHECK(menu != nullptr);
         CHECK(menu->focused_item() != nullptr);  // Something is focused
 
@@ -245,50 +273,58 @@ TEST_SUITE("menu_system::context_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Left/Right navigation switches menu bar at top-level") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Add three menus
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         auto edit_menu = std::make_unique<menu<Backend>>();
         edit_menu->add_item(std::make_unique<menu_item<Backend>>("Cut"));
-        menu_bar_widget->add_menu("Edit", std::move(edit_menu));
+        bar_ptr->add_menu("Edit", std::move(edit_menu));
 
         auto view_menu = std::make_unique<menu<Backend>>();
         view_menu->add_item(std::make_unique<menu_item<Backend>>("Zoom"));
-        menu_bar_widget->add_menu("View", std::move(view_menu));
+        bar_ptr->add_menu("View", std::move(view_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
-        CHECK(menu_bar_widget->open_menu_index() == 0);
+        bar_ptr->open_menu(0);
+        CHECK(bar_ptr->open_menu_index() == 0);
 
         // Simulate Right arrow key
         auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
         bool handled = ctx.hotkeys().handle_key_event(right_event);
 
         CHECK(handled);
-        CHECK(menu_bar_widget->open_menu_index() == 1);  // Switched to Edit menu
+        CHECK(bar_ptr->open_menu_index() == 1);  // Switched to Edit menu
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Escape closes menu (Phase 4 delegates to menu_system)") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
-        menu_bar_widget->open_menu(0);
-        CHECK(menu_bar_widget->has_open_menu());
+        bar_ptr->open_menu(0);
+        CHECK(bar_ptr->has_open_menu());
 
         // Simulate Escape key
         auto esc_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_ESCAPE);
         bool handled = ctx.hotkeys().handle_key_event(esc_event);
 
         CHECK(handled);
-        CHECK_FALSE(menu_bar_widget->has_open_menu());
+        CHECK_FALSE(bar_ptr->has_open_menu());
     }
 
 } // TEST_SUITE menu_system::context_navigation
@@ -302,7 +338,11 @@ TEST_SUITE("menu_system::submenu_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Right arrow on submenu item opens submenu") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File menu with Open submenu
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -317,12 +357,12 @@ TEST_SUITE("menu_system::submenu_navigation") {
         file_menu->add_item(std::move(open_item));
 
         file_menu->add_item(std::make_unique<menu_item<Backend>>("Save"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         CHECK(menu != nullptr);
 
         // Navigate to "Open" item (index 1)
@@ -344,7 +384,11 @@ TEST_SUITE("menu_system::submenu_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Left arrow in submenu closes submenu") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File menu with Open submenu
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -355,12 +399,12 @@ TEST_SUITE("menu_system::submenu_navigation") {
         open_item->set_submenu(std::move(open_submenu));
         file_menu->add_item(std::move(open_item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu and submenu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         auto* focused = menu->focused_item();
         CHECK(focused != nullptr);
         CHECK(focused->has_submenu());
@@ -379,23 +423,27 @@ TEST_SUITE("menu_system::submenu_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Right arrow on regular item switches menu bar at top-level") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Add two menus
         auto file_menu = std::make_unique<menu<Backend>>();
         file_menu->add_item(std::make_unique<menu_item<Backend>>("New"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         auto edit_menu = std::make_unique<menu<Backend>>();
         edit_menu->add_item(std::make_unique<menu_item<Backend>>("Cut"));
-        menu_bar_widget->add_menu("Edit", std::move(edit_menu));
+        bar_ptr->add_menu("Edit", std::move(edit_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
-        CHECK(menu_bar_widget->open_menu_index() == 0);
+        bar_ptr->open_menu(0);
+        CHECK(bar_ptr->open_menu_index() == 0);
 
         // Focused on regular item (no submenu)
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         auto* focused = menu->focused_item();
         CHECK(focused != nullptr);
         CHECK_FALSE(focused->has_submenu());
@@ -405,12 +453,16 @@ TEST_SUITE("menu_system::submenu_navigation") {
         bool handled = ctx.hotkeys().handle_key_event(right_event);
 
         CHECK(handled);
-        CHECK(menu_bar_widget->open_menu_index() == 1);  // Switched to Edit menu
+        CHECK(bar_ptr->open_menu_index() == 1);  // Switched to Edit menu
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Nested submenus (arbitrary depth)") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File → Open → Recent (3 levels)
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -427,13 +479,13 @@ TEST_SUITE("menu_system::submenu_navigation") {
         open_item->set_submenu(std::move(open_submenu));
         file_menu->add_item(std::move(open_item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
         // Navigate to Open and open submenu
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         CHECK(menu->focused_item()->has_submenu());
 
         auto right_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_RIGHT);
@@ -457,7 +509,11 @@ TEST_SUITE("menu_system::submenu_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Escape closes submenu, then parent menu") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File menu with Open submenu
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -468,12 +524,12 @@ TEST_SUITE("menu_system::submenu_navigation") {
         open_item->set_submenu(std::move(open_submenu));
         file_menu->add_item(std::move(open_item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu and submenu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         CHECK(menu->focused_item()->has_submenu());
 
         // Open submenu
@@ -484,17 +540,21 @@ TEST_SUITE("menu_system::submenu_navigation") {
         auto esc_event = make_key_event(event_traits<Backend::test_keyboard_event>::KEY_ESCAPE);
         bool handled = ctx.hotkeys().handle_key_event(esc_event);
         CHECK(handled);
-        CHECK(menu_bar_widget->has_open_menu());  // File menu still open
+        CHECK(bar_ptr->has_open_menu());  // File menu still open
 
         // Second Escape closes File menu
         handled = ctx.hotkeys().handle_key_event(esc_event);
         CHECK(handled);
-        CHECK_FALSE(menu_bar_widget->has_open_menu());  // All menus closed
+        CHECK_FALSE(bar_ptr->has_open_menu());  // All menus closed
     }
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Enter key opens submenu (like Right arrow)") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File menu with Open submenu
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -509,12 +569,12 @@ TEST_SUITE("menu_system::submenu_navigation") {
         file_menu->add_item(std::move(open_item));
 
         file_menu->add_item(std::make_unique<menu_item<Backend>>("Save"));
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         CHECK(menu != nullptr);
 
         // Navigate to "Open" item (index 1)
@@ -536,7 +596,11 @@ TEST_SUITE("menu_system::submenu_navigation") {
 
     TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Enter key activates regular items (no submenu)") {
         ctx.hotkey_schemes().set_current_scheme("Windows");
+        ui_host<Backend> ctx{make_terminal_metrics<Backend>()};
+        [[maybe_unused]] auto ctx_scope = ctx.push_scope();
         auto menu_bar_widget = std::make_unique<menu_bar<Backend>>();
+        auto* bar_ptr = menu_bar_widget.get();
+        ctx.mount(std::move(menu_bar_widget));
 
         // Build File menu with action item
         auto file_menu = std::make_unique<menu<Backend>>();
@@ -549,12 +613,12 @@ TEST_SUITE("menu_system::submenu_navigation") {
         new_item->set_action(new_action);
         file_menu->add_item(std::move(new_item));
 
-        menu_bar_widget->add_menu("File", std::move(file_menu));
+        bar_ptr->add_menu("File", std::move(file_menu));
 
         // Open File menu (New is already focused)
-        menu_bar_widget->open_menu(0);
+        bar_ptr->open_menu(0);
 
-        auto* menu = menu_bar_widget->get_menu(0);
+        auto* menu = bar_ptr->get_menu(0);
         auto* focused = menu->focused_item();
         CHECK(focused != nullptr);
         CHECK_FALSE(focused->has_submenu());

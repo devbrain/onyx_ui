@@ -148,7 +148,28 @@ namespace onyxui {
             // NOTE: Menu bar should NOT be in Tab order
             // It's activated via F10/F9 semantic action, not Tab navigation
             this->set_focusable(false);
+            // Hotkey registration moved from the constructor to
+            // `on_attached` under WAR-64 — the hotkey_manager is only
+            // resolvable once this widget is part of a mounted tree.
+        }
+
+        /**
+         * @brief Register semantic-action hotkeys once this bar is
+         *        part of a mounted tree.
+         */
+        void on_attached(ui_host<Backend>& host) override {
+            ui_element<Backend>::on_attached(host);
             initialize_hotkeys();
+        }
+
+        /**
+         * @brief Release the hotkey registration when the bar leaves
+         *        the tree so a subsequent mount (or a sibling menu
+         *        bar on the same host) can register cleanly.
+         */
+        void on_detached(ui_host<Backend>& host) override {
+            teardown_hotkeys();
+            ui_element<Backend>::on_detached(host);
         }
 
         /**
@@ -454,6 +475,16 @@ namespace onyxui {
                     }
                 }
             );
+        }
+
+        /// Symmetric to `initialize_hotkeys` — drops the semantic
+        /// handler this menu bar claimed so a remount (or a sibling
+        /// menu bar on the same host) can register cleanly.
+        void teardown_hotkeys() {
+            auto* hotkeys = ui_services<Backend>::hotkeys();
+            if (!hotkeys) return;
+            hotkeys->unregister_semantic_action(
+                hotkey_action::activate_menu_bar);
         }
 
         /**
