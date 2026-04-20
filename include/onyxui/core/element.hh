@@ -1386,9 +1386,10 @@ namespace onyxui {
             // nullptr — worse than not firing at all.
             //
             // Consumers that need late-attach semantics should
-            // re-mount the root after building the subtree, or
-            // call the host's public attach helper explicitly.
-            // See `docs/ONYXUI_WIDGET_LIFECYCLE.md` §5.1 for the
+            // unmount the root, mutate the tree, then remount —
+            // `ui_host::mount()` is the only supported path that
+            // dispatches `on_attached`. See
+            // `docs/ONYXUI_WIDGET_LIFECYCLE.md` §5.1 for the
             // rationale and recommended pattern.
         }
     }
