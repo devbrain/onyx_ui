@@ -92,19 +92,19 @@ TEST_SUITE("Relative Coordinates - Core System") {
         CHECK(child_bounds.y.to_int() == 0);
 
         // Hit test at absolute position (15, 15) should hit child (at absolute 12,12)
-        auto* hit_at_child = root.hit_test(15, 15);
+        auto* hit_at_child = root.hit_test_logical(15_lu, 15_lu);
         CHECK(hit_at_child == child_button);
 
         // Hit test at absolute position (5, 5) should hit parent (starts at absolute 2,2)
-        auto* hit_at_parent = root.hit_test(5, 5);
+        auto* hit_at_parent = root.hit_test_logical(5_lu, 5_lu);
         CHECK(hit_at_parent == parent_panel);
 
         // Hit test at absolute position (1, 1) should hit root (in root's padding area)
-        auto* hit_at_root = root.hit_test(1, 1);
+        auto* hit_at_root = root.hit_test_logical(1_lu, 1_lu);
         CHECK(hit_at_root == &root);
 
         // Hit test outside all bounds
-        auto* hit_outside = root.hit_test(250, 250);
+        auto* hit_outside = root.hit_test_logical(250_lu, 250_lu);
         CHECK(hit_outside == nullptr);
     }
 
@@ -136,16 +136,16 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         // Hit test at absolute (17, 16) should hit the deep label (at absolute 16,16 from 1+5+10)
         // Note: Using y=16 because label height is only 1 pixel, so y=17 would be out of bounds
-        auto* hit = root.hit_test(17, 16);
+        auto* hit = root.hit_test_logical(17_lu, 16_lu);
         CHECK(hit == level3_label);
 
         // Hit test at intermediate positions
         // level2 starts at absolute (6, 6) = 1 (root padding) + 5 (level1 padding)
-        auto* hit_level2 = root.hit_test(7, 7);
+        auto* hit_level2 = root.hit_test_logical(7_lu, 7_lu);
         CHECK(hit_level2 == level2);
 
         // level1 starts at absolute (1, 1) = 1 (root padding)
-        auto* hit_level1 = root.hit_test(2, 2);
+        auto* hit_level1 = root.hit_test_logical(2_lu, 2_lu);
         CHECK(hit_level1 == level1);
     }
 
@@ -293,11 +293,11 @@ TEST_SUITE("Relative Coordinates - Core System") {
 
         // Hit testing should account for: root padding (1) + border (1) + padding (2) = 4 pixel offset
         // Child is at absolute (4, 4), label height is 1 pixel, so y goes from 4 to 4
-        auto* hit_at_child = root.hit_test(5, 4);
+        auto* hit_at_child = root.hit_test_logical(5_lu, 4_lu);
         CHECK(hit_at_child == child);
 
         // Hit at (2, 2) should hit bordered_panel (starts at absolute 1,1), not child
-        auto* hit_at_panel = root.hit_test(2, 2);
+        auto* hit_at_panel = root.hit_test_logical(2_lu, 2_lu);
         CHECK(hit_at_panel == bordered_panel);
     }
 
@@ -330,8 +330,8 @@ TEST_SUITE("Relative Coordinates - Core System") {
         CHECK(y3 - y2 >= 1);                 // Spacing included (medium = 1)
 
         // Hit testing should work at all positions
-        CHECK(root.hit_test(5, y1) == child1);
-        CHECK(root.hit_test(5, y2) == child2);
-        CHECK(root.hit_test(5, y3) == child3);
+        CHECK(root.hit_test_logical(5_lu, logical_unit(static_cast<double>(y1))) == child1);
+        CHECK(root.hit_test_logical(5_lu, logical_unit(static_cast<double>(y2))) == child2);
+        CHECK(root.hit_test_logical(5_lu, logical_unit(static_cast<double>(y3))) == child3);
     }
 }

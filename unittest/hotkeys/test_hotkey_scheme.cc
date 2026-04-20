@@ -202,21 +202,21 @@ TEST_SUITE("Hotkey Scheme") {
             CHECK(*retrieved == f10);
         }
 
-        SUBCASE("Find action by key") {
+        SUBCASE("Find actions by key") {
             scheme.set_binding(hotkey_action::menu_down, parse_key_sequence("Down"));
             scheme.set_binding(hotkey_action::menu_up, parse_key_sequence("Up"));
 
-            auto down_action = scheme.find_action_for_key(parse_key_sequence("Down"));
-            REQUIRE(down_action.has_value());
-            CHECK(*down_action == hotkey_action::menu_down);
+            auto down_actions = scheme.find_all_actions_for_key(parse_key_sequence("Down"));
+            REQUIRE(down_actions.size() == 1);
+            CHECK(down_actions.front() == hotkey_action::menu_down);
 
-            auto up_action = scheme.find_action_for_key(parse_key_sequence("Up"));
-            REQUIRE(up_action.has_value());
-            CHECK(*up_action == hotkey_action::menu_up);
+            auto up_actions = scheme.find_all_actions_for_key(parse_key_sequence("Up"));
+            REQUIRE(up_actions.size() == 1);
+            CHECK(up_actions.front() == hotkey_action::menu_up);
 
             // Non-existent key
-            auto none = scheme.find_action_for_key(parse_key_sequence("F5"));
-            CHECK_FALSE(none.has_value());
+            auto none = scheme.find_all_actions_for_key(parse_key_sequence("F5"));
+            CHECK(none.empty());
         }
 
         SUBCASE("Remove binding") {

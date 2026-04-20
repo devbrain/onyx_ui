@@ -89,7 +89,7 @@ namespace onyxui {
      * @code
      * // After hit testing
      * hit_test_path<Backend> path;
-     * auto* target = root->hit_test(x, y, path);
+     * auto* target = root->hit_test_logical(x, y, path);
      *
      * if (target) {
      *     // Route event through three phases

@@ -75,7 +75,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
         // Route event through hit test path
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(10, 10, path);
+        auto* target = root->hit_test_logical(10_lu, 10_lu, path);
 
         if (target) {
             ui_event ui_evt = click;
@@ -124,7 +124,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
 
         // Route event through hit test path
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         // Target might be label, but text_view should intercept in capture phase
         REQUIRE(target != nullptr);
@@ -147,7 +147,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
         };
 
         hit_test_path<test_canvas_backend> path1;
-        auto* target1 = root->hit_test(5, 5, path1);
+        auto* target1 = root->hit_test_logical(5_lu, 5_lu, path1);
         if (target1) {
             ui_event ui_evt1 = click1;
             route_event(ui_evt1, path1);
@@ -165,7 +165,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
         };
 
         hit_test_path<test_canvas_backend> path2;
-        auto* target2 = root->hit_test(10, 10, path2);
+        auto* target2 = root->hit_test_logical(10_lu, 10_lu, path2);
         if (target2) {
             ui_event ui_evt2 = click2;
             route_event(ui_evt2, path2);
@@ -223,7 +223,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 2, path);
+        auto* target = root->hit_test_logical(5_lu, 2_lu, path);
 
         if (target) {
             ui_event ui_evt = click;
@@ -244,7 +244,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         };
 
         hit_test_path<test_canvas_backend> path1;
-        auto* target1 = root->hit_test(5, 2, path1);
+        auto* target1 = root->hit_test_logical(5_lu, 2_lu, path1);
         if (target1) {
             ui_event ui_evt1 = click1;
             route_event(ui_evt1, path1);
@@ -266,7 +266,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus wi
         };
 
         hit_test_path<test_canvas_backend> path2;
-        auto* target2 = root->hit_test(5, text_view2_y, path2);
+        auto* target2 = root->hit_test_logical(5_lu, logical_unit(static_cast<double>(text_view2_y)), path2);
 
         if (target2) {
             ui_event ui_evt2 = click2;
@@ -372,7 +372,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         if (target) {
             ui_event ui_evt = release;
@@ -393,7 +393,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         if (target) {
             ui_event ui_evt = move;
@@ -414,7 +414,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Focus on
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         if (target) {
             ui_event ui_evt = press;
@@ -459,7 +459,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Capture 
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         REQUIRE(target != nullptr);
 
@@ -504,7 +504,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "text_view - Non-focu
         };
 
         hit_test_path<test_canvas_backend> path;
-        auto* target = root->hit_test(5, 5, path);
+        auto* target = root->hit_test_logical(5_lu, 5_lu, path);
 
         if (target) {
             ui_event ui_evt = click;

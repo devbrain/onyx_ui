@@ -1179,8 +1179,8 @@ namespace onyxui {
              * Thread-safe access pattern.
              *
              * @code
-             * layer.with_root([](element_type* elem) {
-             *     elem->process_event(event);
+             * layer.with_root([&](element_type* elem) {
+             *     (void)elem->handle_event(ui_evt, event_phase::target);
              * });
              * @endcode
              */

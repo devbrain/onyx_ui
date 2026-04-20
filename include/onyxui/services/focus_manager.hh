@@ -89,10 +89,10 @@ namespace onyxui {
      *             continue; // Tab was handled
      *         }
      *     }
-     *     // Forward other events to focused element
-     *     if (auto* focused = fm.get_focused()) {
-     *         focused->process_event(event);
-     *     }
+     *     // Forward other events to the focused element via the
+     *     // ui_host's event pipeline (which converts to ui_event
+     *     // and walks the three-phase router).
+     *     // host.handle_event(event);
      * }
      * @endcode
      */
@@ -348,23 +348,6 @@ namespace onyxui {
         bool process_navigation_event(const E& event, const std::vector<target_ptr>& targets) {
             if constexpr (KeyboardEvent<E>) {
                 return handle_tab_navigation(event, targets);
-            }
-            return false;
-        }
-
-        /**
-         * @brief Forward an event to the focused target
-         * @param event The event to forward
-         * @return true if the focused target handled the event, false if no target focused
-         *
-         * @exception Any exception thrown by target->process_event()
-         * @note Exception safety: Depends on focused target's process_event() implementation
-         * @note Returns false (no exception) if no target currently has focus
-         */
-        template<typename E>
-        bool forward_to_focused(const E& event) {
-            if (m_focused_target) {
-                return m_focused_target->process_event(event);
             }
             return false;
         }

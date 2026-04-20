@@ -55,21 +55,6 @@ public:
         arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
     }
 
-    // Override virtual process_event for polymorphic dispatch
-    bool process_event(const TestEvent& event) override {
-        process_called = true;
-        last_event_received = true;
-
-        // For testing: if configured to handle, return true
-        // Otherwise delegate to base class
-        if (event_handled) {
-            return true;
-        }
-
-        // Call base implementation which will use process_event_impl
-        return TestElement::process_event(event);
-    }
-
     // Override mouse handler
     bool handle_mouse(const mouse_event& /*mouse*/) override {
         process_called = true;

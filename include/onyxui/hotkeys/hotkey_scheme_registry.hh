@@ -158,8 +158,9 @@ namespace onyxui {
          * @code
          * auto* scheme = registry.get_current_scheme();
          * if (scheme) {
-         *     auto action = scheme->find_action_for_key(pressed_key);
-         *     // Dispatch action...
+         *     for (auto action : scheme->find_all_actions_for_key(pressed_key)) {
+         *         dispatch(action);
+         *     }
          * }
          * @endcode
          */

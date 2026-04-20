@@ -43,7 +43,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "DEBUG - text_view fo
 
     // Hit test
     hit_test_path<test_canvas_backend> path;
-    auto* target = root->hit_test(5, 5, path);
+    auto* target = root->hit_test_logical(5_lu, 5_lu, path);
     (void)target;  // Unused in non-debug mode
 
     // Create mouse event

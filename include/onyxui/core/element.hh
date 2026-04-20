@@ -478,12 +478,6 @@ namespace onyxui {
             //   hit_test_logical(logical_unit x, logical_unit y)
             //   hit_test_logical(logical_unit x, logical_unit y, hit_test_path&)
             //
-            // **Legacy API** (physical coordinates, for backward compatibility):
-            //   hit_test(int x, int y)
-            //   hit_test(int x, int y, hit_test_path&)
-            //   hit_test(absolute_point)
-            //   hit_test(absolute_point, hit_test_path&)
-            //
             // For scaled backends (SDL), mouse coordinates should be converted to
             // logical units once at the entry point (ui_host.hh) using:
             //   metrics.physical_to_logical_x/y()
@@ -513,45 +507,25 @@ namespace onyxui {
              */
             [[nodiscard]] ui_element* hit_test_logical(logical_unit x, logical_unit y, hit_test_path<Backend>& path);
 
-            /**
-             * @brief Hit testing with physical coordinates (legacy)
-             * @param x Physical X coordinate in screen pixels
-             * @param y Physical Y coordinate in screen pixels
-             * @return Pointer to the deepest visible element at (x, y), or nullptr
-             *
-             * @note For scaled backends, prefer hit_test_logical() with proper coordinate conversion.
-             */
-            [[nodiscard]] ui_element* hit_test(int x, int y) {
-                // Treat physical int as logical for backward compatibility (works for 1:1 backends)
-                return hit_test_logical(logical_unit(static_cast<double>(x)),
-                                       logical_unit(static_cast<double>(y)));
-            }
+            // Legacy `hit_test(int, int)` / `hit_test(absolute_point)`
+            // overloads were deleted in WAR-62. Use `hit_test_logical`
+            // directly; callers that still have physical coordinates
+            // should convert once at the host boundary via
+            // `backend_metrics::physical_to_logical_x/y()`.
 
-            /**
-             * @brief Hit testing with physical coordinates and path recording (legacy)
-             * @param x Physical X coordinate in screen pixels
-             * @param y Physical Y coordinate in screen pixels
-             * @param path Path to record elements from root to target
-             * @return Pointer to the deepest visible element at (x, y), or nullptr
-             *
-             * @note For scaled backends, prefer hit_test_logical() with proper coordinate conversion.
-             */
-            [[nodiscard]] ui_element* hit_test(int x, int y, hit_test_path<Backend>& path) {
-                return hit_test_logical(logical_unit(static_cast<double>(x)),
-                                       logical_unit(static_cast<double>(y)), path);
-            }
-
-            // Keep absolute_point versions for backward compatibility
+            // Absolute-point variant retained for path-tracing tests
+            // and window-chrome hit testing that already holds an
+            // absolute_point. Internally wraps the `_logical` entry.
             [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point) {
-                int x = point.x();
-                int y = point.y();
-                return hit_test(x, y);
+                return hit_test_logical(
+                    logical_unit(static_cast<double>(point.x())),
+                    logical_unit(static_cast<double>(point.y())));
             }
 
             [[nodiscard]] ui_element* hit_test(geometry::absolute_point<Backend> point, hit_test_path<Backend>& path) {
-                int x = point.x();
-                int y = point.y();
-                return hit_test(x, y, path);
+                return hit_test_logical(
+                    logical_unit(static_cast<double>(point.x())),
+                    logical_unit(static_cast<double>(point.y())), path);
             }
 
             // -----------------------------------------------------------------------

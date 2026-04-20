@@ -121,24 +121,6 @@ namespace onyxui {
             // -----------------------------------------------------------------------
 
             /**
-             * @brief Process backend event (transitional stub for compatibility)
-             * @param event Backend-specific event
-             * @return true if handled
-             *
-             * @details
-             * Transitional method for backward compatibility with code that hasn't
-             * migrated to ui_event yet. Always returns false - backends should use
-             * the new handle_event(ui_event, event_phase) API instead.
-             *
-             * @deprecated Use handle_event(ui_event, event_phase) instead
-             */
-            virtual bool process_event([[maybe_unused]] const event_type& event) {
-                // Stub: old API no longer supported
-                // Layer manager and ui_host should convert to ui_event first
-                return false;
-            }
-
-            /**
              * @brief Handle event with phase information (capture/target/bubble)
              * @param evt The event to handle
              * @param phase Which phase of event propagation this is

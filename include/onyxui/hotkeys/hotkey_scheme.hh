@@ -33,10 +33,9 @@
  *     std::cout << "No hotkey for menu (use mouse)\n";
  * }
  *
- * // Find action for a key
- * auto action = scheme.find_action_for_key(parse_key_sequence("F10"));
- * if (action) {
- *     std::cout << "F10 triggers: " << to_string(*action) << "\n";
+ * // Find every action that fires on a key
+ * for (auto action : scheme.find_all_actions_for_key(parse_key_sequence("F10"))) {
+ *     std::cout << "F10 triggers: " << to_string(action) << "\n";
  * }
  * ```
  */
@@ -156,34 +155,6 @@ namespace onyxui {
                 }
             }
             return result;
-        }
-
-        /**
-         * @brief Find action triggered by a key (legacy single-action API)
-         * @param seq Key sequence to match
-         * @return First action if found, nullopt otherwise
-         *
-         * @details
-         * Legacy API for backward compatibility. Returns only the FIRST action
-         * bound to the key. Prefer find_all_actions_for_key() for new code.
-         *
-         * @deprecated Use find_all_actions_for_key() for multi-action support
-         *
-         * @example
-         * @code
-         * auto action = scheme.find_action_for_key(parse_key_sequence("F10"));
-         * if (action) {
-         *     std::cout << "F10 triggers: " << to_string(*action) << "\n";
-         * }
-         * @endcode
-         */
-        [[nodiscard]] std::optional<hotkey_action> find_action_for_key(const key_sequence& seq) const {
-            for (const auto& [action, binding] : bindings) {
-                if (binding == seq) {
-                    return action;
-                }
-            }
-            return std::nullopt;
         }
 
         /**

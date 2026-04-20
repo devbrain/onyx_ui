@@ -120,14 +120,14 @@ TEST_SUITE("ui_element") {
         parent->add_test_child(std::move(child2));
 
         // Test hits
-        CHECK(parent->hit_test(5, 5) == parent.get());      // Parent only
-        CHECK(parent->hit_test(20, 20) == child1_ptr);      // Child 1
-        CHECK(parent->hit_test(120, 70) == child2_ptr);     // Child 2
-        CHECK(parent->hit_test(250, 200) == nullptr);       // Outside
+        CHECK(parent->hit_test_logical(5_lu, 5_lu) == parent.get());      // Parent only
+        CHECK(parent->hit_test_logical(20_lu, 20_lu) == child1_ptr);      // Child 1
+        CHECK(parent->hit_test_logical(120_lu, 70_lu) == child2_ptr);     // Child 2
+        CHECK(parent->hit_test_logical(250_lu, 200_lu) == nullptr);       // Outside
 
         // Test with visibility
         child1_ptr->set_visible(false);
-        CHECK(parent->hit_test(20, 20) == parent.get());    // Hidden child ignored
+        CHECK(parent->hit_test_logical(20_lu, 20_lu) == parent.get());    // Hidden child ignored
     }
 
     TEST_CASE("Alignment settings") {
@@ -176,7 +176,7 @@ TEST_SUITE("ui_element") {
             CHECK(root->bounds().width.to_int() == 1000);
 
             // Test hit_test (walks DOWN the tree)
-            auto* hit = root->hit_test(500, 500);
+            auto* hit = root->hit_test_logical(500_lu, 500_lu);
             CHECK(hit != nullptr);
         }
 
@@ -196,7 +196,7 @@ TEST_SUITE("ui_element") {
             current->invalidate_measure();
             auto size = root->measure(1000_lu, 1000_lu);
             root->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(1000.0), logical_unit(1000.0)});
-            auto* hit = root->hit_test(500, 500);
+            auto* hit = root->hit_test_logical(500_lu, 500_lu);
 
             CHECK(size.width >= 0_lu);
             CHECK(hit != nullptr);
@@ -219,7 +219,7 @@ TEST_SUITE("ui_element") {
             root->arrange(logical_rect{logical_unit(0.0), logical_unit(0.0), logical_unit(1000.0), logical_unit(1000.0)});
 
             // Hit testing should work
-            auto* hit = root->hit_test(500, 500);
+            auto* hit = root->hit_test_logical(500_lu, 500_lu);
             CHECK(size.width >= 0_lu);
             CHECK(hit != nullptr);
         }

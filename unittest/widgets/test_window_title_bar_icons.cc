@@ -219,13 +219,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         });
 
         // Hit test from window root should find the close icon
-        auto* target = win->hit_test(click_x, click_y);
+        auto* target = win->hit_test_logical(logical_unit(static_cast<double>(click_x)), logical_unit(static_cast<double>(click_y)));
         CHECK(target != nullptr);
 
         // Route the event through the three-phase system
         // This simulates what layer_manager does
         hit_test_path<Backend> path;
-        auto* hit_target = win->hit_test(click_x, click_y, path);
+        auto* hit_target = win->hit_test_logical(logical_unit(static_cast<double>(click_x)), logical_unit(static_cast<double>(click_y)), path);
         REQUIRE(hit_target != nullptr);
 
         INFO("Hit test path size: " << path.size());
@@ -283,7 +283,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Route through three-phase system
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(click_x, click_y, path);
+        auto* target = win->hit_test_logical(logical_unit(static_cast<double>(click_x)), logical_unit(static_cast<double>(click_y)), path);
         REQUIRE(target != nullptr);
 
         [[maybe_unused]] bool handled = route_event(evt, path);
@@ -333,7 +333,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Route through three-phase system
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(click_x, click_y, path);
+        auto* target = win->hit_test_logical(logical_unit(static_cast<double>(click_x)), logical_unit(static_cast<double>(click_y)), path);
         REQUIRE(target != nullptr);
 
         [[maybe_unused]] bool handled = route_event(evt, path);
@@ -405,7 +405,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
 
         // Route through event system
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test(abs_icon_bounds.x(), abs_icon_bounds.y(), path);
+        auto* target = parent->hit_test_logical(logical_unit(static_cast<double>(abs_icon_bounds.x())), logical_unit(static_cast<double>(abs_icon_bounds.y())), path);
 
         if (target) {
             route_event(evt, path);
@@ -476,7 +476,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         click.act = mouse_event::action::release;
 
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test(max_bounds.x(), max_bounds.y(), path);
+        auto* target = parent->hit_test_logical(logical_unit(static_cast<double>(max_bounds.x())), logical_unit(static_cast<double>(max_bounds.y())), path);
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 
@@ -570,7 +570,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         click.act = mouse_event::action::release;
 
         hit_test_path<Backend> path;
-        auto* target = win->hit_test(abs_icon_bounds.x(), abs_icon_bounds.y(), path);
+        auto* target = win->hit_test_logical(logical_unit(static_cast<double>(abs_icon_bounds.x())), logical_unit(static_cast<double>(abs_icon_bounds.y())), path);
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 

@@ -28,7 +28,7 @@ namespace onyxui {
      *    - Example: text_view captures clicks to request focus
      *
      * 2. **TARGET**: Event delivered to target element
-     *    - Event at the element returned by hit_test()
+     *    - Event at the element returned by hit_test_logical()
      *    - Most widgets handle events in this phase
      *    - Example: button handles click to trigger action
      *
@@ -93,7 +93,7 @@ namespace onyxui {
         /**
          * @brief Target phase - event at target element
          *
-         * Event delivered to the element returned by hit_test().
+         * Event delivered to the element returned by hit_test_logical().
          * Most widgets handle events in this phase.
          *
          * **When to use:**

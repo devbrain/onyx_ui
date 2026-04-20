@@ -173,7 +173,7 @@ TEST_CASE("hit_test() - Path recording with simple hierarchy") {
 
         // Now try hit testing
         hit_test_path<TestBackend> path;
-        auto* result = root->hit_test(5, 5, path);
+        auto* result = root->hit_test_logical(5_lu, 5_lu, path);
         CHECK(result != nullptr);
     }
 }
@@ -198,7 +198,7 @@ TEST_CASE("hit_test() - Path recording with nested hierarchy") {
         hit_test_path<TestBackend> path;
 
         // Click somewhere that should hit deepest child
-        auto* result = root->hit_test(10, 10, path);
+        auto* result = root->hit_test_logical(10_lu, 10_lu, path);
 
         REQUIRE(result != nullptr);
 
@@ -217,19 +217,19 @@ TEST_CASE("hit_test() - Path recording with nested hierarchy") {
         hit_test_path<TestBackend> path;
 
         // First hit test
-        auto* result1 = root->hit_test(10, 10, path);
+        auto* result1 = root->hit_test_logical(10_lu, 10_lu, path);
         REQUIRE(result1 != nullptr);
         size_t first_size = path.size();
         CHECK(first_size > 0);
 
         // Second hit test without clearing - path should accumulate
-        auto* result2 = root->hit_test(20, 20, path);
+        auto* result2 = root->hit_test_logical(20_lu, 20_lu, path);
         REQUIRE(result2 != nullptr);
         CHECK(path.size() > first_size);  // Path accumulated
 
         // Third hit test with clearing - use same coordinate as first test
         path.clear();
-        auto* result3 = root->hit_test(10, 10, path);
+        auto* result3 = root->hit_test_logical(10_lu, 10_lu, path);
         REQUIRE(result3 != nullptr);
         CHECK(path.size() == first_size);  // Back to original size
     }
@@ -252,7 +252,7 @@ TEST_CASE("hit_test() - Path ordering") {
     child2->arrange(logical_rect{5_lu, 5_lu, 70_lu, 70_lu});
 
     hit_test_path<TestBackend> path;
-    auto* result = root->hit_test(10, 10, path);
+    auto* result = root->hit_test_logical(10_lu, 10_lu, path);
 
     REQUIRE(result != nullptr);
     REQUIRE(path.size() >= 1);
@@ -301,7 +301,7 @@ TEST_CASE("hit_test() - Z-order affects path") {
 
     // Hit test at overlapping position
     hit_test_path<TestBackend> path;
-    auto* result = root->hit_test(10, 10, path);
+    auto* result = root->hit_test_logical(10_lu, 10_lu, path);
 
     REQUIRE(result != nullptr);
 
@@ -329,7 +329,7 @@ TEST_CASE("hit_test() - Visibility affects path") {
     invisible_child->arrange(logical_rect{50_lu, 50_lu, 40_lu, 40_lu});
 
     hit_test_path<TestBackend> path;
-    auto* result = root->hit_test(10, 10, path);
+    auto* result = root->hit_test_logical(10_lu, 10_lu, path);
 
     // Invisible element should not be in path
     CHECK_FALSE(path.contains(invisible_child));
@@ -352,7 +352,7 @@ TEST_CASE("hit_test() - Old signature still works") {
     child->arrange(logical_rect{10_lu, 10_lu, 80_lu, 80_lu});
 
     SUBCASE("Old hit_test() without path parameter") {
-        auto* result = root->hit_test(10, 10);
+        auto* result = root->hit_test_logical(10_lu, 10_lu);
         // Should still work, just doesn't record path
         // Result might be root or child depending on hit location
         (void)result;  // May be nullptr or valid element
@@ -360,11 +360,11 @@ TEST_CASE("hit_test() - Old signature still works") {
 
     SUBCASE("Both signatures can be used independently") {
         // Old signature
-        auto* result1 = root->hit_test(10, 10);
+        auto* result1 = root->hit_test_logical(10_lu, 10_lu);
 
         // New signature
         hit_test_path<TestBackend> path;
-        auto* result2 = root->hit_test(10, 10, path);
+        auto* result2 = root->hit_test_logical(10_lu, 10_lu, path);
 
         // Both should return same element
         CHECK(result1 == result2);
