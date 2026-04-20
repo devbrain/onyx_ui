@@ -403,9 +403,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         click.act = mouse_event::action::release;
         ui_event evt = click;
 
-        // Route through event system
+        // Route through event system. Window<B> is overlay-only and is
+        // not a child of `parent`, so the hit test must start at the
+        // window itself — `parent->hit_test_logical` would only see its
+        // own (empty) subtree and miss the icon entirely.
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test_logical(logical_unit(static_cast<double>(abs_icon_bounds.x())), logical_unit(static_cast<double>(abs_icon_bounds.y())), path);
+        auto* target = win_ptr->hit_test_logical(logical_unit(static_cast<double>(abs_icon_bounds.x())), logical_unit(static_cast<double>(abs_icon_bounds.y())), path);
 
         if (target) {
             route_event(evt, path);
@@ -475,8 +478,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Icon click de
         click.btn = mouse_event::button::none;
         click.act = mouse_event::action::release;
 
+        // Hit-test from the window directly — window<B> is overlay-only
+        // and not parented to `parent`, so the panel's subtree doesn't
+        // contain the title-bar icons.
         hit_test_path<Backend> path;
-        auto* target = parent->hit_test_logical(logical_unit(static_cast<double>(max_bounds.x())), logical_unit(static_cast<double>(max_bounds.y())), path);
+        auto* target = win_ptr->hit_test_logical(logical_unit(static_cast<double>(max_bounds.x())), logical_unit(static_cast<double>(max_bounds.y())), path);
         REQUIRE(target != nullptr);
         route_event(ui_event{click}, path);
 
@@ -516,9 +522,23 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
         auto* win = window_owner.get();
         win->set_workspace(parent.get());
 
-        // Render using harness (this will measure, arrange, and render the whole tree)
-        // Panel's default layout will position children at (0,0) and size them to fill
+        // Render using harness to lay out the panel workspace, then
+        // render the overlay window directly — window<B> is overlay-only
+        // and isn't parented into `parent`, so the harness rendering of
+        // `parent` alone never reaches the window's tree.
         harness.render(parent.get());
+        {
+            // Match the window to a compact size that leaves the rest
+            // of the 80x25 canvas empty (asserted below).
+            (void)win->measure(80_lu, 3_lu);
+            win->arrange(logical_rect{0_lu, 0_lu, 80_lu, 3_lu});
+
+            typename Backend::renderer_type renderer(harness.canvas());
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            REQUIRE(theme != nullptr);
+            win->render(renderer, theme, make_terminal_metrics<Backend>());
+        }
 
         // Window starts at (0, 0) filling width but only 3 rows tall
         // Row 0: Title bar
@@ -581,6 +601,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "window_title_bar - Visual test o
             auto const* theme = themes ? themes->get_current_theme() : nullptr;
             if (theme) {
                 parent->render(renderer, theme, make_terminal_metrics<Backend>());
+                // window<B> isn't in the panel tree — render it separately.
+                win->render(renderer, theme, make_terminal_metrics<Backend>());
             }
         }
 

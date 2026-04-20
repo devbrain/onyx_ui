@@ -49,6 +49,7 @@ struct ui_context_fixture {
 
         // Initialize scrollbar theme properties for visual tests
         using box_style_type = typename Backend::renderer_type::box_style;
+        using icon_style_type = typename Backend::renderer_type::icon_style;
         box_style_type scrollbar_box{};
         scrollbar_box.draw_border = true;  // Enable border drawing for visual tests
 
@@ -65,6 +66,35 @@ struct ui_context_fixture {
         theme.scrollbar.arrow_normal.box_style = scrollbar_box;
         theme.scrollbar.arrow_hover.box_style = scrollbar_box;
         theme.scrollbar.arrow_pressed.box_style = scrollbar_box;
+
+        // Checkbox/radio icons — widget measurement asks the backend for
+        // `get_icon_size(theme->checkbox.unchecked_icon)`; the default
+        // `icon_style{}` is `none` (1×1) which makes tests expecting the
+        // 3-char "[ ]" / "( )" glyphs fail. Wire the proper enum values
+        // when the backend exposes them (test_canvas_backend doesn't).
+        if constexpr (requires { icon_style_type::checkbox_unchecked; }) {
+            theme.checkbox.unchecked_icon = icon_style_type::checkbox_unchecked;
+            theme.checkbox.checked_icon = icon_style_type::checkbox_checked;
+            theme.checkbox.indeterminate_icon = icon_style_type::checkbox_indeterminate;
+        }
+        if constexpr (requires { icon_style_type::radio_unchecked; }) {
+            theme.radio_button.unchecked_icon = icon_style_type::radio_unchecked;
+            theme.radio_button.checked_icon = icon_style_type::radio_checked;
+        }
+
+        // Window borders — `get_border_thickness()` returns 0 when
+        // `draw_border == false`, so without this windows render edge-
+        // to-edge and tests checking for side borders or subtracting
+        // border width from layout fail.
+        box_style_type window_border{};
+        window_border.draw_border = true;
+        if constexpr (requires { window_border.corner = '+'; }) {
+            window_border.corner = '+';
+            window_border.horizontal = '-';
+            window_border.vertical = '|';
+        }
+        theme.window.border_focused = window_border;
+        theme.window.border_unfocused = window_border;
 
         // Register and activate theme
         ctx.themes().register_theme(std::move(theme));
