@@ -173,26 +173,27 @@ scoped_connection scoped_conn(data_changed, my_handler);
 The framework automatically synchronizes background colors with theme changes using the signal/slot pattern:
 
 ```cpp
-#include <onyxui/ui_context.hh>
-#include <onyxui/background_renderer.hh>
+#include <onyxui/ui_host.hh>
+#include <onyxui/services/background_renderer.hh>
 
-// Create UI context (auto-connects theme to background)
-scoped_ui_context<Backend> ctx;
+// Create UI host (owns the theme registry + background wiring).
+ui_host<Backend> host(metrics);
 
-// Switch theme - background updates automatically!
-ctx.themes().set_current_theme("Norton Blue");
+// Switch theme — background updates automatically.
+host.themes().set_current_theme("Norton Blue");
 // Background is now dark blue (0, 0, 170)
 
-ctx.themes().set_current_theme("DOS Edit");
+host.themes().set_current_theme("DOS Edit");
 // Background is now white (255, 255, 255)
 
-// No manual synchronization needed!
+// No manual synchronization needed.
 ```
 
 **How it works:**
 - `theme_registry` emits `theme_changed` signal when theme switches
 - `background_renderer` subscribes to signal via `on_theme_changed()`
-- Connection managed by `scoped_connection` in `ui_context`
+- Connection managed by `scoped_connection` inside the `ui_context`
+  that `ui_host` owns
 - Zero manual synchronization code required
 
 **Backend-Specific Styles:**
