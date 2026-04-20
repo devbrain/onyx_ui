@@ -1,10 +1,18 @@
 # OnyxUI Widget Lifecycle (WAR-64)
 
-> Status: proposal (2026-04-20)
+> Status: adopted (2026-04-20)
 > Linear: [WAR-64](https://linear.app/warlords/issue/WAR-64/widget-lifecycle-move-ambient-service-lookups-out-of-constructors)
 > Companion to: [ONYXUI_UI_HOST_DESIGN.md](./ONYXUI_UI_HOST_DESIGN.md)
 > Scope: widget construction / attachment / teardown contract
 > Non-scope: layout algorithm changes, renderer API, public widget surface
+>
+> **Implementation status:** Steps 1–4 landed (commits afa8fd6,
+> 5644c7f, 672fcab, c09fb5d, 20b34bc). `with_scope` deleted.
+> `push_scope` / `scope_token` kept as the RAII primitive for
+> test fixtures that drive widget measure/arrange outside of
+> `host.render()`. Both `menu_bar` and `text_view` ported —
+> constructor-time ambient-service lookups are now banned and
+> verified by WAR-57's former crash path no longer reproducing.
 
 ---
 

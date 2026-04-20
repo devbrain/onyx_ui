@@ -1015,11 +1015,10 @@ namespace onyxui {
             // While these hooks run the host's context is the ambient
             // one, so `ui_services<Backend>::...` lookups resolve.
             //
-            // Use `on_attached` to perform setup that previously had to
-            // happen in the constructor inside `ui_host::with_scope` —
-            // theme-derived padding, hotkey registration, etc. Default
-            // is a no-op; widgets that don't need ambient services at
-            // attach-time should not override.
+            // Use `on_attached` for setup that depends on ambient
+            // services — theme-derived padding, hotkey registration,
+            // etc. Default is a no-op; widgets that don't need
+            // ambient services at attach-time should not override.
             //
             // Ordering: `on_attached` fires pre-order (parent before
             // children); `on_detached` fires in reverse (children
