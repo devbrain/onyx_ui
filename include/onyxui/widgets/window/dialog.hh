@@ -5,13 +5,18 @@
  * @date 2025-11-08
  *
  * @details
- * Provides convenient API for common dialog patterns (message boxes, confirmations).
- * Supports three result patterns:
- * 1. Signal-based (async, event-driven)
- * 2. Callback-based (convenience wrapper)
- * 3. Helper functions (maximum convenience)
+ * Provides convenient API for common dialog patterns (message boxes,
+ * confirmations). Result observation is signal-based — consumers
+ * connect `dialog::result_ready` (or go through the preset factories
+ * in `window_presets.hh`, which do it for them).
  *
  * Dialogs are typically modal and non-resizable by default.
+ *
+ * @see window_presets.hh for the factory shortcuts that wrap
+ *      `host.present_modal(...)` and the `result_ready` wiring.
+ * @see <onyxui/simple/dialogs.hh> for the fire-and-forget
+ *      `app_window`-based variants (`message_box`, `confirm`,
+ *      `input_dialog`, `error_box`).
  */
 
 #pragma once
