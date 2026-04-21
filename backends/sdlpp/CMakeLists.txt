@@ -2,10 +2,19 @@
 # SDL++ Backend CMake Configuration
 # =============================================================================
 
-# Fetch lib_sdlpp via neutrino-cmake
-# (automatically fetches SDL3 and includes font/image support)
+# Fetch lib_sdlpp via neutrino-cmake (also transitively fetches SDL3,
+# onyx_font, and onyx_image when SDLPP_WITH_FONT/SDLPP_WITH_IMAGE are ON —
+# both default ON). We also call the onyx_font/onyx_image fetch helpers
+# explicitly so reviewers see the graph in one place instead of having to
+# trace transitive lib_sdlpp options.
 include(${NEUTRINO_CMAKE_DIR}/deps/sdlpp.cmake)
 neutrino_fetch_sdlpp()
+
+include(${NEUTRINO_CMAKE_DIR}/deps/onyx_font.cmake)
+neutrino_fetch_onyx_font()
+
+include(${NEUTRINO_CMAKE_DIR}/deps/onyx_image.cmake)
+neutrino_fetch_onyx_image()
 
 # Create SDL++ backend library using the helper function
 add_backend_library(
@@ -25,6 +34,8 @@ add_backend_library(
         include/onyxui/sdlpp/xpm_parser.hh
     DEPENDENCIES
         neutrino::sdlpp
+        neutrino::onyx_font
+        neutrino::onyx_image
 )
 
 # Demo applications
