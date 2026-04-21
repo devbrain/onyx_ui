@@ -873,7 +873,7 @@ namespace onyxui {
 
             // Calculate available width minus spacing
             int const num_gaps = std::max(0, static_cast<int>(m_column_widths.size()) - 1);
-            double const total_spacing = static_cast<double>(m_column_spacing * num_gaps);
+            double const total_spacing = m_column_spacing * num_gaps;
             double const available_for_columns = std::max(0.0, available_width - total_spacing);
 
             // Scale each column proportionally
@@ -897,7 +897,7 @@ namespace onyxui {
 
             // Calculate available height minus spacing
             int const num_gaps = std::max(0, static_cast<int>(m_row_heights.size()) - 1);
-            double const total_spacing = static_cast<double>(m_row_spacing * num_gaps);
+            double const total_spacing = m_row_spacing * num_gaps;
             double const available_for_rows = std::max(0.0, available_height - total_spacing);
 
             // Scale each row proportionally
