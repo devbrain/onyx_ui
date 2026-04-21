@@ -22,7 +22,7 @@ add_backend_library(
     SOURCES
         src/sdlpp_renderer.cc
         src/sdlpp_backend.cc
-        src/xpm_parser.cc
+        src/win311_icons.cc
         src/simple/app_window.cc
         src/simple/run.cc
     PUBLIC_HEADERS
@@ -31,7 +31,7 @@ add_backend_library(
         include/onyxui/sdlpp/sdlpp_backend.hh
         include/onyxui/sdlpp/sdlpp_events.hh
         include/onyxui/sdlpp/sdlpp_renderer.hh
-        include/onyxui/sdlpp/xpm_parser.hh
+        include/onyxui/sdlpp/win311_icons.hh
     DEPENDENCIES
         neutrino::sdlpp
         neutrino::onyx_font

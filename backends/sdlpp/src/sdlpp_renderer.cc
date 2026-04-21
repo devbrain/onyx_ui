@@ -1,6 +1,6 @@
 #include <onyxui/sdlpp/sdlpp_renderer.hh>
 #include <onyxui/sdlpp/sdlpp_backend.hh>
-#include <onyxui/sdlpp/xpm_parser.hh>
+#include <onyxui/sdlpp/win311_icons.hh>
 
 #include <sdlpp/video/renderer.hh>
 #include <sdlpp/video/texture.hh>
@@ -9,10 +9,17 @@
 #include <sdlpp/font/font_cache.hh>
 #include <sdlpp/image/image.hh>
 #include <onyx_font/text/utf8.hh>
+#include <onyx_image/codecs/xpm.hpp>
+#include <onyx_image/surface.hpp>
+#include <onyx_image/types.hpp>
 #include <onyxui/services/ui_services.hh>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <iostream>
+#include <span>
 #include <stack>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -300,21 +307,30 @@ public:
             return nullptr;
         }
 
-        // Parse XPM
-        auto img_opt = xpm_image::parse(xpm_data);
-        if (!img_opt || img_opt->empty()) {
+        // Wrap the embedded char* const[] icon data as an XPM source blob
+        // and decode through onyx_image. The decoder expects a full source
+        // file (XPM marker, C array, quoted strings); we synthesize exactly
+        // that by re-quoting the pre-parsed lines.
+        std::string xpm_source = synthesize_xpm_source(xpm_data);
+        if (xpm_source.empty()) {
             return nullptr;
         }
 
-        auto& img = *img_opt;
+        onyx_image::memory_surface surf;
+        auto const* bytes = reinterpret_cast<const std::uint8_t*>(xpm_source.data());
+        auto decode = onyx_image::xpm_decoder::decode(
+            std::span<const std::uint8_t>(bytes, xpm_source.size()), surf);
+        if (!decode.success) {
+            return nullptr;
+        }
 
-        // Create surface from pixel data
-        // XPM parser stores as {r, g, b, a} struct which on little-endian
-        // systems reads as ABGR when interpreted as 32-bit values
-        int pitch = img.width() * 4;
+        // onyx_image writes RGBA8888 bytes (R, G, B, A low→high). On little-
+        // endian systems read as uint32, that pattern is 0xAABBGGRR — which
+        // SDL names ABGR8888. Same pixel layout the old parser produced.
+        int const pitch = surf.width() * 4;
         auto surf_result = ::sdlpp::surface::create_from_pixels(
-            const_cast<std::uint8_t*>(img.rgba_data()),
-            img.width(), img.height(), pitch,
+            const_cast<std::uint8_t*>(surf.pixels().data()),
+            surf.width(), surf.height(), pitch,
             ::sdlpp::pixel_format_enum::ABGR8888
         );
 
@@ -342,6 +358,40 @@ public:
 
 private:
     std::unordered_map<xpm_icon_type, ::sdlpp::texture> m_textures;
+
+    // Rebuild an XPM source string from an embedded char* const[] icon:
+    //   "/* XPM */\nstatic char *img[] = { \"<line0>\", \"<line1>\", ... };\n"
+    //
+    // The data has no null terminator, so we read the header (line 0) to
+    // compute the expected total line count: 1 + num_colors + height.
+    [[nodiscard]] static std::string synthesize_xpm_source(const char* const* data) {
+        if (!data || !data[0]) {
+            return {};
+        }
+        int width = 0, height = 0, num_colors = 0, cpp = 0;
+        if (std::sscanf(data[0], "%d %d %d %d", &width, &height, &num_colors, &cpp) != 4) {
+            return {};
+        }
+        if (width <= 0 || height <= 0 || num_colors <= 0 || cpp <= 0) {
+            return {};
+        }
+        std::size_t const total_lines =
+            1 + static_cast<std::size_t>(num_colors) + static_cast<std::size_t>(height);
+
+        std::string out;
+        out.reserve(total_lines * 32);
+        out += "/* XPM */\nstatic char * img[] = {\n";
+        for (std::size_t i = 0; i < total_lines; ++i) {
+            if (!data[i]) {
+                return {};
+            }
+            out += '\"';
+            out += data[i];
+            out += "\",\n";
+        }
+        out += "};\n";
+        return out;
+    }
 
     static const char* const* get_xpm_data(xpm_icon_type type) {
         switch (type) {
