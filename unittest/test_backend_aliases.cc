@@ -94,6 +94,21 @@ TEST_CASE("backend aliases (sdlpp) — ui_host + vbox via aliased names") {
     CHECK(host.root() != nullptr);
 }
 
+// <onyxui/ui.hh> — program-level macro-selected unified namespace.
+// Uses a local PP block because the macro is per-TU; the test
+// demonstrates the opt-in pattern a consumer would follow.
+namespace ui_hh_smoke {
+    #define ONYXUI_UI_BACKEND ::onyxui::sdlpp
+    #include <onyxui/ui.hh>
+    #undef ONYXUI_UI_BACKEND
+    // After the include, onyxui::ui::* is populated. Verify the
+    // aliases point to the sdlpp-fixed templates.
+    static_assert(std::is_same_v<
+        ::onyxui::ui::backend, ::onyxui::sdlpp::sdlpp_backend>);
+    static_assert(std::is_same_v<
+        ::onyxui::ui::button, ::onyxui::button<::onyxui::sdlpp::sdlpp_backend>>);
+}
+
 // Bundle header: the single public entry point for simple-shell
 // consumers. Pulls in app_window, run/quit, and (once WAR-55
 // lands) the dialog helpers. Smoke test ensures the header

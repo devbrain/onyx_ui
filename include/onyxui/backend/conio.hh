@@ -2,9 +2,9 @@
  * @file conio.hh
  * @brief Per-backend alias header for the conio backend.
  *
- * Mirrors `<onyxui/backend/sdlpp.hh>` — populates `onyxui::ui` with
- * conio-backed widget aliases. See that header for the one-backend-
- * per-TU rule and the full mechanism.
+ * Populates `onyxui::conio::*` with backend-fixed widget aliases.
+ * Mirror of `<onyxui/backend/sdlpp.hh>` — see that header for the
+ * ODR-safety rationale and the full mechanism.
  */
 
 #pragma once
@@ -13,14 +13,13 @@
 
 #include <onyxui/detail/type_registry.inc>
 
-namespace onyxui::ui {
+namespace onyxui::conio {
 
-    /// Canonical alias for the backend picked by this TU's include
-    /// of `<onyxui/backend/conio.hh>`.
-    using backend = ::onyxui::conio::conio_backend;
+    /// Canonical alias for the backend introduced by this header.
+    using backend = conio_backend;
 
     #define ONYXUI_TYPE(name) using name = ::onyxui::name<backend>;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
 
-} // namespace onyxui::ui
+} // namespace onyxui::conio

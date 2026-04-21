@@ -33,8 +33,8 @@
 #include <onyxui/backend/conio.hh>
 
 namespace onyxui::ui_app {
-    using ::onyxui::ui::backend;
-    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
+    using ::onyxui::conio::backend;
+    #define ONYXUI_TYPE(name) using ::onyxui::conio::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
 }

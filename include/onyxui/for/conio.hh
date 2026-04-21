@@ -30,15 +30,15 @@
 // `<onyxui/for/sdlpp.hh>`.
 #define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
-// 1. Widget aliases → onyxui::ui (conio-backed).
+// 1. Widget aliases → onyxui::conio (canonical, ODR-safe).
 #include <onyxui/backend/conio.hh>
 
 // 2. Re-export them into onyxui::ui_app so the app-shell headers can
 //    reference `ui_host`, `window`, etc. without qualifying.
 namespace onyxui::ui_app {
-    using ::onyxui::ui::backend;
+    using ::onyxui::conio::backend;
 
-    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
+    #define ONYXUI_TYPE(name) using ::onyxui::conio::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
 } // namespace onyxui::ui_app

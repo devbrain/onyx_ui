@@ -21,8 +21,8 @@
 //    app_window.hh is parsed — the header uses unqualified
 //    `ui_host` / `ui_element` names and needs the aliases in scope.
 namespace onyxui::ui_app {
-    using ::onyxui::ui::backend;
-    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
+    using ::onyxui::sdlpp::backend;
+    #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
 } // namespace onyxui::ui_app
