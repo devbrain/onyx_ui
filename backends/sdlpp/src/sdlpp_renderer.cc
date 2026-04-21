@@ -5,9 +5,13 @@
 #include <sdlpp/video/renderer.hh>
 #include <sdlpp/video/texture.hh>
 #include <sdlpp/video/surface.hh>
-#include <sdlpp/font/font.hh>
-#include <sdlpp/font/font_cache.hh>
 #include <sdlpp/image/image.hh>
+#include <onyx_font/font_factory.hh>
+#include <onyx_font/ttf_font.hh>
+#include <onyx_font/text/font_source.hh>
+#include <onyx_font/text/glyph_cache.hh>
+#include <onyx_font/text/atlas_surface.hh>
+#include <onyx_font/text/text_style.hh>
 #include <onyx_font/text/utf8.hh>
 #include <onyx_image/codecs/xpm.hpp>
 #include <onyx_image/surface.hpp>
@@ -16,6 +20,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <span>
 #include <stack>
@@ -41,7 +47,15 @@ namespace {
 } // namespace
 
 // =================================================================
-// Font Cache using lib_sdlpp's font_cache for glyph caching
+// Font Cache — onyx_font::glyph_cache with lazy SDL atlas upload
+//
+// Uses onyx_font directly rather than going through lib_sdlpp's
+// sdlpp::font::font_cache (which was itself a thin wrapper around
+// onyx_font::glyph_cache). Removing that hop lets us:
+//   - control atlas upload timing (lazy, dirty-tracked)
+//   - keep the same API point (measure_text + draw_text) while
+//     dropping an indirection
+//   - align with how warlords already uses onyx_font directly
 // =================================================================
 
 class font_cache_manager {
@@ -51,62 +65,136 @@ public:
         return mgr;
     }
 
+    struct font_entry {
+        std::vector<std::uint8_t> font_data;  ///< keeps ttf_font's span valid
+        std::unique_ptr<onyx_font::ttf_font> ttf;
+        std::unique_ptr<onyx_font::glyph_cache<onyx_font::memory_atlas>> cache;
+        std::vector<::sdlpp::texture> atlas_textures;
+        std::vector<bool> atlas_dirty;
+    };
+
     /**
      * @brief Clear all cached fonts and glyph caches
      *
-     * Must be called before SDL shutdown to prevent SIGSEGV from
-     * fonts being destroyed after FreeType is shut down.
+     * Must be called before SDL shutdown so GPU textures are released
+     * before the SDL renderer goes away.
      */
     void clear() {
-        m_caches.clear();
-        m_fonts.clear();
+        m_entries.clear();
     }
 
     /**
-     * @brief Get or create a font_cache for rendering with glyph caching
-     * @param renderer The SDL renderer (needed for texture creation)
-     * @param f Font specification
-     * @return Pointer to font_cache, or nullptr on failure
+     * @brief Get or create a font_entry for this font spec.
+     * @param f Font specification (path, size, style flags)
+     * @return Pointer to entry, or nullptr if font load failed.
      */
-    ::sdlpp::font::font_cache* get_cache(::sdlpp::renderer& renderer,
-                                          const sdlpp_renderer::font& f) {
-        std::size_t key = f.hash();
-
-        // Check if we already have a cache for this font
-        auto it = m_caches.find(key);
-        if (it != m_caches.end()) {
-            return it->second.get();
+    font_entry* get_or_create_entry(const sdlpp_renderer::font& f) {
+        std::size_t const key = f.hash();
+        if (auto it = m_entries.find(key); it != m_entries.end()) {
+            return &it->second;
         }
 
-        // Need to create font first, then cache
-        auto* fnt = get_or_create_font(f);
-        if (!fnt) {
+        std::filesystem::path font_path = f.path;
+        if (font_path.empty()) {
+            font_path = find_fallback_font();
+            if (font_path.empty()) {
+                return nullptr;
+            }
+        }
+
+        font_entry entry;
+        entry.font_data = read_file(font_path);
+        if (entry.font_data.empty()) {
             return nullptr;
         }
 
-        // Create font_cache with glyph caching
-        auto cache_ptr = std::make_unique<::sdlpp::font::font_cache>(renderer, *fnt);
+        try {
+            entry.ttf = std::make_unique<onyx_font::ttf_font>(
+                std::span<const std::uint8_t>(entry.font_data.data(),
+                                              entry.font_data.size()));
+        } catch (...) {
+            return nullptr;
+        }
 
-        // Pre-cache basic Latin characters for fast rendering
-        cache_ptr->store_basic_latin();
+        onyx_font::text_style style = onyx_font::text_style::normal;
+        if (f.bold)          style = style | onyx_font::text_style::bold;
+        if (f.italic)        style = style | onyx_font::text_style::italic;
+        if (f.underline)     style = style | onyx_font::text_style::underline;
+        if (f.strikethrough) style = style | onyx_font::text_style::strikethrough;
 
-        auto* ptr = cache_ptr.get();
-        m_caches[key] = std::move(cache_ptr);
-        return ptr;
+        onyx_font::glyph_cache_config config;
+        config.atlas_size = 512;
+        config.pre_cache_ascii = true;
+
+        entry.cache = std::make_unique<
+            onyx_font::glyph_cache<onyx_font::memory_atlas>>(
+                onyx_font::font_source::from_ttf(*entry.ttf),
+                f.size_px,
+                config);
+        entry.cache->set_style(style);
+        entry.atlas_dirty.resize(
+            static_cast<std::size_t>(entry.cache->atlas_count()), true);
+
+        auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
+        return &inserted_it->second;
     }
 
     /**
-     * @brief Get font for text measurement (doesn't need renderer)
+     * @brief Sync onyx_font's CPU atlases to SDL textures. Only re-uploads
+     *        pages that were marked dirty since the last call.
      */
-    ::sdlpp::font::font* get_font(const sdlpp_renderer::font& f) {
-        return get_or_create_font(f);
+    void ensure_textures(::sdlpp::renderer& renderer, font_entry& entry) {
+        auto const count = static_cast<std::size_t>(entry.cache->atlas_count());
+        entry.atlas_textures.resize(count);
+        entry.atlas_dirty.resize(count, true);
+
+        for (std::size_t i = 0; i < count; ++i) {
+            if (!entry.atlas_dirty[i] && entry.atlas_textures[i]) continue;
+
+            const auto& atlas = entry.cache->atlas(static_cast<int>(i));
+            int const w = atlas.width();
+            int const h = atlas.height();
+
+            if (!entry.atlas_textures[i]) {
+                auto tex_result = ::sdlpp::texture::create(
+                    renderer,
+                    ::sdlpp::pixel_format_enum::ABGR8888,
+                    ::sdlpp::texture_access::streaming,
+                    w, h);
+                if (!tex_result) continue;
+                entry.atlas_textures[i] = std::move(*tex_result);
+                entry.atlas_textures[i].set_blend_mode(::sdlpp::blend_mode::blend);
+                entry.atlas_textures[i].set_scale_mode(::sdlpp::scale_mode::linear);
+            }
+
+            // onyx_font atlases store 1 byte/pixel alpha; we expand to
+            // RGBA (white + alpha) so SDL color-modulation gives us the
+            // final glyph color at draw time.
+            auto lock_result = entry.atlas_textures[i].lock<::sdlpp::rect_i>();
+            if (!lock_result) continue;
+            auto [pixels, pitch] = *lock_result;
+
+            const std::uint8_t* alpha_data = atlas.data();
+            auto* rgba = static_cast<std::uint8_t*>(pixels);
+
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    std::uint8_t a = alpha_data[y * w + x];
+                    int const dst = y * pitch + x * 4;
+                    rgba[dst + 0] = 255;  // R
+                    rgba[dst + 1] = 255;  // G
+                    rgba[dst + 2] = 255;  // B
+                    rgba[dst + 3] = a;    // A
+                }
+            }
+
+            entry.atlas_textures[i].unlock();
+            entry.atlas_dirty[i] = false;
+        }
     }
 
     /**
-     * @brief Measure text using cached glyph advances when available
-     * @param f Font specification
-     * @param text UTF-8 text to measure
-     * @return Size in pixels
+     * @brief Measure text via onyx_font's rasterizer.
      */
     size measure_text_cached(const sdlpp_renderer::font& f,
                              std::string_view text) {
@@ -114,115 +202,44 @@ public:
             return {0, static_cast<int>(f.size_px)};
         }
 
-        std::size_t key = f.hash();
-        auto* fnt = get_or_create_font(f);
-        if (!fnt) {
-            // Fallback estimate
+        auto* entry = get_or_create_entry(f);
+        if (!entry) {
             return {static_cast<int>(text.length() * f.size_px * 0.6f),
                     static_cast<int>(f.size_px)};
         }
 
-        // Check if we have a cache for this font
-        auto cache_it = m_caches.find(key);
-        if (cache_it != m_caches.end()) {
-            // Use cached glyph data for measurement
-            // Width is sum of advances (pen position after all glyphs)
-            auto* cache = cache_it->second.get();
-            int pen_x = 0;
-
-            for (char32_t cp : onyx_font::utf8_view(text)) {
-                const auto* glyph = cache->find_glyph(cp);
-                if (glyph) {
-                    pen_x += glyph->advance;
-                } else {
-                    // Glyph not cached, use font measurement for this char
-                    auto metrics = fnt->rasterizer()->measure_glyph(cp);
-                    pen_x += static_cast<int>(std::ceil(metrics.advance_x));
-                }
-            }
-
-            // Use font-wide metrics (ascent + descent) instead of measuring "X"
-            // which has no descenders. get_metrics() returns the full font height
-            // needed to display any character including those with descenders (g, p, y, etc.)
-            auto font_metrics = fnt->get_metrics();
-            int height = static_cast<int>(std::ceil(font_metrics.height));
-
-            return {pen_x, height};
-        }
-
-        // No cache yet, use font measurement
-        // Use ceil() for height to ensure descenders are not clipped
-        // (same as cached path above)
-        auto metrics = fnt->measure(text);
-        return {static_cast<int>(std::ceil(metrics.width)),
-                static_cast<int>(std::ceil(metrics.height))};
+        auto const extents = entry->cache->measure(text);
+        return {static_cast<int>(std::ceil(extents.width)),
+                static_cast<int>(std::ceil(extents.height))};
     }
 
 private:
     font_cache_manager() = default;
 
-    ::sdlpp::font::font* get_or_create_font(const sdlpp_renderer::font& f) {
-        std::size_t key = f.hash();
-        auto it = m_fonts.find(key);
-        if (it != m_fonts.end()) {
-            return it->second.get();
-        }
-
-        // Determine font path - use fallback if empty
-        std::filesystem::path font_path = f.path;
-        if (font_path.empty()) {
-            font_path = find_fallback_font();
-            if (font_path.empty()) {
-                return nullptr;  // No fallback found
-            }
-        }
-
-        // Load font using lib_sdlpp
-        auto result = ::sdlpp::font::font::load(font_path);
-        if (!result) {
-            return nullptr;
-        }
-
-        auto font_ptr = std::make_unique<::sdlpp::font::font>(std::move(*result));
-
-        // Set size
-        font_ptr->set_size(f.size_px);
-
-        // Apply text styling
-        ::sdlpp::font::text_style style = ::sdlpp::font::text_style::normal;
-        if (f.bold) {
-            style = style | ::sdlpp::font::text_style::bold;
-        }
-        if (f.italic) {
-            style = style | ::sdlpp::font::text_style::italic;
-        }
-        if (f.underline) {
-            style = style | ::sdlpp::font::text_style::underline;
-        }
-        font_ptr->set_style(style);
-
-        auto* ptr = font_ptr.get();
-        m_fonts[key] = std::move(font_ptr);
-        return ptr;
+    static std::vector<std::uint8_t> read_file(const std::filesystem::path& p) {
+        std::ifstream in(p, std::ios::binary | std::ios::ate);
+        if (!in) return {};
+        auto const sz = in.tellg();
+        if (sz <= 0) return {};
+        in.seekg(0);
+        std::vector<std::uint8_t> bytes(static_cast<std::size_t>(sz));
+        in.read(reinterpret_cast<char*>(bytes.data()), sz);
+        if (!in) return {};
+        return bytes;
     }
 
-    /**
-     * @brief Find a fallback system font when no font path is specified
-     * @return Path to a fallback font, or empty path if none found
-     */
     static std::filesystem::path find_fallback_font() {
-        // Common font locations on different platforms
         static const std::vector<std::filesystem::path> fallback_paths = {
-            // Linux common fonts
+            // Linux
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
             "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
             "/usr/share/fonts/TTF/DejaVuSans.ttf",
-            // macOS common fonts
+            // macOS
             "/System/Library/Fonts/Helvetica.ttc",
             "/System/Library/Fonts/SFNSText.ttf",
             "/Library/Fonts/Arial.ttf",
-            // Windows common fonts (via Wine or WSL)
+            // Windows (via Wine/WSL)
             "/usr/share/fonts/truetype/msttcorefonts/arial.ttf",
             "C:/Windows/Fonts/arial.ttf",
         };
@@ -232,13 +249,10 @@ private:
                 return path;
             }
         }
-
-        return {};  // No fallback found
+        return {};
     }
 
-    // Store both fonts and their caches
-    std::unordered_map<std::size_t, std::unique_ptr<::sdlpp::font::font>> m_fonts;
-    std::unordered_map<std::size_t, std::unique_ptr<::sdlpp::font::font_cache>> m_caches;
+    std::unordered_map<std::size_t, font_entry> m_entries;
 };
 
 // =================================================================
@@ -526,20 +540,62 @@ void sdlpp_renderer::draw_box(const rect& r, const box_style& style,
 void sdlpp_renderer::draw_text(const rect& r, std::string_view text,
                                 const font& f, const color& fg, const color& bg)
 {
+    (void)bg;  // text renders glyph alpha — bg is the caller's problem
     if (text.empty()) {
         return;
     }
 
     const font scaled_font = dpi_scaled(f);
 
-    // Use font_cache for efficient glyph caching
-    auto* cache = font_cache_manager::instance().get_cache(*m_pimpl->renderer, scaled_font);
-    if (!cache) {
+    auto& mgr = font_cache_manager::instance();
+    auto* entry = mgr.get_or_create_entry(scaled_font);
+    if (!entry) {
         return;
     }
 
-    // Render text using cached glyphs (caches on-demand if not already cached)
-    cache->render_text(text, r.x, r.y, ::sdlpp::color{fg.r, fg.g, fg.b, fg.a});
+    auto& rend = *m_pimpl->renderer;
+    mgr.ensure_textures(rend, *entry);
+
+    auto& cache = *entry->cache;
+    auto const metrics = cache.rasterizer().get_metrics();
+
+    float pen_x = static_cast<float>(r.x);
+    float const pen_y = static_cast<float>(r.y);
+
+    for (char32_t cp : onyx_font::utf8_view(text)) {
+        const auto& g = cache.get(cp);
+
+        if (g.atlas_index < 0 ||
+            g.atlas_index >= static_cast<int>(entry->atlas_textures.size())) {
+            pen_x += g.advance_x;
+            continue;
+        }
+
+        auto& tex = entry->atlas_textures[static_cast<std::size_t>(g.atlas_index)];
+        if (!tex) {
+            pen_x += g.advance_x;
+            continue;
+        }
+
+        tex.set_color_mod(::sdlpp::color{fg.r, fg.g, fg.b, fg.a});
+        tex.set_alpha_mod(fg.a);
+
+        float const dst_x = pen_x + g.bearing_x;
+        float const dst_y = pen_y + (metrics.ascent - g.bearing_y);
+
+        std::optional<::sdlpp::rect_f> src_opt{
+            ::sdlpp::rect_f(static_cast<float>(g.rect.x),
+                          static_cast<float>(g.rect.y),
+                          static_cast<float>(g.rect.w),
+                          static_cast<float>(g.rect.h))};
+        std::optional<::sdlpp::rect_f> dst_opt{
+            ::sdlpp::rect_f(dst_x, dst_y,
+                          static_cast<float>(g.rect.w),
+                          static_cast<float>(g.rect.h))};
+
+        rend.copy(tex, src_opt, dst_opt);
+        pen_x += g.advance_x;
+    }
 }
 
 void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
