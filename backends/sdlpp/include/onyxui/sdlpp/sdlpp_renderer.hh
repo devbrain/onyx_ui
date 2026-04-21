@@ -23,6 +23,10 @@
 // Forward declarations
 namespace sdlpp {
     class renderer;
+    class texture;
+}
+namespace onyx_image {
+    class surface;
 }
 
 namespace onyxui::sdlpp {
@@ -165,6 +169,32 @@ public:
     void clear_region(const rect& r, const color& bg);
 
     void draw_shadow(const rect& widget_bounds, int offset_x, int offset_y);
+
+    // =================================================================
+    // Image / Texture (onyx_image-based)
+    // =================================================================
+
+    /**
+     * @brief Blit an onyx_image::surface stretched to `dst`.
+     *
+     * First call with a given surface pointer uploads it as an SDL
+     * texture; subsequent calls reuse the cached texture. Caller owns
+     * the surface and must keep its content stable (we key the cache
+     * by surface address — reusing the same surface pointer for
+     * different content will show the old content).
+     *
+     * Supports images in RGBA8888 or RGB888 pixel formats.
+     * Texture is created with alpha blending enabled.
+     */
+    void draw_image(const rect& dst, const onyx_image::surface& img);
+
+    /**
+     * @brief Blit a caller-owned SDL texture stretched to `dst`.
+     *
+     * No caching — the caller is responsible for the texture's
+     * lifetime (e.g. a pre-rendered game-thumbnail atlas).
+     */
+    void draw_texture(const rect& dst, ::sdlpp::texture& tex);
 
     // =================================================================
     // Clipping Methods

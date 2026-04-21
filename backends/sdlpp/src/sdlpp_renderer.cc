@@ -524,6 +524,93 @@ static xpm_icon_cache& get_xpm_cache() {
 }
 
 // =================================================================
+// Image texture cache — onyx_image::surface → sdl::texture upload
+// =================================================================
+
+class image_texture_cache {
+public:
+    ::sdlpp::texture* get_or_upload(::sdlpp::renderer& renderer,
+                                    const onyx_image::surface& img) {
+        auto it = m_textures.find(&img);
+        if (it != m_textures.end()) {
+            return &it->second;
+        }
+
+        // Only memory_surface is supported for now — other surface
+        // implementations would need their own pixel-extraction paths.
+        auto const* mem = dynamic_cast<const onyx_image::memory_surface*>(&img);
+        if (!mem || mem->width() <= 0 || mem->height() <= 0) {
+            return nullptr;
+        }
+        auto const w = mem->width();
+        auto const h = mem->height();
+        auto const fmt = mem->format();
+        auto const pixels = mem->pixels();
+
+        std::optional<::sdlpp::texture> tex_opt;
+
+        if (fmt == onyx_image::pixel_format::rgba8888) {
+            int const pitch = w * 4;
+            auto surf = ::sdlpp::surface::create_from_pixels(
+                const_cast<std::uint8_t*>(pixels.data()),
+                w, h, pitch, ::sdlpp::pixel_format_enum::ABGR8888);
+            if (!surf) return nullptr;
+            auto tex = ::sdlpp::texture::create(renderer, *surf);
+            if (!tex) return nullptr;
+            tex_opt = std::move(*tex);
+        } else if (fmt == onyx_image::pixel_format::rgb888) {
+            int const pitch = w * 3;
+            auto surf = ::sdlpp::surface::create_from_pixels(
+                const_cast<std::uint8_t*>(pixels.data()),
+                w, h, pitch, ::sdlpp::pixel_format_enum::RGB24);
+            if (!surf) return nullptr;
+            auto tex = ::sdlpp::texture::create(renderer, *surf);
+            if (!tex) return nullptr;
+            tex_opt = std::move(*tex);
+        } else {
+            // indexed8 and anything else: convert to RGBA inline.
+            std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w * h * 4));
+            auto const palette = mem->palette();
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    std::uint8_t const idx = pixels[static_cast<std::size_t>(
+                        y * mem->pitch() + static_cast<std::size_t>(x))];
+                    std::size_t const po = static_cast<std::size_t>(idx) * 3;
+                    auto const base = static_cast<std::size_t>((y * w + x) * 4);
+                    rgba[base + 0] = (po + 0 < palette.size()) ? palette[po + 0] : 0;
+                    rgba[base + 1] = (po + 1 < palette.size()) ? palette[po + 1] : 0;
+                    rgba[base + 2] = (po + 2 < palette.size()) ? palette[po + 2] : 0;
+                    rgba[base + 3] = 255;
+                }
+            }
+            auto surf = ::sdlpp::surface::create_from_pixels(
+                rgba.data(), w, h, w * 4,
+                ::sdlpp::pixel_format_enum::ABGR8888);
+            if (!surf) return nullptr;
+            auto tex = ::sdlpp::texture::create(renderer, *surf);
+            if (!tex) return nullptr;
+            tex_opt = std::move(*tex);
+        }
+
+        if (!tex_opt) return nullptr;
+        tex_opt->set_blend_mode(::sdlpp::blend_mode::blend);
+
+        auto [inserted_it, success] = m_textures.emplace(&img, std::move(*tex_opt));
+        return success ? &inserted_it->second : nullptr;
+    }
+
+    void clear() { m_textures.clear(); }
+
+private:
+    std::unordered_map<const onyx_image::surface*, ::sdlpp::texture> m_textures;
+};
+
+static image_texture_cache& get_image_cache() {
+    static image_texture_cache cache;
+    return cache;
+}
+
+// =================================================================
 // Renderer Implementation
 // =================================================================
 
@@ -1327,6 +1414,24 @@ void sdlpp_renderer::draw_shadow(const rect& wb, int offset_x, int offset_y)
         wb.x + offset_x, wb.y + wb.h, wb.w, offset_y});
 }
 
+void sdlpp_renderer::draw_image(const rect& dst, const onyx_image::surface& img)
+{
+    auto* tex = get_image_cache().get_or_upload(*m_pimpl->renderer, img);
+    if (!tex) return;
+    draw_texture(dst, *tex);
+}
+
+void sdlpp_renderer::draw_texture(const rect& dst, ::sdlpp::texture& tex)
+{
+    std::optional<::sdlpp::rect_f> const src_opt;
+    std::optional<::sdlpp::rect_f> const dst_opt{
+        ::sdlpp::rect_f(static_cast<float>(dst.x),
+                        static_cast<float>(dst.y),
+                        static_cast<float>(dst.w),
+                        static_cast<float>(dst.h))};
+    (void)m_pimpl->renderer->copy(tex, src_opt, dst_opt);
+}
+
 void sdlpp_renderer::push_clip(const rect& r)
 {
     // Calculate effective clip by intersecting with current clip
@@ -1453,6 +1558,8 @@ std::size_t sdlpp_renderer::font::hash() const noexcept
 void sdlpp_renderer::shutdown()
 {
     font_cache_manager::instance().clear();
+    get_xpm_cache().clear();
+    get_image_cache().clear();
 }
 
 } // namespace onyxui::sdlpp
