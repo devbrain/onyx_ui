@@ -117,20 +117,7 @@ namespace onyxui {
          * @endcode
          */
         void register_theme(const theme_type& theme) {
-            if (theme.name.empty()) {
-                LOG_WARN("Ignoring theme registration with empty name");
-                return;
-            }
-
-            std::unique_lock lock(m_mutex);
-
-            if (m_themes.find(theme.name) != m_themes.end()) {
-                LOG_INFO("Overwriting existing theme: ", theme.name);
-            } else {
-                LOG_DEBUG("Registered theme: ", theme.name);
-            }
-
-            m_themes[theme.name] = theme;
+            register_theme(theme_type{theme});
         }
 
         /**
@@ -145,21 +132,42 @@ namespace onyxui {
 
             std::string name = theme.name;  // Copy name before move
 
-            std::unique_lock lock(m_mutex);
+            const theme_type* new_current_ptr = nullptr;
 
-            if (m_themes.find(name) != m_themes.end()) {
-                LOG_INFO("Overwriting existing theme: ", name);
-            } else {
-                LOG_DEBUG("Registered theme: ", name);
+            {
+                std::unique_lock lock(m_mutex);
+
+                const bool was_registered = (m_themes.find(name) != m_themes.end());
+                if (was_registered) {
+                    LOG_INFO("Overwriting existing theme: ", name);
+                } else {
+                    LOG_DEBUG("Registered theme: ", name);
+                }
+
+                // Insert into map and get iterator to access key after move
+                auto [iter, inserted] = m_themes.insert_or_assign(
+                    std::move(name), std::move(theme));
+
+                // Auto-activate first registered theme if no current theme is set.
+                // If the currently-active theme is being overwritten, refresh
+                // m_current_theme too — otherwise it holds a stale snapshot of
+                // the previous entry (subscribers keep styling off the old copy
+                // and no cache invalidates).
+                const bool activating_new = !m_current_theme;
+                const bool refreshing_active =
+                    m_current_theme && m_current_theme->name == iter->first;
+
+                if (activating_new || refreshing_active) {
+                    m_current_theme = std::make_shared<const theme_type>(iter->second);
+                    new_current_ptr = m_current_theme.get();
+                    if (activating_new) {
+                        LOG_DEBUG("Auto-activated first theme: ", iter->first);
+                    }
+                }
             }
 
-            // Insert into map and get iterator to access key after move
-            auto [iter, inserted] = m_themes.insert_or_assign(std::move(name), std::move(theme));
-
-            // Auto-activate first registered theme if no current theme is set
-            if (!m_current_theme) {
-                m_current_theme = std::make_shared<const theme_type>(iter->second);
-                LOG_DEBUG("Auto-activated first theme: ", iter->first);
+            if (new_current_ptr) {
+                theme_changed.emit(new_current_ptr);
             }
         }
 
