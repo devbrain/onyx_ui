@@ -7,19 +7,19 @@
 
 #pragma once
 #include "../backend_config.hh"  // Defines concrete Backend type
-#include <onyxui/widgets/window/window.hh>
-#include <onyxui/widgets/containers/vbox.hh>
-#include <onyxui/widgets/containers/hbox.hh>
-#include <onyxui/widgets/containers/group_box.hh>
-#include <onyxui/widgets/containers/scroll_view.hh>
-#include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/button.hh>
-#include <onyxui/mvc/views/list_view.hh>
 #include <onyxui/mvc/models/list_model.hh>
 #include <memory>
 #include <string>
 
 namespace widgets_demo_windows {
+
+using ui::button;
+using ui::group_box;
+using ui::hbox;
+using ui::label;
+using ui::list_view;
+using ui::vbox;
+using ui::window;
 
 /**
  * @brief Create and show MVC demo window
@@ -32,9 +32,9 @@ namespace widgets_demo_windows {
  * - Selection display
  * - Signal/slot communication
  */
-inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
+inline std::unique_ptr<window> create_mvc_demo_window() {
     // Create window with flags
-    typename onyxui::window<Backend>::window_flags flags;
+    window::window_flags flags;
     flags.has_close_button = true;
     flags.has_minimize_button = true;
     flags.has_maximize_button = true;
@@ -43,10 +43,10 @@ inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     flags.is_movable = true;
     flags.is_scrollable = true;
 
-    auto win = std::make_unique<onyxui::window<Backend>>("MVC Demo", flags);
+    auto win = std::make_unique<window>("MVC Demo", flags);
 
     // Create content container
-    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
+    auto content = std::make_unique<vbox>(onyxui::spacing::tiny);
 
     // Create model with initial data (keep alive with shared_ptr)
     auto model = std::make_shared<onyxui::list_model<std::string, Backend>>();
@@ -66,58 +66,58 @@ inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     });
 
     // Title section
-    auto* title_section = content->emplace_child<onyxui::group_box>();
+    auto* title_section = content->emplace_child<group_box>();
     title_section->set_title("MVC System Demo");
-    auto* title_vbox = title_section->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
+    auto* title_vbox = title_section->emplace_child<vbox>(onyxui::spacing::tiny);
 
-    title_vbox->emplace_child<onyxui::label>("Model-View-Controller Pattern");
-    title_vbox->emplace_child<onyxui::label>("  - list_model: Data storage");
-    title_vbox->emplace_child<onyxui::label>("  - list_view: Visual representation");
-    title_vbox->emplace_child<onyxui::label>("  - Signals: Change notifications");
+    title_vbox->emplace_child<label>("Model-View-Controller Pattern");
+    title_vbox->emplace_child<label>("  - list_model: Data storage");
+    title_vbox->emplace_child<label>("  - list_view: Visual representation");
+    title_vbox->emplace_child<label>("  - Signals: Change notifications");
 
     // List View section
-    auto* list_section = content->emplace_child<onyxui::group_box>();
+    auto* list_section = content->emplace_child<group_box>();
     list_section->set_title("Dynamic List View");
-    auto* list_vbox = list_section->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
+    auto* list_vbox = list_section->emplace_child<vbox>(onyxui::spacing::tiny);
 
-    auto* list_view = list_vbox->emplace_child<onyxui::list_view>();
-    list_view->set_model(model.get());
+    auto* view = list_vbox->emplace_child<list_view>();
+    view->set_model(model.get());
 
     // Controls section
-    auto* controls_section = content->emplace_child<onyxui::group_box>();
+    auto* controls_section = content->emplace_child<group_box>();
     controls_section->set_title("Model Controls");
-    auto* controls_hbox = controls_section->emplace_child<onyxui::hbox>(onyxui::spacing::medium);
+    auto* controls_hbox = controls_section->emplace_child<hbox>(onyxui::spacing::medium);
 
     // Item counter for unique names (captured in lambdas)
     auto item_counter = std::make_shared<int>(1);
 
-    auto* add_btn = controls_hbox->emplace_child<onyxui::button>("Add Item");
+    auto* add_btn = controls_hbox->emplace_child<button>("Add Item");
     add_btn->clicked.connect([model, item_counter]() {
         model->append("New Item " + std::to_string((*item_counter)++));
     });
 
-    auto* remove_btn = controls_hbox->emplace_child<onyxui::button>("Remove Selected");
-    remove_btn->clicked.connect([model, list_view]() {
-        auto index = list_view->current_index();
+    auto* remove_btn = controls_hbox->emplace_child<button>("Remove Selected");
+    remove_btn->clicked.connect([model, view]() {
+        auto index = view->current_index();
         if (index.is_valid()) {
             model->remove(index.row);
         }
     });
 
-    auto* clear_btn = controls_hbox->emplace_child<onyxui::button>("Clear All");
+    auto* clear_btn = controls_hbox->emplace_child<button>("Clear All");
     clear_btn->clicked.connect([model]() {
         model->clear();
     });
 
     // Selection display section
-    auto* selection_section = content->emplace_child<onyxui::group_box>();
+    auto* selection_section = content->emplace_child<group_box>();
     selection_section->set_title("Selection Info");
-    auto* selection_vbox = selection_section->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
+    auto* selection_vbox = selection_section->emplace_child<vbox>(onyxui::spacing::tiny);
 
-    auto* selection_label = selection_vbox->emplace_child<onyxui::label>("Selection: (none)");
+    auto* selection_label = selection_vbox->emplace_child<label>("Selection: (none)");
 
     // Connect clicked signal to update selection display
-    list_view->clicked.connect([model, selection_label](const onyxui::model_index& index) {
+    view->clicked.connect([model, selection_label](const onyxui::model_index& index) {
         if (index.is_valid()) {
             auto data = model->data(index, onyxui::item_data_role::display);
             if (std::holds_alternative<std::string>(data)) {
@@ -130,11 +130,11 @@ inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     });
 
     // Statistics section
-    auto* stats_section = content->emplace_child<onyxui::group_box>();
+    auto* stats_section = content->emplace_child<group_box>();
     stats_section->set_title("Statistics");
-    auto* stats_vbox = stats_section->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
+    auto* stats_vbox = stats_section->emplace_child<vbox>(onyxui::spacing::tiny);
 
-    auto* stats_label = stats_vbox->emplace_child<onyxui::label>(
+    auto* stats_label = stats_vbox->emplace_child<label>(
         "Items: " + std::to_string(model->row_count())
     );
 
@@ -150,14 +150,14 @@ inline std::unique_ptr<onyxui::window<Backend>> create_mvc_demo_window() {
     });
 
     // Tips section
-    auto* tips_section = content->emplace_child<onyxui::group_box>();
+    auto* tips_section = content->emplace_child<group_box>();
     tips_section->set_title("Tips");
-    auto* tips_vbox = tips_section->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);
+    auto* tips_vbox = tips_section->emplace_child<vbox>(onyxui::spacing::tiny);
 
-    tips_vbox->emplace_child<onyxui::label>("  - Arrow keys: Navigate list");
-    tips_vbox->emplace_child<onyxui::label>("  - Enter: Activate item");
-    tips_vbox->emplace_child<onyxui::label>("  - Add/Remove: Modify model dynamically");
-    tips_vbox->emplace_child<onyxui::label>("  - Selection updates automatically!");
+    tips_vbox->emplace_child<label>("  - Arrow keys: Navigate list");
+    tips_vbox->emplace_child<label>("  - Enter: Activate item");
+    tips_vbox->emplace_child<label>("  - Add/Remove: Modify model dynamically");
+    tips_vbox->emplace_child<label>("  - Selection updates automatically!");
 
     // Set content on window
     win->set_content(std::move(content));

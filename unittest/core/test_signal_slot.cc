@@ -207,6 +207,26 @@ TEST_CASE("Signal - Self-disconnect during emission") {
     CHECK(call_count == 1);
 }
 
+TEST_CASE("Signal - Disconnecting another slot during emission skips it") {
+    signal<> simple_signal;
+    int call_count = 0;
+    signal<>::connection_id slot_a = 0;
+    signal<>::connection_id slot_b = 0;
+
+    slot_a = simple_signal.connect([&]() {
+        ++call_count;
+        simple_signal.disconnect(slot_b);
+    });
+
+    slot_b = simple_signal.connect([&]() {
+        ++call_count;
+        simple_signal.disconnect(slot_a);
+    });
+
+    simple_signal.emit();
+    CHECK(call_count == 1);
+}
+
 TEST_CASE("Signal - Owner destroys itself during emit") {
     // Regression: a slot that destroys the signal's owning object (and
     // therefore the signal) must not cause emit() to touch the signal's

@@ -149,27 +149,60 @@ namespace onyxui {
         }
 
         // =====================================================================
-        // Forwarding Methods - Content Management
+        // Content Management
+        //
+        // These methods operate on the INNER scrollable content, not on
+        // the scroll_view wrapper itself. The matching base names (add_child,
+        // remove_child, ...) used to be shadowed here with the same names as
+        // the base, which routed to different targets depending on whether
+        // the caller held a `scroll_view*` or a `ui_element*`. The
+        // `content_` prefix makes the intent explicit at the call site.
+        //
+        // Direct access to the scrollable is also available via `content()`.
+        //
+        // The deleted overloads below intentionally poison the old names so
+        // callers still using `sv->add_child(...)` etc. get a compile error
+        // instead of silently routing to `ui_element::add_child` (which would
+        // add the child to the scroll_view wrapper's internal grid, not the
+        // scrollable content).
         // =====================================================================
+
+        void add_child(std::unique_ptr<element_type>) = delete;
+        template<template<typename> class WidgetTemplate, typename... Args>
+        void emplace_child(Args&&...) = delete;
+        template<typename WidgetType, typename... Args>
+        void emplace_child(Args&&...) = delete;
+        std::unique_ptr<element_type> remove_child(element_type*) = delete;
+        void clear_children() = delete;
+        void set_layout_strategy(std::unique_ptr<layout_strategy_type>) = delete;
 
         /**
          * @brief Add child to scrollable content area
          * @param child Child widget to add
          */
-        void add_child(std::unique_ptr<element_type> child) {
+        void content_add_child(std::unique_ptr<element_type> child) {
             m_content_ptr->add_child(std::move(child));
         }
 
         /**
-         * @brief Emplace child directly in scrollable content
-         * @tparam WidgetTemplate Widget template (e.g., label, button)
+         * @brief Emplace child directly in scrollable content — template-template form.
+         * @tparam WidgetTemplate Widget template (e.g., `onyxui::label`, `onyxui::button`)
          * @tparam Args Constructor argument types
          * @param args Constructor arguments
          * @return Pointer to created child
          */
         template<template<typename> class WidgetTemplate, typename... Args>
-        auto* emplace_child(Args&&... args) {
+        auto* content_emplace_child(Args&&... args) {
             return m_content_ptr->template emplace_child<WidgetTemplate>(std::forward<Args>(args)...);
+        }
+
+        /**
+         * @brief Emplace child directly in scrollable content — concrete-type form.
+         */
+        template<typename WidgetType, typename... Args>
+            requires std::derived_from<WidgetType, ui_element<Backend>>
+        WidgetType* content_emplace_child(Args&&... args) {
+            return m_content_ptr->template emplace_child<WidgetType>(std::forward<Args>(args)...);
         }
 
         /**
@@ -177,14 +210,14 @@ namespace onyxui {
          * @param child Pointer to child to remove
          * @return Unique pointer to removed child
          */
-        std::unique_ptr<element_type> remove_child(element_type* child) {
+        std::unique_ptr<element_type> content_remove_child(element_type* child) {
             return m_content_ptr->remove_child(child);
         }
 
         /**
          * @brief Clear all children from scrollable content
          */
-        void clear_children() {
+        void content_clear_children() {
             m_content_ptr->clear_children();
         }
 
@@ -192,16 +225,25 @@ namespace onyxui {
          * @brief Set layout strategy for scrollable content
          * @param strategy Layout strategy (takes ownership)
          */
-        void set_layout_strategy(std::unique_ptr<layout_strategy_type> strategy) {
+        void content_set_layout_strategy(std::unique_ptr<layout_strategy_type> strategy) {
             m_content_ptr->set_layout_strategy(std::move(strategy));
         }
 
         // =====================================================================
-        // Forwarding Methods - Scrolling
+        // Scrolling
         // =====================================================================
 
         /**
-         * @brief Scroll to absolute position
+         * @brief Scroll to absolute position (double precision)
+         * @param x Horizontal scroll position
+         * @param y Vertical scroll position
+         */
+        void scroll_to(double x, double y) {
+            m_content_ptr->scroll_to(x, y);
+        }
+
+        /**
+         * @brief Scroll to absolute position (integer)
          * @param x Horizontal scroll position
          * @param y Vertical scroll position
          */
@@ -210,7 +252,16 @@ namespace onyxui {
         }
 
         /**
-         * @brief Scroll by relative delta
+         * @brief Scroll by relative delta (double precision)
+         * @param dx Horizontal delta
+         * @param dy Vertical delta
+         */
+        void scroll_by(double dx, double dy) {
+            m_content_ptr->scroll_by(dx, dy);
+        }
+
+        /**
+         * @brief Scroll by relative delta (integer)
          * @param dx Horizontal delta
          * @param dy Vertical delta
          */

@@ -104,7 +104,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Direct
 
     // Add content (layout calculation varies by backend - we focus on event routing)
     for (int i = 1; i <= 10; ++i) {
-        sv->emplace_child<label>("Line " + std::to_string(i));
+        sv->content_emplace_child<label>("Line " + std::to_string(i));
     }
 
     // Measure and arrange

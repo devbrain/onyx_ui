@@ -176,6 +176,10 @@ namespace onyxui {
             auto const [width, height] = ctx.get_final_dims(
                 logical_bounds.width.to_int(), logical_bounds.height.to_int());
 
+            auto const* themes = ui_services<Backend>::themes();
+            auto const* theme = themes ? themes->get_current_theme() : nullptr;
+            int const horizontal_padding = theme ? theme->spacing.tiny : 2;
+
             // Fill background with status bar color
             typename Backend::rect_type abs_bounds;
             rect_utils::set_bounds(abs_bounds, x, y, width, height);
@@ -183,16 +187,16 @@ namespace onyxui {
 
             // Draw left text
             if (!m_left_text.empty()) {
-                typename Backend::point_type const left_pos{x, y};
+                typename Backend::point_type const left_pos{x + horizontal_padding, y};
                 (void)ctx.draw_text(m_left_text, left_pos, ctx.style().font, ctx.style().foreground_color);
             }
 
             // Draw right text (right-aligned)
             if (!m_right_text.empty()) {
-                // Use string length as approximation for text width (backend-specific units)
-                // For terminal backends, this equals character count
-                int text_width = static_cast<int>(m_right_text.length());
-                int right_x = x + width - text_width;
+                auto const text_size = Backend::renderer_type::measure_text(
+                    m_right_text, ctx.style().font);
+                int const text_width = size_utils::get_width(text_size);
+                int right_x = x + width - horizontal_padding - text_width;
 
                 typename Backend::point_type const right_pos{right_x, y};
                 (void)ctx.draw_text(m_right_text, right_pos, ctx.style().font, ctx.style().foreground_color);

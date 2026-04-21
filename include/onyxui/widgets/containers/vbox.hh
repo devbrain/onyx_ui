@@ -95,6 +95,15 @@ namespace onyxui {
         vbox(vbox&&) noexcept = default;
         vbox& operator=(vbox&&) noexcept = default;
 
+        // Ambient theme is not available at ctor time (ui_services<Backend>
+        // has no themes registered yet), so the layout was built with the
+        // fallback spacing. Rebuild it now that the host is attached and
+        // `resolve_spacing()` can see the theme.
+        void on_attached(ui_host<Backend>& host) override {
+            base::on_attached(host);
+            recreate_layout();
+        }
+
         /**
          * @brief Set the spacing between children
          * @param spacing_value New semantic spacing (resolved via theme)
@@ -142,21 +151,15 @@ namespace onyxui {
          * @brief Resolve semantic spacing to backend-specific integer via theme
          * @return Resolved spacing value in logical units
          */
-        [[nodiscard]] int resolve_spacing() const {
-            // Get current theme from ui_services
+        [[nodiscard]] double resolve_spacing() const {
             auto* themes = ui_services<Backend>::themes();
             if (!themes) {
-                // No theme available, use default medium spacing (1)
-                return 1;
+                return 1.0;  // No theme yet (e.g. ctor-time) — fallback to 1 LU.
             }
-
             auto* theme = themes->get_current_theme();
             if (!theme) {
-                // No current theme, use default medium spacing (1)
-                return 1;
+                return 1.0;
             }
-
-            // Resolve spacing enum via theme
             return theme->spacing.resolve(m_spacing);
         }
 

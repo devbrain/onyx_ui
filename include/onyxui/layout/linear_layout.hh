@@ -189,7 +189,7 @@ namespace onyxui {
              */
             explicit linear_layout(
                 direction dir = direction::vertical,
-                int spacing = 0,
+                double spacing = 0.0,
                 horizontal_alignment h_align = horizontal_alignment::stretch,
                 vertical_alignment v_align = vertical_alignment::stretch
             )
@@ -220,7 +220,7 @@ namespace onyxui {
              * @brief Get spacing between children
              * @return Spacing in logical units
              */
-            [[nodiscard]] int spacing() const noexcept { return m_spacing; }
+            [[nodiscard]] double spacing() const noexcept { return m_spacing; }
 
             /**
              * @brief Get horizontal alignment
@@ -272,7 +272,7 @@ namespace onyxui {
         private:
             // Immutable configuration
             const direction m_layout_direction; ///< Stacking direction (vertical/horizontal)
-            const int m_spacing; ///< Gap between children in logical units
+            const double m_spacing; ///< Gap between children in logical units (fractional permitted)
             const horizontal_alignment m_h_align; ///< Default horizontal alignment for children
             const vertical_alignment m_v_align; ///< Default vertical alignment for children
 
@@ -360,7 +360,7 @@ namespace onyxui {
         logical_unit total_height = logical_unit(0.0);
         logical_unit total_spacing = logical_unit(0.0);
         if (visible_count > 1) {
-            total_spacing = logical_unit(static_cast<double>(m_spacing * (visible_count - 1)));
+            total_spacing = logical_unit(m_spacing * (visible_count - 1));
         }
 
         if (m_layout_direction == direction::vertical) {
@@ -462,7 +462,7 @@ namespace onyxui {
         }
 
         // Calculate spacing
-        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(static_cast<double>(m_spacing * (visible_count - 1))) : logical_unit(0.0);
+        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(m_spacing * (visible_count - 1)) : logical_unit(0.0);
         logical_unit const available_height = content_h - total_fixed_height - total_spacing;
 
         // Distribute space for expanding children
@@ -556,7 +556,7 @@ namespace onyxui {
             logical_rect child_bounds{child_x, current_y, child_width, child_height};
             child->arrange(child_bounds);
 
-            current_y = current_y + child_height + logical_unit(static_cast<double>(m_spacing));
+            current_y = current_y + child_height + logical_unit(m_spacing);
         }
     }
 
@@ -601,7 +601,7 @@ namespace onyxui {
         }
 
         // Calculate spacing
-        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(static_cast<double>(m_spacing * (visible_count - 1))) : logical_unit(0.0);
+        const logical_unit total_spacing = (visible_count > 1) ? logical_unit(m_spacing * (visible_count - 1)) : logical_unit(0.0);
         logical_unit const available_width = content_w - total_fixed_width - total_spacing;
 
         // Distribute space for expanding children
@@ -695,7 +695,7 @@ namespace onyxui {
             logical_rect child_bounds{current_x, child_y, child_width, child_height};
             child->arrange(child_bounds);
 
-            current_x = current_x + child_width + logical_unit(static_cast<double>(m_spacing));
+            current_x = current_x + child_width + logical_unit(m_spacing);
         }
     }
 

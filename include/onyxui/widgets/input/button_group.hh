@@ -110,6 +110,30 @@ public:
         this->set_focusable(false);  // Container, not focusable
     }
 
+    // Rebuild the layout once the host is attached — `resolve_spacing()`
+    // falls back to 1 LU at ctor time because `ui_services<Backend>` has
+    // no themes registered yet.
+    void on_attached(ui_host<Backend>& host) override {
+        base::on_attached(host);
+        if (m_orientation == button_group_orientation::vertical) {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical, resolve_spacing(),
+                    horizontal_alignment::stretch,
+                    vertical_alignment::top
+                )
+            );
+        } else {
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::horizontal, resolve_spacing(),
+                    horizontal_alignment::left,
+                    vertical_alignment::stretch
+                )
+            );
+        }
+    }
+
     // ===== Option Management =====
 
     /// Add a radio button option to the group
@@ -219,21 +243,21 @@ private:
      * @brief Resolve semantic spacing to backend-specific integer via theme
      * @return Resolved spacing value in logical units
      */
-    [[nodiscard]] int resolve_spacing() const {
+    [[nodiscard]] double resolve_spacing() const {
         // Get current theme from ui_services
         auto* themes = ui_services<Backend>::themes();
         if (!themes) {
-            // No theme available, use default small spacing (1)
-            return 1;
+            // No theme available, use default small spacing (1 LU)
+            return 1.0;
         }
 
         auto* theme = themes->get_current_theme();
         if (!theme) {
-            // No current theme, use default small spacing (1)
-            return 1;
+            // No current theme, use default small spacing (1 LU)
+            return 1.0;
         }
 
-        // Resolve spacing enum via theme
+        // Resolve spacing enum via theme (fractional logical units permitted)
         return theme->spacing.resolve(m_spacing);
     }
 

@@ -386,10 +386,12 @@ namespace onyxui {
                 auto const alive_flag = m_alive_flag;
 
 #ifdef ONYXUI_THREAD_SAFE
-                // Copy slot functions under shared lock
-                // std::function uses internal reference counting, so our copies
-                // remain valid even if the original slots are disconnected
-                std::vector<slot_type> slots_to_call;
+                // Copy slot functions under shared lock. Keep their connection
+                // IDs so we can re-check whether each slot is still connected
+                // before invoking it. This matches the non-thread-safe path and
+                // prevents calling callbacks whose owners disconnected or were
+                // destroyed earlier in the same emission.
+                std::vector<std::pair<connection_id, slot_type>> slots_to_call;
                 {
                     std::shared_lock const lock(m_mutex);
                     if (m_slots.empty()) {
@@ -397,11 +399,10 @@ namespace onyxui {
                     }
                     slots_to_call.reserve(m_slots.size());
                     for (const auto& [id, slot] : m_slots) {
-                        slots_to_call.push_back(slot);
+                        slots_to_call.emplace_back(id, slot);
                     }
                 }
-                // Lock released here - callbacks can safely connect/disconnect
-                // No need to check if slots are still connected - our copies are valid
+                // Lock released here - callbacks can safely connect/disconnect.
 
                 // Set re-entrancy guard (explicit atomic operations for clarity)
                 bool const was_emitting = m_emitting.load(std::memory_order_relaxed);
@@ -409,8 +410,20 @@ namespace onyxui {
 
                 try {
                     // Call all slots without holding any locks
-                    // This prevents deadlock and eliminates TOCTOU race condition
-                    for (auto& slot : slots_to_call) {
+                    for (auto& [id, slot] : slots_to_call) {
+                        if (alive_flag && !*alive_flag) {
+                            return;
+                        }
+
+                        bool still_connected = false;
+                        {
+                            std::shared_lock const lock(m_mutex);
+                            still_connected = (m_slots.find(id) != m_slots.end());
+                        }
+                        if (!still_connected) {
+                            continue;
+                        }
+
                         slot(args...);
                         if (alive_flag && !*alive_flag) {
                             // A slot destroyed us. Stack-local `alive_flag`

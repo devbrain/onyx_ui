@@ -133,6 +133,22 @@ namespace onyxui {
          */
         ~grid() override = default;
 
+        // Update the grid_layout's spacing in place once the host is
+        // attached and the theme is reachable. Can't rebuild the layout
+        // (that would wipe `set_cell()` assignments made pre-mount, e.g.
+        // `scroll_view`'s internal 2x2 grid) — `grid_layout::set_spacing`
+        // mutates the existing instance so cell info is preserved.
+        void on_attached(ui_host<Backend>& host) override {
+            base::on_attached(host);
+            if (m_grid_layout) {
+                m_grid_layout->set_spacing(
+                    resolve_column_spacing(),
+                    resolve_row_spacing()
+                );
+                this->invalidate_measure();
+            }
+        }
+
         // Rule of Five
         grid(const grid&) = delete;
         grid& operator=(const grid&) = delete;
@@ -237,30 +253,30 @@ namespace onyxui {
          * @brief Resolve column spacing to backend-specific value
          * @return Column spacing in logical units
          */
-        [[nodiscard]] int resolve_column_spacing() const {
+        [[nodiscard]] double resolve_column_spacing() const {
             auto* themes = ui_services<Backend>::themes();
             if (!themes) {
-                return 0;  // Default no spacing
+                return 0.0;  // Default no spacing
             }
             auto* theme = themes->get_current_theme();
             if (!theme) {
-                return 0;
+                return 0.0;
             }
             return theme->spacing.resolve(m_column_spacing);
         }
 
         /**
          * @brief Resolve row spacing to backend-specific value
-         * @return Row spacing in logical units
+         * @return Row spacing in logical units (fractional permitted)
          */
-        [[nodiscard]] int resolve_row_spacing() const {
+        [[nodiscard]] double resolve_row_spacing() const {
             auto* themes = ui_services<Backend>::themes();
             if (!themes) {
-                return 0;  // Default no spacing
+                return 0.0;  // Default no spacing
             }
             auto* theme = themes->get_current_theme();
             if (!theme) {
-                return 0;
+                return 0.0;
             }
             return theme->spacing.resolve(m_row_spacing);
         }

@@ -492,7 +492,7 @@ namespace onyxui {
 
             // Add content to scroll view WITHOUT pre-arrange
             // The scrollable will arrange children when needed
-            scroll_view_ptr->add_child(std::move(content_container_ptr));
+            scroll_view_ptr->content_add_child(std::move(content_container_ptr));
 
             // Set alignment and size policy on scroll view
             scroll_view_ptr->set_horizontal_align(horizontal_alignment::stretch);

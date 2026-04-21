@@ -772,7 +772,15 @@ namespace onyxui {
             }
 
             // Only draw track background - children render themselves!
-            ctx.draw_rect(abs_track, theme->scrollbar.track_normal.box_style);
+            // Use explicit track_normal colors rather than the scrollbar
+            // widget's own resolved style (which inherits window_bg and makes
+            // the track invisible against the backdrop).
+            ctx.draw_rect(
+                abs_track,
+                theme->scrollbar.track_normal.box_style,
+                theme->scrollbar.track_normal.foreground,
+                theme->scrollbar.track_normal.background
+            );
 
             // Children (thumb, arrows) are rendered automatically by widget_container
         }

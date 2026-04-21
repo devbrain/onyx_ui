@@ -130,7 +130,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         // Don't pre-measure or pre-arrange the panel
 
         // Add to scroll_view (this forwards to scrollable)
-        scroll_view_ptr->add_child(std::move(panel_ptr));
+        scroll_view_ptr->content_add_child(std::move(panel_ptr));
 
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40_lu, 10_lu);
@@ -201,7 +201,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
         auto scroll_view_ptr = classic_scroll_view<test_canvas_backend>();
 
         // Set layout on the scrollable content area (via scroll_view)
-        scroll_view_ptr->set_layout_strategy(
+        scroll_view_ptr->content_set_layout_strategy(
             std::make_unique<linear_layout<test_canvas_backend>>(
                 direction::vertical,
                 0,
@@ -209,9 +209,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Debug text_view stru
                 vertical_alignment::top));
 
         // Add labels directly to scroll_view (forwards to scrollable)
-        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 1"));
-        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 2"));
-        scroll_view_ptr->add_child(std::make_unique<label<test_canvas_backend>>("Direct 3"));
+        scroll_view_ptr->content_add_child(std::make_unique<label<test_canvas_backend>>("Direct 1"));
+        scroll_view_ptr->content_add_child(std::make_unique<label<test_canvas_backend>>("Direct 2"));
+        scroll_view_ptr->content_add_child(std::make_unique<label<test_canvas_backend>>("Direct 3"));
 
         // Measure and arrange
         auto size = scroll_view_ptr->measure(40_lu, 10_lu);

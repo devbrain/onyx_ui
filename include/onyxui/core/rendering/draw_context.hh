@@ -248,6 +248,18 @@ namespace onyxui {
         }
 
         /**
+         * @brief Draw a rectangle with explicit foreground/background colors
+         */
+        void draw_rect(
+            const rect_type& bounds,
+            box_style style,
+            const color_type& fg,
+            const color_type& bg
+        ) override {
+            m_renderer->draw_box(bounds, style, fg, bg);
+        }
+
+        /**
          * @brief Fill a rectangle with solid background color
          *
          * @details

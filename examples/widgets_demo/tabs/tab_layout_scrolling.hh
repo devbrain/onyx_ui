@@ -6,17 +6,8 @@
 //
 
 #pragma once
-#include "../backend_config.hh"  // Defines concrete Backend type
-#include <onyxui/widgets/containers/panel.hh>
-#include <onyxui/widgets/containers/vbox.hh>
-#include <onyxui/widgets/containers/hbox.hh>
-#include <onyxui/widgets/containers/grid.hh>
-#include <onyxui/widgets/containers/group_box.hh>
-#include <onyxui/widgets/containers/scroll_view.hh>
-#include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/layout/spacer.hh>
-#include <onyxui/widgets/layout/spring.hh>
+#include "../backend_config.hh"  // Pulls the simple-shell bundle + all widget headers.
+
 #include <memory>
 #include <string>
 
@@ -34,134 +25,135 @@ namespace widgets_demo_tabs {
  *
  * @return Panel containing the complete tab content
  */
-inline std::unique_ptr<onyxui::panel<Backend>> create_tab_layout_scrolling() {
-    auto tab = std::make_unique<onyxui::panel<Backend>>();
+inline std::unique_ptr<ui::panel> create_tab_layout_scrolling() {
+    auto tab = std::make_unique<ui::panel>();
+    tab->set_padding(onyxui::logical_thickness(onyxui::logical_unit(1.0)));
 
     // Make entire tab scrollable
-    auto* scroll = tab->emplace_child<onyxui::scroll_view>();
+    auto* scroll = tab->emplace_child<ui::scroll_view>();
 
     // Main content container (vertical layout)
-    auto* content = scroll->emplace_child<onyxui::vbox>(onyxui::spacing::tiny);  // 1px spacing
+    auto* content = scroll->content_emplace_child<ui::vbox>(onyxui::spacing::tiny);  // 1px spacing
 
     // Title
-    auto* title = content->emplace_child<onyxui::label>("Layout & Scrolling System");
+    auto* title = content->emplace_child<ui::label>("Layout & Scrolling System");
     title->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<ui::label>("");  // Spacer
 
     // ========== ROW 1: Layout System | Scrolling System ==========
-    auto* row1 = content->emplace_child<onyxui::hbox>(onyxui::spacing::medium);
+    auto* row1 = content->emplace_child<ui::hbox>(onyxui::spacing::medium);
 
     // ========== LAYOUT SECTION (left column) ==========
-    auto* layout_section = row1->emplace_child<onyxui::group_box>();
+    auto* layout_section = row1->emplace_child<ui::group_box>();
     layout_section->set_title("Layout System");
     layout_section->set_vbox_layout(onyxui::spacing::tiny);
 
     // Two-Pass Algorithm
-    layout_section->emplace_child<onyxui::label>("Two-Pass Layout Algorithm:");
-    layout_section->emplace_child<onyxui::label>("  1. Measure Pass (bottom-up)");
-    layout_section->emplace_child<onyxui::label>("  2. Arrange Pass (top-down)");
+    layout_section->emplace_child<ui::label>("Two-Pass Layout Algorithm:");
+    layout_section->emplace_child<ui::label>("  1. Measure Pass (bottom-up)");
+    layout_section->emplace_child<ui::label>("  2. Arrange Pass (top-down)");
 
     // Horizontal Alignment
-    layout_section->emplace_child<onyxui::label>("");  // Spacer
-    layout_section->emplace_child<onyxui::label>("Horizontal Alignment:");
+    layout_section->emplace_child<ui::label>("");  // Spacer
+    layout_section->emplace_child<ui::label>("Horizontal Alignment:");
 
-    auto* left_label = layout_section->emplace_child<onyxui::label>("[Left]");
+    auto* left_label = layout_section->emplace_child<ui::label>("[Left]");
     left_label->set_horizontal_align(onyxui::horizontal_alignment::left);
 
-    auto* center_label = layout_section->emplace_child<onyxui::label>("[Center]");
+    auto* center_label = layout_section->emplace_child<ui::label>("[Center]");
     center_label->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    auto* right_label = layout_section->emplace_child<onyxui::label>("[Right]");
+    auto* right_label = layout_section->emplace_child<ui::label>("[Right]");
     right_label->set_horizontal_align(onyxui::horizontal_alignment::right);
 
     // Vertical Alignment
-    layout_section->emplace_child<onyxui::label>("");  // Spacer
-    layout_section->emplace_child<onyxui::label>("Vertical Alignment:");
+    layout_section->emplace_child<ui::label>("");  // Spacer
+    layout_section->emplace_child<ui::label>("Vertical Alignment:");
 
-    auto* valign_container = layout_section->emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
-    auto* top_btn = valign_container->emplace_child<onyxui::button>("[Top]");
+    auto* valign_container = layout_section->emplace_child<ui::hbox>(onyxui::spacing::tiny);
+    auto* top_btn = valign_container->emplace_child<ui::button>("[Top]");
     top_btn->set_vertical_align(onyxui::vertical_alignment::top);
-    auto* vcenter_btn = valign_container->emplace_child<onyxui::button>("[Ctr]");
+    auto* vcenter_btn = valign_container->emplace_child<ui::button>("[Ctr]");
     vcenter_btn->set_vertical_align(onyxui::vertical_alignment::center);
-    auto* bottom_btn = valign_container->emplace_child<onyxui::button>("[Bot]");
+    auto* bottom_btn = valign_container->emplace_child<ui::button>("[Bot]");
     bottom_btn->set_vertical_align(onyxui::vertical_alignment::bottom);
 
     // Spacer and Spring
-    layout_section->emplace_child<onyxui::label>("");  // Spacer
-    layout_section->emplace_child<onyxui::label>("Spacer vs Spring:");
+    layout_section->emplace_child<ui::label>("");  // Spacer
+    layout_section->emplace_child<ui::label>("Spacer vs Spring:");
 
-    auto* spacer_demo = layout_section->emplace_child<onyxui::hbox>(onyxui::spacing::none);
-    spacer_demo->emplace_child<onyxui::label>("[L]");
-    spacer_demo->emplace_child<onyxui::spacer>(5);
-    spacer_demo->emplace_child<onyxui::label>("[5]");
-    spacer_demo->emplace_child<onyxui::spring>();
-    spacer_demo->emplace_child<onyxui::label>("[R]");
+    auto* spacer_demo = layout_section->emplace_child<ui::hbox>(onyxui::spacing::none);
+    spacer_demo->emplace_child<ui::label>("[L]");
+    spacer_demo->emplace_child<ui::spacer>(5);
+    spacer_demo->emplace_child<ui::label>("[5]");
+    spacer_demo->emplace_child<ui::spring>();
+    spacer_demo->emplace_child<ui::label>("[R]");
 
     // ========== SCROLLING SECTION (right column) ==========
-    auto* scrolling_section = row1->emplace_child<onyxui::group_box>();
+    auto* scrolling_section = row1->emplace_child<ui::group_box>();
     scrolling_section->set_title("Scrolling System");
     scrolling_section->set_vbox_layout(onyxui::spacing::tiny);
 
-    scrolling_section->emplace_child<onyxui::label>("Scrolling Architecture:");
-    scrolling_section->emplace_child<onyxui::label>("  - scroll_view: Container");
-    scrolling_section->emplace_child<onyxui::label>("  - scrollable: Viewport");
-    scrolling_section->emplace_child<onyxui::label>("  - scrollbar: Visual widget");
-    scrolling_section->emplace_child<onyxui::label>("  - scroll_controller: Sync");
+    scrolling_section->emplace_child<ui::label>("Scrolling Architecture:");
+    scrolling_section->emplace_child<ui::label>("  - scroll_view: Container");
+    scrolling_section->emplace_child<ui::label>("  - scrollable: Viewport");
+    scrolling_section->emplace_child<ui::label>("  - scrollbar: Visual widget");
+    scrolling_section->emplace_child<ui::label>("  - scroll_controller: Sync");
 
     // Keyboard Navigation
-    scrolling_section->emplace_child<onyxui::label>("");  // Spacer
-    scrolling_section->emplace_child<onyxui::label>("Keyboard Navigation:");
-    scrolling_section->emplace_child<onyxui::label>("  - Arrow Keys: Line scroll");
-    scrolling_section->emplace_child<onyxui::label>("  - Page Up/Down: Page scroll");
-    scrolling_section->emplace_child<onyxui::label>("  - Home/End: Jump to edges");
-    scrolling_section->emplace_child<onyxui::label>("  - Mouse Wheel: Vertical");
+    scrolling_section->emplace_child<ui::label>("");  // Spacer
+    scrolling_section->emplace_child<ui::label>("Keyboard Navigation:");
+    scrolling_section->emplace_child<ui::label>("  - Arrow Keys: Line scroll");
+    scrolling_section->emplace_child<ui::label>("  - Page Up/Down: Page scroll");
+    scrolling_section->emplace_child<ui::label>("  - Home/End: Jump to edges");
+    scrolling_section->emplace_child<ui::label>("  - Mouse Wheel: Vertical");
 
     // ========== ROW 2: Demos ==========
-    auto* row2 = content->emplace_child<onyxui::hbox>(onyxui::spacing::medium);
+    auto* row2 = content->emplace_child<ui::hbox>(onyxui::spacing::medium);
 
     // ========== NESTED LAYOUTS DEMO (left column) ==========
-    auto* nested_section = row2->emplace_child<onyxui::group_box>();
+    auto* nested_section = row2->emplace_child<ui::group_box>();
     nested_section->set_title("Nested Layouts Demo");
     nested_section->set_vbox_layout(onyxui::spacing::tiny);
 
-    nested_section->emplace_child<onyxui::label>("Outer VBox:");
+    nested_section->emplace_child<ui::label>("Outer VBox:");
 
-    auto* nested_inner = nested_section->emplace_child<onyxui::hbox>(onyxui::spacing::tiny);
-    nested_inner->emplace_child<onyxui::button>("HBox 1");
-    nested_inner->emplace_child<onyxui::button>("HBox 2");
-    nested_inner->emplace_child<onyxui::button>("HBox 3");
+    auto* nested_inner = nested_section->emplace_child<ui::hbox>(onyxui::spacing::tiny);
+    nested_inner->emplace_child<ui::button>("HBox 1");
+    nested_inner->emplace_child<ui::button>("HBox 2");
+    nested_inner->emplace_child<ui::button>("HBox 3");
 
-    nested_section->emplace_child<onyxui::label>("VBox continues...");
+    nested_section->emplace_child<ui::label>("VBox continues...");
 
     // Padding demo
-    nested_section->emplace_child<onyxui::label>("");  // Spacer
-    nested_section->emplace_child<onyxui::label>("Padding Demo:");
+    nested_section->emplace_child<ui::label>("");  // Spacer
+    nested_section->emplace_child<ui::label>("Padding Demo:");
 
-    auto* padding_demo = nested_section->emplace_child<onyxui::panel>();
+    auto* padding_demo = nested_section->emplace_child<ui::panel>();
     padding_demo->set_vbox_layout(onyxui::spacing::tiny);
     padding_demo->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
-    padding_demo->emplace_child<onyxui::label>("2px padding all sides");
+    padding_demo->emplace_child<ui::label>("2px padding all sides");
 
     // ========== LARGE CONTENT DEMO (right column) ==========
-    auto* large_section = row2->emplace_child<onyxui::group_box>();
+    auto* large_section = row2->emplace_child<ui::group_box>();
     large_section->set_title("Nested Scroll Demo");
     large_section->set_vbox_layout(onyxui::spacing::tiny);
 
-    large_section->emplace_child<onyxui::label>("100 items in scroll_view:");
+    large_section->emplace_child<ui::label>("100 items in scroll_view:");
 
     // Inner scroll_view demonstrates nested scrolling
-    auto* nested_scroll = large_section->emplace_child<onyxui::scroll_view>();
-    auto* large_content = nested_scroll->emplace_child<onyxui::vbox>(onyxui::spacing::none);
+    auto* nested_scroll = large_section->emplace_child<ui::scroll_view>();
+    auto* large_content = nested_scroll->content_emplace_child<ui::vbox>(onyxui::spacing::none);
 
     // Add 100 items to demonstrate scrolling
     for (int i = 1; i <= 100; ++i) {
-        large_content->emplace_child<onyxui::label>("Item " + std::to_string(i));
+        large_content->emplace_child<ui::label>("Item " + std::to_string(i));
     }
 
     // Tips at the bottom
-    content->emplace_child<onyxui::label>("");  // Spacer
-    auto* tips = content->emplace_child<onyxui::label>("Tips: This tab is scrollable! Try the nested scroll demo above.");
+    content->emplace_child<ui::label>("");  // Spacer
+    auto* tips = content->emplace_child<ui::label>("Tips: This tab is scrollable! Try the nested scroll demo above.");
     tips->set_horizontal_align(onyxui::horizontal_alignment::center);
 
     return tab;

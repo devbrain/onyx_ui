@@ -12,7 +12,6 @@
 #pragma once
 
 #include <onyxui/for/sdlpp.hh>
-#include <onyxui/instantiations/all_widgets.hh>
 
 #define ONYXUI_BACKEND onyxui::sdlpp::sdlpp_backend
 #include <onyxui/instantiations/extern_widgets.inl>
@@ -21,3 +20,8 @@
 // whichever backend this file has selected. Consumers who need a
 // backend-typed template (e.g. `onyxui::action<Backend>`) use this.
 using Backend = onyxui::simple::backend;
+
+// Short alias for the simple-shell namespace. Demo code uses `ui::button`,
+// `ui::hbox`, etc. — cleaner than repeating `onyxui::simple::` at each
+// call site. Kept local to the demo; the framework namespace stays `simple`.
+namespace ui = onyxui::simple;

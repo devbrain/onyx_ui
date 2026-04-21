@@ -535,19 +535,23 @@ namespace onyxui {
          * ```
          */
         struct spacing_values {
-            int none = 0;
-            int tiny = 0;
-            int small = 1;
-            int medium = 1;
-            int large = 2;
-            int xlarge = 3;
+            // Stored as `double` so themes can specify fractional logical
+            // units (e.g. 0.25 LU ≈ 2 px on an 8-px backend). The layout
+            // system carries doubles throughout, so there is no rounding
+            // loss downstream.
+            double none = 0.0;
+            double tiny = 0.0;
+            double small = 1.0;
+            double medium = 1.0;
+            double large = 2.0;
+            double xlarge = 3.0;
 
             /**
-             * @brief Resolve spacing enum to logical unit integer
+             * @brief Resolve spacing enum to logical unit value
              * @param s The semantic spacing value
-             * @return Logical unit integer value
+             * @return Logical-unit value (fractional permitted)
              */
-            [[nodiscard]] constexpr int resolve(spacing s) const noexcept {
+            [[nodiscard]] constexpr double resolve(spacing s) const noexcept {
                 switch (s) {
                     case spacing::none:   return none;
                     case spacing::tiny:   return tiny;

@@ -151,6 +151,30 @@ namespace onyxui {
         ) = 0;
 
         /**
+         * @brief Draw a rectangle with explicit foreground and background colors
+         *
+         * @param bounds Rectangle bounds
+         * @param style Box style (border type, is_solid)
+         * @param fg Foreground color (for flat borders)
+         * @param bg Background color (for solid fill)
+         *
+         * @details
+         * Unlike the single-argument overload, this does NOT read colors from
+         * the resolved style. Use it to draw state-dependent sub-regions of a
+         * composite widget (e.g. scrollbar track vs. thumb vs. arrow) where a
+         * single resolved style cannot represent every region.
+         *
+         * - **measure_context**: Tracks bounds, no rendering
+         * - **draw_context**: Draws actual rectangle with the supplied colors
+         */
+        virtual void draw_rect(
+            const rect_type& bounds,
+            box_style style,
+            const color_type& fg,
+            const color_type& bg
+        ) = 0;
+
+        /**
          * @brief Fill a rectangle with solid background color
          *
          * @param bounds Rectangle bounds

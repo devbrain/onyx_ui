@@ -7,15 +7,16 @@
 
 #pragma once
 #include "../backend_config.hh"  // Defines concrete Backend type
-#include <onyxui/widgets/window/window.hh>
-#include <onyxui/widgets/containers/vbox.hh>
-#include <onyxui/widgets/containers/hbox.hh>
-#include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/button.hh>
 #include <memory>
 #include <string>
 
 namespace widgets_demo_windows {
+
+using ui::button;
+using ui::hbox;
+using ui::label;
+using ui::vbox;
+using ui::window;
 
 /**
  * @brief Create and show modal dialog example
@@ -29,9 +30,9 @@ namespace widgets_demo_windows {
  * - ESC to close
  * - OK/Cancel buttons
  */
-inline std::unique_ptr<onyxui::window<Backend>> create_modal_dialog(const std::string& message) {
+inline std::unique_ptr<window> create_modal_dialog(const std::string& message) {
     // Create window with minimal flags (dialogs don't need all window features)
-    typename onyxui::window<Backend>::window_flags flags;
+    window::window_flags flags;
     flags.has_close_button = true;
     flags.has_minimize_button = false;
     flags.has_maximize_button = false;
@@ -40,44 +41,44 @@ inline std::unique_ptr<onyxui::window<Backend>> create_modal_dialog(const std::s
     flags.is_movable = true;   // Allow dragging
     flags.is_scrollable = false;
 
-    auto dialog = std::make_unique<onyxui::window<Backend>>("Modal Dialog", flags);
+    auto dialog = std::make_unique<window>("Modal Dialog", flags);
     auto* dialog_ptr = dialog.get();
 
     // Create content
-    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
+    auto content = std::make_unique<vbox>(onyxui::spacing::tiny);
     content->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
 
     // Title
-    auto* title_label = content->emplace_child<onyxui::label>("Modal Dialog Example");
+    auto* title_label = content->emplace_child<label>("Modal Dialog Example");
     title_label->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Message
-    auto* msg_label = content->emplace_child<onyxui::label>(message);
+    auto* msg_label = content->emplace_child<label>(message);
     msg_label->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Explanation
-    content->emplace_child<onyxui::label>("Modal Dialog Features:");
-    content->emplace_child<onyxui::label>("  - Blocks parent window interaction");
-    content->emplace_child<onyxui::label>("  - Focus trapped within dialog");
-    content->emplace_child<onyxui::label>("  - Tab cycles through buttons");
-    content->emplace_child<onyxui::label>("  - ESC or click OK to close");
+    content->emplace_child<label>("Modal Dialog Features:");
+    content->emplace_child<label>("  - Blocks parent window interaction");
+    content->emplace_child<label>("  - Focus trapped within dialog");
+    content->emplace_child<label>("  - Tab cycles through buttons");
+    content->emplace_child<label>("  - ESC or click OK to close");
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Buttons
-    auto* button_row = content->emplace_child<onyxui::hbox>(onyxui::spacing::medium);
+    auto* button_row = content->emplace_child<hbox>(onyxui::spacing::medium);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    auto* ok_btn = button_row->emplace_child<onyxui::button>("OK");
+    auto* ok_btn = button_row->emplace_child<button>("OK");
     ok_btn->clicked.connect([dialog_ptr]() {
         dialog_ptr->close();
     });
 
-    auto* cancel_btn = button_row->emplace_child<onyxui::button>("Cancel");
+    auto* cancel_btn = button_row->emplace_child<button>("Cancel");
     cancel_btn->clicked.connect([dialog_ptr]() {
         dialog_ptr->close();
     });

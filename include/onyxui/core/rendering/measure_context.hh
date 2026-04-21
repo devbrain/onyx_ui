@@ -166,6 +166,18 @@ namespace onyxui {
         }
 
         /**
+         * @brief "Draw" a rectangle with explicit colors (measurement only)
+         */
+        void draw_rect(
+            const rect_type& bounds,
+            box_style style,
+            const color_type& /*fg*/,
+            const color_type& /*bg*/
+        ) override {
+            draw_rect(bounds, style);
+        }
+
+        /**
          * @brief "Fill" a rectangle (measurement only)
          *
          * @details

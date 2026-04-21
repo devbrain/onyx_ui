@@ -30,11 +30,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     auto view = modern_scroll_view<test_canvas_backend>();
 
     // Add vertical layout
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add 20 labels
     for (int i = 0; i < 20; ++i) {
-        view->emplace_child<label>("Item " + std::to_string(i));
+        view->content_emplace_child<label>("Item " + std::to_string(i));
     }
 
     // Measure and arrange
@@ -65,7 +65,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     }
 
     // Add the grid to the scroll view
-    view->add_child(std::move(grid_widget));
+    view->content_add_child(std::move(grid_widget));
 
     // Measure and arrange
     [[maybe_unused]] auto size = view->measure(200_lu, 150_lu);
@@ -79,11 +79,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - vertic
     auto view = vertical_only_scroll_view<test_canvas_backend>();
 
     // Add vertical layout
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add multiple paragraphs
     for (int i = 0; i < 10; ++i) {
-        view->emplace_child<label>("Paragraph " + std::to_string(i) + ": Lorem ipsum dolor sit amet");
+        view->content_emplace_child<label>("Paragraph " + std::to_string(i) + ": Lorem ipsum dolor sit amet");
     }
 
     [[maybe_unused]] auto size = view->measure(300_lu, 200_lu);
@@ -109,7 +109,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     inner_panel->emplace_child<label>("Nested content");
 
     outer_panel->add_child(std::move(inner_panel));
-    view->add_child(std::move(outer_panel));
+    view->content_add_child(std::move(outer_panel));
 
     [[maybe_unused]] auto size = view->measure(200_lu, 150_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 150_lu});
@@ -122,7 +122,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - scroll
     auto container = std::make_unique<panel<test_canvas_backend>>();
 
     auto view = modern_scroll_view<test_canvas_backend>();
-    view->emplace_child<label>("Content inside scrollable inside panel");
+    view->content_emplace_child<label>("Content inside scrollable inside panel");
 
     auto* view_ptr = view.get();
     container->add_child(std::move(view));
@@ -144,8 +144,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Two in
     auto view2 = modern_scroll_view<test_canvas_backend>();
 
     // Add content to both
-    view1->emplace_child<label>("View 1 content");
-    view2->emplace_child<label>("View 2 content");
+    view1->content_emplace_child<label>("View 1 content");
+    view2->content_emplace_child<label>("View 2 content");
 
     [[maybe_unused]] auto size1 = view1->measure(200_lu, 100_lu);
     view1->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
@@ -169,11 +169,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Two in
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Add items dynamically and scroll") {
     auto view = modern_scroll_view<test_canvas_backend>();
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Start with 5 items
     for (int i = 0; i < 5; ++i) {
-        view->emplace_child<label>("Item " + std::to_string(i));
+        view->content_emplace_child<label>("Item " + std::to_string(i));
     }
 
     [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
@@ -183,7 +183,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Add it
 
     // Add 10 more items
     for (int i = 5; i < 15; ++i) {
-        view->emplace_child<label>("Item " + std::to_string(i));
+        view->content_emplace_child<label>("Item " + std::to_string(i));
     }
 
     // Remeasure
@@ -200,12 +200,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Add it
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove items and verify scroll bounds") {
     auto view = modern_scroll_view<test_canvas_backend>();
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add 20 items
     std::vector<label<test_canvas_backend>*> labels;
     for (int i = 0; i < 20; ++i) {
-        labels.push_back(view->emplace_child<label>("Item " + std::to_string(i)));
+        labels.push_back(view->content_emplace_child<label>("Item " + std::to_string(i)));
     }
 
     [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
@@ -218,7 +218,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
 
     // Remove half the items
     for (std::size_t i = 0; i < 10; ++i) {
-        view->remove_child(labels[i]);
+        view->content_remove_child(labels[i]);
     }
 
     // Remeasure
@@ -235,11 +235,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Remove
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear all children") {
     auto view = modern_scroll_view<test_canvas_backend>();
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add items
     for (int i = 0; i < 10; ++i) {
-        view->emplace_child<label>("Item " + std::to_string(i));
+        view->content_emplace_child<label>("Item " + std::to_string(i));
     }
 
     [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
@@ -248,7 +248,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear 
     view->scroll_to(0, 50);
 
     // Clear all children
-    view->clear_children();
+    view->content_clear_children();
 
     // Remeasure
     [[maybe_unused]] auto new_size = view->measure(200_lu, 100_lu);
@@ -267,13 +267,13 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - Clear 
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - modern_scroll_view with mixed widgets") {
     auto view = modern_scroll_view<test_canvas_backend>();
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add different widget types
-    view->emplace_child<label>("Header");
-    view->emplace_child<button>("Action");
-    view->emplace_child<panel>();
-    view->emplace_child<label>("Footer");
+    view->content_emplace_child<label>("Header");
+    view->content_emplace_child<button>("Action");
+    view->content_emplace_child<panel>();
+    view->content_emplace_child<label>("Footer");
 
     [[maybe_unused]] auto size = view->measure(200_lu, 100_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 100_lu});
@@ -285,7 +285,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - classi
     auto view = classic_scroll_view<test_canvas_backend>();
 
     // Add minimal content (doesn't need scrolling)
-    view->emplace_child<label>("Small");
+    view->content_emplace_child<label>("Small");
 
     [[maybe_unused]] auto size = view->measure(200_lu, 200_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 200_lu, 200_lu});
@@ -298,11 +298,11 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - classi
 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Integration - compact_scroll_view with long content") {
     auto view = compact_scroll_view<test_canvas_backend>();
-    view->set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
+    view->content_set_layout_strategy(std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical));
 
     // Add many items
     for (int i = 0; i < 50; ++i) {
-        view->emplace_child<label>("Item " + std::to_string(i));
+        view->content_emplace_child<label>("Item " + std::to_string(i));
     }
 
     [[maybe_unused]] auto size = view->measure(150_lu, 100_lu);

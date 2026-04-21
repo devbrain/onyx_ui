@@ -58,6 +58,7 @@
 
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/layout/linear_layout.hh>
+#include <onyxui/services/ui_services.hh>
 #include <cmath>
 #include <string>
 
@@ -130,9 +131,14 @@ namespace onyxui {
             // Group box always has a border - use panel's border mechanism
             this->set_has_border(true);
 
-            // Set default vertical layout for children
+            // Stack children vertically with a theme-resolved gap instead of a
+            // hardcoded zero. On character backends this still resolves to 0;
+            // on pixel backends it picks up the theme's `spacing::small`.
             this->set_layout_strategy(
-                std::make_unique<linear_layout<Backend>>(direction::vertical, 0)
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical,
+                    base::resolve_spacing(spacing::small)
+                )
             );
         }
 
@@ -140,6 +146,21 @@ namespace onyxui {
          * @brief Destructor
          */
         ~group_box() override = default;
+
+        // Rebuild the layout once the host is attached. At ctor time,
+        // `resolve_spacing()` can't see the theme (ui_services has no
+        // themes registered yet) and falls back to 0, so the gap between
+        // children stays at the framework default instead of the theme's
+        // small-spacing.
+        void on_attached(ui_host<Backend>& host) override {
+            base::on_attached(host);
+            this->set_layout_strategy(
+                std::make_unique<linear_layout<Backend>>(
+                    direction::vertical,
+                    base::resolve_spacing(spacing::small)
+                )
+            );
+        }
 
         // Rule of Five
         group_box(const group_box&) = delete;
@@ -261,11 +282,62 @@ namespace onyxui {
             if (m_title.empty()) {
                 return logical_unit(0.0);
             }
-            // Use the pixel offset directly as logical units.
-            // For text backends (height=1), get_title_offset_pixels() returns 0.
-            // For graphical backends with 1:1 logical-to-physical mapping,
-            // the pixel value is the correct logical value.
-            return logical_unit(get_title_offset_pixels());
+            int const offset_pixels = get_title_offset_pixels();
+            if (offset_pixels == 0) {
+                return logical_unit(0.0);
+            }
+            // Convert physical pixels to logical units via backend metrics.
+            // On sdlpp (8 px / LU) a 16 px title → 8 px offset → 1 LU.
+            // Treating pixels as logical units directly (the previous
+            // behaviour) inflated the offset 8× on graphical backends,
+            // which caused the title to float far above the content.
+            if (auto const* metrics = ui_services<Backend>::metrics()) {
+                return metrics->physical_to_logical_y(physical_y(offset_pixels));
+            }
+            // No metrics service (unit-test fixtures without a backend): fall
+            // back to 1:1 mapping, which matches terminal behaviour.
+            return logical_unit(offset_pixels);
+        }
+
+        /**
+         * @brief Get extra top inset needed so content clears the title text.
+         *
+         * @details
+         * The border only needs to move down by half the title height to look
+         * visually centered, but the content must clear the full title height.
+         * Base content-area math already accounts for the top border itself, so
+         * this helper returns only the additional inset beyond that border.
+         */
+        [[nodiscard]] logical_unit get_title_clearance_logical() const {
+            if (m_title.empty()) {
+                return logical_unit(0.0);
+            }
+
+            typename Backend::renderer_type::font default_font{};
+            std::string const formatted_title = " " + m_title + " ";
+            auto text_size = Backend::renderer_type::measure_text(formatted_title, default_font);
+            int const text_height = size_utils::get_height(text_size);
+
+            int border_pixels = static_cast<int>(std::round(this->get_border_thickness()));
+            if (auto const* metrics = ui_services<Backend>::metrics()) {
+                border_pixels = std::max(
+                    1,
+                    metrics->snap_to_physical_y(
+                        logical_unit(this->get_border_thickness()),
+                        snap_mode::round
+                    ).value
+                );
+            }
+
+            int const extra_pixels = std::max(0, text_height - border_pixels);
+            if (extra_pixels == 0) {
+                return logical_unit(0.0);
+            }
+
+            if (auto const* metrics = ui_services<Backend>::metrics()) {
+                return metrics->physical_to_logical_y(physical_y(extra_pixels));
+            }
+            return logical_unit(extra_pixels);
         }
 
         /**
@@ -280,10 +352,10 @@ namespace onyxui {
             // Measure using base class (widget_container handles border addition)
             auto measured = base::do_measure(available_width, available_height);
 
-            // Add title offset for graphical backends (in logical units)
-            logical_unit const title_offset = get_title_offset_logical();
-            if (title_offset > logical_unit(0.0)) {
-                measured.height = measured.height + title_offset;
+            // Reserve enough top inset for the full title height.
+            logical_unit const title_clearance = get_title_clearance_logical();
+            if (title_clearance > logical_unit(0.0)) {
+                measured.height = measured.height + title_clearance;
             }
 
             return measured;
@@ -300,11 +372,12 @@ namespace onyxui {
         logical_rect get_content_area() const noexcept override {
             auto content = base::get_content_area();
 
-            // Adjust y position for title offset in logical units
-            logical_unit const title_offset = get_title_offset_logical();
-            if (title_offset > logical_unit(0.0)) {
-                content.y = content.y + title_offset;
-                content.height = max(logical_unit(0.0), content.height - title_offset);
+            // Shift content below the full title text, not just the centered
+            // border offset.
+            logical_unit const title_clearance = get_title_clearance_logical();
+            if (title_clearance > logical_unit(0.0)) {
+                content.y = content.y + title_clearance;
+                content.height = max(logical_unit(0.0), content.height - title_clearance);
             }
 
             return content;

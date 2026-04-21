@@ -1,4 +1,5 @@
 #include <onyxui/sdlpp/sdlpp_renderer.hh>
+#include <onyxui/sdlpp/sdlpp_backend.hh>
 #include <onyxui/sdlpp/xpm_parser.hh>
 
 #include <sdlpp/video/renderer.hh>
@@ -8,6 +9,7 @@
 #include <sdlpp/font/font_cache.hh>
 #include <sdlpp/image/image.hh>
 #include <onyx_font/text/utf8.hh>
+#include <onyxui/services/ui_services.hh>
 #include <cmath>
 #include <iostream>
 #include <stack>
@@ -15,6 +17,21 @@
 #include <vector>
 
 namespace onyxui::sdlpp {
+
+namespace {
+    [[nodiscard]] float current_dpi_scale() noexcept {
+        auto const* metrics = onyxui::ui_services<sdlpp_backend>::metrics();
+        if (!metrics || metrics->dpi_scale <= 0.0) {
+            return 1.0f;
+        }
+        return static_cast<float>(metrics->dpi_scale);
+    }
+
+    [[nodiscard]] sdlpp_renderer::font dpi_scaled(sdlpp_renderer::font f) noexcept {
+        f.size_px *= current_dpi_scale();
+        return f;
+    }
+} // namespace
 
 // =================================================================
 // Font Cache using lib_sdlpp's font_cache for glyph caching
@@ -463,8 +480,10 @@ void sdlpp_renderer::draw_text(const rect& r, std::string_view text,
         return;
     }
 
+    const font scaled_font = dpi_scaled(f);
+
     // Use font_cache for efficient glyph caching
-    auto* cache = font_cache_manager::instance().get_cache(*m_pimpl->renderer, f);
+    auto* cache = font_cache_manager::instance().get_cache(*m_pimpl->renderer, scaled_font);
     if (!cache) {
         return;
     }
@@ -1223,7 +1242,7 @@ void sdlpp_renderer::take_screenshot(std::ostream& sink) const
 size sdlpp_renderer::measure_text(std::string_view text, const font& f)
 {
     // Use cached glyph metrics when available for faster measurement
-    return font_cache_manager::instance().measure_text_cached(f, text);
+    return font_cache_manager::instance().measure_text_cached(dpi_scaled(f), text);
 }
 
 size sdlpp_renderer::get_icon_size(icon_style icon) noexcept

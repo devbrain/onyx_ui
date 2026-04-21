@@ -213,8 +213,8 @@ namespace onyxui {
             explicit grid_layout(
                 int num_columns = 1,
                 int num_rows = -1,
-                int column_spacing = 0,
-                int row_spacing = 0,
+                double column_spacing = 0.0,
+                double row_spacing = 0.0,
                 bool auto_size = true,
                 std::vector <int> fixed_column_widths = {},
                 std::vector <int> fixed_row_heights = {}
@@ -259,6 +259,31 @@ namespace onyxui {
              * @return Number of rows (-1 if auto-calculated)
              */
             [[nodiscard]] int num_rows() const noexcept { return m_num_rows; }
+
+            /**
+             * @brief Get horizontal spacing between cells (logical units)
+             */
+            [[nodiscard]] double column_spacing() const noexcept { return m_column_spacing; }
+
+            /**
+             * @brief Get vertical spacing between cells (logical units)
+             */
+            [[nodiscard]] double row_spacing() const noexcept { return m_row_spacing; }
+
+            /**
+             * @brief Update cell spacing without rebuilding the layout.
+             *
+             * `grid_layout` was designed with spacing marked const, but the
+             * widget wrapper needs to refresh spacing when the theme becomes
+             * reachable (post-mount). Rebuilding the layout would wipe
+             * `m_cell_mapping`, so we mutate in-place instead. The caller
+             * is responsible for invalidating the owning widget's measure
+             * cache.
+             */
+            void set_spacing(double column, double row) noexcept {
+                m_column_spacing = column;
+                m_row_spacing = row;
+            }
 
         protected:
             /**
@@ -326,8 +351,8 @@ namespace onyxui {
             // Immutable configuration
             const int m_num_columns; ///< Number of columns (minimum 1)
             const int m_num_rows; ///< Number of rows (-1 for auto)
-            const int m_column_spacing; ///< Horizontal spacing between cells
-            const int m_row_spacing; ///< Vertical spacing between cells
+            double m_column_spacing; ///< Horizontal spacing between cells (logical units) — mutated by set_spacing on theme attach.
+            double m_row_spacing; ///< Vertical spacing between cells (logical units) — mutated by set_spacing on theme attach.
             const bool m_auto_size_cells; ///< True to size from content
             const std::vector <int> m_fixed_column_widths; ///< Fixed column widths (if not auto-sizing)
             const std::vector <int> m_fixed_row_heights; ///< Fixed row heights (if not auto-sizing)
@@ -453,7 +478,7 @@ namespace onyxui {
     // ==================================================================================================
 
     template<UIBackend Backend>
-    grid_layout<Backend>::grid_layout(int num_columns, int num_rows, int column_spacing, int row_spacing,
+    grid_layout<Backend>::grid_layout(int num_columns, int num_rows, double column_spacing, double row_spacing,
                                             bool auto_size, std::vector <int> fixed_column_widths,
                                             std::vector <int> fixed_row_heights)
         : m_num_columns(num_columns < 1 ? 1 : num_columns)
@@ -539,7 +564,7 @@ namespace onyxui {
         }
         logical_unit column_spacing_total = logical_unit(0.0);
         if (m_num_columns > 1) {
-            column_spacing_total = logical_unit(static_cast<double>(m_column_spacing * (m_num_columns - 1)));
+            column_spacing_total = logical_unit(m_column_spacing * (m_num_columns - 1));
         }
         total_width = total_width + column_spacing_total;
 
@@ -549,7 +574,7 @@ namespace onyxui {
         }
         logical_unit row_spacing_total = logical_unit(0.0);
         if (actual_rows > 1) {
-            row_spacing_total = logical_unit(static_cast<double>(m_row_spacing * (actual_rows - 1)));
+            row_spacing_total = logical_unit(m_row_spacing * (actual_rows - 1));
         }
         total_height = total_height + row_spacing_total;
 
@@ -575,13 +600,13 @@ namespace onyxui {
         column_positions[0] = logical_unit(0.0);
         for (int i = 1; i < m_num_columns; ++i) {
             column_positions[static_cast<size_t>(i)] = column_positions[static_cast<size_t>(i - 1)] +
-                                  m_column_widths[static_cast<size_t>(i - 1)] + logical_unit(static_cast<double>(m_column_spacing));
+                                  m_column_widths[static_cast<size_t>(i - 1)] + logical_unit(m_column_spacing);
         }
 
         row_positions[0] = logical_unit(0.0);
         for (int i = 1; i < actual_rows; ++i) {
             row_positions[static_cast<size_t>(i)] = row_positions[static_cast<size_t>(i - 1)] +
-                               m_row_heights[static_cast<size_t>(i - 1)] + logical_unit(static_cast<double>(m_row_spacing));
+                               m_row_heights[static_cast<size_t>(i - 1)] + logical_unit(m_row_spacing);
         }
 
         // Arrange each child
@@ -602,7 +627,7 @@ namespace onyxui {
                 if (cell.column + i < m_num_columns) {
                     cell_width = cell_width + m_column_widths[static_cast<size_t>(cell.column) + static_cast<size_t>(i)];
                     if (i < cell.column_span - 1) {
-                        cell_width = cell_width + logical_unit(static_cast<double>(m_column_spacing));
+                        cell_width = cell_width + logical_unit(m_column_spacing);
                     }
                 }
             }
@@ -612,7 +637,7 @@ namespace onyxui {
                 if (cell.row + i < actual_rows) {
                     cell_height = cell_height + m_row_heights[static_cast<size_t>(cell.row) + static_cast<size_t>(i)];
                     if (i < cell.row_span - 1) {
-                        cell_height = cell_height + logical_unit(static_cast<double>(m_row_spacing));
+                        cell_height = cell_height + logical_unit(m_row_spacing);
                     }
                 }
             }
@@ -914,7 +939,7 @@ namespace onyxui {
                 for (int i = 0; i < cell.column_span && (cell.column + i) < m_num_columns; ++i) {
                     current_total = current_total + m_column_widths[static_cast<size_t>(cell.column) + static_cast<size_t>(i)];
                     if (i > 0) {
-                        current_total = current_total + logical_unit(static_cast<double>(m_column_spacing)); // Include spacing between columns
+                        current_total = current_total + logical_unit(m_column_spacing); // Include spacing between columns
                     }
                 }
 
@@ -957,7 +982,7 @@ namespace onyxui {
                 for (int i = 0; i < cell.row_span && (cell.row + i) < actual_rows; ++i) {
                     current_total = current_total + m_row_heights[static_cast<size_t>(cell.row) + static_cast<size_t>(i)];
                     if (i > 0) {
-                        current_total = current_total + logical_unit(static_cast<double>(m_row_spacing)); // Include spacing between rows
+                        current_total = current_total + logical_unit(m_row_spacing); // Include spacing between rows
                     }
                 }
 

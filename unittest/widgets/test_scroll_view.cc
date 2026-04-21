@@ -80,7 +80,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Scroll
     CHECK(controller != nullptr);
 
     // Add content and verify sync works
-    view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
     view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -101,7 +101,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - add_ch
     scroll_view<test_canvas_backend> view;
 
     auto child = make_fixed_panel<test_canvas_backend>(50, 50);
-    view.add_child(std::move(child));
+    view.content_add_child(std::move(child));
 
     CHECK(view.content()->children().size() == 1);
 }
@@ -109,7 +109,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - add_ch
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - emplace_child forwards to scrollable") {
     scroll_view<test_canvas_backend> view;
 
-    auto* label_ptr = view.emplace_child<label>("Test");
+    auto* label_ptr = view.content_emplace_child<label>("Test");
 
     CHECK(label_ptr != nullptr);
     CHECK(view.content()->children().size() == 1);
@@ -120,9 +120,9 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - remove
 
     auto child = make_fixed_panel<test_canvas_backend>(50, 50);
     auto* child_ptr = child.get();
-    view.add_child(std::move(child));
+    view.content_add_child(std::move(child));
 
-    auto removed = view.remove_child(child_ptr);
+    auto removed = view.content_remove_child(child_ptr);
 
     CHECK(removed != nullptr);
     CHECK(view.content()->children().size() == 0);
@@ -131,12 +131,12 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - remove
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - clear_children forwards to scrollable") {
     scroll_view<test_canvas_backend> view;
 
-    view.add_child(make_fixed_panel<test_canvas_backend>(50, 50));
-    view.add_child(make_fixed_panel<test_canvas_backend>(50, 50));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(50, 50));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(50, 50));
 
     CHECK(view.content()->children().size() == 2);
 
-    view.clear_children();
+    view.content_clear_children();
 
     CHECK(view.content()->children().size() == 0);
 }
@@ -145,7 +145,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - set_la
     scroll_view<test_canvas_backend> view;
 
     auto layout = std::make_unique<linear_layout<test_canvas_backend>>(direction::vertical);
-    view.set_layout_strategy(std::move(layout));
+    view.content_set_layout_strategy(std::move(layout));
 
     // Verify layout was set by checking it exists
     CHECK(view.content()->has_layout_strategy());
@@ -154,7 +154,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - set_la
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll_to forwards to scrollable") {
     scroll_view<test_canvas_backend> view;
 
-    view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
     view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll_by forwards to scrollable") {
     scroll_view<test_canvas_backend> view;
 
-    view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
     view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
 
@@ -183,7 +183,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - scroll
 
     auto child = make_fixed_panel<test_canvas_backend>(80, 80);
     auto* child_ptr = child.get();
-    view.add_child(std::move(child));
+    view.content_add_child(std::move(child));
 
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
     view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -264,7 +264,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Config
     scroll_view<test_canvas_backend> view;
 
     view.set_scrollbar_policy(scrollbar_visibility::always);
-    view.add_child(make_fixed_panel<test_canvas_backend>(50, 50));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(50, 50));
 
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
     view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -338,8 +338,8 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Comple
     scroll_view<test_canvas_backend> view;
 
     // Add content
-    view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
-    view.add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     // Measure and arrange
     [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
@@ -387,7 +387,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     scroll_view<Backend> outer;
 
     // Add a vbox inside outer scroll_view
-    auto* content_vbox = outer.emplace_child<vbox>(spacing::none);
+    auto* content_vbox = outer.content_emplace_child<vbox>(spacing::none);
 
     // Add some labels
     content_vbox->template emplace_child<label>("Label before nested scroll");
@@ -396,7 +396,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     auto* inner = content_vbox->template emplace_child<scroll_view>();
 
     // Add content to inner scroll_view
-    auto* inner_vbox = inner->emplace_child<vbox>(spacing::none);
+    auto* inner_vbox = inner->content_emplace_child<vbox>(spacing::none);
     for (int i = 0; i < 5; ++i) {
         inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
     }
@@ -440,7 +440,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     scroll_view<Backend> outer;
 
     // Main content container (vertical layout)
-    auto* content = outer.emplace_child<vbox>(spacing::tiny);
+    auto* content = outer.content_emplace_child<vbox>(spacing::tiny);
 
     // Add a label before the group_box
     content->template emplace_child<label>("Content before group_box");
@@ -457,7 +457,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - Nested
     auto* inner = group->template emplace_child<scroll_view>();
 
     // Add content to inner scroll_view
-    auto* inner_vbox = inner->emplace_child<vbox>(spacing::none);
+    auto* inner_vbox = inner->content_emplace_child<vbox>(spacing::none);
     for (int i = 0; i < 10; ++i) {
         inner_vbox->template emplace_child<label>("Inner item " + std::to_string(i));
     }

@@ -190,7 +190,7 @@ namespace onyxui {
          * @endcode
          */
         void set_vbox_layout(spacing spacing_value = spacing::none) {
-            int const resolved = resolve_spacing(spacing_value);
+            double const resolved = resolve_spacing(spacing_value);
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(direction::vertical, resolved)
             );
@@ -212,7 +212,7 @@ namespace onyxui {
          * @endcode
          */
         void set_hbox_layout(spacing spacing_value = spacing::none) {
-            int const resolved = resolve_spacing(spacing_value);
+            double const resolved = resolve_spacing(spacing_value);
             this->set_layout_strategy(
                 std::make_unique<linear_layout<Backend>>(direction::horizontal, resolved)
             );
@@ -737,14 +737,14 @@ namespace onyxui {
          * @param spacing_value Semantic spacing enum
          * @return Spacing in logical units
          */
-        [[nodiscard]] static int resolve_spacing(spacing spacing_value) {
+        [[nodiscard]] static double resolve_spacing(spacing spacing_value) {
             auto* themes = ui_services<Backend>::themes();
             if (!themes) {
-                return 0;  // Default to no spacing
+                return 0.0;  // Default to no spacing
             }
             auto* theme = themes->get_current_theme();
             if (!theme) {
-                return 0;
+                return 0.0;
             }
             return theme->spacing.resolve(spacing_value);
         }

@@ -1,91 +1,30 @@
-// Curated list of public OnyxUI types templated solely on Backend.
+// Public backend-fixed alias surface.
 //
-// This file is NOT a standalone header and intentionally has no
-// include guard. It is re-included per expansion site with
-// `ONYXUI_TYPE` redefined:
-//
-//   - `<onyxui/backend/sdlpp.hh>` expands each entry to
-//     `using name = ::onyxui::name<backend>;` inside the
-//     `onyxui::sdlpp` sub-namespace.
-//   - `<onyxui/for/sdlpp.hh>` re-exports each entry into
-//     `onyxui::simple` via using-declarations.
-//   - Conformance tests can redefine `ONYXUI_TYPE` to instantiate
-//     every type against a candidate backend.
-//
-// This file is curated, NOT automatically in sync with the public
-// widget set. Adding a new public, single-backend-parameter widget
-// means adding one `ONYXUI_TYPE(name)` line here — there is no
-// build-time check that catches omissions, so keeping this list in
-// sync is part of the PR review checklist for new widgets.
-//
-// Out of scope for this file:
-//   - Types with more than one template parameter (list_model<T, B>,
-//     table_model<Row, B>, etc.). Those need per-type consumer
-//     typedefs because the extra parameter varies at call sites.
-//   - Types in `detail::` / `impl` namespaces.
-//   - Deep window chrome internals (`window_title_bar`,
-//     `window_content_area`, `window_system_menu`) — consumers
-//     rarely instantiate these directly. They can be added later
-//     if a real consumer asks.
-//   - Retired types (moved to `onyxui::detail::` under WAR-58):
-//     `scoped_ui_context` and `ui_handle`. Use `ui_host<B>` instead.
-//
-// Order: core framework first, then widgets by category, then
-// overlays.
+// This file is NOT standalone and intentionally has no include guard.
+// Consumers define `ONYXUI_TYPE(name)` and include this file inside the
+// target namespace. The canonical type registry lives in
+// `type_registry.inc`; this file is just the public-alias view over it.
 
-// -- Core framework --
-ONYXUI_TYPE(ui_element)
-ONYXUI_TYPE(ui_host)
+#ifndef ONYXUI_TYPE
+#error "ONYXUI_TYPE must be defined before including public_types.inc"
+#endif
 
-// -- Basic widgets --
-ONYXUI_TYPE(button)
-ONYXUI_TYPE(label)
-ONYXUI_TYPE(icon)
-ONYXUI_TYPE(spacer)
-ONYXUI_TYPE(spring)
-ONYXUI_TYPE(status_bar)
-ONYXUI_TYPE(text_view)
-ONYXUI_TYPE(progress_bar)
-ONYXUI_TYPE(separator)
+#define ONYXUI_SKIP_TYPE_REGISTRY_INCLUDES 1
+#include <onyxui/detail/type_registry.inc>
+#undef ONYXUI_SKIP_TYPE_REGISTRY_INCLUDES
 
-// -- Containers --
-ONYXUI_TYPE(panel)
-ONYXUI_TYPE(vbox)
-ONYXUI_TYPE(hbox)
-ONYXUI_TYPE(grid)
-ONYXUI_TYPE(group_box)
-ONYXUI_TYPE(tab_widget)
-ONYXUI_TYPE(stack_panel)
-ONYXUI_TYPE(anchor_panel)
-ONYXUI_TYPE(absolute_panel)
+#define ONYXUI_DETAIL_ALIAS_TYPE(ns, cls) ONYXUI_TYPE(cls)
+#define ONYXUI_DETAIL_IGNORE_TYPE(ns, cls)
 
-// -- Scrolling --
-ONYXUI_TYPE(scroll_view)
-ONYXUI_TYPE(scrollable)
-ONYXUI_TYPE(scrollbar)
-ONYXUI_TYPE(scroll_controller)
+ONYXUI_TYPE_REGISTRY_ALL(ONYXUI_DETAIL_ALIAS_TYPE, ONYXUI_DETAIL_IGNORE_TYPE, ONYXUI_DETAIL_ALIAS_TYPE)
 
-// -- Input widgets --
-ONYXUI_TYPE(checkbox)
-ONYXUI_TYPE(radio_button)
-ONYXUI_TYPE(slider)
-ONYXUI_TYPE(line_edit)
-ONYXUI_TYPE(combo_box)
-ONYXUI_TYPE(list_box)
-ONYXUI_TYPE(button_group)
+#undef ONYXUI_DETAIL_ALIAS_TYPE
+#undef ONYXUI_DETAIL_IGNORE_TYPE
 
-// -- Menu system --
-ONYXUI_TYPE(menu)
-ONYXUI_TYPE(menu_bar)
-ONYXUI_TYPE(menu_bar_item)
-ONYXUI_TYPE(menu_item)
-ONYXUI_TYPE(menu_system)
-
-// -- Main window chrome (tree-hosted) --
-ONYXUI_TYPE(main_window)
-
-// -- Overlay windows & presentation --
-ONYXUI_TYPE(window)
-ONYXUI_TYPE(dialog)
-ONYXUI_TYPE(window_list_dialog)
-ONYXUI_TYPE(presented_window)
+// Intentionally leave the `ONYXUI_TYPE_REGISTRY_*` macros defined.
+// `widget_list.hh` exposes aggregate macros (`ONYXUI_CORE_CLASSES`,
+// `ONYXUI_ALL_CLASSES`, etc.) that expand at use-site and dispatch
+// back into the registry, so the registry must remain live for the
+// rest of the translation unit. Re-including `type_registry.inc`
+// (with SKIP) from other files is idempotent — identical token
+// replacement is a silent redefinition, so there is no diagnostic.

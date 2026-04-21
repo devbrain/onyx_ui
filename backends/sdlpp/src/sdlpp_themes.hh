@@ -48,14 +48,14 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.text_fg = window_text;
     t.border_color = button_shadow;
 
-    // Spacing values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
-    // These are used by layout system which works in logical coordinates
+    // Spacing values in pixels. The SDL simple-shell host uses 1:1 logical
+    // units, with monitor scale carried separately in metrics.dpi_scale.
     t.spacing.none = 0;
-    t.spacing.tiny = 0.25;    // 2 pixels
-    t.spacing.small = 0.5;    // 4 pixels
-    t.spacing.medium = 1;     // 8 pixels
-    t.spacing.large = 2;      // 16 pixels
-    t.spacing.xlarge = 3;     // 24 pixels
+    t.spacing.tiny = 2;
+    t.spacing.small = 4;
+    t.spacing.medium = 8;
+    t.spacing.large = 16;
+    t.spacing.xlarge = 24;
 
     // Button - 3D raised style
     t.button.normal.background = button_face;
@@ -83,8 +83,8 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
 
     t.button.box_style = sdlpp_renderer::box_style{
         sdlpp_renderer::border_style_type::raised, true};
-    t.button.padding_horizontal = 1;   // 8 pixels in logical units
-    t.button.padding_vertical = 0.5;   // 4 pixels in logical units
+    t.button.padding_horizontal = 8;
+    t.button.padding_vertical = 4;
 
     // Label
     t.label.text = window_text;
@@ -109,10 +109,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.menu_item.disabled.background = menu_bg;
     t.menu_item.disabled.foreground = gray_text;
 
-    // Menu bar - values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
+    // Menu bar sizing in pixels
     t.menu_bar.item_spacing = 0;             // No gap between items (Win3.11 style)
-    t.menu_bar.item_padding_horizontal = 1;  // 8 pixels - Horizontal padding inside each item
-    t.menu_bar.item_padding_vertical = 0.5;  // 4 pixels - Vertical padding inside each item
+    t.menu_bar.item_padding_horizontal = 8;
+    t.menu_bar.item_padding_vertical = 4;
 
     // Menu bar item
     t.menu_bar_item.normal.background = window_bg;
@@ -143,16 +143,22 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
         sdlpp_renderer::border_style_type::sunken, true};
 
     // ========================================================================
-    // Scrollbar - values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
+    // Scrollbar sizing in pixels
     // ========================================================================
-    t.scrollbar.width = 2;               // 16 pixels - Standard Win3.11 scrollbar width
-    t.scrollbar.min_thumb_size = 2;      // 16 pixels - Minimum thumb size
-    t.scrollbar.arrow_size = 2;          // 16 pixels - Arrow button size
-    t.scrollbar.min_render_size = 4;     // 32 pixels - Minimum size to render scrollbar
-    t.scrollbar.line_increment = 2;      // 16 pixels - Scroll per line
+    t.scrollbar.width = 16;
+    t.scrollbar.min_thumb_size = 16;
+    t.scrollbar.arrow_size = 16;
+    t.scrollbar.min_render_size = 32;
+    t.scrollbar.line_increment = 16;
 
     t.scrollbar.track_normal.background = button_face;
     t.scrollbar.track_normal.foreground = button_shadow;
+    // Classic Win3.11 scrollbar: sunken track with a solid fill so the
+    // channel is visible against the window background. Without this,
+    // the default box_style is `none` + not-solid, which draws nothing
+    // and the scrollbar reads as a 1-px line along the right edge.
+    t.scrollbar.track_normal.box_style = sdlpp_renderer::box_style{
+        sdlpp_renderer::border_style_type::sunken, true};
     t.scrollbar.thumb_normal.background = button_face;
     t.scrollbar.thumb_normal.foreground = window_text;
     t.scrollbar.thumb_normal.box_style = sdlpp_renderer::box_style{
@@ -210,7 +216,7 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
 
     t.checkbox.mnemonic_font = default_font;
     t.checkbox.mnemonic_font.underline = true;
-    t.checkbox.spacing = 0.5;  // 4 pixels - Space between checkbox and label
+    t.checkbox.spacing = 4;
 
     // ========================================================================
     // Radio Button
@@ -240,10 +246,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
 
     t.radio_button.mnemonic_font = default_font;
     t.radio_button.mnemonic_font.underline = true;
-    t.radio_button.spacing = 0.5;  // 4 pixels
+    t.radio_button.spacing = 4;
 
     // ========================================================================
-    // Progress Bar - values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
+    // Progress Bar sizing in pixels
     // ========================================================================
     t.progress_bar.filled_color = highlight;           // Navy blue filled
     t.progress_bar.empty_color = white;                // White empty
@@ -251,10 +257,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.progress_bar.text_font = default_font;
     t.progress_bar.filled_icon = sdlpp_renderer::icon_style::progress_filled;
     t.progress_bar.empty_icon = sdlpp_renderer::icon_style::progress_empty;
-    t.progress_bar.bar_thickness = 2.0;                // 16 pixels - appropriate for GUI
+    t.progress_bar.bar_thickness = 16.0f;
 
     // ========================================================================
-    // Slider - values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
+    // Slider sizing in pixels
     // ========================================================================
     t.slider.track_filled_color = highlight;
     t.slider.track_empty_color = button_shadow;
@@ -263,7 +269,7 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.slider.filled_icon = sdlpp_renderer::icon_style::slider_filled;
     t.slider.empty_icon = sdlpp_renderer::icon_style::slider_empty;
     t.slider.thumb_icon = sdlpp_renderer::icon_style::slider_thumb;
-    t.slider.track_thickness = 1.5;                    // 12 pixels - appropriate for GUI
+    t.slider.track_thickness = 12.0f;
 
     // ========================================================================
     // Menu Item
@@ -290,10 +296,10 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.menu_item.mnemonic_font = default_font;
     t.menu_item.mnemonic_font.underline = true;
 
-    // Layout and icons - values in LOGICAL UNITS
+    // Layout and icons in pixels
     t.menu_item.submenu_icon = sdlpp_renderer::icon_style::folder;
-    t.menu_item.padding_horizontal = 1.5;  // 12 pixels - more comfortable spacing
-    t.menu_item.padding_vertical = 0.5;    // 4 pixels - more comfortable spacing
+    t.menu_item.padding_horizontal = 12;
+    t.menu_item.padding_vertical = 4;
 
     // ========================================================================
     // Separator
@@ -323,13 +329,13 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.tab_widget.scroll_arrow_disabled = gray_text;      // Gray when disabled
     t.tab_widget.scroll_left_icon = sdlpp_renderer::icon_style::arrow_left;
     t.tab_widget.scroll_right_icon = sdlpp_renderer::icon_style::arrow_right;
-    // Tab widget values in LOGICAL UNITS (1 logical unit = 8 pixels for SDL++)
-    t.tab_widget.tab_padding_horizontal = 2;     // 16 pixels - more spacious tabs
-    t.tab_widget.tab_padding_vertical = 1;       // 8 pixels - taller tabs
-    t.tab_widget.tab_spacing = 0.5;              // 4 pixels - space between tabs
-    t.tab_widget.close_button_spacing = 1;       // 8 pixels
-    t.tab_widget.min_tab_width = 10;             // 80 pixels - wider minimum
-    t.tab_widget.scroll_arrow_width = 2;         // 16 pixels
+    // Tab widget values in pixels
+    t.tab_widget.tab_padding_horizontal = 16;
+    t.tab_widget.tab_padding_vertical = 8;
+    t.tab_widget.tab_spacing = 4;
+    t.tab_widget.close_button_spacing = 8;
+    t.tab_widget.min_tab_width = 80;
+    t.tab_widget.scroll_arrow_width = 16;
 
     // ========================================================================
     // List/Table Items (MVC Phase 2) - values in LOGICAL UNITS
@@ -359,7 +365,7 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.list.min_item_height = 20;       // 20 pixels - comfortable item height
 
     // ========================================================================
-    // Window (MDI style) - values in LOGICAL UNITS (1 logical unit = 8 pixels)
+    // Window (MDI style) sizing in pixels
     // ========================================================================
     t.window.title_focused.background = highlight;
     t.window.title_focused.foreground = highlight_text;
@@ -381,8 +387,8 @@ inline ui_theme<sdlpp_backend> create_windows311_theme()
     t.window.content_background = window_bg;
 
     // Title bar layout
-    t.window.title_bar_height = 2.5;  // 20 pixels - Win3.11 style (slightly larger than 16px icons)
-    t.window.border_width = 0.5;      // 4 pixels - thin border like Win3.11
+    t.window.title_bar_height = 20.0f;
+    t.window.border_width = 4.0f;
     t.window.title_alignment = horizontal_alignment::center;  // Win3.11 centers title text
 
     t.window.shadow.enabled = false;  // Win3.11 didn't have window shadows

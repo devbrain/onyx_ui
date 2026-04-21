@@ -7,16 +7,17 @@
 
 #pragma once
 #include "../backend_config.hh"  // Defines concrete Backend type
-#include <onyxui/widgets/window/window.hh>
-#include <onyxui/widgets/containers/vbox.hh>
-#include <onyxui/widgets/containers/hbox.hh>
-#include <onyxui/widgets/label.hh>
-#include <onyxui/widgets/button.hh>
-#include <onyxui/widgets/input/checkbox.hh>
 #include <memory>
 #include <string>
 
 namespace widgets_demo_windows {
+
+using ui::button;
+using ui::checkbox;
+using ui::hbox;
+using ui::label;
+using ui::vbox;
+using ui::window;
 
 /**
  * @brief Create and show modeless dialog example
@@ -28,9 +29,9 @@ namespace widgets_demo_windows {
  * - Window z-order (click to bring to front)
  * - Normal window features (move, close, etc.)
  */
-inline std::unique_ptr<onyxui::window<Backend>> create_modeless_dialog() {
+inline std::unique_ptr<window> create_modeless_dialog() {
     // Create window with typical dialog flags
-    typename onyxui::window<Backend>::window_flags flags;
+    window::window_flags flags;
     flags.has_close_button = true;
     flags.has_minimize_button = true;
     flags.has_maximize_button = false;
@@ -39,53 +40,53 @@ inline std::unique_ptr<onyxui::window<Backend>> create_modeless_dialog() {
     flags.is_movable = true;  // Can be moved around
     flags.is_scrollable = false;
 
-    auto dialog = std::make_unique<onyxui::window<Backend>>("Modeless Dialog", flags);
+    auto dialog = std::make_unique<window>("Modeless Dialog", flags);
     auto* dialog_ptr = dialog.get();
 
     // Create content
-    auto content = std::make_unique<onyxui::vbox<Backend>>(onyxui::spacing::tiny);
+    auto content = std::make_unique<vbox>(onyxui::spacing::tiny);
     content->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
 
     // Title
-    auto* title_label = content->emplace_child<onyxui::label>("Modeless Dialog Example");
+    auto* title_label = content->emplace_child<label>("Modeless Dialog Example");
     title_label->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Explanation
-    content->emplace_child<onyxui::label>("Modeless Dialog Features:");
-    content->emplace_child<onyxui::label>("  - Allows interaction with other windows");
-    content->emplace_child<onyxui::label>("  - Independent focus management");
-    content->emplace_child<onyxui::label>("  - Can be moved and positioned");
-    content->emplace_child<onyxui::label>("  - Click other windows to switch focus");
-    content->emplace_child<onyxui::label>("  - This dialog stays open while you work");
+    content->emplace_child<label>("Modeless Dialog Features:");
+    content->emplace_child<label>("  - Allows interaction with other windows");
+    content->emplace_child<label>("  - Independent focus management");
+    content->emplace_child<label>("  - Can be moved and positioned");
+    content->emplace_child<label>("  - Click other windows to switch focus");
+    content->emplace_child<label>("  - This dialog stays open while you work");
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Interactive controls to demonstrate non-blocking
-    content->emplace_child<onyxui::label>("Interactive Controls:");
+    content->emplace_child<label>("Interactive Controls:");
 
-    auto* checkbox1 = content->emplace_child<onyxui::checkbox>("Option 1");
+    auto* checkbox1 = content->emplace_child<checkbox>("Option 1");
     checkbox1->set_checked(true);
 
-    auto* checkbox2 = content->emplace_child<onyxui::checkbox>("Option 2");
+    auto* checkbox2 = content->emplace_child<checkbox>("Option 2");
 
-    auto* checkbox3 = content->emplace_child<onyxui::checkbox>("Option 3");
+    auto* checkbox3 = content->emplace_child<checkbox>("Option 3");
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
-    content->emplace_child<onyxui::label>("Try this:");
-    content->emplace_child<onyxui::label>("  1. Toggle checkboxes here");
-    content->emplace_child<onyxui::label>("  2. Click main window to switch focus");
-    content->emplace_child<onyxui::label>("  3. Both windows remain active!");
+    content->emplace_child<label>("Try this:");
+    content->emplace_child<label>("  1. Toggle checkboxes here");
+    content->emplace_child<label>("  2. Click main window to switch focus");
+    content->emplace_child<label>("  3. Both windows remain active!");
 
-    content->emplace_child<onyxui::label>("");  // Spacer
+    content->emplace_child<label>("");  // Spacer
 
     // Close button
-    auto* button_row = content->emplace_child<onyxui::hbox>(onyxui::spacing::medium);
+    auto* button_row = content->emplace_child<hbox>(onyxui::spacing::medium);
     button_row->set_horizontal_align(onyxui::horizontal_alignment::center);
 
-    auto* close_btn = button_row->emplace_child<onyxui::button>("Close");
+    auto* close_btn = button_row->emplace_child<button>("Close");
     close_btn->clicked.connect([dialog_ptr]() {
         dialog_ptr->close();
     });

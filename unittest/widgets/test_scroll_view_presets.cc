@@ -60,7 +60,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "modern_scroll_view -
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "modern_scroll_view - Can add children") {
     auto view = modern_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     CHECK(view->content()->children().size() == 1);
 }
@@ -68,7 +68,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "modern_scroll_view -
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "modern_scroll_view - Scrolling works") {
     auto view = modern_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100_lu, 100_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -102,7 +102,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "classic_scroll_view 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "classic_scroll_view - Can add children") {
     auto view = classic_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     CHECK(view->content()->children().size() == 1);
 }
@@ -110,7 +110,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "classic_scroll_view 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "classic_scroll_view - Scrolling works") {
     auto view = classic_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100_lu, 100_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -144,7 +144,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "compact_scroll_view 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "compact_scroll_view - Can add children") {
     auto view = compact_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     CHECK(view->content()->children().size() == 1);
 }
@@ -152,7 +152,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "compact_scroll_view 
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "compact_scroll_view - Scrolling works") {
     auto view = compact_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100_lu, 100_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
@@ -184,7 +184,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "vertical_only_scroll
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "vertical_only_scroll_view - Can add children") {
     auto view = vertical_only_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     CHECK(view->content()->children().size() == 1);
 }
@@ -192,7 +192,7 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "vertical_only_scroll
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "vertical_only_scroll_view - Vertical scrolling works") {
     auto view = vertical_only_scroll_view<test_canvas_backend>();
 
-    view->add_child(make_fixed_panel<test_canvas_backend>(100, 200));
+    view->content_add_child(make_fixed_panel<test_canvas_backend>(100, 200));
 
     [[maybe_unused]] auto size = view->measure(100_lu, 100_lu);
     view->arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});

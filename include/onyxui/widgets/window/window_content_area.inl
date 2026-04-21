@@ -52,7 +52,7 @@ namespace onyxui {
         if (m_scrollable && m_scroll_view) {
             // Add to scroll_view
             m_content = content.get();
-            m_scroll_view->add_child(std::move(content));
+            m_scroll_view->content_add_child(std::move(content));
         } else {
             // Add as direct child
             m_content = content.get();
@@ -83,14 +83,14 @@ namespace onyxui {
                 auto content_unique = this->remove_child(m_content);
                 if (content_unique) {
                     // Add to scroll_view
-                    m_scroll_view->add_child(std::move(content_unique));
+                    m_scroll_view->content_add_child(std::move(content_unique));
                 }
             }
         } else {
             // Switching to non-scrollable: remove scroll_view and move content out
             if (m_scroll_view && m_content) {
                 // Remove content from scroll_view
-                auto content_unique = m_scroll_view->remove_child(m_content);
+                auto content_unique = m_scroll_view->content_remove_child(m_content);
                 if (content_unique) {
                     // Add as direct child
                     this->add_child(std::move(content_unique));
