@@ -45,8 +45,7 @@ inline std::unique_ptr<window> create_mvc_demo_window() {
 
     auto win = std::make_unique<window>("MVC Demo", flags);
 
-    // Create content container
-    auto content = std::make_unique<vbox>(onyxui::spacing::tiny);
+    auto* content = win->template emplace_content<vbox>(onyxui::spacing::tiny);
 
     // Create model with initial data (keep alive with shared_ptr)
     auto model = std::make_shared<onyxui::list_model<std::string, Backend>>();
@@ -158,9 +157,6 @@ inline std::unique_ptr<window> create_mvc_demo_window() {
     tips_vbox->emplace_child<label>("  - Enter: Activate item");
     tips_vbox->emplace_child<label>("  - Add/Remove: Modify model dynamically");
     tips_vbox->emplace_child<label>("  - Selection updates automatically!");
-
-    // Set content on window
-    win->set_content(std::move(content));
 
     // Set window size and position
     win->set_size(60, 25);

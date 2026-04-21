@@ -175,88 +175,72 @@ private:
 
     void build_ui() {
         build_menu_bar();
-        this->set_central_widget(std::make_unique<ui::panel>());
+        this->template emplace_central_widget<ui::panel>();
         build_tabs();
         build_status_bar();
     }
 
     void build_menu_bar() {
-        auto menu_bar_widget = std::make_unique<ui::menu_bar>();
+        auto* menu_bar_widget = this->emplace_menu_bar();
 
         if (auto* theme = m_parent.host().themes().get_current_theme()) {
             menu_bar_widget->set_spacing(theme->menu_bar.item_spacing);
         }
 
         // File menu
-        auto file_menu = std::make_unique<ui::menu>();
+        auto* file_menu = menu_bar_widget->emplace_menu("&File");
         {
-            auto screenshot_item = std::make_unique<ui::menu_item>("");
+            auto* screenshot_item = file_menu->emplace_item();
             screenshot_item->set_mnemonic_text("&Save Screenshot");
             screenshot_item->set_action(m_screenshot_action);
-            file_menu->add_item(std::move(screenshot_item));
 
             file_menu->add_separator();
 
-            auto exit_item = std::make_unique<ui::menu_item>("");
+            auto* exit_item = file_menu->emplace_item();
             exit_item->set_mnemonic_text("E&xit");
             exit_item->set_action(m_quit_action);
-            file_menu->add_item(std::move(exit_item));
         }
-        menu_bar_widget->add_menu("&File", std::move(file_menu));
 
         // Windows menu
-        auto windows_menu = std::make_unique<ui::menu>();
+        auto* windows_menu = menu_bar_widget->emplace_menu("&Windows");
         {
-            auto mvc_item = std::make_unique<ui::menu_item>("");
+            auto* mvc_item = windows_menu->emplace_item();
             mvc_item->set_mnemonic_text("&MVC Demo...");
             mvc_item->set_action(m_mvc_action);
-            windows_menu->add_item(std::move(mvc_item));
 
-            auto theme_editor_item = std::make_unique<ui::menu_item>("");
+            auto* theme_editor_item = windows_menu->emplace_item();
             theme_editor_item->set_mnemonic_text("&Theme Editor...");
             theme_editor_item->set_action(m_theme_editor_action);
-            windows_menu->add_item(std::move(theme_editor_item));
 
-            auto debug_item = std::make_unique<ui::menu_item>("");
+            auto* debug_item = windows_menu->emplace_item();
             debug_item->set_mnemonic_text("&Debug Tools...");
             debug_item->set_action(m_debug_tools_action);
-            windows_menu->add_item(std::move(debug_item));
 
             windows_menu->add_separator();
 
-            auto modal_item = std::make_unique<ui::menu_item>("");
+            auto* modal_item = windows_menu->emplace_item();
             modal_item->set_mnemonic_text("M&odal Dialog Example...");
             modal_item->clicked.connect([this]() { show_modal_dialog(); });
-            windows_menu->add_item(std::move(modal_item));
 
-            auto modeless_item = std::make_unique<ui::menu_item>("");
+            auto* modeless_item = windows_menu->emplace_item();
             modeless_item->set_mnemonic_text("Mode&less Dialog Example...");
             modeless_item->clicked.connect([this]() { show_modeless_dialog(); });
-            windows_menu->add_item(std::move(modeless_item));
         }
-        menu_bar_widget->add_menu("&Windows", std::move(windows_menu));
 
         // Theme menu
-        auto theme_menu = std::make_unique<ui::menu>();
+        auto* theme_menu = menu_bar_widget->emplace_menu("&Theme");
         for (std::size_t i = 0; i < m_theme_names.size(); ++i) {
-            auto theme_item = std::make_unique<ui::menu_item>(
-                m_theme_names[i]);
+            auto* theme_item = theme_menu->emplace_item(m_theme_names[i]);
             theme_item->clicked.connect([this, i]() { switch_to_theme_index(i); });
-            theme_menu->add_item(std::move(theme_item));
         }
-        menu_bar_widget->add_menu("&Theme", std::move(theme_menu));
 
         // Help menu
-        auto help_menu = std::make_unique<ui::menu>();
+        auto* help_menu = menu_bar_widget->emplace_menu("&Help");
         {
-            auto about_item = std::make_unique<ui::menu_item>("");
+            auto* about_item = help_menu->emplace_item();
             about_item->set_mnemonic_text("&About OnyxUI...");
             about_item->clicked.connect([this]() { show_about_dialog(); });
-            help_menu->add_item(std::move(about_item));
         }
-        menu_bar_widget->add_menu("&Help", std::move(help_menu));
-
-        this->set_menu_bar(std::move(menu_bar_widget));
     }
 
     void build_tabs() {
@@ -282,12 +266,11 @@ private:
     }
 
     void build_status_bar() {
-        auto status = std::make_unique<ui::status_bar>();
+        auto* status = this->emplace_status_bar();
         status->set_left_text(
             "Theme: " + m_theme_names[m_current_theme_index] +
             " | FPS: -- | Focus: -- | Widgets: --");
         status->set_right_text("OnyxUI Widgets Demo v1.0");
-        this->set_status_bar(std::move(status));
     }
 
     // ---- spawn helpers ----

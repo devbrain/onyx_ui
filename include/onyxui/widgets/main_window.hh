@@ -37,6 +37,7 @@
 #include <onyxui/widgets/menu/menu_bar.hh>
 #include <onyxui/widgets/status_bar.hh>
 #include <onyxui/widgets/window/window.hh>
+#include <concepts>
 #include <memory>
 
 namespace onyxui {
@@ -106,6 +107,21 @@ namespace onyxui {
         void set_menu_bar(std::unique_ptr<menu_bar_type> menu);
 
         /**
+         * @brief Construct the menu bar in place
+         * @return Non-owning pointer to the newly adopted menu bar
+         *
+         * Qt-style convenience around `set_menu_bar`. Returns a raw pointer
+         * so the caller can populate the bar without juggling unique_ptrs.
+         */
+        template<typename... Args>
+        menu_bar_type* emplace_menu_bar(Args&&... args) {
+            auto owned = std::make_unique<menu_bar_type>(std::forward<Args>(args)...);
+            auto* ptr = owned.get();
+            set_menu_bar(std::move(owned));
+            return ptr;
+        }
+
+        /**
          * @brief Set status bar at bottom of window
          * @param status Status bar widget (takes ownership)
          *
@@ -114,6 +130,18 @@ namespace onyxui {
          * If a status bar already exists, it is replaced.
          */
         void set_status_bar(std::unique_ptr<status_bar_type> status);
+
+        /**
+         * @brief Construct the status bar in place
+         * @return Non-owning pointer to the newly adopted status bar
+         */
+        template<typename... Args>
+        status_bar_type* emplace_status_bar(Args&&... args) {
+            auto owned = std::make_unique<status_bar_type>(std::forward<Args>(args)...);
+            auto* ptr = owned.get();
+            set_status_bar(std::move(owned));
+            return ptr;
+        }
 
         /**
          * @brief Set central widget (main content area)
@@ -126,6 +154,27 @@ namespace onyxui {
          * maximize() fills the central area.
          */
         void set_central_widget(std::unique_ptr<ui_element<Backend>> widget);
+
+        /**
+         * @brief Construct the central widget in place
+         * @tparam T Concrete widget type (e.g., `panel<Backend>`)
+         * @param args Forwarded constructor arguments
+         * @return Non-owning pointer to the newly adopted widget
+         *
+         * @example
+         * @code
+         * auto* root = window->emplace_central_widget<panel<Backend>>();
+         * root->set_vbox_layout(spacing::medium);
+         * @endcode
+         */
+        template<typename T, typename... Args>
+            requires std::derived_from<T, ui_element<Backend>>
+        T* emplace_central_widget(Args&&... args) {
+            auto owned = std::make_unique<T>(std::forward<Args>(args)...);
+            auto* ptr = owned.get();
+            set_central_widget(std::move(owned));
+            return ptr;
+        }
 
         /**
          * @brief Get central widget (the workspace for overlay windows)

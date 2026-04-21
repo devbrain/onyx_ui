@@ -43,8 +43,7 @@ inline std::unique_ptr<window> create_modeless_dialog() {
     auto dialog = std::make_unique<window>("Modeless Dialog", flags);
     auto* dialog_ptr = dialog.get();
 
-    // Create content
-    auto content = std::make_unique<vbox>(onyxui::spacing::tiny);
+    auto* content = dialog->template emplace_content<vbox>(onyxui::spacing::tiny);
     content->set_padding(onyxui::logical_thickness(onyxui::logical_unit(2.0)));
 
     // Title
@@ -90,9 +89,6 @@ inline std::unique_ptr<window> create_modeless_dialog() {
     close_btn->clicked.connect([dialog_ptr]() {
         dialog_ptr->close();
     });
-
-    // Set content
-    dialog->set_content(std::move(content));
 
     // Set size and position
     dialog->set_size(55, 24);

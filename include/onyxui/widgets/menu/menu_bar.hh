@@ -245,6 +245,27 @@ namespace onyxui {
         }
 
         /**
+         * @brief Construct and adopt a dropdown menu in place
+         * @param title Menu title (with optional `&` mnemonic marker)
+         * @return Non-owning pointer to the new menu (owned by this menu_bar)
+         *
+         * @details
+         * Qt-style convenience — eliminates the make_unique + add_item +
+         * move dance for the typical case:
+         * @code
+         * auto* file_menu = menu_bar->emplace_menu("&File");
+         * auto* save_item = file_menu->emplace_item();
+         * save_item->set_mnemonic_text("&Save");
+         * @endcode
+         */
+        menu<Backend>* emplace_menu(std::string_view title) {
+            auto owned = std::make_unique<menu<Backend>>();
+            auto* ptr = owned.get();
+            add_menu(title, std::move(owned));
+            return ptr;
+        }
+
+        /**
          * @brief Find menu by mnemonic character
          * @param mnemonic_char Character to search for (lowercase)
          * @return Index of menu, or nullopt if not found

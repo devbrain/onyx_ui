@@ -38,6 +38,7 @@
 #include <onyxui/core/rendering/render_context.hh>
 #include <onyxui/services/layer_manager.hh>  // For layer_id and layer_type
 #include <onyxui/core/raii/scoped_layer.hh>  // For system menu popup
+#include <concepts>
 #include <memory>
 #include <string>
 
@@ -332,6 +333,27 @@ namespace onyxui {
          * @param content Content widget (takes ownership)
          */
         void set_content(std::unique_ptr<ui_element<Backend>> content);
+
+        /**
+         * @brief Construct and adopt the content widget in place
+         * @tparam T Concrete widget type (e.g., `vbox<Backend>`)
+         * @param args Forwarded constructor arguments
+         * @return Non-owning pointer to the newly adopted content widget
+         *
+         * @example
+         * @code
+         * auto* body = dialog->template emplace_content<vbox<Backend>>(spacing::tiny);
+         * body->emplace_child<label>("Hello");
+         * @endcode
+         */
+        template<typename T, typename... Args>
+            requires std::derived_from<T, ui_element<Backend>>
+        T* emplace_content(Args&&... args) {
+            auto owned = std::make_unique<T>(std::forward<Args>(args)...);
+            auto* ptr = owned.get();
+            set_content(std::move(owned));
+            return ptr;
+        }
 
         /**
          * @brief Get content widget

@@ -166,6 +166,26 @@ namespace onyxui {
         }
 
         /**
+         * @brief Construct and adopt a menu item in place
+         * @tparam Args Constructor argument types for menu_item
+         * @param args Constructor arguments forwarded to menu_item
+         * @return Non-owning pointer to the new item (owned by this menu)
+         *
+         * @details
+         * Qt-style convenience: eliminates the make_unique + configure + move
+         * dance. Typical usage:
+         * @code
+         * auto* item = menu->emplace_item();
+         * item->set_mnemonic_text("&Save");
+         * item->set_action(save_action);
+         * @endcode
+         */
+        template<typename... Args>
+        menu_item<Backend>* emplace_item(Args&&... args) {
+            return add_item(std::make_unique<menu_item<Backend>>(std::forward<Args>(args)...));
+        }
+
+        /**
          * @brief Add a separator line
          * @return Pointer to separator widget
          *
