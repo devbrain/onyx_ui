@@ -27,6 +27,7 @@ add_backend_library(
         src/simple/run.cc
     PUBLIC_HEADERS
         include/onyxui/sdlpp/colors.hh
+        include/onyxui/sdlpp/font_source_provider.hh
         include/onyxui/sdlpp/geometry.hh
         include/onyxui/sdlpp/sdlpp_backend.hh
         include/onyxui/sdlpp/sdlpp_events.hh

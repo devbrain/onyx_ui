@@ -1,11 +1,14 @@
 #include <onyxui/sdlpp/sdlpp_renderer.hh>
 #include <onyxui/sdlpp/sdlpp_backend.hh>
+#include <onyxui/sdlpp/font_source_provider.hh>
 #include <onyxui/sdlpp/win311_icons.hh>
 
 #include <sdlpp/video/renderer.hh>
 #include <sdlpp/video/texture.hh>
 #include <sdlpp/video/surface.hh>
 #include <sdlpp/image/image.hh>
+#include <onyx_font/bios_font.hh>
+#include <onyx_font/bitmap_font.hh>
 #include <onyx_font/font_factory.hh>
 #include <onyx_font/ttf_font.hh>
 #include <onyx_font/text/font_source.hh>
@@ -44,7 +47,40 @@ namespace {
         f.size_px *= current_dpi_scale();
         return f;
     }
+
+    // Default provider: knows only the built-in "bios" font set.
+    class default_font_source_provider : public font_source_provider {
+    public:
+        const onyx_font::bitmap_font* find_bitmap(
+            const sdlpp_renderer::font& f) override {
+            if (f.font_set == "bios") {
+                return &onyx_font::bios_font_8x16();
+            }
+            return nullptr;
+        }
+    };
+
+    std::unique_ptr<font_source_provider>& provider_slot() {
+        static std::unique_ptr<font_source_provider> slot;
+        return slot;
+    }
 } // namespace
+
+std::unique_ptr<font_source_provider> make_default_font_provider() {
+    return std::make_unique<default_font_source_provider>();
+}
+
+void set_font_source_provider(std::unique_ptr<font_source_provider> provider) {
+    provider_slot() = provider ? std::move(provider) : make_default_font_provider();
+}
+
+font_source_provider& current_font_source_provider() {
+    auto& slot = provider_slot();
+    if (!slot) {
+        slot = make_default_font_provider();
+    }
+    return *slot;
+}
 
 // =================================================================
 // Font Cache — onyx_font::glyph_cache with lazy SDL atlas upload
@@ -94,6 +130,15 @@ public:
             return &it->second;
         }
 
+        // First chance: the app-supplied provider. If it returns a
+        // bitmap_font, we build the cache directly from it (no file I/O,
+        // no ttf_font, no retained byte buffer). The provider owns the
+        // bitmap_font's lifetime.
+        if (const auto* bfont = current_font_source_provider().find_bitmap(f)) {
+            return create_from_bitmap(key, f, *bfont);
+        }
+
+        // Fallback: load a TTF from disk (f.path, or system fallback).
         std::filesystem::path font_path = f.path;
         if (font_path.empty()) {
             font_path = find_fallback_font();
@@ -129,6 +174,33 @@ public:
         entry.cache = std::make_unique<
             onyx_font::glyph_cache<onyx_font::memory_atlas>>(
                 onyx_font::font_source::from_ttf(*entry.ttf),
+                f.size_px,
+                config);
+        entry.cache->set_style(style);
+        entry.atlas_dirty.resize(
+            static_cast<std::size_t>(entry.cache->atlas_count()), true);
+
+        auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
+        return &inserted_it->second;
+    }
+
+    font_entry* create_from_bitmap(std::size_t key,
+                                   const sdlpp_renderer::font& f,
+                                   const onyx_font::bitmap_font& bfont) {
+        onyx_font::text_style style = onyx_font::text_style::normal;
+        if (f.bold)          style = style | onyx_font::text_style::bold;
+        if (f.italic)        style = style | onyx_font::text_style::italic;
+        if (f.underline)     style = style | onyx_font::text_style::underline;
+        if (f.strikethrough) style = style | onyx_font::text_style::strikethrough;
+
+        onyx_font::glyph_cache_config config;
+        config.atlas_size = 512;
+        config.pre_cache_ascii = true;
+
+        font_entry entry;
+        entry.cache = std::make_unique<
+            onyx_font::glyph_cache<onyx_font::memory_atlas>>(
+                onyx_font::font_source::from_bitmap(bfont),
                 f.size_px,
                 config);
         entry.cache->set_style(style);
@@ -1368,10 +1440,13 @@ size sdlpp_renderer::get_icon_size(icon_style icon) noexcept
 std::size_t sdlpp_renderer::font::hash() const noexcept
 {
     std::size_t h = std::hash<std::string>{}(path.string());
-    h ^= std::hash<float>{}(size_px) << 1;
-    h ^= std::hash<bool>{}(bold) << 2;
-    h ^= std::hash<bool>{}(italic) << 3;
-    h ^= std::hash<bool>{}(underline) << 4;
+    h ^= std::hash<std::string>{}(font_set)       << 1;
+    h ^= std::hash<std::string>{}(font_name)      << 2;
+    h ^= std::hash<float>{}(size_px)              << 3;
+    h ^= std::hash<bool>{}(bold)                  << 4;
+    h ^= std::hash<bool>{}(italic)                << 5;
+    h ^= std::hash<bool>{}(underline)             << 6;
+    h ^= std::hash<bool>{}(strikethrough)         << 7;
     return h;
 }
 

@@ -81,7 +81,9 @@ public:
      * - Raw BIOS font dumps
      */
     struct font {
-        std::filesystem::path path;     ///< Font file path
+        std::filesystem::path path;     ///< TTF file path (used when no provider resolves the spec)
+        std::string font_set;           ///< Named set key for font_source_provider (e.g. "bios")
+        std::string font_name;           ///< Sub-name within the set
         float size_px = 16.0f;          ///< Size in pixels
         bool bold = false;
         bool italic = false;
