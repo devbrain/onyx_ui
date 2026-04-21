@@ -20,7 +20,7 @@
  * only handle that keeps the dialog alive — dropping it closes the
  * dialog. Callers who want fire-and-forget semantics on a
  * simple-shell `app_window` should use the helpers in
- * `<onyxui/simple/dialogs.hh>` (`message_box`, `confirm`,
+ * `<onyxui/ui_app/dialogs.hh>` (`message_box`, `confirm`,
  * `input_dialog`, `error_box`) instead; those route through
  * `app_window::show_modal` and take care of ownership automatically.
  */

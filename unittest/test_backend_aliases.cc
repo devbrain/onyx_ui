@@ -105,19 +105,19 @@ TEST_CASE("simple-shell bundle (sdlpp) — app_window declarations resolve") {
     // would initialise SDL and open a real OS window, which is wrong
     // for a unit test). What we pin is that:
     //   - the bundle header compiles,
-    //   - onyxui::simple::app_window / ui_host / ui_element / run /
+    //   - onyxui::ui_app::app_window / ui_host / ui_element / run /
     //     quit are all declared at the API names the docs promise.
-    using simple_app_window = ::onyxui::simple::app_window;
+    using simple_app_window = ::onyxui::ui_app::app_window;
     static_assert(sizeof(simple_app_window) > 0);
 
-    using simple_ui_host = ::onyxui::simple::ui_host;
+    using simple_ui_host = ::onyxui::ui_app::ui_host;
     static_assert(sizeof(simple_ui_host) > 0);
 
     // quit() is a free function; take its address as a syntactic
     // check — the signature is void(int) noexcept.
     [[maybe_unused]] void (*quit_ptr)(int) noexcept =
-        &::onyxui::simple::quit;
-    [[maybe_unused]] int (*run_ptr)() = &::onyxui::simple::run;
+        &::onyxui::ui_app::quit;
+    [[maybe_unused]] int (*run_ptr)() = &::onyxui::ui_app::run;
     CHECK(quit_ptr != nullptr);
     CHECK(run_ptr != nullptr);
 }

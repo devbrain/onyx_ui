@@ -21,8 +21,8 @@ add_backend_library(
         src/conio_renderer.cc
         src/vram.cc
         src/conio_backend.cc
-        src/simple/app_window.cc
-        src/simple/run.cc
+        src/ui_app/app_window.cc
+        src/ui_app/run.cc
     PUBLIC_HEADERS
         include/onyxui/conio/colors.hh
         include/onyxui/conio/conio_backend.hh

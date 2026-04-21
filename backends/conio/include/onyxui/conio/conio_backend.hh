@@ -11,8 +11,8 @@
  * This backend supports two usage modes:
  *
  * ## Standalone Tools — simple shell
- * Include `<onyxui/for/conio.hh>` and use `onyxui::simple::app_window`
- * + `onyxui::simple::run()`. See `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md`.
+ * Include `<onyxui/for/conio.hh>` and use `onyxui::ui_app::app_window`
+ * + `onyxui::ui_app::run()`. See `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md`.
  *
  * ## Custom Integration Mode
  * Use init/shutdown/process_event for custom event loops:

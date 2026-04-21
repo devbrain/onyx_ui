@@ -12,13 +12,13 @@
  *
  * onyx_ui is header-only. The dialog logic is genuinely backend-
  * agnostic — every type it touches (`window`, `vbox`, `label`,
- * `button`, …) is reached via the `onyxui::simple` aliases that the
+ * `button`, …) is reached via the `onyxui::ui_app` aliases that the
  * bundle header populates BEFORE this header is parsed. The
  * implementations therefore live here as `inline` definitions.
  *
  * Not standalone. Like `app_window.hh`, this header uses unqualified
  * names that must be in scope via a bundle header. The
- * `ONYXUI_SIMPLE_BUNDLE_INCLUDED` guardrail below catches misuse.
+ * `ONYXUI_UI_APP_BUNDLE_INCLUDED` guardrail below catches misuse.
  *
  * No auto-find-active-window in v1 — each helper takes the parent
  * `app_window&` explicitly.
@@ -26,14 +26,14 @@
 
 #pragma once
 
-#ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
-#  error "<onyxui/simple/dialogs.hh> is not a standalone header. " \
+#ifndef ONYXUI_UI_APP_BUNDLE_INCLUDED
+#  error "<onyxui/ui_app/dialogs.hh> is not a standalone header. " \
          "Include a bundle header instead — typically " \
          "<onyxui/for/sdlpp.hh>. See " \
          "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
 #endif
 
-#include <onyxui/simple/app_window.hh>
+#include <onyxui/ui_app/app_window.hh>
 
 #include <onyxui/core/types.hh>
 
@@ -42,7 +42,7 @@
 #include <string>
 #include <utility>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     namespace detail {
 
@@ -208,4 +208,4 @@ namespace onyxui::simple {
         parent.show_modal(std::move(w));
     }
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

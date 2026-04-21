@@ -11,7 +11,7 @@
 #endif
 
 int main() {
-    using namespace onyxui::simple;
+    using namespace onyxui::ui_app;
     app_window win("Hello", 640, 480);
     auto root = std::make_unique<vbox>();
     root->emplace_child<label>("Hello, World!");

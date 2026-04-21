@@ -37,7 +37,7 @@ add_executable(ui_unittest
         main.cc
         test_ui_host.cc
         test_backend_aliases.cc
-        simple/test_runtime.cc
+        ui_app/test_runtime.cc
         utils/test_backend.hh
         utils/test_helpers.hh
         utils/test_canvas.hh

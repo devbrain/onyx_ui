@@ -16,12 +16,12 @@
 #define ONYXUI_BACKEND onyxui::sdlpp::sdlpp_backend
 #include <onyxui/instantiations/extern_widgets.inl>
 
-// `onyxui::simple::backend` is the bundle-header-supplied alias for
+// `onyxui::ui_app::backend` is the bundle-header-supplied alias for
 // whichever backend this file has selected. Consumers who need a
 // backend-typed template (e.g. `onyxui::action<Backend>`) use this.
-using Backend = onyxui::simple::backend;
+using Backend = onyxui::ui_app::backend;
 
 // Short alias for the simple-shell namespace. Demo code uses `ui::button`,
-// `ui::hbox`, etc. — cleaner than repeating `onyxui::simple::` at each
+// `ui::hbox`, etc. — cleaner than repeating `onyxui::ui_app::` at each
 // call site. Kept local to the demo; the framework namespace stays `simple`.
-namespace ui = onyxui::simple;
+namespace ui = onyxui::ui_app;

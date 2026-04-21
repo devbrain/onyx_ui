@@ -1,35 +1,35 @@
 /**
  * @file app_window.cc
- * @brief sdlpp-backed implementation of `onyxui::simple::app_window`
+ * @brief sdlpp-backed implementation of `onyxui::ui_app::app_window`
  *        per docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §6.1.
  *
- * Establishes the backend-fixed aliases in `onyxui::simple` (so the
+ * Establishes the backend-fixed aliases in `onyxui::ui_app` (so the
  * non-standalone app_window header can parse), then implements the
  * class methods over an SDL_Window + renderer + ui_host<sdlpp_backend>.
  */
 
 // This TU plays the same role as a bundle header — it promotes the
-// aliases into onyxui::simple and then includes the simple/* header.
+// aliases into onyxui::ui_app and then includes the simple/* header.
 // Signal that to the guardrail check in the header.
-#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+#define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
 // 1. Backend-fixed aliases into onyxui::sdlpp::, and the ui_host /
 //    window / ui_element templates we need to alias.
 #include <onyxui/backend/sdlpp.hh>
 
-// 2. Promote the canonical type list into onyxui::simple before
+// 2. Promote the canonical type list into onyxui::ui_app before
 //    app_window.hh is parsed — the header uses unqualified
 //    `ui_host` / `ui_element` names and needs the aliases in scope.
-namespace onyxui::simple {
-    using ::onyxui::sdlpp::backend;
-    #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
+namespace onyxui::ui_app {
+    using ::onyxui::ui::backend;
+    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app
 
 // 3. Now app_window.hh can be parsed with the aliases visible.
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/detail/runtime.hh>
+#include <onyxui/ui_app/app_window.hh>
+#include <onyxui/ui_app/detail/runtime.hh>
 
 #include <onyxui/sdlpp/sdlpp_backend.hh>
 #include <onyxui/sdlpp/sdlpp_renderer.hh>
@@ -49,7 +49,7 @@ namespace onyxui::simple {
 #include <string>
 #include <vector>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     namespace {
         // SDL must be initialised exactly once for the process. Ref-
@@ -123,7 +123,7 @@ namespace onyxui::simple {
                 ::sdlpp::window_flags::resizable |
                 ::sdlpp::window_flags::hidden);
             if (!win_result) {
-                std::cerr << "[onyxui::simple::app_window] failed to create "
+                std::cerr << "[onyxui::ui_app::app_window] failed to create "
                           << "window: " << win_result.error() << "\n";
                 sdl_release();
                 throw std::runtime_error("sdlpp::window::create failed");
@@ -132,7 +132,7 @@ namespace onyxui::simple {
 
             auto renderer_result = sdl_window->create_renderer();
             if (!renderer_result) {
-                std::cerr << "[onyxui::simple::app_window] failed to create "
+                std::cerr << "[onyxui::ui_app::app_window] failed to create "
                           << "renderer: " << renderer_result.error() << "\n";
                 sdl_window.reset();
                 sdl_release();
@@ -326,4 +326,4 @@ namespace onyxui::simple {
         }
     }
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

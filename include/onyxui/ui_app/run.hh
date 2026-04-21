@@ -22,10 +22,10 @@
  * Typical usage (inside main()):
  *
  * @code
- * onyxui::simple::app_window win("Hello", 640, 480);
+ * onyxui::ui_app::app_window win("Hello", 640, 480);
  * win.set_content(build_ui());
  * win.show();
- * return onyxui::simple::run();
+ * return onyxui::ui_app::run();
  * @endcode
  *
  * Like `app_window.hh`, this header is included transitively by a
@@ -36,7 +36,7 @@
 
 #pragma once
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     /// Drive the main loop until the registered `app_window` closes
     /// or `quit()` is called. Returns the exit code (0 on a normal
@@ -53,4 +53,4 @@ namespace onyxui::simple {
     /// the consumer or to normal OS-close handling.
     void quit(int exit_code = 0) noexcept;
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

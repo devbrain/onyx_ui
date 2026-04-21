@@ -23,8 +23,8 @@ add_backend_library(
         src/sdlpp_renderer.cc
         src/sdlpp_backend.cc
         src/win311_icons.cc
-        src/simple/app_window.cc
-        src/simple/run.cc
+        src/ui_app/app_window.cc
+        src/ui_app/run.cc
     PUBLIC_HEADERS
         include/onyxui/sdlpp/colors.hh
         include/onyxui/sdlpp/font_source_provider.hh

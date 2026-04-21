@@ -2,7 +2,7 @@
 /// @brief Tests for the simple-shell run-loop registry.
 ///
 /// The state under test here (window registry + quit flag) lives in
-/// `inline thread_local` variables in `<onyxui/simple/detail/runtime.hh>`.
+/// `inline thread_local` variables in `<onyxui/ui_app/detail/runtime.hh>`.
 /// The header is backend-agnostic, so these tests compile against
 /// `ui_unittest` without linking any backend implementation. Tests
 /// use fake `app_window*` pointers (identity-only — no OS window is
@@ -16,7 +16,7 @@
 
 #include <doctest/doctest.h>
 
-#include <onyxui/simple/detail/runtime.hh>
+#include <onyxui/ui_app/detail/runtime.hh>
 
 #include <cstddef>
 #include <vector>
@@ -25,8 +25,8 @@ namespace {
     // Placeholder type whose address is used as an identity key.
     struct fake_app_window {};
 
-    using namespace onyxui::simple;
-    using namespace onyxui::simple::detail;
+    using namespace onyxui::ui_app;
+    using namespace onyxui::ui_app::detail;
 
     app_window* as_ptr(fake_app_window& f) {
         return reinterpret_cast<app_window*>(&f);

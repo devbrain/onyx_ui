@@ -1,6 +1,6 @@
 /**
  * @file app_window.cc
- * @brief conio-backed implementation of `onyxui::simple::app_window`
+ * @brief conio-backed implementation of `onyxui::ui_app::app_window`
  *        per docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §6.1.
  *
  * Implements the class methods over a termbox2 terminal + conio_renderer
@@ -17,27 +17,27 @@
  */
 
 // This TU plays the same role as a bundle header — it promotes the
-// aliases into onyxui::simple and then includes the simple/* header.
+// aliases into onyxui::ui_app and then includes the simple/* header.
 // Signal that to the guardrail check in the header.
-#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+#define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
 // 1. Backend-fixed aliases into onyxui::conio::.
 #include <onyxui/backend/conio.hh>
 
-// 2. Promote the canonical type list into onyxui::simple before
+// 2. Promote the canonical type list into onyxui::ui_app before
 //    app_window.hh is parsed — the header uses unqualified
 //    `ui_host` / `ui_element` / `window` names and needs the aliases
 //    in scope.
-namespace onyxui::simple {
-    using ::onyxui::conio::backend;
-    #define ONYXUI_TYPE(name) using ::onyxui::conio::name;
+namespace onyxui::ui_app {
+    using ::onyxui::ui::backend;
+    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app
 
 // 3. Now app_window.hh can be parsed with the aliases visible.
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/detail/runtime.hh>
+#include <onyxui/ui_app/app_window.hh>
+#include <onyxui/ui_app/detail/runtime.hh>
 
 #include <onyxui/conio/conio_backend.hh>
 #include <onyxui/conio/conio_renderer.hh>
@@ -49,7 +49,7 @@ namespace onyxui::simple {
 #include <string>
 #include <vector>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     // -----------------------------------------------------------------
     // Pimpl
@@ -141,7 +141,7 @@ namespace onyxui::simple {
         // `close()` the previous window first.
         if (detail::registered_window_count() > 0) {
             std::cerr
-                << "[onyxui::simple::app_window] show() refused: "
+                << "[onyxui::ui_app::app_window] show() refused: "
                 << "another conio app_window is already active. "
                 << "Termbox2 can only drive one terminal surface at a "
                 << "time — close the existing window before showing "
@@ -271,4 +271,4 @@ namespace onyxui::simple {
         }
     }
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

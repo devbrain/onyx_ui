@@ -9,8 +9,8 @@
  * `inline` specifier deduplicates the definitions at link time.
  *
  * Not part of the public API — consumers interact with the simple
- * shell through `<onyxui/simple/app_window.hh>`,
- * `<onyxui/simple/run.hh>`, and `<onyxui/simple/dialogs.hh>`.
+ * shell through `<onyxui/ui_app/app_window.hh>`,
+ * `<onyxui/ui_app/run.hh>`, and `<onyxui/ui_app/dialogs.hh>`.
  *
  * Modal-dialog ownership is NOT tracked here. Each `app_window` owns
  * its own modal presenters via `app_window::show_modal(...)` — this
@@ -25,11 +25,11 @@
 #include <cstddef>
 #include <vector>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
     class app_window;
 }
 
-namespace onyxui::simple::detail {
+namespace onyxui::ui_app::detail {
 
     // --------------------------------------------------------------
     // Thread-local state. `inline thread_local` is valid from C++17
@@ -101,4 +101,4 @@ namespace onyxui::simple::detail {
         g_exit_code = 0;
     }
 
-} // namespace onyxui::simple::detail
+} // namespace onyxui::ui_app::detail

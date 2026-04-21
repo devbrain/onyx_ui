@@ -14,7 +14,7 @@
  *
  * @see window_presets.hh for the factory shortcuts that wrap
  *      `host.present_modal(...)` and the `result_ready` wiring.
- * @see <onyxui/simple/dialogs.hh> for the fire-and-forget
+ * @see <onyxui/ui_app/dialogs.hh> for the fire-and-forget
  *      `app_window`-based variants (`message_box`, `confirm`,
  *      `input_dialog`, `error_box`).
  */
@@ -68,7 +68,7 @@ namespace onyxui {
      * the buttons and `dialog_result → bool` translation pre-baked.
      *
      * Fire-and-forget standalone-tool consumers should reach for
-     * `<onyxui/simple/dialogs.hh>` instead (`message_box`,
+     * `<onyxui/ui_app/dialogs.hh>` instead (`message_box`,
      * `confirm`, `input_dialog`, `error_box`), which route through
      * `app_window::show_modal` and hide the presenter entirely.
      */

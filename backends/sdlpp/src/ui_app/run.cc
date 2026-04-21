@@ -1,7 +1,7 @@
 /**
  * @file run.cc
- * @brief sdlpp implementation of `onyxui::simple::run()` /
- *        `onyxui::simple::quit()` per
+ * @brief sdlpp implementation of `onyxui::ui_app::run()` /
+ *        `onyxui::ui_app::quit()` per
  *        docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §6.2 and §7.
  *
  * ## v1 single-window restriction
@@ -22,21 +22,21 @@
 
 // This TU plays the same role as a bundle header; signal that to the
 // guardrail check in the simple/* headers.
-#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+#define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
-// Promote aliases into onyxui::simple before app_window.hh is parsed.
+// Promote aliases into onyxui::ui_app before app_window.hh is parsed.
 #include <onyxui/backend/sdlpp.hh>
 
-namespace onyxui::simple {
-    using ::onyxui::sdlpp::backend;
-    #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
+namespace onyxui::ui_app {
+    using ::onyxui::ui::backend;
+    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
 }
 
-#include <onyxui/simple/run.hh>
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/detail/runtime.hh>
+#include <onyxui/ui_app/run.hh>
+#include <onyxui/ui_app/app_window.hh>
+#include <onyxui/ui_app/detail/runtime.hh>
 
 #include <sdlpp/events/events.hh>
 #include <sdlpp/events/event_types.hh>
@@ -44,7 +44,7 @@ namespace onyxui::simple {
 #include <iostream>
 #include <vector>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     namespace {
 
@@ -76,7 +76,7 @@ namespace onyxui::simple {
                 static bool warned_once = false;
                 if (!warned_once) {
                     std::cerr
-                        << "[onyxui::simple::run] warning: "
+                        << "[onyxui::ui_app::run] warning: "
                         << windows.size()
                         << " app_windows are registered. v1 only "
                            "correctly routes events to the first-"
@@ -122,4 +122,4 @@ namespace onyxui::simple {
         detail::request_quit(exit_code);
     }
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

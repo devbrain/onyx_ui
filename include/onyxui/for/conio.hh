@@ -3,16 +3,7 @@
  * @brief Simple-shell bundle header — conio backend.
  *
  * Mirror of `<onyxui/for/sdlpp.hh>` for the conio (terminal) backend.
- * See that header's comment for the full mechanism; the short version
- * is:
- *
- *   1. Pull in the backend-alias header so `onyxui::conio::ui_host`
- *      etc. exist as concrete types.
- *   2. Promote those aliases into `onyxui::simple` via X-macro
- *      using-declarations.
- *   3. Include the `<onyxui/simple/*.hh>` headers — they reference
- *      the unqualified names in `onyxui::simple`, which step 2
- *      just populated.
+ * See that header's comment for the full mechanism.
  *
  * Consumer usage (identical to the sdlpp path — only this one
  * include line differs):
@@ -21,7 +12,7 @@
  * #include <onyxui/for/conio.hh>
  *
  * int main() {
- *     using namespace onyxui::simple;
+ *     using namespace onyxui::ui_app;
  *     app_window win("Hello", 80, 25);
  *     auto root = std::make_unique<vbox>();
  *     root->emplace_child<label>("Hello, terminal!");
@@ -34,28 +25,26 @@
 
 #pragma once
 
-// Signal to the simple/* headers that the bundle chain is in use —
-// see the note on ONYXUI_SIMPLE_BUNDLE_INCLUDED in
+// Signal to the ui_app/* headers that the bundle chain is in use —
+// see the note on ONYXUI_UI_APP_BUNDLE_INCLUDED in
 // `<onyxui/for/sdlpp.hh>`.
-#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+#define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
-// 1. Backend-fixed aliases under onyxui::conio::.
+// 1. Widget aliases → onyxui::ui (conio-backed).
 #include <onyxui/backend/conio.hh>
 
-// 2. Re-export them into onyxui::simple BEFORE the simple/* headers
-//    are parsed. Using-declarations (not a using-directive) so each
-//    name is a first-class introduction in the target namespace.
-namespace onyxui::simple {
-    using ::onyxui::conio::backend;
+// 2. Re-export them into onyxui::ui_app so the app-shell headers can
+//    reference `ui_host`, `window`, etc. without qualifying.
+namespace onyxui::ui_app {
+    using ::onyxui::ui::backend;
 
-    #define ONYXUI_TYPE(name) using ::onyxui::conio::name;
+    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app
 
-// 3. Now the simple/* headers can be parsed — ui_host / ui_element /
-//    window / etc. are visible as concrete backend-fixed types in
-//    onyxui::simple.
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/run.hh>
-#include <onyxui/simple/dialogs.hh>
+// 3. App-shell types live in onyxui::ui_app and reference the widgets
+//    re-exported above.
+#include <onyxui/ui_app/app_window.hh>
+#include <onyxui/ui_app/run.hh>
+#include <onyxui/ui_app/dialogs.hh>

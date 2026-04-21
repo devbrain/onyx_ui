@@ -2,10 +2,10 @@
  * @file app_window.hh
  * @brief Top-level standalone-tool window for the simple shell.
  *
- * This header is NOT standalone. It declares `onyxui::simple::app_window`
+ * This header is NOT standalone. It declares `onyxui::ui_app::app_window`
  * referencing the unqualified names `ui_host`, `ui_element` and `window`
  * in the enclosing namespace. Those names are brought into
- * `onyxui::simple` by the bundle header (`<onyxui/for/sdlpp.hh>`)
+ * `onyxui::ui_app` by the bundle header (`<onyxui/for/sdlpp.hh>`)
  * BEFORE this header is included. Including this file directly without
  * a bundle header in scope is a compile error by construction — see
  * `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md` §5.2.
@@ -20,13 +20,13 @@
 
 // Guardrail: the simple/* headers are NOT standalone. They use the
 // unqualified names `ui_element`, `ui_host` and `window` in namespace
-// `onyxui::simple`, which a bundle header (`<onyxui/for/sdlpp.hh>`)
+// `onyxui::ui_app`, which a bundle header (`<onyxui/for/sdlpp.hh>`)
 // populates via using-declarations BEFORE this file is parsed.
 // Including this header directly would produce a cryptic cascade of
 // "unknown type" errors; this check turns that into a readable
 // message.
-#ifndef ONYXUI_SIMPLE_BUNDLE_INCLUDED
-#  error "<onyxui/simple/app_window.hh> is not a standalone header. " \
+#ifndef ONYXUI_UI_APP_BUNDLE_INCLUDED
+#  error "<onyxui/ui_app/app_window.hh> is not a standalone header. " \
          "Include a bundle header instead — typically " \
          "<onyxui/for/sdlpp.hh>. See " \
          "docs/ONYXUI_SIMPLE_SHELL_DESIGN.md §5.2."
@@ -37,7 +37,7 @@
 #include <memory>
 #include <string>
 
-namespace onyxui::simple {
+namespace onyxui::ui_app {
 
     // The three names this class's API mentions are brought in by the
     // bundle header via using-declarations before this file is parsed:
@@ -76,7 +76,7 @@ namespace onyxui::simple {
 
         /// Hide the OS window and unregister it from the run loop.
         /// After `close()`, `is_open()` returns false and the window
-        /// is no longer driven by `onyxui::simple::run()`.
+        /// is no longer driven by `onyxui::ui_app::run()`.
         ///
         /// The mounted root is NOT destroyed — a subsequent `show()`
         /// brings the same UI tree back. Consumers that want the old
@@ -148,7 +148,7 @@ namespace onyxui::simple {
         // should not call these directly.
         // ----------------------------------------------------------
 
-        /// Render one frame (called by `onyxui::simple::run()` each
+        /// Render one frame (called by `onyxui::ui_app::run()` each
         /// loop iteration). Drains any `show_modal` presenters whose
         /// window has already fired `closed` before drawing, so
         /// dismissals that landed during last frame's event pump
@@ -172,7 +172,7 @@ namespace onyxui::simple {
         /// declaration backend-agnostic. Returns true if the event
         /// signalled a close request (e.g. SDL_QUIT).
         ///
-        /// The run loop (`onyxui::simple::run()`) polls the OS event
+        /// The run loop (`onyxui::ui_app::run()`) polls the OS event
         /// queue ONCE per frame and calls this on the target window —
         /// app_window does not pump its own queue. This avoids the
         /// multi-window misrouting that per-window polling would cause.
@@ -183,4 +183,4 @@ namespace onyxui::simple {
         std::unique_ptr<impl> pimpl_;
     };
 
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app

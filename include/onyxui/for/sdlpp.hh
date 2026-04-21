@@ -3,46 +3,54 @@
  * @brief Simple-shell bundle header — sdlpp backend.
  *
  * Consumers writing standalone tools include exactly this one header
- * plus `using namespace onyxui::simple;` and get the FLTK-grade API
- * — no backend template parameters visible. See
+ * and get both the widget alias pack (`onyxui::ui`) and the FLTK-grade
+ * app-shell types (`onyxui::ui_app`). See
  * `docs/ONYXUI_SIMPLE_SHELL_DESIGN.md` §5.2 for the full model.
  *
- * Header order matters, per §5.2:
+ * Namespace contract:
+ *   - `onyxui::ui::*`     — widget aliases (backend-fixed). Populated
+ *                            by `<onyxui/backend/sdlpp.hh>`.
+ *   - `onyxui::ui_app::*` — widget aliases re-exported *plus*
+ *                            `app_window`, `run()`, dialog helpers.
+ *                            Populated by this header.
  *
- *   1. Include the backend-alias header so `onyxui::sdlpp::ui_host`
- *      etc. exist as concrete types.
- *   2. Promote those aliases into `onyxui::simple` via X-macro
- *      using-declarations.
- *   3. Only now include the `<onyxui/simple/*.hh>` headers — they
- *      reference the unqualified names `ui_host` and `ui_element`
- *      in `onyxui::simple`, which the step above just populated.
+ * Widget-only consumers (engine embedders) can include just
+ * `<onyxui/backend/sdlpp.hh>` and skip the app shell.
+ *
+ * Header order matters:
+ *   1. Include `<onyxui/backend/sdlpp.hh>` so widget aliases populate
+ *      `onyxui::ui` as concrete types.
+ *   2. Re-export them into `onyxui::ui_app` via X-macro using-
+ *      declarations so the simple/* headers can reference them
+ *      unqualified.
+ *   3. Include the `<onyxui/ui_app/*.hh>` headers — they reference
+ *      the unqualified names `ui_host`, `ui_element`, `window` in
+ *      `onyxui::ui_app`, which step 2 just populated.
  */
 
 #pragma once
 
-// Signal to the simple/* headers that they're being included via a
-// bundle header (and therefore the onyxui::simple aliases will be
-// populated before they're parsed). Each simple/* header #error's
-// out if this isn't defined, producing a readable diagnostic
-// instead of a cascade of "unknown type" errors.
-#define ONYXUI_SIMPLE_BUNDLE_INCLUDED 1
+// Signal to the ui_app/* headers that the bundle is live (so the
+// `onyxui::ui_app` aliases are populated before they're parsed).
+// Each ui_app/* header #errors without this define, producing a
+// readable diagnostic instead of a cascade of "unknown type" errors.
+#define ONYXUI_UI_APP_BUNDLE_INCLUDED 1
 
-// 1. Backend-fixed aliases under onyxui::sdlpp::.
+// 1. Widget aliases → onyxui::ui.
 #include <onyxui/backend/sdlpp.hh>
 
-// 2. Re-export them into onyxui::simple BEFORE the simple/* headers
-//    are parsed. Using-declarations (not a using-directive) so each
-//    name is a first-class introduction in the target namespace.
-namespace onyxui::simple {
-    using ::onyxui::sdlpp::backend;
+// 2. Re-export them into onyxui::ui_app so the app-shell headers can
+//    reference `ui_host`, `window`, etc. without qualifying.
+namespace onyxui::ui_app {
+    using ::onyxui::ui::backend;
 
-    #define ONYXUI_TYPE(name) using ::onyxui::sdlpp::name;
+    #define ONYXUI_TYPE(name) using ::onyxui::ui::name;
     #include <onyxui/detail/public_types.inc>
     #undef ONYXUI_TYPE
-} // namespace onyxui::simple
+} // namespace onyxui::ui_app
 
-// 3. Now the simple/* headers can be parsed — ui_host / ui_element
-//    are visible as concrete backend-fixed types in onyxui::simple.
-#include <onyxui/simple/app_window.hh>
-#include <onyxui/simple/run.hh>
-#include <onyxui/simple/dialogs.hh>
+// 3. App-shell types live in onyxui::ui_app and reference the widgets
+//    re-exported above.
+#include <onyxui/ui_app/app_window.hh>
+#include <onyxui/ui_app/run.hh>
+#include <onyxui/ui_app/dialogs.hh>

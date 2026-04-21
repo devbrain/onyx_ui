@@ -314,10 +314,10 @@ namespace onyxui {
              *
              * Sibling to the template-template overload above. Accepts
              * an already-instantiated type (typically a backend-fixed
-             * alias like `onyxui::simple::button`, which is
+             * alias like `onyxui::ui_app::button`, which is
              * `::onyxui::button<backend>`). This is what makes the
              * simple-shell consumer code clean after
-             * `using namespace onyxui::simple;` —
+             * `using namespace onyxui::ui_app;` —
              * `root->emplace_child<button>("OK")` just works.
              *
              * The `requires` clause distinguishes this overload from
@@ -332,7 +332,7 @@ namespace onyxui {
              *
              * @example
              * @code
-             * using namespace onyxui::simple;  // or onyxui::sdlpp, etc.
+             * using namespace onyxui::ui_app;  // or onyxui::sdlpp, etc.
              * auto root = std::make_unique<vbox>();
              * root->emplace_child<label>("Hello");   // concrete alias
              * root->emplace_child<::onyxui::label>("Hi");  // template form

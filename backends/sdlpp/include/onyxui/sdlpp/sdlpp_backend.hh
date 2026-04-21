@@ -5,8 +5,8 @@
  * Two supported usage modes:
  *
  * ## Standalone tools — simple shell
- * Include `<onyxui/for/sdlpp.hh>` and use `onyxui::simple::app_window`
- * + `onyxui::simple::run()` for a FLTK-grade entry point.
+ * Include `<onyxui/for/sdlpp.hh>` and use `onyxui::ui_app::app_window`
+ * + `onyxui::ui_app::run()` for a FLTK-grade entry point.
  *
  * ## Game engine embedding — `ui_host<B>`
  * Hold an `onyxui::ui_host<onyxui::sdlpp::sdlpp_backend>` in your
