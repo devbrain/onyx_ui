@@ -14,9 +14,6 @@ add_backend_library(
         src/sdlpp_renderer.cc
         src/sdlpp_backend.cc
         src/xpm_parser.cc
-        src/tile_renderer.cc
-        src/tile_backend.cc
-        src/procedural_atlas.cc
         src/simple/app_window.cc
         src/simple/run.cc
     PUBLIC_HEADERS
@@ -26,8 +23,6 @@ add_backend_library(
         include/onyxui/sdlpp/sdlpp_events.hh
         include/onyxui/sdlpp/sdlpp_renderer.hh
         include/onyxui/sdlpp/xpm_parser.hh
-        include/onyxui/tile/tile_backend.hh
-        include/onyxui/tile/procedural_atlas.hh
     DEPENDENCIES
         neutrino::sdlpp
 )
@@ -36,10 +31,4 @@ add_backend_library(
 if(NEUTRINO_ONYX_UI_BUILD_EXAMPLES)
     add_executable(sdlpp_demo demo.cc)
     target_link_libraries(sdlpp_demo PRIVATE onyxui_sdlpp_backend)
-
-
 endif()
-
-# Strategy UI demo - implements design.txt layout
-add_executable(strategy_ui_demo strategy_ui_demo.cc)
-target_link_libraries(strategy_ui_demo PRIVATE onyxui_sdlpp_backend)
