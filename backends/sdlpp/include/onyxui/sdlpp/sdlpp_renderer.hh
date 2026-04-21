@@ -26,7 +26,7 @@ namespace sdlpp {
     class texture;
 }
 namespace onyx_image {
-    class surface;
+    class memory_surface;
 }
 
 namespace onyxui::sdlpp {
@@ -175,24 +175,52 @@ public:
     // =================================================================
 
     /**
-     * @brief Blit an onyx_image::surface stretched to `dst`.
+     * @brief Blit an onyx_image::memory_surface stretched to `dst`.
      *
-     * First call with a given surface pointer uploads it as an SDL
-     * texture; subsequent calls reuse the cached texture. Caller owns
-     * the surface and must keep its content stable (we key the cache
-     * by surface address — reusing the same surface pointer for
-     * different content will show the old content).
+     * Cache semantics (per-renderer):
+     *   - First call uploads the pixel data as an SDL texture created
+     *     against this renderer. Subsequent calls with the same surface
+     *     address reuse that texture.
+     *   - Cache lives on this renderer instance; destroying the renderer
+     *     (or calling `invalidate_image` / `clear_image_cache()`)
+     *     releases the GPU textures.
      *
-     * Supports images in RGBA8888 or RGB888 pixel formats.
-     * Texture is created with alpha blending enabled.
+     * **Stable-identity contract** (caller's responsibility):
+     *   - The caller must keep the surface alive as long as they want
+     *     the cache hit, and must NOT mutate its pixels after the first
+     *     draw. If either condition breaks, call `invalidate_image` to
+     *     force re-upload on the next draw.
+     *   - Do not reuse the same surface address for different content —
+     *     the cache key is the pointer, so a destroyed-then-recreated
+     *     surface at the same address will display the old texture.
+     *
+     * Supported pixel formats: rgba8888 (alpha-blended), rgb888
+     * (opaque), indexed8 (palette expanded inline).
+     *
+     * The signature takes `memory_surface` explicitly rather than the
+     * abstract `surface` base so the contract is honest: only surfaces
+     * that expose a CPU pixel buffer are uploadable.
      */
-    void draw_image(const rect& dst, const onyx_image::surface& img);
+    void draw_image(const rect& dst, const onyx_image::memory_surface& img);
+
+    /**
+     * @brief Drop the cached GPU texture for `img` (if any).
+     *
+     * Call before mutating the surface's pixels or before destroying it
+     * to avoid the "stale content via reused address" pitfall.
+     */
+    void invalidate_image(const onyx_image::memory_surface& img);
+
+    /** @brief Drop every cached image texture on this renderer. */
+    void clear_image_cache();
 
     /**
      * @brief Blit a caller-owned SDL texture stretched to `dst`.
      *
      * No caching — the caller is responsible for the texture's
-     * lifetime (e.g. a pre-rendered game-thumbnail atlas).
+     * lifetime (e.g. a pre-rendered game-thumbnail atlas). Use this
+     * over `draw_image` when you want explicit control over upload
+     * timing, mutation, and lifetime.
      */
     void draw_texture(const rect& dst, ::sdlpp::texture& tex);
 

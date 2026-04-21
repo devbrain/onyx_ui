@@ -524,28 +524,30 @@ static xpm_icon_cache& get_xpm_cache() {
 }
 
 // =================================================================
-// Image texture cache — onyx_image::surface → sdl::texture upload
+// Image texture cache — onyx_image::memory_surface → sdl::texture
+//
+// Per-renderer (stored in sdlpp_renderer::impl). Textures are bound to
+// the SDL renderer that created them, so this cache cannot be process-
+// global — two renderers, or a recreated renderer, would each need
+// their own set of textures.
 // =================================================================
 
 class image_texture_cache {
 public:
     ::sdlpp::texture* get_or_upload(::sdlpp::renderer& renderer,
-                                    const onyx_image::surface& img) {
+                                    const onyx_image::memory_surface& img) {
         auto it = m_textures.find(&img);
         if (it != m_textures.end()) {
             return &it->second;
         }
-
-        // Only memory_surface is supported for now — other surface
-        // implementations would need their own pixel-extraction paths.
-        auto const* mem = dynamic_cast<const onyx_image::memory_surface*>(&img);
-        if (!mem || mem->width() <= 0 || mem->height() <= 0) {
+        if (img.width() <= 0 || img.height() <= 0) {
             return nullptr;
         }
-        auto const w = mem->width();
-        auto const h = mem->height();
-        auto const fmt = mem->format();
-        auto const pixels = mem->pixels();
+
+        auto const w = img.width();
+        auto const h = img.height();
+        auto const fmt = img.format();
+        auto const pixels = img.pixels();
 
         std::optional<::sdlpp::texture> tex_opt;
 
@@ -568,13 +570,13 @@ public:
             if (!tex) return nullptr;
             tex_opt = std::move(*tex);
         } else {
-            // indexed8 and anything else: convert to RGBA inline.
+            // indexed8: expand palette to RGBA once at upload time.
             std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w * h * 4));
-            auto const palette = mem->palette();
+            auto const palette = img.palette();
             for (int y = 0; y < h; ++y) {
                 for (int x = 0; x < w; ++x) {
                     std::uint8_t const idx = pixels[static_cast<std::size_t>(
-                        y * mem->pitch() + static_cast<std::size_t>(x))];
+                        y * img.pitch() + static_cast<std::size_t>(x))];
                     std::size_t const po = static_cast<std::size_t>(idx) * 3;
                     auto const base = static_cast<std::size_t>((y * w + x) * 4);
                     rgba[base + 0] = (po + 0 < palette.size()) ? palette[po + 0] : 0;
@@ -599,16 +601,15 @@ public:
         return success ? &inserted_it->second : nullptr;
     }
 
+    void invalidate(const onyx_image::memory_surface& img) {
+        m_textures.erase(&img);
+    }
+
     void clear() { m_textures.clear(); }
 
 private:
-    std::unordered_map<const onyx_image::surface*, ::sdlpp::texture> m_textures;
+    std::unordered_map<const onyx_image::memory_surface*, ::sdlpp::texture> m_textures;
 };
-
-static image_texture_cache& get_image_cache() {
-    static image_texture_cache cache;
-    return cache;
-}
 
 // =================================================================
 // Renderer Implementation
@@ -619,6 +620,7 @@ struct sdlpp_renderer::impl {
     std::stack<rect> clip_stack;
     rect viewport{0, 0, 800, 600};
     std::filesystem::path assets_path;
+    image_texture_cache image_cache;  ///< per-renderer; textures live + die with this instance
 
     explicit impl(::sdlpp::renderer& r, const std::filesystem::path& assets)
         : renderer(&r), assets_path(assets)
@@ -1414,11 +1416,22 @@ void sdlpp_renderer::draw_shadow(const rect& wb, int offset_x, int offset_y)
         wb.x + offset_x, wb.y + wb.h, wb.w, offset_y});
 }
 
-void sdlpp_renderer::draw_image(const rect& dst, const onyx_image::surface& img)
+void sdlpp_renderer::draw_image(const rect& dst,
+                                 const onyx_image::memory_surface& img)
 {
-    auto* tex = get_image_cache().get_or_upload(*m_pimpl->renderer, img);
+    auto* tex = m_pimpl->image_cache.get_or_upload(*m_pimpl->renderer, img);
     if (!tex) return;
     draw_texture(dst, *tex);
+}
+
+void sdlpp_renderer::invalidate_image(const onyx_image::memory_surface& img)
+{
+    m_pimpl->image_cache.invalidate(img);
+}
+
+void sdlpp_renderer::clear_image_cache()
+{
+    m_pimpl->image_cache.clear();
 }
 
 void sdlpp_renderer::draw_texture(const rect& dst, ::sdlpp::texture& tex)
@@ -1559,7 +1572,8 @@ void sdlpp_renderer::shutdown()
 {
     font_cache_manager::instance().clear();
     get_xpm_cache().clear();
-    get_image_cache().clear();
+    // Per-renderer image caches are released via sdlpp_renderer::impl's
+    // destructor; no global clear here.
 }
 
 } // namespace onyxui::sdlpp
