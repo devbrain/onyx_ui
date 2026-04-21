@@ -83,15 +83,16 @@ font_source_provider& current_font_source_provider() {
 }
 
 // =================================================================
-// Font Cache — onyx_font::glyph_cache with lazy SDL atlas upload
+// Font CPU cache — onyx_font::glyph_cache (no GPU resources)
 //
-// Uses onyx_font directly rather than going through lib_sdlpp's
-// sdlpp::font::font_cache (which was itself a thin wrapper around
-// onyx_font::glyph_cache). Removing that hop lets us:
-//   - control atlas upload timing (lazy, dirty-tracked)
-//   - keep the same API point (measure_text + draw_text) while
-//     dropping an indirection
-//   - align with how warlords already uses onyx_font directly
+// Process-global. Owns TTF file bytes, the ttf_font object, and the
+// CPU-side glyph rasterization cache. Used by:
+//   - sdlpp_renderer::measure_text  (static — no renderer to route through)
+//   - sdlpp_renderer::draw_text     (to read glyph metrics + atlas pixels)
+//
+// SDL textures are NOT stored here. They live in sdlpp_renderer::impl's
+// font_atlas_cache, one per renderer, so tearing down one renderer
+// doesn't invalidate textures owned by another.
 // =================================================================
 
 class font_cache_manager {
@@ -103,21 +104,11 @@ public:
 
     struct font_entry {
         std::vector<std::uint8_t> font_data;  ///< keeps ttf_font's span valid
-        std::unique_ptr<onyx_font::ttf_font> ttf;
+        std::unique_ptr<onyx_font::ttf_font> ttf;  ///< may be null for bitmap sources
         std::unique_ptr<onyx_font::glyph_cache<onyx_font::memory_atlas>> cache;
-        std::vector<::sdlpp::texture> atlas_textures;
-        std::vector<bool> atlas_dirty;
     };
 
-    /**
-     * @brief Clear all cached fonts and glyph caches
-     *
-     * Must be called before SDL shutdown so GPU textures are released
-     * before the SDL renderer goes away.
-     */
-    void clear() {
-        m_entries.clear();
-    }
+    void clear() { m_entries.clear(); }
 
     /**
      * @brief Get or create a font_entry for this font spec.
@@ -161,24 +152,7 @@ public:
             return nullptr;
         }
 
-        onyx_font::text_style style = onyx_font::text_style::normal;
-        if (f.bold)          style = style | onyx_font::text_style::bold;
-        if (f.italic)        style = style | onyx_font::text_style::italic;
-        if (f.underline)     style = style | onyx_font::text_style::underline;
-        if (f.strikethrough) style = style | onyx_font::text_style::strikethrough;
-
-        onyx_font::glyph_cache_config config;
-        config.atlas_size = 512;
-        config.pre_cache_ascii = true;
-
-        entry.cache = std::make_unique<
-            onyx_font::glyph_cache<onyx_font::memory_atlas>>(
-                onyx_font::font_source::from_ttf(*entry.ttf),
-                f.size_px,
-                config);
-        entry.cache->set_style(style);
-        entry.atlas_dirty.resize(
-            static_cast<std::size_t>(entry.cache->atlas_count()), true);
+        entry.cache = make_glyph_cache(f, onyx_font::font_source::from_ttf(*entry.ttf));
 
         auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
         return &inserted_it->second;
@@ -187,86 +161,14 @@ public:
     font_entry* create_from_bitmap(std::size_t key,
                                    const sdlpp_renderer::font& f,
                                    const onyx_font::bitmap_font& bfont) {
-        onyx_font::text_style style = onyx_font::text_style::normal;
-        if (f.bold)          style = style | onyx_font::text_style::bold;
-        if (f.italic)        style = style | onyx_font::text_style::italic;
-        if (f.underline)     style = style | onyx_font::text_style::underline;
-        if (f.strikethrough) style = style | onyx_font::text_style::strikethrough;
-
-        onyx_font::glyph_cache_config config;
-        config.atlas_size = 512;
-        config.pre_cache_ascii = true;
-
         font_entry entry;
-        entry.cache = std::make_unique<
-            onyx_font::glyph_cache<onyx_font::memory_atlas>>(
-                onyx_font::font_source::from_bitmap(bfont),
-                f.size_px,
-                config);
-        entry.cache->set_style(style);
-        entry.atlas_dirty.resize(
-            static_cast<std::size_t>(entry.cache->atlas_count()), true);
-
+        entry.cache = make_glyph_cache(f, onyx_font::font_source::from_bitmap(bfont));
         auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
         return &inserted_it->second;
     }
 
     /**
-     * @brief Sync onyx_font's CPU atlases to SDL textures. Only re-uploads
-     *        pages that were marked dirty since the last call.
-     */
-    void ensure_textures(::sdlpp::renderer& renderer, font_entry& entry) {
-        auto const count = static_cast<std::size_t>(entry.cache->atlas_count());
-        entry.atlas_textures.resize(count);
-        entry.atlas_dirty.resize(count, true);
-
-        for (std::size_t i = 0; i < count; ++i) {
-            if (!entry.atlas_dirty[i] && entry.atlas_textures[i]) continue;
-
-            const auto& atlas = entry.cache->atlas(static_cast<int>(i));
-            int const w = atlas.width();
-            int const h = atlas.height();
-
-            if (!entry.atlas_textures[i]) {
-                auto tex_result = ::sdlpp::texture::create(
-                    renderer,
-                    ::sdlpp::pixel_format_enum::ABGR8888,
-                    ::sdlpp::texture_access::streaming,
-                    w, h);
-                if (!tex_result) continue;
-                entry.atlas_textures[i] = std::move(*tex_result);
-                entry.atlas_textures[i].set_blend_mode(::sdlpp::blend_mode::blend);
-                entry.atlas_textures[i].set_scale_mode(::sdlpp::scale_mode::linear);
-            }
-
-            // onyx_font atlases store 1 byte/pixel alpha; we expand to
-            // RGBA (white + alpha) so SDL color-modulation gives us the
-            // final glyph color at draw time.
-            auto lock_result = entry.atlas_textures[i].lock<::sdlpp::rect_i>();
-            if (!lock_result) continue;
-            auto [pixels, pitch] = *lock_result;
-
-            const std::uint8_t* alpha_data = atlas.data();
-            auto* rgba = static_cast<std::uint8_t*>(pixels);
-
-            for (int y = 0; y < h; ++y) {
-                for (int x = 0; x < w; ++x) {
-                    std::uint8_t a = alpha_data[y * w + x];
-                    int const dst = y * pitch + x * 4;
-                    rgba[dst + 0] = 255;  // R
-                    rgba[dst + 1] = 255;  // G
-                    rgba[dst + 2] = 255;  // B
-                    rgba[dst + 3] = a;    // A
-                }
-            }
-
-            entry.atlas_textures[i].unlock();
-            entry.atlas_dirty[i] = false;
-        }
-    }
-
-    /**
-     * @brief Measure text via onyx_font's rasterizer.
+     * @brief Measure text via onyx_font's rasterizer (CPU-only path).
      */
     size measure_text_cached(const sdlpp_renderer::font& f,
                              std::string_view text) {
@@ -287,6 +189,26 @@ public:
 
 private:
     font_cache_manager() = default;
+
+    static std::unique_ptr<onyx_font::glyph_cache<onyx_font::memory_atlas>>
+    make_glyph_cache(const sdlpp_renderer::font& f,
+                     onyx_font::font_source source) {
+        onyx_font::text_style style = onyx_font::text_style::normal;
+        if (f.bold)          style = style | onyx_font::text_style::bold;
+        if (f.italic)        style = style | onyx_font::text_style::italic;
+        if (f.underline)     style = style | onyx_font::text_style::underline;
+        if (f.strikethrough) style = style | onyx_font::text_style::strikethrough;
+
+        onyx_font::glyph_cache_config config;
+        config.atlas_size = 512;
+        config.pre_cache_ascii = true;
+
+        auto cache = std::make_unique<
+            onyx_font::glyph_cache<onyx_font::memory_atlas>>(
+                std::move(source), f.size_px, config);
+        cache->set_style(style);
+        return cache;
+    }
 
     static std::vector<std::uint8_t> read_file(const std::filesystem::path& p) {
         std::ifstream in(p, std::ios::binary | std::ios::ate);
@@ -325,6 +247,91 @@ private:
     }
 
     std::unordered_map<std::size_t, font_entry> m_entries;
+};
+
+// =================================================================
+// Font Atlas Texture Cache — per-renderer
+//
+// Uploads onyx_font's CPU memory_atlas pages into SDL textures bound
+// to a specific renderer. Keyed by font hash; each hash maps to a
+// vector of atlas-page textures that mirror the CPU glyph_cache's
+// atlas pages.
+// =================================================================
+
+class font_atlas_cache {
+public:
+    struct atlas_set {
+        std::vector<::sdlpp::texture> textures;
+        std::vector<bool> dirty;
+    };
+
+    /**
+     * @brief Ensure the SDL-side atlas textures for `cache` are uploaded.
+     *
+     * New atlas pages (grown since last call) are uploaded. Existing
+     * pages are re-uploaded only if flagged dirty — currently only the
+     * newly-created-page case. Glyphs added to an existing page after
+     * it was first uploaded will go unseen until something (e.g.
+     * cache.clear()) forces a re-upload; this matches the pre-existing
+     * behaviour of the prior unified cache.
+     */
+    atlas_set* ensure(::sdlpp::renderer& rend,
+                      std::size_t font_key,
+                      onyx_font::glyph_cache<onyx_font::memory_atlas>& cache) {
+        auto& set = m_sets[font_key];
+        auto const count = static_cast<std::size_t>(cache.atlas_count());
+
+        if (set.textures.size() < count) {
+            set.textures.resize(count);
+            set.dirty.resize(count, true);
+        }
+
+        for (std::size_t i = 0; i < count; ++i) {
+            if (!set.dirty[i] && set.textures[i]) continue;
+
+            const auto& atlas = cache.atlas(static_cast<int>(i));
+            int const w = atlas.width();
+            int const h = atlas.height();
+
+            if (!set.textures[i]) {
+                auto tex_result = ::sdlpp::texture::create(
+                    rend,
+                    ::sdlpp::pixel_format_enum::ABGR8888,
+                    ::sdlpp::texture_access::streaming, w, h);
+                if (!tex_result) continue;
+                set.textures[i] = std::move(*tex_result);
+                set.textures[i].set_blend_mode(::sdlpp::blend_mode::blend);
+                set.textures[i].set_scale_mode(::sdlpp::scale_mode::linear);
+            }
+
+            // onyx_font atlases are single-channel alpha. Expand to RGBA
+            // (white + alpha) so SDL color-modulation tints them at draw time.
+            auto lock_result = set.textures[i].lock<::sdlpp::rect_i>();
+            if (!lock_result) continue;
+            auto [pixels, pitch] = *lock_result;
+            const std::uint8_t* alpha_data = atlas.data();
+            auto* rgba = static_cast<std::uint8_t*>(pixels);
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    std::uint8_t const a = alpha_data[y * w + x];
+                    int const dst = y * pitch + x * 4;
+                    rgba[dst + 0] = 255;
+                    rgba[dst + 1] = 255;
+                    rgba[dst + 2] = 255;
+                    rgba[dst + 3] = a;
+                }
+            }
+            set.textures[i].unlock();
+            set.dirty[i] = false;
+        }
+
+        return &set;
+    }
+
+    void clear() { m_sets.clear(); }
+
+private:
+    std::unordered_map<std::size_t, atlas_set> m_sets;
 };
 
 // =================================================================
@@ -517,12 +524,6 @@ private:
     }
 };
 
-// Global XPM icon cache (per-process)
-static xpm_icon_cache& get_xpm_cache() {
-    static xpm_icon_cache cache;
-    return cache;
-}
-
 // =================================================================
 // Image texture cache — onyx_image::memory_surface → sdl::texture
 //
@@ -620,7 +621,12 @@ struct sdlpp_renderer::impl {
     std::stack<rect> clip_stack;
     rect viewport{0, 0, 800, 600};
     std::filesystem::path assets_path;
-    image_texture_cache image_cache;  ///< per-renderer; textures live + die with this instance
+    // All three caches hold SDL textures bound to `renderer`; they must
+    // live and die with this instance so closing one window can't
+    // invalidate textures owned by another.
+    font_atlas_cache font_atlases;
+    xpm_icon_cache xpm_icons;
+    image_texture_cache image_cache;
 
     explicit impl(::sdlpp::renderer& r, const std::filesystem::path& assets)
         : renderer(&r), assets_path(assets)
@@ -708,14 +714,20 @@ void sdlpp_renderer::draw_text(const rect& r, std::string_view text,
 
     const font scaled_font = dpi_scaled(f);
 
-    auto& mgr = font_cache_manager::instance();
-    auto* entry = mgr.get_or_create_entry(scaled_font);
+    // Global CPU cache: glyph metrics + rasterized atlas pixels.
+    auto* entry = font_cache_manager::instance().get_or_create_entry(scaled_font);
     if (!entry) {
         return;
     }
 
     auto& rend = *m_pimpl->renderer;
-    mgr.ensure_textures(rend, *entry);
+
+    // Per-renderer GPU cache: SDL textures mirroring the CPU atlases.
+    auto* atlas_set = m_pimpl->font_atlases.ensure(
+        rend, scaled_font.hash(), *entry->cache);
+    if (!atlas_set) {
+        return;
+    }
 
     auto& cache = *entry->cache;
     auto const metrics = cache.rasterizer().get_metrics();
@@ -727,12 +739,12 @@ void sdlpp_renderer::draw_text(const rect& r, std::string_view text,
         const auto& g = cache.get(cp);
 
         if (g.atlas_index < 0 ||
-            g.atlas_index >= static_cast<int>(entry->atlas_textures.size())) {
+            g.atlas_index >= static_cast<int>(atlas_set->textures.size())) {
             pen_x += g.advance_x;
             continue;
         }
 
-        auto& tex = entry->atlas_textures[static_cast<std::size_t>(g.atlas_index)];
+        auto& tex = atlas_set->textures[static_cast<std::size_t>(g.atlas_index)];
         if (!tex) {
             pen_x += g.advance_x;
             continue;
@@ -770,11 +782,11 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
     // These are the authentic Windows 3.11 button graphics
     auto try_render_xpm = [&](xpm_icon_cache::xpm_icon_type active_type,
                                xpm_icon_cache::xpm_icon_type inactive_type) -> bool {
+        (void)inactive_type;
         // Determine if active based on background brightness
         // Active buttons have gray background, inactive have different appearance
         // For now, always use active icons (the title bar styling handles visual state)
-        auto& cache = get_xpm_cache();
-        auto* texture = cache.get_icon(rend, active_type);
+        auto* texture = m_pimpl->xpm_icons.get_icon(rend, active_type);
         if (!texture) {
             return false;  // Fall back to procedural drawing
         }
@@ -789,8 +801,7 @@ void sdlpp_renderer::draw_icon(const rect& r, icon_style style,
 
     // Helper to render a single XPM icon type
     auto try_render_single_xpm = [&](xpm_icon_cache::xpm_icon_type type) -> bool {
-        auto& cache = get_xpm_cache();
-        auto* texture = cache.get_icon(rend, type);
+        auto* texture = m_pimpl->xpm_icons.get_icon(rend, type);
         if (!texture) {
             return false;
         }
@@ -1570,10 +1581,11 @@ std::size_t sdlpp_renderer::font::hash() const noexcept
 
 void sdlpp_renderer::shutdown()
 {
+    // Drop CPU-side font data (TTF bytes, ttf_font, glyph_cache). Safe
+    // to call before SDL shuts down since this cache holds no GPU
+    // resources. Per-renderer GPU caches (atlas textures, xpm icons,
+    // image textures) are released via sdlpp_renderer::impl's destructor.
     font_cache_manager::instance().clear();
-    get_xpm_cache().clear();
-    // Per-renderer image caches are released via sdlpp_renderer::impl's
-    // destructor; no global clear here.
 }
 
 } // namespace onyxui::sdlpp
