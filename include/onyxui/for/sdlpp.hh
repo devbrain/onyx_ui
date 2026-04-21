@@ -19,7 +19,7 @@
  * `<onyxui/backend/sdlpp.hh>` directly and skip the app shell.
  * Consumers who want the uniform `onyxui::ui::*` spelling should
  * additionally include `<onyxui/ui.hh>` with
- * `ONYXUI_BACKEND_SDLPP` set — see that header.
+ * `ONYXUI_UI_BACKEND=::onyxui::sdlpp` set — see that header.
  *
  * Header order matters:
  *   1. Include `<onyxui/backend/sdlpp.hh>` so widget aliases populate

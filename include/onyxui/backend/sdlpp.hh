@@ -18,8 +18,9 @@
  *
  * Consumer code that wants a backend-agnostic `onyxui::ui::*`
  * spelling should include `<onyxui/ui.hh>` after setting
- * `ONYXUI_BACKEND_SDLPP` at the CMake target level — see that
- * header for the rationale.
+ * `ONYXUI_UI_BACKEND` to `::onyxui::sdlpp` (via CMake
+ * `target_compile_definitions` or a project-level config header)
+ * — see that header for the rationale.
  *
  * Consumer code that also wants the FLTK-grade simple shell
  * (`app_window`, `run()`, dialog helpers) should include
