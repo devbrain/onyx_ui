@@ -18,6 +18,17 @@ bool g_quit_requested = false;
 // Pointer to external renderer (game engine mode)
 ::sdlpp::renderer* g_external_renderer = nullptr;
 
+// Reference count for init/shutdown pairs.
+//
+// Each SDL window's `app_window::impl` calls init() on construction
+// and shutdown() on destruction. The shared process-global state
+// (CPU font cache, anything else we tear down in shutdown()) must not
+// go away while any other live renderer still wants it — doing so
+// leaves surviving per-renderer GPU atlas caches keyed against a
+// font_hash whose CPU entry no longer exists, desynchronising glyph
+// rects from atlas contents across windows.
+int g_init_count = 0;
+
 // Map SDL keycode to OnyxUI key_code
 [[nodiscard]] key_code map_sdl_keycode(::sdlpp::keycode kc) noexcept
 {
@@ -235,12 +246,22 @@ bool sdlpp_backend::init([[maybe_unused]] ::sdlpp::renderer& renderer)
 {
     g_external_renderer = &renderer;
     g_quit_requested = false;
+    ++g_init_count;
     return true;
 }
 
 void sdlpp_backend::shutdown()
 {
-    // Clear font cache before SDL shuts down
+    if (g_init_count <= 0) {
+        return;  // already torn down / never initialised
+    }
+    if (--g_init_count > 0) {
+        return;  // other renderers still live; keep shared state intact
+    }
+
+    // Last live renderer going away: safe to release the process-global
+    // CPU font cache. Per-renderer GPU caches (atlas / xpm / image
+    // textures) were already released by each renderer's impl destructor.
     sdlpp_renderer::shutdown();
     g_external_renderer = nullptr;
 }
