@@ -121,14 +121,30 @@ struct sdlpp_backend {
      *
      * Call this before using OnyxUI in a game engine context.
      * The game engine owns the SDL context and renderer.
+     *
+     * Pairs with `shutdown()` — reference-counted, so multi-window
+     * hosts can call init/shutdown per window without tearing down
+     * process-global state until the last window goes away.
      */
     static bool init(::sdlpp::renderer& renderer);
 
     /**
-     * @brief Shutdown backend and release resources
+     * @brief Release one reference taken by `init()`.
      *
-     * Must be called before SDL shuts down to prevent crashes.
-     * Clears font cache and releases GPU resources.
+     * Each call to `init()` must be paired with exactly one call to
+     * `shutdown()`. Only the final matching call (reference count
+     * reaches zero) actually releases process-global state — namely
+     * the CPU-side font cache (TTF bytes, rasterized glyphs).
+     *
+     * GPU resources (font atlas textures, XPM icon textures, cached
+     * image textures) are *not* touched here: each live
+     * `sdlpp_renderer` owns its own SDL textures and releases them
+     * via its own destructor. This means closing one window in a
+     * multi-window host does not invalidate textures held by any
+     * other live window.
+     *
+     * Must be called before SDL itself shuts down to avoid leaking
+     * FreeType state into the crash surface.
      */
     static void shutdown();
 
