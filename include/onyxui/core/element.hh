@@ -1515,9 +1515,20 @@ namespace onyxui {
             return m_last_measured_size;
         }
 
+        // Measure against the size the widget will actually get. Fixed
+        // constraints are not just post-measure clamps: descendants such
+        // as wrapped labels need the final content box width to report the
+        // correct height during the measure pass.
+        logical_unit const effective_width = (m_width_constraint.policy == size_policy::fixed)
+            ? m_width_constraint.clamp(m_width_constraint.preferred_size)
+            : available_width;
+        logical_unit const effective_height = (m_height_constraint.policy == size_policy::fixed)
+            ? m_height_constraint.clamp(m_height_constraint.preferred_size)
+            : available_height;
+
         // Account for margin - subtract from available space
-        logical_unit content_width = available_width - m_margin.horizontal();
-        logical_unit content_height = available_height - m_margin.vertical();
+        logical_unit content_width = effective_width - m_margin.horizontal();
+        logical_unit content_height = effective_height - m_margin.vertical();
 
         // Clamp to zero (can't have negative dimensions)
         content_width = max(content_width, logical_unit(0.0));

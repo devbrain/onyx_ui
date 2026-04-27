@@ -15,6 +15,22 @@ using namespace onyxui;
 using testing::make_relative_rect;
 
 TEST_SUITE("ui_element") {
+    class MeasureProbeElement : public TestElement {
+    public:
+        using TestElement::TestElement;
+
+        logical_unit measured_width{0_lu};
+        logical_unit measured_height{0_lu};
+
+    protected:
+        logical_size do_measure(logical_unit available_width,
+                                logical_unit available_height) override {
+            measured_width = available_width;
+            measured_height = available_height;
+            return logical_size{available_width, available_height};
+        }
+    };
+
     TEST_CASE("Basic construction and hierarchy") {
         auto root = std::make_unique<TestElement>();
         CHECK(root->is_visible());
@@ -70,6 +86,20 @@ TEST_SUITE("ui_element") {
         measured = element->measure(300_lu, 250_lu);
         CHECK(measured.width == 50_lu);  // Content is 0, clamped to min
         CHECK(measured.height == 40_lu); // Content is 0, clamped to min
+    }
+
+    TEST_CASE("Fixed constraints measure against the constrained size") {
+        auto element = std::make_unique<MeasureProbeElement>();
+        element->set_margin(logical_thickness{5_lu, 7_lu, 11_lu, 13_lu});
+        element->set_width_constraint({size_policy::fixed, 100_lu, 100_lu});
+        element->set_height_constraint({size_policy::fixed, 60_lu, 60_lu});
+
+        logical_size const measured = element->measure(1000_lu, 1000_lu);
+
+        CHECK(element->measured_width == 84_lu);   // 100 - (5 + 11)
+        CHECK(element->measured_height == 40_lu);  // 60 - (7 + 13)
+        CHECK(measured.width == 100_lu);
+        CHECK(measured.height == 60_lu);
     }
 
     TEST_CASE("Visibility changes") {
