@@ -67,6 +67,8 @@ namespace onyxui {
 
         // 3. Create title label (always content-sized)
         m_title_label = this->template emplace_child<label>(m_title);
+        m_title_label->set_vertical_align(vertical_alignment::stretch);
+        m_title_label->set_text_vertical_align(vertical_alignment::center);
         size_constraint width_constraint;
         width_constraint.policy = size_policy::content;
         m_title_label->set_width_constraint(width_constraint);

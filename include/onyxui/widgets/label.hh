@@ -134,6 +134,25 @@ namespace onyxui {
         }
 
         /**
+         * @brief Set vertical alignment for text inside the label bounds.
+         *
+         * @details
+         * This affects rendering only. The label still measures to its natural
+         * text height; parents that want centered text must assign the label a
+         * taller arranged height, usually via vertical_alignment::stretch.
+         */
+        void set_text_vertical_align(vertical_alignment align) {
+            if (m_text_vertical_align != align) {
+                m_text_vertical_align = align;
+                this->mark_dirty();
+            }
+        }
+
+        [[nodiscard]] vertical_alignment text_vertical_align() const noexcept {
+            return m_text_vertical_align;
+        }
+
+        /**
          * @brief Set label text with mnemonic syntax
          * @param mnemonic_text Text with "&" mnemonic markers (e.g., "&Name:")
          *
@@ -244,6 +263,7 @@ namespace onyxui {
                 );
 
                 if (!mnemonic_info.text.empty()) {
+                    apply_vertical_text_offset(ctx, y, measured_text_height(m_text, font));
                     // Render styled text with mnemonic (multi-segment)
                     for (const auto& segment : mnemonic_info.text) {
                         typename Backend::point_type const segment_pos{x, y};
@@ -253,6 +273,7 @@ namespace onyxui {
                     }
                 } else {
                     // Fallback to plain text if parsing failed
+                    apply_vertical_text_offset(ctx, y, measured_text_height(m_text, font));
                     typename Backend::point_type const text_pos{x, y};
                     (void)ctx.draw_text(m_text, text_pos, font, fg);
                 }
@@ -267,9 +288,11 @@ namespace onyxui {
 
                 if (m_wrap_lines.empty()) {
                     // No measure yet, no width hint — render as single line.
+                    apply_vertical_text_offset(ctx, y, measured_text_height(m_text, font));
                     typename Backend::point_type const text_pos{x, y};
                     (void)ctx.draw_text(m_text, text_pos, font, fg);
                 } else {
+                    apply_vertical_text_offset(ctx, y, measured_wrapped_text_height(font));
                     for (const auto& line : m_wrap_lines) {
                         typename Backend::point_type const line_pos{x, y};
                         auto text_size = ctx.draw_text(line, line_pos, font, fg);
@@ -278,6 +301,7 @@ namespace onyxui {
                 }
             } else {
                 // Render plain text using pre-resolved style
+                apply_vertical_text_offset(ctx, y, measured_text_height(m_text, font));
                 typename Backend::point_type const text_pos{x, y};
                 (void)ctx.draw_text(m_text, text_pos, font, fg);
             }
@@ -430,6 +454,50 @@ namespace onyxui {
             if (!current.empty()) out.push_back(current);
         }
 
+        [[nodiscard]] static int measured_text_height(
+            const std::string& text,
+            const typename renderer_type::font& font) {
+            auto const size = renderer_type::measure_text(
+                text.empty() ? std::string_view(" ") : std::string_view(text),
+                font);
+            return size_utils::get_height(size);
+        }
+
+        [[nodiscard]] int measured_wrapped_text_height(
+            const typename renderer_type::font& font) const {
+            int total = 0;
+            for (const auto& line : m_wrap_lines) {
+                total += measured_text_height(line, font);
+            }
+            return total;
+        }
+
+        void apply_vertical_text_offset(
+            const render_context<Backend>& ctx,
+            int& y,
+            int text_height) const {
+            if (text_height <= 0) {
+                return;
+            }
+
+            int const available_height = size_utils::get_height(ctx.available_size());
+            if (available_height <= text_height) {
+                return;
+            }
+
+            switch (m_text_vertical_align) {
+                case vertical_alignment::center:
+                    y += (available_height - text_height) / 2;
+                    break;
+                case vertical_alignment::bottom:
+                    y += available_height - text_height;
+                    break;
+                case vertical_alignment::top:
+                case vertical_alignment::stretch:
+                    break;
+            }
+        }
+
         // -----------------------------------------------------------------
         // State
         // -----------------------------------------------------------------
@@ -438,6 +506,7 @@ namespace onyxui {
         std::string m_mnemonic_markup;            ///< Raw markup like "&Name:" (parsed on-the-fly during render)
 
         wrap_mode   m_wrap_mode = wrap_mode::none;
+        vertical_alignment m_text_vertical_align = vertical_alignment::top;
 
         /// Cache of the per-line wrapped text from the most recent
         /// measure pass. Invalidated when text, wrap_mode, or the
