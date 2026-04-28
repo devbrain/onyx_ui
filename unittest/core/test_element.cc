@@ -102,6 +102,32 @@ TEST_SUITE("ui_element") {
         CHECK(measured.height == 60_lu);
     }
 
+    TEST_CASE("Percentage constraints measure against the constrained size") {
+        auto element = std::make_unique<MeasureProbeElement>();
+        element->set_margin(logical_thickness{5_lu, 7_lu, 11_lu, 13_lu});
+
+        size_constraint width;
+        width.policy = size_policy::percentage;
+        width.percentage = 0.5F;
+        width.min_size = 100_lu;
+        width.max_size = 300_lu;
+        element->set_width_constraint(width);
+
+        size_constraint height;
+        height.policy = size_policy::percentage;
+        height.percentage = 0.25F;
+        height.min_size = 50_lu;
+        height.max_size = 200_lu;
+        element->set_height_constraint(height);
+
+        logical_size const measured = element->measure(800_lu, 600_lu);
+
+        CHECK(element->measured_width == 284_lu);   // 300 - (5 + 11)
+        CHECK(element->measured_height == 130_lu);  // 150 - (7 + 13)
+        CHECK(measured.width == 300_lu);            // 800 * 0.5, clamped to max
+        CHECK(measured.height == 150_lu);           // 600 * 0.25
+    }
+
     TEST_CASE("Visibility changes") {
         auto element = std::make_unique<TestElement>();
 

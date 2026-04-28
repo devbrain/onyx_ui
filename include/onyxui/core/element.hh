@@ -1515,16 +1515,26 @@ namespace onyxui {
             return m_last_measured_size;
         }
 
-        // Measure against the size the widget will actually get. Fixed
-        // constraints are not just post-measure clamps: descendants such
-        // as wrapped labels need the final content box width to report the
-        // correct height during the measure pass.
-        logical_unit const effective_width = (m_width_constraint.policy == size_policy::fixed)
-            ? m_width_constraint.clamp(m_width_constraint.preferred_size)
-            : available_width;
-        logical_unit const effective_height = (m_height_constraint.policy == size_policy::fixed)
-            ? m_height_constraint.clamp(m_height_constraint.preferred_size)
-            : available_height;
+        // Measure against the size the widget will actually get. Fixed and
+        // percentage constraints are not just post-measure clamps: descendants
+        // such as wrapped labels need the final content box width to report
+        // the correct height during the measure pass.
+        logical_unit const effective_width =
+            (m_width_constraint.policy == size_policy::fixed)
+                ? m_width_constraint.clamp(m_width_constraint.preferred_size)
+            : (m_width_constraint.policy == size_policy::percentage)
+                ? m_width_constraint.clamp(
+                    logical_unit(available_width.value
+                                 * static_cast<double>(m_width_constraint.percentage)))
+                : available_width;
+        logical_unit const effective_height =
+            (m_height_constraint.policy == size_policy::fixed)
+                ? m_height_constraint.clamp(m_height_constraint.preferred_size)
+            : (m_height_constraint.policy == size_policy::percentage)
+                ? m_height_constraint.clamp(
+                    logical_unit(available_height.value
+                                 * static_cast<double>(m_height_constraint.percentage)))
+                : available_height;
 
         // Account for margin - subtract from available space
         logical_unit content_width = effective_width - m_margin.horizontal();
@@ -1541,13 +1551,18 @@ namespace onyxui {
         logical_unit meas_w = measured.width + m_margin.horizontal();
         logical_unit meas_h = measured.height + m_margin.vertical();
 
-        // Apply constraints — fixed policy uses preferred_size directly
-        logical_unit clamped_w = (m_width_constraint.policy == size_policy::fixed)
-            ? m_width_constraint.clamp(m_width_constraint.preferred_size)
-            : m_width_constraint.clamp(meas_w);
-        logical_unit clamped_h = (m_height_constraint.policy == size_policy::fixed)
-            ? m_height_constraint.clamp(m_height_constraint.preferred_size)
-            : m_height_constraint.clamp(meas_h);
+        // Apply constraints — fixed and percentage policies use their target
+        // size directly rather than growing from natural content.
+        logical_unit clamped_w =
+            (m_width_constraint.policy == size_policy::fixed
+             || m_width_constraint.policy == size_policy::percentage)
+                ? effective_width
+                : m_width_constraint.clamp(meas_w);
+        logical_unit clamped_h =
+            (m_height_constraint.policy == size_policy::fixed
+             || m_height_constraint.policy == size_policy::percentage)
+                ? effective_height
+                : m_height_constraint.clamp(meas_h);
 
         // Store clamped sizes
         measured.width = clamped_w;
