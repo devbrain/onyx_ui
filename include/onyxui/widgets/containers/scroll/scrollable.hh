@@ -492,12 +492,32 @@ namespace onyxui {
             logical_unit const child_x = logical_unit(std::round(-m_scroll_x));
             logical_unit const child_y = logical_unit(std::round(-m_scroll_y));
 
+            // Per-axis arrange size:
+            // - With visibility policy `hidden`, no scrollbar will ever
+            //   be shown on that axis, so content overflowing the
+            //   viewport simply gets clipped instead of scrolled. To
+            //   match user expectations (and avoid surprises like a
+            //   form dialog's right-hand image getting pushed past the
+            //   dialog edge because a wrap-mode label measured wide
+            //   first), arrange children inside the viewport on that
+            //   axis instead of inside the natural content size.
+            // - With `always` or `auto_hide` we keep using the content
+            //   size — that's the whole point of scrolling.
+            double const arrange_width =
+                (m_visibility_policy.horizontal == scrollbar_visibility::hidden)
+                    ? std::min(m_content_width, m_viewport_width)
+                    : m_content_width;
+            double const arrange_height =
+                (m_visibility_policy.vertical == scrollbar_visibility::hidden)
+                    ? std::min(m_content_height, m_viewport_height)
+                    : m_content_height;
+
             // Arrange children ONCE with scroll offset baked in
             // This is the ONLY arrangement - no double-arrangement
             for (auto& child : this->children()) {
                 logical_rect child_bounds{child_x, child_y,
-                    logical_unit(m_content_width),
-                    logical_unit(m_content_height)};
+                    logical_unit(arrange_width),
+                    logical_unit(arrange_height)};
                 child->arrange(child_bounds);
             }
         }

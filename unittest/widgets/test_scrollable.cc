@@ -1013,3 +1013,41 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scrollable - Visibil
     CHECK(h_visible == true);
     CHECK(v_visible == true);
 }
+
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>,
+                  "scrollable - hidden horizontal scrollbar must clip content to viewport, not overflow") {
+    // Repro for warlords scenario_info_dialog: a scroll_view with
+    // horizontal scroll disabled was leaving its child arranged at
+    // the natural (unconstrained) measured width, so a fixed-width
+    // image inside an hbox was being positioned past the dialog's
+    // right edge — only its leftmost sliver was visible.
+    //
+    // Expected: when the horizontal scrollbar visibility policy is
+    // `hidden`, the scrollable arranges its child at the viewport
+    // width (clipping any natural overflow), not at the natural
+    // measured width.
+    scrollable<test_canvas_backend> scroll;
+    scroll.set_scrollbar_visibility(
+        scrollbar_visibility::hidden,           // horizontal: never scroll
+        scrollbar_visibility::auto_hide);       // vertical: ok to scroll
+
+    // Big child — natural width 800, much wider than the viewport
+    // we'll arrange the scrollable into (400 wide).
+    auto big = make_fixed_panel(800, 100);
+    auto* big_ptr = big.get();
+    scroll.add_child(std::move(big));
+
+    scroll.measure(400_lu, 200_lu);
+    scroll.arrange(logical_rect{0_lu, 0_lu, 400_lu, 200_lu});
+
+    const auto child_bounds = big_ptr->bounds();
+    INFO("child bounds w=" << child_bounds.width.to_int()
+         << " h=" << child_bounds.height.to_int()
+         << " (viewport = 400 x 200, natural = 800 x 100)");
+
+    // Width must be clipped to viewport (400), not the natural 800,
+    // since horizontal scrolling is disabled.
+    CHECK_MESSAGE(child_bounds.width.to_int() <= 400,
+                  "horizontal scroll is hidden but child arranged "
+                  "wider than viewport: " << child_bounds.width.to_int());
+}
