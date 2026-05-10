@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <onyxui/core/element.hh>
 #include <onyxui/core/signal.hh>
 #include <algorithm>

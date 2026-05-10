@@ -45,6 +45,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/hotkeys/semantic_action_guard.hh>
 #include <onyxui/services/ui_services.hh>

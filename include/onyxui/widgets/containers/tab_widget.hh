@@ -47,6 +47,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include "onyxui/core/rendering/render_context.hh"
 #include <onyxui/widgets/containers/panel.hh>
 #include <onyxui/services/ui_services.hh>

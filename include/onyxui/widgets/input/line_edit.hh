@@ -61,6 +61,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include "onyxui/core/signal.hh"
 #include <algorithm>
 #include <functional>

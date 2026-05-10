@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #ifdef ONYXUI_ENABLE_YAML_THEMES
 
 #include <fkYAML/node.hpp>

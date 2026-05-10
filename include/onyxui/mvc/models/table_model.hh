@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <algorithm>
 #include <string>
 #include <vector>

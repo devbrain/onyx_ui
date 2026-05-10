@@ -72,6 +72,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <onyxui/concepts/backend.hh>
 #include <string>
 #include <vector>

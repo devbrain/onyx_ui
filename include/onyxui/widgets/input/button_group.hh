@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <onyxui/concepts/backend.hh>
 #include <onyxui/core/signal.hh>

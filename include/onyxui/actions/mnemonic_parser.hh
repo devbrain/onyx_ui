@@ -112,6 +112,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <onyxui/widgets/styled_text.hh>
 #include <onyxui/concepts/backend.hh>
 #include <string_view>

@@ -37,6 +37,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <vector>
 #include <algorithm>
 #include <onyxui/concepts/rect_like.hh>

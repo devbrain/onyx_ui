@@ -56,6 +56,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <vector>
 #include <memory>
 #include <onyxui/widgets/core/widget_container.hh>
