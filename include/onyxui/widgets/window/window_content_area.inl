@@ -27,6 +27,9 @@ namespace onyxui {
         if (m_scrollable) {
             // Create scroll_view to wrap content
             m_scroll_view = this->template emplace_child<scroll_view>();
+            size_constraint fill_height;
+            fill_height.policy = size_policy::expand;
+            m_scroll_view->set_height_constraint(fill_height);
         }
     }
 
@@ -55,6 +58,9 @@ namespace onyxui {
             m_scroll_view->content_add_child(std::move(content));
         } else {
             // Add as direct child
+            size_constraint fill_height;
+            fill_height.policy = size_policy::expand;
+            content->set_height_constraint(fill_height);
             m_content = content.get();
             this->add_child(std::move(content));
         }
@@ -75,6 +81,9 @@ namespace onyxui {
             // Switching to scrollable: create scroll_view and move content into it
             if (!m_scroll_view) {
                 m_scroll_view = this->template emplace_child<scroll_view>();
+                size_constraint fill_height;
+                fill_height.policy = size_policy::expand;
+                m_scroll_view->set_height_constraint(fill_height);
             }
 
             // If we have content, move it from direct child to scroll_view
@@ -93,6 +102,9 @@ namespace onyxui {
                 auto content_unique = m_scroll_view->content_remove_child(m_content);
                 if (content_unique) {
                     // Add as direct child
+                    size_constraint fill_height;
+                    fill_height.policy = size_policy::expand;
+                    content_unique->set_height_constraint(fill_height);
                     this->add_child(std::move(content_unique));
                 }
             }

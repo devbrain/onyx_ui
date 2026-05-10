@@ -239,7 +239,9 @@ namespace onyxui {
          * @param y Vertical scroll position
          */
         void scroll_to(double x, double y) {
-            m_content_ptr->scroll_to(x, y);
+            m_content_ptr->scroll_to(
+                m_horizontal_scroll_enabled ? x : 0.0,
+                m_vertical_scroll_enabled ? y : 0.0);
         }
 
         /**
@@ -248,7 +250,7 @@ namespace onyxui {
          * @param y Vertical scroll position
          */
         void scroll_to(int x, int y) {
-            m_content_ptr->scroll_to(x, y);
+            scroll_to(static_cast<double>(x), static_cast<double>(y));
         }
 
         /**
@@ -257,7 +259,9 @@ namespace onyxui {
          * @param dy Vertical delta
          */
         void scroll_by(double dx, double dy) {
-            m_content_ptr->scroll_by(dx, dy);
+            m_content_ptr->scroll_by(
+                m_horizontal_scroll_enabled ? dx : 0.0,
+                m_vertical_scroll_enabled ? dy : 0.0);
         }
 
         /**
@@ -266,7 +270,7 @@ namespace onyxui {
          * @param dy Vertical delta
          */
         void scroll_by(int dx, int dy) {
-            m_content_ptr->scroll_by(dx, dy);
+            scroll_by(static_cast<double>(dx), static_cast<double>(dy));
         }
 
         /**
@@ -308,10 +312,14 @@ namespace onyxui {
          * @param enabled True to enable, false to disable
          */
         void set_horizontal_scroll_enabled(bool enabled) {
+            m_horizontal_scroll_enabled = enabled;
             m_content_ptr->set_scrollbar_visibility(
                 enabled ? scrollbar_visibility::auto_hide : scrollbar_visibility::hidden,
                 m_content_ptr->get_scrollbar_visibility_policy().vertical
             );
+            if (!enabled) {
+                m_content_ptr->scroll_to(0.0, m_content_ptr->get_scroll_y());
+            }
             m_controller_ptr->refresh();
         }
 
@@ -320,10 +328,14 @@ namespace onyxui {
          * @param enabled True to enable, false to disable
          */
         void set_vertical_scroll_enabled(bool enabled) {
+            m_vertical_scroll_enabled = enabled;
             m_content_ptr->set_scrollbar_visibility(
                 m_content_ptr->get_scrollbar_visibility_policy().horizontal,
                 enabled ? scrollbar_visibility::auto_hide : scrollbar_visibility::hidden
             );
+            if (!enabled) {
+                m_content_ptr->scroll_to(m_content_ptr->get_scroll_x(), 0.0);
+            }
             m_controller_ptr->refresh();
         }
 
@@ -448,7 +460,7 @@ namespace onyxui {
                         // 1. Shift+wheel = horizontal scroll
                         // 2. If content only scrolls horizontally = horizontal scroll
                         // 3. Otherwise = vertical scroll
-                        bool scroll_horizontal = mouse->modifiers.shift;
+                        bool scroll_horizontal = mouse->modifiers.shift && m_horizontal_scroll_enabled;
 
                         if (!scroll_horizontal) {
                             // Check if we can scroll vertically
@@ -458,8 +470,8 @@ namespace onyxui {
                             double const content_w = scroll_info.content_width;
                             double const viewport_w = scroll_info.viewport_width;
 
-                            bool const can_scroll_v = content_h > viewport_h;
-                            bool const can_scroll_h = content_w > viewport_w;
+                            bool const can_scroll_v = m_vertical_scroll_enabled && content_h > viewport_h;
+                            bool const can_scroll_h = m_horizontal_scroll_enabled && content_w > viewport_w;
 
                             // If can't scroll vertically but can scroll horizontally, use horizontal
                             if (!can_scroll_v && can_scroll_h) {
@@ -468,9 +480,9 @@ namespace onyxui {
                         }
 
                         if (scroll_horizontal) {
-                            m_content_ptr->scroll_by(delta, 0);
+                            scroll_by(delta, 0);
                         } else {
-                            m_content_ptr->scroll_by(0, delta);
+                            scroll_by(0, delta);
                         }
                         return true;
                     }
@@ -506,19 +518,19 @@ namespace onyxui {
 
             // Arrow keys - scroll by line
             if (kbd.key == key_code::arrow_up) {
-                m_content_ptr->scroll_by(0, -1);
+                scroll_by(0, -1);
                 return true;
             }
             if (kbd.key == key_code::arrow_down) {
-                m_content_ptr->scroll_by(0, 1);
+                scroll_by(0, 1);
                 return true;
             }
             if (kbd.key == key_code::arrow_left) {
-                m_content_ptr->scroll_by(-1, 0);
+                scroll_by(-1, 0);
                 return true;
             }
             if (kbd.key == key_code::arrow_right) {
-                m_content_ptr->scroll_by(1, 0);
+                scroll_by(1, 0);
                 return true;
             }
 
@@ -527,26 +539,26 @@ namespace onyxui {
                 // Use scrollable bounds to get viewport height
                 auto viewport_bounds = m_content_ptr->bounds();
                 int viewport_height = viewport_bounds.height.to_int();
-                m_content_ptr->scroll_by(0, -viewport_height);
+                scroll_by(0, -viewport_height);
                 return true;
             }
             if (kbd.key == key_code::page_down) {
                 // Use scrollable bounds to get viewport height
                 auto viewport_bounds = m_content_ptr->bounds();
                 int viewport_height = viewport_bounds.height.to_int();
-                m_content_ptr->scroll_by(0, viewport_height);
+                scroll_by(0, viewport_height);
                 return true;
             }
 
             // Home/End - jump to top/bottom
             if (kbd.key == key_code::home) {
-                m_content_ptr->scroll_to(0, 0);
+                scroll_to(0, 0);
                 return true;
             }
             if (kbd.key == key_code::end) {
                 // Scroll to large number to ensure we reach the end
                 // scrollable will clamp this to max scroll position
-                m_content_ptr->scroll_to(0, 9999);
+                scroll_to(0, 9999);
                 return true;
             }
 
@@ -564,6 +576,8 @@ namespace onyxui {
         scrollbar_type* m_vscrollbar_ptr = nullptr;      ///< Vertical scrollbar
         scrollbar_type* m_hscrollbar_ptr = nullptr;      ///< Horizontal scrollbar
         controller_type* m_controller_ptr = nullptr;     ///< Controller (same as m_controller.get())
+        bool m_horizontal_scroll_enabled = true;
+        bool m_vertical_scroll_enabled = true;
     };
 
 } // namespace onyxui

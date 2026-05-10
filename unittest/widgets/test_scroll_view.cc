@@ -240,6 +240,29 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - set_ho
     CHECK(policy.horizontal == scrollbar_visibility::hidden);
 }
 
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - disabled horizontal axis ignores wheel fallback") {
+    scroll_view<test_canvas_backend> view;
+    view.set_horizontal_scroll_enabled(false);
+    view.content_add_child(make_fixed_panel<test_canvas_backend>(200, 50));
+
+    [[maybe_unused]] auto size = view.measure(100_lu, 100_lu);
+    view.arrange(logical_rect{0_lu, 0_lu, 100_lu, 100_lu});
+
+    mouse_event wheel{
+        .x = 10_lu,
+        .y = 10_lu,
+        .btn = mouse_event::button::none,
+        .act = mouse_event::action::wheel_down,
+        .modifiers = {}
+    };
+
+    CHECK(view.handle_event(ui_event{wheel}, event_phase::target) == true);
+    CHECK(point_utils::get_x(view.content()->get_scroll_offset()) == 0);
+
+    view.scroll_by(50, 0);
+    CHECK(point_utils::get_x(view.content()->get_scroll_offset()) == 0);
+}
+
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "scroll_view - set_vertical_scroll_enabled true") {
     scroll_view<test_canvas_backend> view;
 

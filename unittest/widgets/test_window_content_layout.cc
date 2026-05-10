@@ -211,6 +211,20 @@ TEST_SUITE("window - content layout") {
         toggle_row->add_child(std::make_unique<spring<Backend>>());
         body_content->add_child(std::move(toggle_row));
 
+        auto advanced = std::make_unique<vbox<Backend>>(spacing::small);
+        auto* advanced_ptr = advanced.get();
+        advanced->set_visible(false);
+        advanced->template emplace_child<label>("Advanced");
+        advanced->template emplace_child<label>("Map: 80 x 80");
+        advanced->template emplace_child<label>("Players: 8");
+        advanced->template emplace_child<label>("Cities: 40");
+        advanced->template emplace_child<label>("Ruins: 12");
+        advanced->template emplace_child<label>("Terrain Set: Test");
+        advanced->template emplace_child<label>("Army Set: Test");
+        advanced->template emplace_child<label>("Shield Set: Test");
+        advanced->template emplace_child<label>("Hero Set: Test");
+        body_content->add_child(std::move(advanced));
+
         body_scroll->content_add_child(std::move(body_content));
         root->add_child(std::move(body_scroll));
         root->add_child(std::make_unique<spacer<Backend>>(0, 0));
@@ -257,6 +271,30 @@ TEST_SUITE("window - content layout") {
             .modifiers = {}
         };
         CHECK(layers.route_event(ui_event{hover}) == true);
+
+        layers.render_all_layers(
+            renderer,
+            viewport,
+            ctx.themes().get_current_theme(),
+            ctx.metrics());
+
+        CHECK(sep_ptr->get_absolute_logical_bounds().y == separator_y_before);
+        CHECK(ok_ptr->get_absolute_logical_bounds().y == ok_y_before);
+
+        advanced_ptr->set_visible(true);
+        toggle_ptr->set_text("Hide Advanced");
+
+        layers.render_all_layers(
+            renderer,
+            viewport,
+            ctx.themes().get_current_theme(),
+            ctx.metrics());
+
+        CHECK(sep_ptr->get_absolute_logical_bounds().y == separator_y_before);
+        CHECK(ok_ptr->get_absolute_logical_bounds().y == ok_y_before);
+
+        advanced_ptr->set_visible(false);
+        toggle_ptr->set_text("Show Advanced");
 
         layers.render_all_layers(
             renderer,
