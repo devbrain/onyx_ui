@@ -365,6 +365,20 @@ namespace onyxui {
             mutable std::vector <logical_unit> m_measured_column_widths; ///< Original measured column widths
             mutable std::vector <logical_unit> m_measured_row_heights; ///< Original measured row heights
 
+            // Per-column lower bound: max measured width across all children
+            // in the column whose w_constraint policy is `content` (i.e.,
+            // sized by their intrinsic content, like a `label`). Columns
+            // populated only by widgets with explicit width policies
+            // (`fixed` / `percentage` / `expand`) report 0 here — the
+            // policy is a soft preference, not a min, so those columns
+            // can shrink in `constrain_to_space` without clipping.
+            //
+            // Used by `constrain_to_space` to distribute the
+            // available-vs-measured deficit only into columns that have
+            // slack, rather than scaling all columns proportionally and
+            // shrinking rigid label columns below their natural width.
+            mutable std::vector <logical_unit> m_column_min_widths;
+
             // Cell mapping (positional data, not config)
             mutable std::unordered_map <elt_t*, grid_cell_info> m_cell_mapping; ///< Child to cell position mapping
 
@@ -760,8 +774,12 @@ namespace onyxui {
     void grid_layout<Backend>::measure_auto_sized_grid(const elt_t* parent, logical_unit available_width,
                                                              logical_unit available_height,
                                                              int actual_rows) const {
-        m_column_widths.resize(static_cast<size_t>(m_num_columns), logical_unit(0.0));
-        m_row_heights.resize(static_cast<size_t>(actual_rows), logical_unit(0.0));
+        // Reset BEFORE the measurement pass so column/row maxima accumulate
+        // from a clean slate; otherwise stale values from a previous measure
+        // would lock the grid at the largest size it ever observed.
+        m_column_widths.assign(static_cast<size_t>(m_num_columns), logical_unit(0.0));
+        m_row_heights.assign(static_cast<size_t>(actual_rows), logical_unit(0.0));
+        m_column_min_widths.assign(static_cast<size_t>(m_num_columns), logical_unit(0.0));
 
         // First pass: Measure non-spanning cells
         for (const auto& child : this->get_children(parent)) {
@@ -783,6 +801,17 @@ namespace onyxui {
                 if (cell.column_span == 1) {
                     m_column_widths[static_cast<size_t>(cell.column)] =
                         max(m_column_widths[static_cast<size_t>(cell.column)], meas_w);
+
+                    // Track per-column min: only widgets sized by their
+                    // intrinsic content (label-like, default policy)
+                    // contribute. Widgets with explicit policies
+                    // (fixed/percentage/expand/...) advertise a soft
+                    // preferred width, which `constrain_to_space` is
+                    // allowed to shrink past.
+                    if (child->w_constraint().policy == size_policy::content) {
+                        m_column_min_widths[static_cast<size_t>(cell.column)] =
+                            max(m_column_min_widths[static_cast<size_t>(cell.column)], meas_w);
+                    }
                 }
 
                 // Update row sizes for single-row spans
@@ -863,26 +892,103 @@ namespace onyxui {
                                         std::max(0.0, static_cast<double>(m_row_heights.size()) - 1.0);
         total_measured_height += row_spacing_total;
 
-        // Adjust columns to match available width (scale down if too big, expand if too small)
+        // Adjust columns to match available width.
         if (total_measured_width != available_width && !m_column_widths.empty()) {
-            // Calculate total width without spacing
+            // Available width once spacing between cells is accounted for.
+            int const num_gaps = std::max(0, static_cast<int>(m_column_widths.size()) - 1);
+            double const total_spacing = m_column_spacing * num_gaps;
+            double const available_for_columns = std::max(0.0, available_width - total_spacing);
+
             double total_columns_only = 0.0;
             for (auto const& w : m_column_widths) {
                 total_columns_only += w.value;
             }
 
-            // Calculate available width minus spacing
-            int const num_gaps = std::max(0, static_cast<int>(m_column_widths.size()) - 1);
-            double const total_spacing = m_column_spacing * num_gaps;
-            double const available_for_columns = std::max(0.0, available_width - total_spacing);
-
-            // Scale each column proportionally
             if (total_columns_only > 0.0) {
-                for (auto& width : m_column_widths) {
-                    // Scale: new_width = (width / total_columns_only) * available_for_columns
-                    double const scaled = (width.value / total_columns_only) * available_for_columns;
-                    // CRITICAL: Ensure minimum size of 1px (zero-sized cells cause rendering bugs)
-                    width = (width.value > 0.0) ? logical_unit(std::max(1.0, scaled)) : logical_unit(0.0);
+                if (available_for_columns >= total_columns_only) {
+                    // Upscale: distribute the surplus proportionally to
+                    // every column — same behaviour as before. Stretchy
+                    // children (line_edits, lists, etc.) absorb the extra
+                    // width happily; rigid label columns simply end up
+                    // wider than their text needs, which is harmless.
+                    double const factor = available_for_columns / total_columns_only;
+                    for (auto& width : m_column_widths) {
+                        if (width.value > 0.0) {
+                            width = logical_unit(std::max(1.0, width.value * factor));
+                        }
+                    }
+                } else {
+                    // Downscale: subtract the deficit only from columns
+                    // that have *slack* — i.e. measured > min. The min
+                    // is the max measured width across rigid (content-
+                    // policy) children in that column, captured during
+                    // measure_auto_sized_grid. Rigid columns stay at
+                    // their measured width so labels never get clipped
+                    // under the next column's content.
+                    //
+                    // If after exhausting all slack the deficit isn't
+                    // covered, fall back to proportional shrinking on
+                    // the rigid columns too — the grid simply doesn't
+                    // fit and something has to give.
+                    double total_slack = 0.0;
+                    for (size_t i = 0; i < m_column_widths.size(); ++i) {
+                        const double slack = m_column_widths[i].value -
+                                             m_column_min_widths[i].value;
+                        if (slack > 0.0) total_slack += slack;
+                    }
+
+                    double const deficit =
+                        total_columns_only - available_for_columns;
+
+                    if (total_slack <= 0.0) {
+                        // No slack anywhere — every column is rigid.
+                        // Best effort: scale all proportionally
+                        // (matches the previous behaviour, just for
+                        // the all-rigid case).
+                        double const factor = available_for_columns / total_columns_only;
+                        for (auto& width : m_column_widths) {
+                            if (width.value > 0.0) {
+                                width = logical_unit(std::max(1.0, width.value * factor));
+                            }
+                        }
+                    } else if (deficit <= total_slack) {
+                        // Deficit fits inside the slack — distribute
+                        // proportionally to each column's slack.
+                        for (size_t i = 0; i < m_column_widths.size(); ++i) {
+                            const double slack = m_column_widths[i].value -
+                                                 m_column_min_widths[i].value;
+                            if (slack > 0.0) {
+                                const double share =
+                                    (slack / total_slack) * deficit;
+                                m_column_widths[i] = logical_unit(
+                                    std::max(1.0,
+                                             m_column_widths[i].value - share));
+                            }
+                        }
+                    } else {
+                        // Slack alone can't cover the deficit. Take all
+                        // slack first, then split the remaining deficit
+                        // proportionally across the rigid columns
+                        // (after-slack widths) so something still gets
+                        // rendered.
+                        double rigid_total = 0.0;
+                        for (size_t i = 0; i < m_column_widths.size(); ++i) {
+                            const double mn = m_column_min_widths[i].value;
+                            m_column_widths[i] = logical_unit(mn);
+                            rigid_total += mn;
+                        }
+                        if (rigid_total > 0.0
+                            && available_for_columns < rigid_total) {
+                            const double factor =
+                                available_for_columns / rigid_total;
+                            for (auto& width : m_column_widths) {
+                                if (width.value > 0.0) {
+                                    width = logical_unit(
+                                        std::max(1.0, width.value * factor));
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

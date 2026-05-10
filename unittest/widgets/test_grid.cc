@@ -8,6 +8,7 @@
 #include <onyxui/widgets/button.hh>
 #include <../../include/onyxui/widgets/containers/grid.hh>
 #include <onyxui/widgets/label.hh>
+#include <onyxui/widgets/input/line_edit.hh>
 #include <utility>
 #include <vector>
 #include <string>
@@ -198,6 +199,91 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "Grid - Grid layout w
         },
         [](const auto& g) { return g.children().size() == 2; }
     );
+
+    SUBCASE("Form layout: tight content_area must not shrink rigid label column") {
+        // This is the actual user-visible bug from warlords' connect_dialog:
+        // when the parent's content_area is narrower than the grid's natural
+        // width (because the line_edit asks for many visible chars), the
+        // grid's constrain_to_space scales BOTH columns proportionally. The
+        // label column shrinks below the widest label's natural width, and
+        // text gets clipped under the next column's edit box.
+        //
+        // The fix should preserve rigid columns (label-only) and absorb the
+        // deficit into the column with flexible content (line_edit's
+        // fixed-policy preferred_size is a soft preference, not a min).
+        grid<test_canvas_backend> g(2, -1, spacing::small, spacing::small);
+
+        auto add_field = [&g](const char* lbl_text) {
+            g.add_child(std::make_unique<label<test_canvas_backend>>(lbl_text));
+            auto edit = std::make_unique<line_edit<test_canvas_backend>>();
+            edit->set_visible_chars(35);
+            g.add_child(std::move(edit));
+        };
+
+        add_field("Server");
+        add_field("Username");
+        add_field("Password");
+
+        const auto natural = g.measure(1000_lu, 1000_lu);
+        const auto narrow_w = logical_unit(natural.width.value * 0.85);
+        INFO("natural=" << natural.width.to_int() << " narrow=" << narrow_w.to_int());
+
+        g.arrange(logical_rect{0_lu, 0_lu, narrow_w, natural.height});
+
+        // children() order: label, edit, label, edit, label, edit
+        const auto& server_lbl = g.children()[0];
+        const auto& uname_lbl  = g.children()[2];
+        const auto& pword_lbl  = g.children()[4];
+
+        CHECK_MESSAGE(server_lbl->bounds().width.to_int() >= 8,
+                      "Server cell width=" << server_lbl->bounds().width.to_int());
+        CHECK_MESSAGE(uname_lbl->bounds().width.to_int() >= 8,
+                      "Username cell width=" << uname_lbl->bounds().width.to_int());
+        CHECK_MESSAGE(pword_lbl->bounds().width.to_int() >= 8,
+                      "Password cell width=" << pword_lbl->bounds().width.to_int());
+    }
+
+    SUBCASE("Form layout: labels of varying width must not clip in 2-col grid") {
+        // Reproduces the warlords connect_dialog bug: a 2-column grid
+        // (label column + line_edit column) where the labels are
+        // different widths across rows. Column 0 must size to the
+        // WIDEST label so the longer labels don't get clipped under
+        // the line_edit boxes in the next column.
+        grid<test_canvas_backend> g(2, -1, spacing::small, spacing::small);
+
+        auto add_field = [&g](const char* lbl_text) {
+            g.add_child(std::make_unique<label<test_canvas_backend>>(lbl_text));
+            auto edit = std::make_unique<line_edit<test_canvas_backend>>();
+            edit->set_visible_chars(35);
+            g.add_child(std::move(edit));
+        };
+
+        add_field("Server");      // 6 chars
+        add_field("Username");    // 8 chars  ← widest
+        add_field("Password");    // 8 chars
+
+        auto natural = g.measure(200_lu, 200_lu);
+        INFO("Measured grid size: " << natural.width.to_int()
+             << " x " << natural.height.to_int());
+
+        // Arrange against an area at least as wide as natural — no
+        // proportional shrink should be needed. Column 0 must end up
+        // wide enough for "Username" (8 chars in test_canvas_backend).
+        g.arrange(logical_rect{0_lu, 0_lu,
+                               logical_unit(natural.width.value),
+                               logical_unit(natural.height.value)});
+
+        // The first label is "Server" (col 0 of row 0). Its arranged
+        // bounds tell us column 0's width.
+        const auto& server_label = g.children().front();
+        const auto col0_width = server_label->bounds().width;
+
+        // Username is 8 chars; column 0 must be at least 8 wide so
+        // the wider labels render without clipping.
+        CHECK_MESSAGE(col0_width.to_int() >= 8,
+                      "Column 0 width is " << col0_width.to_int()
+                      << "; expected >= 8 (widest label \"Username\")");
+    }
 
     SUBCASE("Rule of Five - Dangling pointer fix verification") {
         // This test specifically verifies that the dangling pointer bug is fixed
