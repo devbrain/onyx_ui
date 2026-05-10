@@ -103,13 +103,14 @@ namespace onyxui {
          * @param state New state
          *
          * @details
-         * Automatically calls invalidate_arrange() if the state changes,
-         * triggering a redraw with the new state's visual properties.
+         * Interaction state is a visual state. It must repaint the widget,
+         * but it must not invalidate layout: ordinary hover/press changes
+         * should not cause ancestors to re-arrange their children.
          */
         void set_interaction_state(interaction_state state) {
             if (m_state != state) {
                 m_state = state;
-                this->invalidate_arrange();  // Trigger redraw
+                this->mark_dirty();
             }
         }
 

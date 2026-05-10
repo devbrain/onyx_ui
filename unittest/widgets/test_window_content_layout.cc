@@ -12,8 +12,14 @@
 #include <doctest/doctest.h>
 #include <onyxui/widgets/window/window.hh>
 #include <onyxui/widgets/containers/vbox.hh>
+#include <onyxui/widgets/containers/hbox.hh>
+#include <onyxui/widgets/containers/scroll_view.hh>
 #include <onyxui/widgets/label.hh>
 #include <onyxui/widgets/button.hh>
+#include <onyxui/widgets/layout/spacer.hh>
+#include <onyxui/widgets/layout/spring.hh>
+#include <onyxui/widgets/menu/separator.hh>
+#include <onyxui/services/layer_manager.hh>
 #include "../utils/test_helpers.hh"
 #include "../utils/test_canvas_backend.hh"
 
@@ -161,5 +167,104 @@ TEST_SUITE("window - content layout") {
         auto button1_bounds = button1->bounds();
         CHECK(button1_bounds.width.to_int() > 0);
         CHECK(button1_bounds.height.to_int() > 0);
+    }
+
+    TEST_CASE_FIXTURE(ui_context_fixture<Backend>, "Footer stays bottom-aligned after hovering button inside scroll body") {
+        typename window<Backend>::window_flags flags;
+        flags.is_resizable = false;
+        flags.is_movable = true;
+        flags.has_close_button = true;
+
+        auto win = std::make_unique<window<Backend>>("Scenario Information", flags);
+
+        size_constraint fixed_w;
+        fixed_w.policy = size_policy::fixed;
+        fixed_w.preferred_size = 640_lu;
+        fixed_w.min_size = 380_lu;
+        fixed_w.max_size = 700_lu;
+        win->set_width_constraint(fixed_w);
+
+        size_constraint fixed_h;
+        fixed_h.policy = size_policy::fixed;
+        fixed_h.preferred_size = 280_lu;
+        fixed_h.min_size = 240_lu;
+        fixed_h.max_size = 520_lu;
+        win->set_height_constraint(fixed_h);
+
+        auto root = std::make_unique<vbox<Backend>>(spacing::none);
+
+        auto body_scroll = std::make_unique<scroll_view<Backend>>();
+        body_scroll->set_height_constraint({size_policy::expand});
+        body_scroll->set_horizontal_scroll_enabled(false);
+
+        auto body_content = std::make_unique<vbox<Backend>>(spacing::none);
+        body_content->add_child(std::make_unique<spacer<Backend>>(0, 12));
+        body_content->template emplace_child<label>("Scenario title");
+        body_content->template emplace_child<label>("Author: Test");
+        body_content->template emplace_child<label>("Version: Test");
+        body_content->template emplace_child<label>("Short scenario description");
+
+        auto toggle_row = std::make_unique<hbox<Backend>>(spacing::none);
+        auto toggle = std::make_unique<button<Backend>>("Show Advanced");
+        auto* toggle_ptr = toggle.get();
+        toggle_row->add_child(std::move(toggle));
+        toggle_row->add_child(std::make_unique<spring<Backend>>());
+        body_content->add_child(std::move(toggle_row));
+
+        body_scroll->content_add_child(std::move(body_content));
+        root->add_child(std::move(body_scroll));
+        root->add_child(std::make_unique<spacer<Backend>>(0, 0));
+
+        auto sep = std::make_unique<separator<Backend>>();
+        auto* sep_ptr = sep.get();
+        root->add_child(std::move(sep));
+        root->add_child(std::make_unique<spacer<Backend>>(0, 6));
+
+        auto footer = std::make_unique<hbox<Backend>>(spacing::medium);
+        footer->add_child(std::make_unique<spring<Backend>>());
+        auto ok = std::make_unique<button<Backend>>("OK");
+        auto* ok_ptr = ok.get();
+        footer->add_child(std::move(ok));
+        root->add_child(std::move(footer));
+        root->set_padding({0_lu, 0_lu, 0_lu, 6_lu});
+
+        win->set_content(std::move(root));
+
+        layer_manager<Backend> layers;
+        win->show_modal(layers);
+
+        auto canvas = std::make_shared<test_canvas>(800, 600);
+        typename Backend::renderer_type renderer(canvas);
+        typename Backend::rect_type viewport{0, 0, 800, 600};
+
+        layers.render_all_layers(
+            renderer,
+            viewport,
+            ctx.themes().get_current_theme(),
+            ctx.metrics());
+
+        auto const separator_y_before = sep_ptr->get_absolute_logical_bounds().y;
+        auto const ok_y_before = ok_ptr->get_absolute_logical_bounds().y;
+
+        auto const toggle_bounds = toggle_ptr->get_absolute_logical_bounds();
+        CHECK(separator_y_before > toggle_bounds.y + 50_lu);
+
+        mouse_event hover{
+            .x = toggle_bounds.x + 1_lu,
+            .y = toggle_bounds.y + 1_lu,
+            .btn = mouse_event::button::none,
+            .act = mouse_event::action::move,
+            .modifiers = {}
+        };
+        CHECK(layers.route_event(ui_event{hover}) == true);
+
+        layers.render_all_layers(
+            renderer,
+            viewport,
+            ctx.themes().get_current_theme(),
+            ctx.metrics());
+
+        CHECK(sep_ptr->get_absolute_logical_bounds().y == separator_y_before);
+        CHECK(ok_ptr->get_absolute_logical_bounds().y == ok_y_before);
     }
 }

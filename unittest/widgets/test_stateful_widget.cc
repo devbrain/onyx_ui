@@ -588,6 +588,21 @@ TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - St
     CHECK(hover_size.height.to_int() == pressed_size.height.to_int());
 }
 
+TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - State change does not invalidate layout") {
+    test_stateful_widget<Backend> widget;
+
+    (void)widget.measure(100_lu, 100_lu);
+    widget.arrange(logical_rect{0_lu, 0_lu, 100_lu, 50_lu});
+
+    REQUIRE_FALSE(widget.needs_measure());
+    REQUIRE_FALSE(widget.needs_arrange());
+
+    widget.set_state(test_stateful_widget<Backend>::state_type::hover);
+
+    CHECK_FALSE(widget.needs_measure());
+    CHECK_FALSE(widget.needs_arrange());
+}
+
 TEST_CASE_FIXTURE(ui_context_fixture<test_canvas_backend>, "stateful_widget - Default constructor initializes state") {
     test_stateful_widget<Backend> widget1;
     test_stateful_widget<Backend> widget2;
