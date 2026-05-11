@@ -449,12 +449,6 @@ namespace onyxui {
             icon_style_type arrow_left_icon{};       ///< Icon for left arrow (horizontal scrollbar decrement)
             icon_style_type arrow_right_icon{};      ///< Icon for right arrow (horizontal scrollbar increment)
 
-            // Deprecated: Use specific direction icons above
-            [[deprecated("Use arrow_up_icon/arrow_down_icon instead")]]
-            icon_style_type arrow_decrement_icon{};  ///< Icon for decrement arrow (up for vertical, left for horizontal)
-            [[deprecated("Use arrow_left_icon/arrow_right_icon instead")]]
-            icon_style_type arrow_increment_icon{};  ///< Icon for increment arrow (down for vertical, right for horizontal)
-
             // Animation settings (Phase 2 - auto_hide_inactive policy)
             int fade_duration_ms = 150;         ///< Fade in/out duration
             int inactive_delay_ms = 500;        ///< Delay before hiding after scroll ends

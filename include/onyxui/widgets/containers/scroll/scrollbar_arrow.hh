@@ -54,8 +54,8 @@ namespace onyxui {
      *
      * Icon Selection:
      * - Direction determines which theme icon to use
-     * - theme->scrollbar.arrow_decrement_icon (up/left)
-     * - theme->scrollbar.arrow_increment_icon (down/right)
+     * - theme->scrollbar.arrow_up_icon / arrow_left_icon  (decrement)
+     * - theme->scrollbar.arrow_down_icon / arrow_right_icon (increment)
      *
      * @tparam Backend UIBackend implementation
      */
