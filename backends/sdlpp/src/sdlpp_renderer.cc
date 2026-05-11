@@ -413,7 +413,7 @@ public:
         auto const* bytes = reinterpret_cast<const std::uint8_t*>(xpm_source.data());
         auto decode = onyx_image::xpm_decoder::decode(
             std::span<const std::uint8_t>(bytes, xpm_source.size()), surf);
-        if (!decode.success) {
+        if (!decode) {
             return nullptr;
         }
 
