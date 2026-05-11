@@ -305,8 +305,14 @@ radio_button<Backend>* button_group<Backend>::add_option(const std::string& text
         return nullptr;
     }
 
-    // Create radio button as child
-    auto* rb = this->template emplace_child<radio_button>(text);
+    // Create radio button as child. Spell the type explicitly
+    // (radio_button<Backend>) rather than passing the bare template
+    // `radio_button` — clang 21 (NDK r30) doesn't accept the unqualified
+    // template-template argument here, citing "invalid explicitly-
+    // specified argument" for *both* emplace_child overloads. The
+    // typename form goes through the WidgetType overload and matches on
+    // every compiler we target.
+    auto* rb = this->template emplace_child<radio_button<Backend>>(text);
 
     // Register in map
     m_buttons[id] = rb;

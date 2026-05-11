@@ -545,8 +545,11 @@ namespace onyxui {
      */
     template<typename Parent, typename... Args>
     auto* add_label(Parent& parent, Args&&... args) {
-       // using Backend = typename Parent::backend_type;
-        return parent.template emplace_child<label>(std::forward<Args>(args)...);
+        // Typename form — clang 21 (NDK r30) rejects unqualified class-
+        // template names as template-template arguments to emplace_child.
+        // See button_group::add_option for the long-form diagnostic.
+        return parent.template emplace_child<label<typename Parent::backend_type>>(
+            std::forward<Args>(args)...);
     }
 }
 

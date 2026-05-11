@@ -494,6 +494,12 @@ namespace onyxui {
      */
     template<typename Parent, typename... Args>
     auto* add_button(Parent& parent, Args&&... args) {
-        return parent.template emplace_child<button>(std::forward<Args>(args)...);
+        // Use the typename form (button<Backend>) rather than the bare
+        // template — clang 21 (NDK r30) rejects unqualified class-
+        // template names passed as a template-template argument to
+        // emplace_child. See button_group::add_option for the long-form
+        // diagnostic.
+        return parent.template emplace_child<button<typename Parent::backend_type>>(
+            std::forward<Args>(args)...);
     }
 }
