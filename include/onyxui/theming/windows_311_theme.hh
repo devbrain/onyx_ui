@@ -285,7 +285,7 @@ template<UIBackend Backend>
     t.progress_bar.text_font      = p.default_font;
     t.progress_bar.filled_icon    = icon::progress_filled;
     t.progress_bar.empty_icon     = icon::progress_empty;
-    t.progress_bar.bar_thickness  = 16.0f;
+    t.progress_bar.bar_thickness  = 16.0;
 
     // ------------------------------------------------------------------
     // Slider
@@ -297,7 +297,7 @@ template<UIBackend Backend>
     t.slider.filled_icon        = icon::slider_filled;
     t.slider.empty_icon         = icon::slider_empty;
     t.slider.thumb_icon         = icon::slider_thumb;
-    t.slider.track_thickness    = 12.0f;
+    t.slider.track_thickness    = 12.0;
 
     // ------------------------------------------------------------------
     // Separator
@@ -370,8 +370,8 @@ template<UIBackend Backend>
     t.window.border_color_unfocused = p.button_shadow;
     t.window.content_background     = p.window_bg;
 
-    t.window.title_bar_height = 20.0f;
-    t.window.border_width     = 4.0f;
+    t.window.title_bar_height = 20;
+    t.window.border_width     = 4;
     t.window.title_alignment  = horizontal_alignment::center;
     t.window.shadow.enabled   = false;
 
