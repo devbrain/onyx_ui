@@ -285,7 +285,7 @@ namespace onyxui {
         /**
          * @brief Called when dialog closes (override from window)
          */
-        void on_close() {
+        void on_close() override {
             result_ready.emit(m_result);
         }
 
