@@ -57,16 +57,16 @@ namespace onyxui {
 
         // 1. Menu icon (left edge, optional)
         if (flags.has_menu_button) {
-            m_menu_icon = this->template emplace_child<icon>(icon_style::menu);
+            m_menu_icon = this->template emplace_child<icon<Backend>>(icon_style::menu);
         }
 
         // 2. Add spring BEFORE title for center/right alignment
         if (alignment == horizontal_alignment::center || alignment == horizontal_alignment::right) {
-            this->template emplace_child<spring>();
+            this->template emplace_child<spring<Backend>>();
         }
 
         // 3. Create title label (always content-sized)
-        m_title_label = this->template emplace_child<label>(m_title);
+        m_title_label = this->template emplace_child<label<Backend>>(m_title);
         m_title_label->set_vertical_align(vertical_alignment::stretch);
         m_title_label->set_text_vertical_align(vertical_alignment::center);
         size_constraint width_constraint;
@@ -75,7 +75,7 @@ namespace onyxui {
 
         // 4. Add spring AFTER title for left/center alignment
         if (alignment == horizontal_alignment::left || alignment == horizontal_alignment::center) {
-            this->template emplace_child<spring>();
+            this->template emplace_child<spring<Backend>>();
         }
 
         // 5. Create control icons (right edge)
@@ -131,17 +131,17 @@ namespace onyxui {
 
         // Minimize icon
         if (flags.has_minimize_button) {
-            m_minimize_icon = this->template emplace_child<icon>(icon_style::minimize);
+            m_minimize_icon = this->template emplace_child<icon<Backend>>(icon_style::minimize);
         }
 
         // Maximize icon (starts with maximize, can toggle to restore)
         if (flags.has_maximize_button) {
-            m_maximize_icon = this->template emplace_child<icon>(icon_style::maximize);
+            m_maximize_icon = this->template emplace_child<icon<Backend>>(icon_style::maximize);
         }
 
         // Close icon
         if (flags.has_close_button) {
-            m_close_icon = this->template emplace_child<icon>(icon_style::close_x);
+            m_close_icon = this->template emplace_child<icon<Backend>>(icon_style::close_x);
         }
     }
 

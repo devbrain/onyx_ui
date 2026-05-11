@@ -314,7 +314,7 @@ namespace onyxui {
                 std::string label_text = get_window_label(win, display_index);
 
                 // Create label widget and add to vbox
-                auto* label_widget = m_content_vbox->template emplace_child<label>(label_text);
+                auto* label_widget = m_content_vbox->template emplace_child<label<Backend>>(label_text);
                 m_labels.push_back(label_widget);
 
                 display_index++;

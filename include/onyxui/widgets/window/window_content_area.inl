@@ -26,7 +26,7 @@ namespace onyxui {
     {
         if (m_scrollable) {
             // Create scroll_view to wrap content
-            m_scroll_view = this->template emplace_child<scroll_view>();
+            m_scroll_view = this->template emplace_child<scroll_view<Backend>>();
             size_constraint fill_height;
             fill_height.policy = size_policy::expand;
             m_scroll_view->set_height_constraint(fill_height);
@@ -80,7 +80,7 @@ namespace onyxui {
         if (m_scrollable) {
             // Switching to scrollable: create scroll_view and move content into it
             if (!m_scroll_view) {
-                m_scroll_view = this->template emplace_child<scroll_view>();
+                m_scroll_view = this->template emplace_child<scroll_view<Backend>>();
                 size_constraint fill_height;
                 fill_height.policy = size_policy::expand;
                 m_scroll_view->set_height_constraint(fill_height);
