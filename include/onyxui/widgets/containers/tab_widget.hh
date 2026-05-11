@@ -695,14 +695,6 @@ namespace onyxui {
 
                 // Draw right scroll arrow if overflow
                 if (m_has_overflow) {
-                    // Check if there are more tabs to the right
-                    bool more_right = false;
-                    for (auto i = static_cast<std::size_t>(m_scroll_offset); i < m_tabs.size(); ++i) {
-                        if (m_tabs[i].x_start < 0) {
-                            more_right = true;
-                            break;
-                        }
-                    }
                     int arrow_abs_x = x + total_width - arrow_width.value;
                     m_right_arrow_start = (total_width - arrow_width.value) * phys_to_logical;  // Logical units
                     typename Backend::point_type arrow_pos{arrow_abs_x, tab_y};
