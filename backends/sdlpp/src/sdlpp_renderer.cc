@@ -9,8 +9,6 @@
 #include <sdlpp/image/image.hh>
 #include <onyx_font/bios_font.hh>
 #include <onyx_font/bitmap_font.hh>
-#include <onyx_font/font_factory.hh>
-#include <onyx_font/ttf_font.hh>
 #include <onyx_font/text/font_source.hh>
 #include <onyx_font/text/glyph_cache.hh>
 #include <onyx_font/text/atlas_surface.hh>
@@ -23,13 +21,12 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <span>
+#include <optional>
 #include <stack>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace onyxui::sdlpp {
@@ -49,14 +46,16 @@ namespace {
     }
 
     // Default provider: knows only the built-in "bios" font set.
+    // Returns a font_source wrapping the process-static BIOS bitmap.
     class default_font_source_provider : public font_source_provider {
     public:
-        const onyx_font::bitmap_font* find_bitmap(
+        std::optional<onyx_font::font_source> resolve(
             const sdlpp_renderer::font& f) override {
             if (f.font_set == "bios") {
-                return &onyx_font::bios_font_8x16();
+                return onyx_font::font_source::from_bitmap(
+                    onyx_font::bios_font_8x16());
             }
-            return nullptr;
+            return std::nullopt;
         }
     };
 
@@ -85,14 +84,21 @@ font_source_provider& current_font_source_provider() {
 // =================================================================
 // Font CPU cache — onyx_font::glyph_cache (no GPU resources)
 //
-// Process-global. Owns TTF file bytes, the ttf_font object, and the
-// CPU-side glyph rasterization cache. Used by:
+// Process-global. Owns a font_source per spec (which in turn owns
+// whatever's underneath — bitmap reference, vector reference, or owned
+// TTF bytes + freetype rasterizer) and the CPU-side glyph cache built
+// on top of it. Used by:
 //   - sdlpp_renderer::measure_text  (static — no renderer to route through)
 //   - sdlpp_renderer::draw_text     (to read glyph metrics + atlas pixels)
 //
+// The renderer is deliberately ignorant of the underlying font type:
+// the font_source_provider returns a ready-made font_source, and the
+// renderer never touches ttf_font / freetype directly. File-TTF
+// fallback is an application-level policy and lives in whichever
+// provider wants it.
+//
 // SDL textures are NOT stored here. They live in sdlpp_renderer::impl's
-// font_atlas_cache, one per renderer, so tearing down one renderer
-// doesn't invalidate textures owned by another.
+// font_atlas_cache, one per renderer.
 // =================================================================
 
 class font_cache_manager {
@@ -103,8 +109,6 @@ public:
     }
 
     struct font_entry {
-        std::vector<std::uint8_t> font_data;  ///< keeps ttf_font's span valid
-        std::unique_ptr<onyx_font::ttf_font> ttf;  ///< may be null for bitmap sources
         std::unique_ptr<onyx_font::glyph_cache<onyx_font::memory_atlas>> cache;
     };
 
@@ -113,7 +117,8 @@ public:
     /**
      * @brief Get or create a font_entry for this font spec.
      * @param f Font specification (path, size, style flags)
-     * @return Pointer to entry, or nullptr if font load failed.
+     * @return Pointer to entry, or nullptr if the provider couldn't
+     *         resolve `f` to a font_source.
      */
     font_entry* get_or_create_entry(const sdlpp_renderer::font& f) {
         std::size_t const key = f.hash();
@@ -121,48 +126,13 @@ public:
             return &it->second;
         }
 
-        // First chance: the app-supplied provider. If it returns a
-        // bitmap_font, we build the cache directly from it (no file I/O,
-        // no ttf_font, no retained byte buffer). The provider owns the
-        // bitmap_font's lifetime.
-        if (const auto* bfont = current_font_source_provider().find_bitmap(f)) {
-            return create_from_bitmap(key, f, *bfont);
-        }
-
-        // Fallback: load a TTF from disk (f.path, or system fallback).
-        std::filesystem::path font_path = f.path;
-        if (font_path.empty()) {
-            font_path = find_fallback_font();
-            if (font_path.empty()) {
-                return nullptr;
-            }
-        }
-
-        font_entry entry;
-        entry.font_data = read_file(font_path);
-        if (entry.font_data.empty()) {
+        auto resolved = current_font_source_provider().resolve(f);
+        if (!resolved.has_value() || !resolved->is_valid()) {
             return nullptr;
         }
 
-        try {
-            entry.ttf = std::make_unique<onyx_font::ttf_font>(
-                std::span<const std::uint8_t>(entry.font_data.data(),
-                                              entry.font_data.size()));
-        } catch (...) {
-            return nullptr;
-        }
-
-        entry.cache = make_glyph_cache(f, onyx_font::font_source::from_ttf(*entry.ttf));
-
-        auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
-        return &inserted_it->second;
-    }
-
-    font_entry* create_from_bitmap(std::size_t key,
-                                   const sdlpp_renderer::font& f,
-                                   const onyx_font::bitmap_font& bfont) {
         font_entry entry;
-        entry.cache = make_glyph_cache(f, onyx_font::font_source::from_bitmap(bfont));
+        entry.cache = make_glyph_cache(f, std::move(*resolved));
         auto [inserted_it, _] = m_entries.emplace(key, std::move(entry));
         return &inserted_it->second;
     }
@@ -208,42 +178,6 @@ private:
                 std::move(source), f.size_px, config);
         cache->set_style(style);
         return cache;
-    }
-
-    static std::vector<std::uint8_t> read_file(const std::filesystem::path& p) {
-        std::ifstream in(p, std::ios::binary | std::ios::ate);
-        if (!in) return {};
-        auto const sz = in.tellg();
-        if (sz <= 0) return {};
-        in.seekg(0);
-        std::vector<std::uint8_t> bytes(static_cast<std::size_t>(sz));
-        in.read(reinterpret_cast<char*>(bytes.data()), sz);
-        if (!in) return {};
-        return bytes;
-    }
-
-    static std::filesystem::path find_fallback_font() {
-        static const std::vector<std::filesystem::path> fallback_paths = {
-            // Linux
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-            "/usr/share/fonts/TTF/DejaVuSans.ttf",
-            // macOS
-            "/System/Library/Fonts/Helvetica.ttc",
-            "/System/Library/Fonts/SFNSText.ttf",
-            "/Library/Fonts/Arial.ttf",
-            // Windows (via Wine/WSL)
-            "/usr/share/fonts/truetype/msttcorefonts/arial.ttf",
-            "C:/Windows/Fonts/arial.ttf",
-        };
-
-        for (const auto& path : fallback_paths) {
-            if (std::filesystem::exists(path)) {
-                return path;
-            }
-        }
-        return {};
     }
 
     std::unordered_map<std::size_t, font_entry> m_entries;
